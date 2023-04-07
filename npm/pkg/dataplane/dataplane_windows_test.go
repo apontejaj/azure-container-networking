@@ -34,6 +34,10 @@ func TestRemoteEndpoints(t *testing.T) {
 	testSerialCases(t, remoteEndpointTests())
 }
 
+func TestApplyInBackgroundBootupPhase(t *testing.T) {
+	testSerialCases(t, applyInBackgroundBootupPhaseTests(), time.Duration(100*time.Millisecond))
+}
+
 func TestAllMultiJobCases(t *testing.T) {
 	testMultiJobCases(t, getAllMultiJobTests())
 }
