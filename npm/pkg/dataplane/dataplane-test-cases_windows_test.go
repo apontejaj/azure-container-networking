@@ -14,17 +14,18 @@ import (
 
 // tags
 const (
-	podCrudTag    Tag = "pod-crud"
-	nsCrudTag     Tag = "namespace-crud"
-	netpolCrudTag Tag = "netpol-crud"
-	reconcileTag  Tag = "reconcile"
-	calicoTag     Tag = "calico"
-	skipTestTag   Tag = "skip-test"
+	podCrudTag           Tag = "pod-crud"
+	nsCrudTag            Tag = "namespace-crud"
+	netpolCrudTag        Tag = "netpol-crud"
+	reconcileTag         Tag = "reconcile"
+	calicoTag            Tag = "calico"
+	applyInBackgroundTag Tag = "apply-in-background"
 )
 
 const (
-	thisNode  = "this-node"
-	otherNode = "other-node"
+	testNodeIP = "6.7.8.9"
+	thisNode   = "this-node"
+	otherNode  = "other-node"
 
 	ip1 = "10.0.0.1"
 	ip2 = "10.0.0.2"
@@ -64,6 +65,7 @@ var (
 			AddEmptySetToLists: true,
 		},
 		PolicyManagerCfg: &policies.PolicyManagerCfg{
+			NodeIP:     testNodeIP,
 			PolicyMode: policies.IPSetPolicyMode,
 		},
 	}
@@ -75,6 +77,7 @@ var (
 			AddEmptySetToLists: true,
 		},
 		PolicyManagerCfg: &policies.PolicyManagerCfg{
+			NodeIP:     testNodeIP,
 			PolicyMode: policies.IPSetPolicyMode,
 		},
 	}
@@ -163,6 +166,7 @@ func basicTests() []*SerialTestCase {
 		{
 			Description: "pod created",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				CreateEndpoint(endpoint1, ip1),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				ApplyDP(),
@@ -188,6 +192,7 @@ func basicTests() []*SerialTestCase {
 		{
 			Description: "pod created, then pod deleted",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				CreateEndpoint(endpoint1, ip1),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				ApplyDP(),
@@ -214,6 +219,7 @@ func basicTests() []*SerialTestCase {
 		{
 			Description: "pod created, then pod deleted, then ipsets garbage collected",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				CreateEndpoint(endpoint1, ip1),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				ApplyDP(),
@@ -241,6 +247,7 @@ func basicTests() []*SerialTestCase {
 		{
 			Description: "policy created with no pods",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 			},
 			TestCaseMetadata: &TestCaseMetadata{
@@ -260,6 +267,7 @@ func basicTests() []*SerialTestCase {
 		{
 			Description: "pod created on node, then relevant policy created",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				CreateEndpoint(endpoint1, ip1),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				// will apply dirty ipsets from CreatePod
@@ -303,6 +311,13 @@ func basicTests() []*SerialTestCase {
 							RemotePorts:     "",
 							Priority:        222,
 						},
+						{
+							ID:              "azure-acl-x-base",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
+						},
 					},
 				},
 			},
@@ -310,6 +325,7 @@ func basicTests() []*SerialTestCase {
 		{
 			Description: "pod created on node, then relevant policy created, then policy deleted",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				CreateEndpoint(endpoint1, ip1),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				// will apply dirty ipsets from CreatePod
@@ -338,6 +354,7 @@ func basicTests() []*SerialTestCase {
 		{
 			Description: "pod created off node (no endpoint), then relevant policy created",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				CreatePod("x", "a", ip1, otherNode, map[string]string{"k1": "v1"}),
 				// will apply dirty ipsets from CreatePod
 				UpdatePolicy(policyXBaseOnK1V1()),
@@ -362,6 +379,7 @@ func basicTests() []*SerialTestCase {
 		{
 			Description: "policy created, then pod created which satisfies policy",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				CreateEndpoint(endpoint1, ip1),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
@@ -405,6 +423,13 @@ func basicTests() []*SerialTestCase {
 							RemotePorts:     "",
 							Priority:        222,
 						},
+						{
+							ID:              "azure-acl-x-base",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
+						},
 					},
 				},
 			},
@@ -412,6 +437,7 @@ func basicTests() []*SerialTestCase {
 		{
 			Description: "policy created, then pod created off node (no endpoint) which satisfies policy",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				CreatePod("x", "a", ip1, otherNode, map[string]string{"k1": "v1"}),
 				ApplyDP(),
@@ -436,6 +462,7 @@ func basicTests() []*SerialTestCase {
 		{
 			Description: "policy created, then pod created which satisfies policy, then pod relabeled and no longer satisfies policy",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				CreateEndpoint(endpoint1, ip1),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
@@ -469,6 +496,7 @@ func basicTests() []*SerialTestCase {
 		{
 			Description: "Pod B replaces Pod A with same IP",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				CreateEndpoint(endpoint1, ip1),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				ApplyDP(),
@@ -503,6 +531,7 @@ func basicTests() []*SerialTestCase {
 		{
 			Description: "issue 1613: remove last instance of label, then reconcile IPSets, then apply DP",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				CreateEndpoint(endpoint1, ip1),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				ApplyDP(),
@@ -530,6 +559,7 @@ func basicTests() []*SerialTestCase {
 		{
 			Description: "pod created to satisfy policy, then policy deleted, then pod relabeled to no longer satisfy policy, then policy re-created and pod relabeled to satisfy policy",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				CreateEndpoint(endpoint1, ip1),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				// will apply dirty ipsets from CreatePod
@@ -582,6 +612,13 @@ func basicTests() []*SerialTestCase {
 							RemotePorts:     "",
 							Priority:        222,
 						},
+						{
+							ID:              "azure-acl-x-base",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
+						},
 					},
 				},
 			},
@@ -594,6 +631,7 @@ func capzCalicoTests() []*SerialTestCase {
 		{
 			Description: "Calico Network: base ACLs",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				CreateEndpoint(endpoint1, ip1),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				ApplyDP(),
@@ -662,6 +700,7 @@ func capzCalicoTests() []*SerialTestCase {
 		{
 			Description: "Calico Network: add netpol",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				CreateEndpoint(endpoint1, ip1),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				ApplyDP(),
@@ -747,6 +786,13 @@ func capzCalicoTests() []*SerialTestCase {
 							RemotePorts:     "",
 							Priority:        222,
 						},
+						{
+							ID:              "azure-acl-x-base",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
+						},
 					},
 				},
 			},
@@ -754,6 +800,7 @@ func capzCalicoTests() []*SerialTestCase {
 		{
 			Description: "Calico Network: add then remove netpol",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				CreateEndpoint(endpoint1, ip1),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				ApplyDP(),
@@ -832,6 +879,7 @@ func updatePodTests() []*SerialTestCase {
 		{
 			Description: "Sequence 1: Pod A create --> Policy create --> Pod A cleanup --> Pod B create",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				ApplyDP(),
 				UpdatePolicy(policyXBaseOnK1V1()),
@@ -884,6 +932,13 @@ func updatePodTests() []*SerialTestCase {
 							LocalPorts:      "",
 							RemotePorts:     "",
 							Priority:        222,
+						},
+						{
+							ID:              "azure-acl-x-base2",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
 						},
 					},
 				},
@@ -892,6 +947,7 @@ func updatePodTests() []*SerialTestCase {
 		{
 			Description: "Sequence 1: Policy create --> Pod A create --> Pod A cleanup --> Pod B create",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				UpdatePolicy(policyXBase2OnK2V2()),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
@@ -944,6 +1000,13 @@ func updatePodTests() []*SerialTestCase {
 							LocalPorts:      "",
 							RemotePorts:     "",
 							Priority:        222,
+						},
+						{
+							ID:              "azure-acl-x-base2",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
 						},
 					},
 				},
@@ -952,6 +1015,7 @@ func updatePodTests() []*SerialTestCase {
 		{
 			Description: "Sequence 1: Policy create --> Pod A create --> Pod A cleanup --> Pod B create (skip first apply DP)",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				UpdatePolicy(policyXBase2OnK2V2()),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
@@ -1003,6 +1067,13 @@ func updatePodTests() []*SerialTestCase {
 							LocalPorts:      "",
 							RemotePorts:     "",
 							Priority:        222,
+						},
+						{
+							ID:              "azure-acl-x-base2",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
 						},
 					},
 				},
@@ -1011,6 +1082,7 @@ func updatePodTests() []*SerialTestCase {
 		{
 			Description: "Sequence 1: Policy create --> Pod A create --> Pod A cleanup --> Pod B create (skip first two apply DP)",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				UpdatePolicy(policyXBase2OnK2V2()),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
@@ -1061,6 +1133,13 @@ func updatePodTests() []*SerialTestCase {
 							LocalPorts:      "",
 							RemotePorts:     "",
 							Priority:        222,
+						},
+						{
+							ID:              "azure-acl-x-base2",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
 						},
 					},
 				},
@@ -1072,6 +1151,7 @@ func updatePodTests() []*SerialTestCase {
 		{
 			Description: "Sequence 2 with Calico network",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				UpdatePolicy(policyXBase2OnK2V2()),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
@@ -1125,6 +1205,13 @@ func updatePodTests() []*SerialTestCase {
 							Priority:        222,
 						},
 						{
+							ID:              "azure-acl-x-base2",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
+						},
+						{
 							ID:              "azure-acl-baseazurewireserver",
 							Action:          "Block",
 							Direction:       "Out",
@@ -1172,6 +1259,7 @@ func updatePodTests() []*SerialTestCase {
 		{
 			Description: "Sequence 2: Policy create --> Pod A Create --> Pod B create",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				UpdatePolicy(policyXBase2OnK2V2()),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
@@ -1224,6 +1312,13 @@ func updatePodTests() []*SerialTestCase {
 							RemotePorts:     "",
 							Priority:        222,
 						},
+						{
+							ID:              "azure-acl-x-base2",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
+						},
 					},
 				},
 			},
@@ -1231,6 +1326,7 @@ func updatePodTests() []*SerialTestCase {
 		{
 			Description: "Sequence 2: Policy create --> Pod A Create --> Pod B create --> Pod A cleanup",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				UpdatePolicy(policyXBase2OnK2V2()),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
@@ -1283,6 +1379,13 @@ func updatePodTests() []*SerialTestCase {
 							LocalPorts:      "",
 							RemotePorts:     "",
 							Priority:        222,
+						},
+						{
+							ID:              "azure-acl-x-base2",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
 						},
 					},
 				},
@@ -1292,6 +1395,7 @@ func updatePodTests() []*SerialTestCase {
 			// skipping this test. See PR #1856
 			Description: "Sequence 2: Policy create --> Pod A Create --> Pod B create (skip first ApplyDP())",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				UpdatePolicy(policyXBase2OnK2V2()),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
@@ -1300,7 +1404,6 @@ func updatePodTests() []*SerialTestCase {
 			},
 			TestCaseMetadata: &TestCaseMetadata{
 				Tags: []Tag{
-					skipTestTag,
 					podCrudTag,
 					netpolCrudTag,
 				},
@@ -1344,6 +1447,13 @@ func updatePodTests() []*SerialTestCase {
 							RemotePorts:     "",
 							Priority:        222,
 						},
+						{
+							ID:              "azure-acl-x-base2",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
+						},
 					},
 				},
 			},
@@ -1352,6 +1462,7 @@ func updatePodTests() []*SerialTestCase {
 			// skipping this test. See PR #1856
 			Description: "Sequence 2: Policy create --> Pod A Create --> Pod B create --> Pod A cleanup (skip first two ApplyDP())",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				UpdatePolicy(policyXBase2OnK2V2()),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
@@ -1361,7 +1472,6 @@ func updatePodTests() []*SerialTestCase {
 			},
 			TestCaseMetadata: &TestCaseMetadata{
 				Tags: []Tag{
-					skipTestTag,
 					podCrudTag,
 					netpolCrudTag,
 				},
@@ -1403,6 +1513,13 @@ func updatePodTests() []*SerialTestCase {
 							LocalPorts:      "",
 							RemotePorts:     "",
 							Priority:        222,
+						},
+						{
+							ID:              "azure-acl-x-base2",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
 						},
 					},
 				},
@@ -1414,6 +1531,7 @@ func updatePodTests() []*SerialTestCase {
 		{
 			Description: "ignore Pod update if added then deleted before ApplyDP()",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				DeletePod("x", "a", ip1, map[string]string{"k1": "v1"}),
@@ -1444,6 +1562,7 @@ func updatePodTests() []*SerialTestCase {
 			// doesn't really enforce behavior in DP, but one could look at logs to make sure we don't make a reset ACL SysCall into HNS
 			Description: "ignore Pod delete for deleted endpoint",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				ApplyDP(),
@@ -1474,6 +1593,7 @@ func updatePodTests() []*SerialTestCase {
 			// doesn't really enforce behavior in DP, but one could look at logs to make sure we don't make a reset ACL SysCall into HNS
 			Description: "ignore Pod delete for deleted endpoint (skip first ApplyDP())",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				DeleteEndpoint(endpoint1),
@@ -1503,6 +1623,7 @@ func updatePodTests() []*SerialTestCase {
 			// doesn't really enforce behavior in DP, but one could look at logs to make sure we don't make an add ACL SysCall into HNS"
 			Description: "ignore Pod update when there's no corresponding endpoint",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				DeleteEndpoint(endpoint1),
@@ -1530,6 +1651,7 @@ func updatePodTests() []*SerialTestCase {
 		{
 			Description: "two endpoints, one with policy, one without",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBase2OnK2V2()),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				CreateEndpoint(endpoint2, ip2),
@@ -1579,6 +1701,13 @@ func updatePodTests() []*SerialTestCase {
 							RemotePorts:     "",
 							Priority:        222,
 						},
+						{
+							ID:              "azure-acl-x-base2",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
+						},
 					},
 				},
 			},
@@ -1602,6 +1731,7 @@ func podAssignmentSequence3Tests() []*SerialTestCase {
 		{
 			Description: "Sequence 3: Pod B Create --> Pod A create --> Pod A Cleanup (ensure correct IPSets)",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				CreatePod("x", "b", ip1, thisNode, map[string]string{"k2": "v2"}),
 				ApplyDP(),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
@@ -1637,6 +1767,7 @@ func podAssignmentSequence3Tests() []*SerialTestCase {
 		{
 			Description: "Sequence 3: Policy create --> Pod B Create --> Pod A create",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				UpdatePolicy(policyXBase2OnK2V2()),
 				CreatePod("x", "b", ip1, thisNode, map[string]string{"k2": "v2"}),
@@ -1687,6 +1818,13 @@ func podAssignmentSequence3Tests() []*SerialTestCase {
 							RemotePorts:     "",
 							Priority:        222,
 						},
+						{
+							ID:              "azure-acl-x-base2",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
+						},
 					},
 				},
 			},
@@ -1694,6 +1832,7 @@ func podAssignmentSequence3Tests() []*SerialTestCase {
 		{
 			Description: "Sequence 3: Policy create --> Pod B Create --> Pod A create (skip first ApplyDP())",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				UpdatePolicy(policyXBase2OnK2V2()),
 				CreatePod("x", "b", ip1, thisNode, map[string]string{"k2": "v2"}),
@@ -1727,6 +1866,7 @@ func podAssignmentSequence3Tests() []*SerialTestCase {
 		{
 			Description: "Sequence 3: Policy create --> Pod B Create --> Pod A create --> Pod A Cleanup",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				UpdatePolicy(policyXBase2OnK2V2()),
 				CreatePod("x", "b", ip1, thisNode, map[string]string{"k2": "v2"}),
@@ -1763,6 +1903,7 @@ func podAssignmentSequence3Tests() []*SerialTestCase {
 		{
 			Description: "Sequence 3: Policy create --> Pod B Create --> Pod A create --> Pod B Update (unable to add second policy to endpoint until A cleanup)",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				UpdatePolicy(policyXBase2OnK2V2()),
 				UpdatePolicy(policyXBase3OnK3V3()),
@@ -1818,6 +1959,13 @@ func podAssignmentSequence3Tests() []*SerialTestCase {
 							RemotePorts:     "",
 							Priority:        222,
 						},
+						{
+							ID:              "azure-acl-x-base2",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
+						},
 					},
 				},
 			},
@@ -1825,6 +1973,7 @@ func podAssignmentSequence3Tests() []*SerialTestCase {
 		{
 			Description: "Sequence 3: Policy create --> Pod B Create --> Pod A create --> Pod B Update --> Pod A cleanup (able to add second policy)",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				UpdatePolicy(policyXBase2OnK2V2()),
 				UpdatePolicy(policyXBase3OnK3V3()),
@@ -1884,6 +2033,13 @@ func podAssignmentSequence3Tests() []*SerialTestCase {
 							Priority:        222,
 						},
 						{
+							ID:              "azure-acl-x-base2",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
+						},
+						{
 							ID:              "azure-acl-x-base3",
 							Protocols:       "",
 							Action:          "Allow",
@@ -1905,6 +2061,13 @@ func podAssignmentSequence3Tests() []*SerialTestCase {
 							RemotePorts:     "",
 							Priority:        222,
 						},
+						{
+							ID:              "azure-acl-x-base3",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
+						},
 					},
 				},
 			},
@@ -1918,6 +2081,7 @@ func remoteEndpointTests() []*SerialTestCase {
 			// updatePod cache will not be updated for a Pod off-node
 			Description: "policy created, then pod created off node (remote endpoint) which satisfies policy",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				UpdatePolicy(policyXBaseOnK1V1()),
 				CreateRemoteEndpoint(endpoint1, ip1),
 				CreatePod("x", "a", ip1, otherNode, map[string]string{"k1": "v1"}),
@@ -1944,6 +2108,7 @@ func remoteEndpointTests() []*SerialTestCase {
 			// updatePod cache will not be updated for a Pod off-node
 			Description: "pod created off node (remote endpoint), then relevant policy created",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				CreateRemoteEndpoint(endpoint1, ip1),
 				CreatePod("x", "a", ip1, otherNode, map[string]string{"k1": "v1"}),
 				// will apply dirty ipsets from CreatePod
@@ -1969,6 +2134,7 @@ func remoteEndpointTests() []*SerialTestCase {
 		{
 			Description: "don't track remote endpoint",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				UpdatePolicy(policyXBaseOnK1V1()),
 			},
@@ -1994,6 +2160,7 @@ func remoteEndpointTests() []*SerialTestCase {
 		{
 			Description: "add policy to correct endpoint e.g. when an old endpoint isn't deleted",
 			Actions: []*Action{
+				FinishBootupPhase(),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
 				UpdatePolicy(policyXBaseOnK1V1()),
 			},
@@ -2038,6 +2205,13 @@ func remoteEndpointTests() []*SerialTestCase {
 							RemotePorts:     "",
 							Priority:        222,
 						},
+						{
+							ID:              "azure-acl-x-base",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
+						},
 					},
 				},
 			},
@@ -2050,6 +2224,9 @@ func getAllMultiJobTests() []*MultiJobTestCase {
 		{
 			Description: "create namespaces, pods, and a policy which applies to a pod",
 			Jobs: map[string][]*Action{
+				"finish_bootup_phase": {
+					FinishBootupPhase(),
+				},
 				"namespace_controller": {
 					CreateNamespace("x", map[string]string{"k1": "v1"}),
 					CreateNamespace("y", map[string]string{"k2": "v2"}),
@@ -2111,11 +2288,52 @@ func getAllMultiJobTests() []*MultiJobTestCase {
 							RemotePorts:     "",
 							Priority:        222,
 						},
+						{
+							ID:              "azure-acl-x-base",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
+						},
 					},
 				},
 			},
 		},
 	}
+}
+
+func applyInBackgroundTests() []*SerialTestCase {
+	allTests := make([]*SerialTestCase, 0)
+	allTests = append(allTests, basicTests()...)
+	allTests = append(allTests, capzCalicoTests()...)
+	allTests = append(allTests, updatePodTests()...)
+
+	for _, test := range allTests {
+		test.TestCaseMetadata.Tags = append(test.TestCaseMetadata.Tags, applyInBackgroundTag)
+		cfg := *test.DpCfg
+		cfg.ApplyInBackground = true
+		cfg.ApplyMaxBatches = 3
+		cfg.ApplyInterval = time.Duration(50 * time.Millisecond)
+		test.DpCfg = &cfg
+	}
+
+	return allTests
+}
+
+func multiJobApplyInBackgroundTests() []*MultiJobTestCase {
+	allTests := make([]*MultiJobTestCase, 0)
+	allTests = append(allTests, getAllMultiJobTests()...)
+
+	for _, test := range allTests {
+		test.TestCaseMetadata.Tags = append(test.TestCaseMetadata.Tags, applyInBackgroundTag)
+		cfg := *test.DpCfg
+		cfg.ApplyInBackground = true
+		cfg.ApplyMaxBatches = 3
+		cfg.ApplyInterval = time.Duration(50 * time.Millisecond)
+		test.DpCfg = &cfg
+	}
+
+	return allTests
 }
 
 func applyInBackgroundBootupPhaseTests() []*SerialTestCase {
@@ -2200,6 +2418,7 @@ func applyInBackgroundBootupPhaseTests() []*SerialTestCase {
 				UpdatePolicy(policyXBaseOnK1V1()),
 				FinishBootupPhase(),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1"}),
+				ApplyDP(),
 			},
 			TestCaseMetadata: &TestCaseMetadata{
 				Tags: []Tag{
@@ -2230,6 +2449,13 @@ func applyInBackgroundBootupPhaseTests() []*SerialTestCase {
 							Direction: "Out",
 							Priority:  222,
 						},
+						{
+							ID:              "azure-acl-x-base",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
+						},
 					},
 				},
 			},
@@ -2240,6 +2466,7 @@ func applyInBackgroundBootupPhaseTests() []*SerialTestCase {
 				UpdatePolicy(policyXBaseOnK1V1()),
 				FinishBootupPhase(),
 				CreatePod("x", "a", ip1, thisNode, map[string]string{"k1": "v1", "k2": "v2"}),
+				ApplyDP(),
 				UpdatePolicy(policyXBase2OnK2V2()),
 			},
 			TestCaseMetadata: &TestCaseMetadata{
@@ -2274,6 +2501,13 @@ func applyInBackgroundBootupPhaseTests() []*SerialTestCase {
 							Priority:  222,
 						},
 						{
+							ID:              "azure-acl-x-base",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
+						},
+						{
 							ID:        "azure-acl-x-base2",
 							Action:    "Allow",
 							Direction: "In",
@@ -2284,6 +2518,13 @@ func applyInBackgroundBootupPhaseTests() []*SerialTestCase {
 							Action:    "Allow",
 							Direction: "Out",
 							Priority:  222,
+						},
+						{
+							ID:              "azure-acl-x-base2",
+							Action:          "Allow",
+							Direction:       "In",
+							RemoteAddresses: testNodeIP,
+							Priority:        201,
 						},
 					},
 				},
