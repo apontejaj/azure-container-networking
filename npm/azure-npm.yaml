@@ -148,10 +148,10 @@ metadata:
 data:
   azure-npm.json: |
     {
-        "ResyncPeriodInMinutes": 15,
-        "ListeningPort":         10091,
-        "ListeningAddress":      "0.0.0.0",
-        "ApplyMaxBatches": 100,
+        "ResyncPeriodInMinutes":       15,
+        "ListeningPort":               10091,
+        "ListeningAddress":            "0.0.0.0",
+        "ApplyMaxBatches":             100,
         "ApplyIntervalInMilliseconds": 500,
         "Toggles": {
             "EnablePrometheusMetrics": true,
@@ -160,6 +160,7 @@ data:
             "EnableV2NPM":             true,
             "PlaceAzureChainFirst":    true,
             "ApplyIPSetsOnNeed":       false,
-            "ApplyInBackground": true
+            "ApplyInBackground":       true,
+            "ParallelizePodACLs":      true
         }
     }
