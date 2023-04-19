@@ -107,12 +107,6 @@ func NewDataPlane(nodeName string, ioShim *common.IOShim, cfg *Config, stopChann
 		klog.Info("[DataPlane] dataplane configured to NOT apply in background")
 	}
 
-	if dp.shouldApplyDataPlaneInBackground() {
-		klog.Infof("[DataPlane] dataplane configured to apply in background every %v or every %d calls to ApplyDataPlane()", dp.ApplyDataPlaneInterval, dp.ApplyDataPlaneMaxCount)
-	} else {
-		klog.Info("[DataPlane] dataplane configured to NOT apply in background")
-	}
-
 	err := dp.BootupDataplane()
 	if err != nil {
 		klog.Errorf("Failed to reset dataplane: %v", err)
@@ -300,13 +294,6 @@ func (dp *DataPlane) applyDataPlaneNow(context string) error {
 		dp.applyInfo.Lock()
 		dp.applyInfo.numBatches = 0
 		dp.applyInfo.Unlock()
-	}
-	klog.Infof("[DataPlane] [ApplyDataPlane] [%s] finished applying ipsets", context)
-
-	if dp.shouldApplyDataPlaneInBackground() {
-		dp.applyCounter.Lock()
-		dp.applyCounter.count = 0
-		dp.applyCounter.Unlock()
 	}
 
 	// NOTE: ideally we won't refresh Pod Endpoints if the updatePodCache is empty
@@ -565,8 +552,4 @@ func (dp *DataPlane) deleteIPSetsAndReferences(sets []*ipsets.TranslatedIPSet, n
 		dp.ipsetMgr.DeleteIPSet(set.Metadata.GetPrefixName(), false)
 	}
 	return nil
-}
-
-func (dp *DataPlane) shouldApplyDataPlaneInBackground() bool {
-	return util.IsWindowsDP() && dp.ApplyDataPlaneMaxCount > 0 && dp.ApplyDataPlaneInterval > 0
 }
