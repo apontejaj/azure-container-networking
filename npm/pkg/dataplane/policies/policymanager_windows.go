@@ -186,10 +186,8 @@ func (pMgr *PolicyManager) AddAllPolicies(policyKeys map[string]struct{}, epToMo
 		}
 	}
 
-	klog.Infof("[PolicyManagerWindows] will have %d batches for adding all policies to endpoint. endpoint ID: %s", len(ruleBatches), epToModifyID)
-
 	for i, batch := range ruleBatches {
-		klog.Infof("[PolicyManagerWindows] processing batch %d out of %d for adding all policies to endpoint. endpoint ID: %s. ruleBatch: %+v", i+1, len(ruleBatches), epToModifyID, batch)
+		klog.Infof("[PolicyManagerWindows] processing batch %d out of %d for adding all policies to endpoint. endpoint ID: %s", i+1, len(ruleBatches), epToModifyID)
 
 		epPolicyRequest, err := getEPPolicyReqFromACLSettings(batch)
 		if err != nil {

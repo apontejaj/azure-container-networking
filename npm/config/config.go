@@ -3,12 +3,13 @@ package npmconfig
 import "github.com/Azure/azure-container-networking/npm/util"
 
 const (
-	defaultResyncPeriod    = 15
-	defaultApplyMaxBatches = 100
-	defaultApplyInterval   = 500
-	defaultListeningPort   = 10091
-	defaultGrpcPort        = 10092
-	defaultGrpcServicePort = 9002
+	defaultResyncPeriod         = 15
+	defaultApplyMaxBatches      = 100
+	defaultApplyInterval        = 500
+	defaultMaxBatchedACLsPerPod = 100
+	defaultListeningPort        = 10091
+	defaultGrpcPort             = 10092
+	defaultGrpcServicePort      = 9002
 	// ConfigEnvPath is what's used by viper to load config path
 	ConfigEnvPath = "NPM_CONFIG"
 
@@ -32,7 +33,7 @@ var DefaultConfig = Config{
 	WindowsNetworkName:          util.AzureNetworkName,
 	ApplyMaxBatches:             defaultApplyMaxBatches,
 	ApplyIntervalInMilliseconds: defaultApplyInterval,
-	MaxBatchedACLsPerPod:        100,
+	MaxBatchedACLsPerPod:        defaultMaxBatchedACLsPerPod,
 
 	Toggles: Toggles{
 		EnablePrometheusMetrics: true,

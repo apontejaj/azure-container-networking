@@ -265,6 +265,10 @@ func (dp *DataPlane) updatePod(pod *updateNPMPod) error {
 		}
 	}
 
+	if len(toAddPolicies) == 0 {
+		return nil
+	}
+
 	if err := dp.policyMgr.AddAllPolicies(toAddPolicies, endpoint.id, endpoint.ip); err != nil {
 		return fmt.Errorf("failed to add all policies while updating pod. endpoint: %+v. policies: %+v. err: %w", endpoint, toAddPolicies, err)
 	}
