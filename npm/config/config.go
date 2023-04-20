@@ -32,6 +32,7 @@ var DefaultConfig = Config{
 	WindowsNetworkName:          util.AzureNetworkName,
 	ApplyMaxBatches:             defaultApplyMaxBatches,
 	ApplyIntervalInMilliseconds: defaultApplyInterval,
+	MaxBatchedACLsPerPod:        100,
 
 	Toggles: Toggles{
 		EnablePrometheusMetrics: true,
@@ -62,9 +63,13 @@ type Config struct {
 	// It can also be the empty string, which results in the default value of 'azure'.
 	WindowsNetworkName string `json:"WindowsNetworkName,omitempty"`
 	// Apply options for Windows only. Relevant when ApplyInBackground is true.
-	ApplyMaxBatches             int     `json:"ApplyDataPlaneMaxBatches,omitempty"`
-	ApplyIntervalInMilliseconds int     `json:"ApplyDataPlaneMaxWaitInMilliseconds,omitempty"`
-	Toggles                     Toggles `json:"Toggles,omitempty"`
+	ApplyMaxBatches             int `json:"ApplyDataPlaneMaxBatches,omitempty"`
+	ApplyIntervalInMilliseconds int `json:"ApplyDataPlaneMaxWaitInMilliseconds,omitempty"`
+	// MaxBatchedACLsPerPod is the maximum number of ACLs that can be added to a Pod at once in Windows.
+	// The zero value is valid.
+	// A NetworkPolicy's ACLs are always in the same batch, and there will be at least one NetworkPolicy per batch.
+	MaxBatchedACLsPerPod int     `json:"MaxBatchedACLsPerPod,omitempty"`
+	Toggles              Toggles `json:"Toggles,omitempty"`
 }
 
 type Toggles struct {
