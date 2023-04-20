@@ -134,6 +134,7 @@ func (pMgr *PolicyManager) AddAllPolicies(policyKeys map[string]struct{}, epToMo
 
 	klog.Infof("[PolicyManagerWindows] adding all policies. epID: %s. epIP: %s. policyKeys: %+v", epToModifyID, epToModifyIP, policyKeys)
 
+	policyBatches := make([][]string, 0)
 	ruleBatches := make([][]*NPMACLPolSettings, 0)
 	for policyKey := range policyKeys {
 		policy, ok := pMgr.policyMap.cache[policyKey]
@@ -172,22 +173,25 @@ func (pMgr *PolicyManager) AddAllPolicies(policyKeys map[string]struct{}, epToMo
 		if len(ruleBatches) == 0 {
 			// this is the first NetPol we've seen, so create the first batch of rules
 			ruleBatches = append(ruleBatches, policyRules)
+			policyBatches = append(policyBatches, []string{policy.PolicyKey})
 			continue
 		}
 
-		batch := ruleBatches[len(ruleBatches)-1]
-		if len(batch)+len(policyRules) > pMgr.MaxBatchedACLsPerPod {
+		if len(ruleBatches[len(ruleBatches)-1])+len(policyRules) > pMgr.MaxBatchedACLsPerPod {
 			// create a new batch since adding this NetPol's rules to the batch would exceed the max rules per batch
 			ruleBatches = append(ruleBatches, policyRules)
-		} else {
-			// add this NetPol's rules to the batch
-			batch = append(batch, policyRules...)
-			ruleBatches[len(ruleBatches)-1] = batch
+			policyBatches = append(policyBatches, []string{policy.PolicyKey})
+			continue
 		}
+
+		// add this NetPol's rules to the batch
+		ruleBatches[len(ruleBatches)-1] = append(ruleBatches[len(ruleBatches)-1], policyRules...)
+		policyBatches[len(policyBatches)-1] = append(policyBatches[len(policyBatches)-1], policy.PolicyKey)
 	}
 
 	for i, batch := range ruleBatches {
-		klog.Infof("[PolicyManagerWindows] processing batch %d out of %d for adding all policies to endpoint. endpoint ID: %s", i+1, len(ruleBatches), epToModifyID)
+		pBatch := policyBatches[i]
+		klog.Infof("[PolicyManagerWindows] processing batch %d out of %d for adding all policies to endpoint. endpoint ID: %s. policyBatch: %+v", i+1, len(ruleBatches), epToModifyID, pBatch)
 
 		epPolicyRequest, err := getEPPolicyReqFromACLSettings(batch)
 		if err != nil {
@@ -200,8 +204,8 @@ func (pMgr *PolicyManager) AddAllPolicies(policyKeys map[string]struct{}, epToMo
 			return fmt.Errorf("failed to add all policies on endpoint for batch %d out of %d. ruleBatch: %+v. err: %w", i+1, len(ruleBatches), batch, err)
 		}
 
-		klog.Infof("[PolicyManager] finished applying all rules to endpoint for batch %d out of %d. endpoint ID: %s", i+1, len(ruleBatches), epToModifyID)
-		for policyKey := range policyKeys {
+		klog.Infof("[PolicyManager] finished applying all rules to endpoint for batch %d out of %d. endpoint ID: %s, policyBatch: %+v", i+1, len(ruleBatches), epToModifyID, pBatch)
+		for _, policyKey := range pBatch {
 			policy, ok := pMgr.policyMap.cache[policyKey]
 			if ok {
 				policy.PodEndpoints[epToModifyIP] = epToModifyID
