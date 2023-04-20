@@ -190,7 +190,8 @@ func (pMgr *PolicyManager) batchPolicies(policyKeys map[string]struct{}, epToMod
 		epID, ok := policy.PodEndpoints[epToModifyIP]
 		if ok {
 			if epID == epToModifyID {
-				klog.Infof("[PolicyManagerWindows] while adding all policies, will not add policy %s to endpoint since it already exists there. endpoint IP: %s, endpoint ID: %s", policy.PolicyKey, epToModifyIP, epToModifyID)
+				klog.Infof("[PolicyManagerWindows] while adding all policies, will not add policy %s to endpoint since it already exists there. endpoint IP: %s, endpoint ID: %s",
+					policy.PolicyKey, epToModifyIP, epToModifyID)
 				delete(policyKeys, policyKey)
 				continue
 			}
@@ -198,7 +199,8 @@ func (pMgr *PolicyManager) batchPolicies(policyKeys map[string]struct{}, epToMod
 			// If the expected ID is not same as epID, there is a chance that old pod got deleted
 			// and same IP is used by new pod with new endpoint.
 			// so we should delete the non-existent endpoint from policy reference
-			klog.Infof("[PolicyManagerWindows] while adding all policies, removing endpoint from policy's current endpoints since the endpoint ID has changed. policy: %s, endpoint IP: %s, new ID: %s, previous ID: %s", policy.PolicyKey, epToModifyIP, epToModifyID, epID)
+			klog.Infof("[PolicyManagerWindows] while adding all policies, removing deleted endpoint from policy's current endpoints. policy: %s, endpoint IP: %s, new ID: %s, previous ID: %s",
+				policy.PolicyKey, epToModifyIP, epToModifyID, epID)
 			delete(policy.PodEndpoints, epToModifyIP)
 		}
 
