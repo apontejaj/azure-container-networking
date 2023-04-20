@@ -166,7 +166,7 @@ func (pMgr *PolicyManager) AddAllPolicies(policyKeys map[string]struct{}, epToMo
 		// 2. add this policy's rules to a batch
 		policyRules, err := pMgr.getSettingsFromACL(policy)
 		if err != nil {
-			return fmt.Errorf("error while getting settings while applying all policies. policy: %s, endpoint IP: %s, endpoint ID: %s, err: %w", policy.PolicyKey, epToModifyIP, epToModifyID, err)
+			return fmt.Errorf("error while getting settings while applying all policies. err: %w", err)
 		}
 
 		if len(ruleBatches) == 0 {
@@ -193,14 +193,13 @@ func (pMgr *PolicyManager) AddAllPolicies(policyKeys map[string]struct{}, epToMo
 
 		epPolicyRequest, err := getEPPolicyReqFromACLSettings(batch)
 		if err != nil {
-			return fmt.Errorf("error while applying all policies for batch %d out of %d. endpoint IP: %s. endpoint ID: %s. policyKeys: %+v. ruleBatch: %+v. err: %w",
-				i+1, len(ruleBatches), epToModifyIP, epToModifyID, policyKeys, batch, err)
+			return fmt.Errorf("error while applying all policies for batch %d out of %d. ruleBatch: %+v. err: %w", i+1, len(ruleBatches), batch, err)
 		}
 
 		klog.Infof("[PolicyManager] applying all rules to endpoint for batch %d out of %d. endpoint ID: %s", i+1, len(ruleBatches), epToModifyID)
 		err = pMgr.applyPoliciesToEndpointID(epToModifyID, epPolicyRequest)
 		if err != nil {
-			return fmt.Errorf("failed to add all policies on endpoint for batch %d out of %d. endpoint ID: %s. policyKeys: %+v. err: %w", i+1, len(ruleBatches), epToModifyID, policyKeys, err)
+			return fmt.Errorf("failed to add all policies on endpoint for batch %d out of %d. ruleBatch: %+v. err: %w", i+1, len(ruleBatches), batch, err)
 		}
 
 		klog.Infof("[PolicyManager] finished applying all rules to endpoint for batch %d out of %d. endpoint ID: %s", i+1, len(ruleBatches), epToModifyID)
