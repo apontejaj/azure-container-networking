@@ -6,7 +6,7 @@ const (
 	defaultResyncPeriod         = 15
 	defaultApplyMaxBatches      = 100
 	defaultApplyInterval        = 500
-	defaultMaxBatchedACLsPerPod = 100
+	defaultMaxBatchedACLsPerPod = 30
 	defaultListeningPort        = 10091
 	defaultGrpcPort             = 10092
 	defaultGrpcServicePort      = 9002

@@ -153,7 +153,7 @@ data:
         "ListeningAddress":            "0.0.0.0",
         "ApplyMaxBatches":             100,
         "ApplyIntervalInMilliseconds": 500,
-        "MaxBatchedACLsPerPod":        100,
+        "MaxBatchedACLsPerPod":        30,
         "Toggles": {
             "EnablePrometheusMetrics": true,
             "EnablePprof":             true,
