@@ -269,11 +269,12 @@ func (dp *DataPlane) updatePod(pod *updateNPMPod) error {
 		return nil
 	}
 
-	if err := dp.policyMgr.AddAllPolicies(toAddPolicies, endpoint.id, endpoint.ip); err != nil {
-		return fmt.Errorf("failed to add all policies while updating pod. endpoint: %+v. policies: %+v. err: %w", endpoint, toAddPolicies, err)
-	}
-	for policyKey := range toAddPolicies {
+	successfulPolicies, err := dp.policyMgr.AddAllPolicies(toAddPolicies, endpoint.id, endpoint.ip)
+	for policyKey := range successfulPolicies {
 		endpoint.netPolReference[policyKey] = struct{}{}
+	}
+	if err != nil {
+		return fmt.Errorf("failed to add all policies while updating pod. endpoint: %+v. policies: %+v. err: %w", endpoint, toAddPolicies, err)
 	}
 
 	klog.Infof("[DataPlane] updatedPod complete. podKey: %s. endpoint: %+v", pod.PodKey, endpoint)

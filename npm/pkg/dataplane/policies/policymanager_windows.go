@@ -133,7 +133,7 @@ func (pMgr *PolicyManager) reconcile() {
 // AddAllPolicies is used in Windows to add all NetworkPolicies to an endpoint.
 // Will make a series of sequential HNS ADD calls based on MaxBatchedACLsPerPod.
 // A NetworkPolicy's ACLs are always in the same batch, and there will be at least one NetworkPolicy per batch.
-func (pMgr *PolicyManager) AddAllPolicies(policyKeys map[string]struct{}, epToModifyID, epToModifyIP string) error {
+func (pMgr *PolicyManager) AddAllPolicies(policyKeys map[string]struct{}, epToModifyID, epToModifyIP string) (map[string]struct{}, error) {
 	pMgr.policyMap.Lock()
 	defer pMgr.policyMap.Unlock()
 
@@ -141,21 +141,23 @@ func (pMgr *PolicyManager) AddAllPolicies(policyKeys map[string]struct{}, epToMo
 
 	batches, err := pMgr.batchPolicies(policyKeys, epToModifyID, epToModifyIP)
 	if err != nil {
-		return fmt.Errorf("error while batching policies for endpoint. err: %w", err)
+		return nil, fmt.Errorf("error while batching policies for endpoint. err: %w", err)
 	}
+
+	successfulPolicies := make(map[string]struct{})
 
 	for i, batch := range batches {
 		klog.Infof("[PolicyManagerWindows] processing batch %d out of %d for adding all policies to endpoint. endpoint ID: %s. policyBatch: %+v", i+1, len(batches), epToModifyID, batch.policies)
 
 		epPolicyRequest, err := getEPPolicyReqFromACLSettings(batch.rules)
 		if err != nil {
-			return fmt.Errorf("error while applying all policies for batch %d out of %d. ruleBatch: %+v. err: %w", i+1, len(batches), batch, err)
+			return successfulPolicies, fmt.Errorf("error while applying all policies for batch %d out of %d. ruleBatch: %+v. err: %w", i+1, len(batches), batch, err)
 		}
 
 		klog.Infof("[PolicyManager] applying all rules to endpoint for batch %d out of %d. endpoint ID: %s", i+1, len(batches), epToModifyID)
 		err = pMgr.applyPoliciesToEndpointID(epToModifyID, epPolicyRequest)
 		if err != nil {
-			return fmt.Errorf("failed to add all policies on endpoint for batch %d out of %d. ruleBatch: %+v. err: %w", i+1, len(batches), batch, err)
+			return successfulPolicies, fmt.Errorf("failed to add all policies on endpoint for batch %d out of %d. ruleBatch: %+v. err: %w", i+1, len(batches), batch, err)
 		}
 
 		klog.Infof("[PolicyManager] finished applying all rules to endpoint for batch %d out of %d. endpoint ID: %s, policyBatch: %+v", i+1, len(batches), epToModifyID, batch.policies)
@@ -163,6 +165,7 @@ func (pMgr *PolicyManager) AddAllPolicies(policyKeys map[string]struct{}, epToMo
 			policy, ok := pMgr.policyMap.cache[policyKey]
 			if ok {
 				policy.PodEndpoints[epToModifyIP] = epToModifyID
+				successfulPolicies[policyKey] = struct{}{}
 			} else {
 				klog.Errorf("[PolicyManagerWindows] unexpected error: policy not found after adding all policies for batch %d out of %d. policyKey: %s. epID: %s",
 					i+1, len(batches), policyKey, epToModifyID)
@@ -172,7 +175,7 @@ func (pMgr *PolicyManager) AddAllPolicies(policyKeys map[string]struct{}, epToMo
 		}
 	}
 
-	return nil
+	return successfulPolicies, nil
 }
 
 // batchPolicies returns a list of batches
