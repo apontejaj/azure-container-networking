@@ -87,6 +87,11 @@ var baseACLsForCalicoCNI = []*NPMACLPolSettings{
 	},
 }
 
+type aclBatch struct {
+	rules    []*NPMACLPolSettings
+	policies []string
+}
+
 type staleChains struct{} // unused in Windows
 
 type shouldResetAllACLs bool
@@ -134,36 +139,35 @@ func (pMgr *PolicyManager) AddAllPolicies(policyKeys map[string]struct{}, epToMo
 
 	klog.Infof("[PolicyManagerWindows] adding all policies. epID: %s. epIP: %s. policyKeys: %+v", epToModifyID, epToModifyIP, policyKeys)
 
-	ruleBatches, policyBatches, err := pMgr.batchPolicies(policyKeys, epToModifyID, epToModifyIP)
+	batches, err := pMgr.batchPolicies(policyKeys, epToModifyID, epToModifyIP)
 	if err != nil {
 		return fmt.Errorf("error while batching policies for endpoint. err: %w", err)
 	}
 
-	for i, batch := range ruleBatches {
-		pBatch := policyBatches[i]
-		klog.Infof("[PolicyManagerWindows] processing batch %d out of %d for adding all policies to endpoint. endpoint ID: %s. policyBatch: %+v", i+1, len(ruleBatches), epToModifyID, pBatch)
+	for i, batch := range batches {
+		klog.Infof("[PolicyManagerWindows] processing batch %d out of %d for adding all policies to endpoint. endpoint ID: %s. policyBatch: %+v", i+1, len(batches), epToModifyID, batch.policies)
 
-		epPolicyRequest, err := getEPPolicyReqFromACLSettings(batch)
+		epPolicyRequest, err := getEPPolicyReqFromACLSettings(batch.rules)
 		if err != nil {
-			return fmt.Errorf("error while applying all policies for batch %d out of %d. ruleBatch: %+v. err: %w", i+1, len(ruleBatches), batch, err)
+			return fmt.Errorf("error while applying all policies for batch %d out of %d. ruleBatch: %+v. err: %w", i+1, len(batches), batch, err)
 		}
 
-		klog.Infof("[PolicyManager] applying all rules to endpoint for batch %d out of %d. endpoint ID: %s", i+1, len(ruleBatches), epToModifyID)
+		klog.Infof("[PolicyManager] applying all rules to endpoint for batch %d out of %d. endpoint ID: %s", i+1, len(batches), epToModifyID)
 		err = pMgr.applyPoliciesToEndpointID(epToModifyID, epPolicyRequest)
 		if err != nil {
-			return fmt.Errorf("failed to add all policies on endpoint for batch %d out of %d. ruleBatch: %+v. err: %w", i+1, len(ruleBatches), batch, err)
+			return fmt.Errorf("failed to add all policies on endpoint for batch %d out of %d. ruleBatch: %+v. err: %w", i+1, len(batches), batch, err)
 		}
 
-		klog.Infof("[PolicyManager] finished applying all rules to endpoint for batch %d out of %d. endpoint ID: %s, policyBatch: %+v", i+1, len(ruleBatches), epToModifyID, pBatch)
-		for _, policyKey := range pBatch {
+		klog.Infof("[PolicyManager] finished applying all rules to endpoint for batch %d out of %d. endpoint ID: %s, policyBatch: %+v", i+1, len(batches), epToModifyID, batch.policies)
+		for _, policyKey := range batch.policies {
 			policy, ok := pMgr.policyMap.cache[policyKey]
 			if ok {
 				policy.PodEndpoints[epToModifyIP] = epToModifyID
 			} else {
 				klog.Errorf("[PolicyManagerWindows] unexpected error: policy not found after adding all policies for batch %d out of %d. policyKey: %s. epID: %s",
-					i+1, len(ruleBatches), policyKey, epToModifyID)
+					i+1, len(batches), policyKey, epToModifyID)
 				metrics.SendErrorLogAndMetric(util.IptmID, "[PolicyManagerWindows] unexpected error: policy not found after adding all policies for batch %d out of %d. policyKey: %s. epID: %s",
-					i+1, len(ruleBatches), policyKey, epToModifyID)
+					i+1, len(batches), policyKey, epToModifyID)
 			}
 		}
 	}
@@ -171,9 +175,9 @@ func (pMgr *PolicyManager) AddAllPolicies(policyKeys map[string]struct{}, epToMo
 	return nil
 }
 
-func (pMgr *PolicyManager) batchPolicies(policyKeys map[string]struct{}, epToModifyID, epToModifyIP string) ([][]*NPMACLPolSettings, [][]string, error) {
-	policyBatches := make([][]string, 0)
-	ruleBatches := make([][]*NPMACLPolSettings, 0)
+// batchPolicies returns a list of batches
+func (pMgr *PolicyManager) batchPolicies(policyKeys map[string]struct{}, epToModifyID, epToModifyIP string) ([]*aclBatch, error) {
+	batches := make([]*aclBatch, 0)
 	for policyKey := range policyKeys {
 		policy, ok := pMgr.policyMap.cache[policyKey]
 		if !ok {
@@ -207,29 +211,28 @@ func (pMgr *PolicyManager) batchPolicies(policyKeys map[string]struct{}, epToMod
 		// 2. add this policy's rules to a batch
 		policyRules, err := pMgr.getSettingsFromACL(policy)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error while getting settings while applying all policies. err: %w", err)
+			return batches, fmt.Errorf("error while getting settings while applying all policies. err: %w", err)
 		}
 
-		if len(ruleBatches) == 0 {
-			// this is the first NetPol we've seen, so create the first batch of rules
-			ruleBatches = append(ruleBatches, policyRules)
-			policyBatches = append(policyBatches, []string{policy.PolicyKey})
-			continue
+		if len(batches) > 0 {
+			batch := batches[len(batches)-1]
+			if len(batch.rules)+len(policyRules) <= pMgr.MaxBatchedACLsPerPod {
+				batch.rules = append(batch.rules, policyRules...)
+				batch.policies = append(batch.policies, policy.PolicyKey)
+				continue
+			}
 		}
 
-		if len(ruleBatches[len(ruleBatches)-1])+len(policyRules) > pMgr.MaxBatchedACLsPerPod {
-			// create a new batch since adding this NetPol's rules to the batch would exceed the max rules per batch
-			ruleBatches = append(ruleBatches, policyRules)
-			policyBatches = append(policyBatches, []string{policy.PolicyKey})
-			continue
+		// create a new batch
+		// either this is the first NetPol we've seen, or adding this NetPol's rules to the previous batch would exceed the max rules per batch
+		batch := &aclBatch{
+			rules:    policyRules,
+			policies: []string{policy.PolicyKey},
 		}
-
-		// add this NetPol's rules to the batch
-		ruleBatches[len(ruleBatches)-1] = append(ruleBatches[len(ruleBatches)-1], policyRules...)
-		policyBatches[len(policyBatches)-1] = append(policyBatches[len(policyBatches)-1], policy.PolicyKey)
+		batches = append(batches, batch)
 	}
 
-	return ruleBatches, policyBatches, nil
+	return batches, nil
 }
 
 // AddBaseACLsForCalicoCNI attempts to add base ACLs for Calico CNI.
