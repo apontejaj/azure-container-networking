@@ -66,19 +66,8 @@ spec:
               fieldPath: metadata.namespace
         - name: CILIUM_CLUSTERMESH_CONFIG
           value: /var/lib/cilium/clustermesh/
-        - name: CILIUM_CUSTOM_CNI_CONF
-          value: "true"
         image: mcr.microsoft.com/oss/cilium/cilium:1.12.8
         imagePullPolicy: IfNotPresent
-        lifecycle:
-          postStart:
-            exec:
-              command:
-              - /cni-install.sh
-          preStop:
-            exec:
-              command:
-              - /cni-uninstall.sh
         livenessProbe:
           failureThreshold: 10
           httpGet:
@@ -157,8 +146,6 @@ spec:
           name: bpf-maps
         - mountPath: /var/run/cilium
           name: cilium-run
-        - mountPath: /host/opt/cni/bin
-          name: cni-path
         - mountPath: /host/etc/cni/net.d
           name: etc-cni-netd
         - mountPath: /var/lib/cilium/clustermesh
@@ -175,6 +162,25 @@ spec:
       dnsPolicy: ClusterFirst
       hostNetwork: true
       initContainers:
+      - name: install-cni-binaries
+        image: mcr.microsoft.com/oss/cilium/cilium:1.12.8
+        imagePullPolicy: IfNotPresent
+        command:
+          - "/install-plugin.sh"
+        securityContext:
+          seLinuxOptions:
+            level: 's0'
+            # Running with spc_t since we have removed the privileged mode.
+            # Users can change it to a different type as long as they have the
+            # type available on the system.
+            type: 'spc_t'
+          capabilities:
+            drop:
+              - ALL
+        volumeMounts:
+          - name: cni-path
+            mountPath: /host/opt/cni/bin
+        restartPolicy: Always
       - command:
         - sh
         - -ec
