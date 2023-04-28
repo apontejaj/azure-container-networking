@@ -68,7 +68,7 @@ spec:
           value: /var/lib/cilium/clustermesh/
         - name: CILIUM_CUSTOM_CNI_CONF
           value: "true"
-        image: mcr.microsoft.com/oss/cilium/cilium:1.12.5.1
+        image: mcr.microsoft.com/oss/cilium/cilium:1.12.8
         imagePullPolicy: IfNotPresent
         lifecycle:
           postStart:
@@ -187,7 +187,7 @@ spec:
           value: /run/cilium/cgroupv2
         - name: BIN_PATH
           value: /opt/cni/bin
-        image: mcr.microsoft.com/oss/cilium/cilium:1.12.5.1
+        image: mcr.microsoft.com/oss/cilium/cilium:1.12.8
         imagePullPolicy: IfNotPresent
         name: mount-cgroup
         resources: {}
@@ -219,7 +219,7 @@ spec:
         env:
         - name: BIN_PATH
           value: /opt/cni/bin
-        image: mcr.microsoft.com/oss/cilium/cilium:1.12.5.1
+        image: mcr.microsoft.com/oss/cilium/cilium:1.12.8
         imagePullPolicy: IfNotPresent
         name: apply-sysctl-overwrites
         resources: {}
@@ -247,7 +247,7 @@ spec:
         - /bin/bash
         - -c
         - --
-        image: mcr.microsoft.com/oss/cilium/cilium:1.12.5.1
+        image: mcr.microsoft.com/oss/cilium/cilium:1.12.8
         imagePullPolicy: IfNotPresent
         name: mount-bpf-fs
         resources: {}
@@ -274,7 +274,7 @@ spec:
               key: clean-cilium-bpf-state
               name: cilium-config
               optional: true
-        image: mcr.microsoft.com/oss/cilium/cilium:1.12.5.1
+        image: mcr.microsoft.com/oss/cilium/cilium:1.12.8
         imagePullPolicy: IfNotPresent
         name: clean-cilium-state
         resources:
