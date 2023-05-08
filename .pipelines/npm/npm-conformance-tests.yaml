@@ -266,7 +266,7 @@ jobs:
           inlineScript: |
             set -e
             kubectl get ds -n kube-system azure-npm-win || {
-                echo "skipping this task since windows NPM is not installed
+                echo "skipping this task since windows NPM is not installed"
                 exit 0
             }
             npmPods=`kubectl get pod -n kube-system -l k8s-app=azure-npm -o jsonpath='{.items[*].metadata.name}'`
