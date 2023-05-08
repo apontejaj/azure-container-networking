@@ -117,7 +117,7 @@ jobs:
       TAG: $[ dependencies.setup.outputs['EnvironmentalVariables.TAG'] ]
       FQDN: empty
     steps:
-      - checkout: none
+      - checkout: self
       - download: current
         artifact: Test
 
