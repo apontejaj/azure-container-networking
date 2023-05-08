@@ -200,9 +200,14 @@ jobs:
               fi
 
               az aks get-credentials -n $(AZURE_CLUSTER) -g $(RESOURCE_GROUP) --file ./kubeconfig
+              mkdir -p ~/.kube/
+              cp ./kubeconfig ~/.kube/config
               ./kubectl --kubeconfig=./kubeconfig apply -f $(Pipeline.Workspace)/s/npm/examples/windows/azure-npm.yaml
               ./kubectl --kubeconfig=./kubeconfig set image daemonset/azure-npm-win -n kube-system azure-npm=$IMAGE_REGISTRY/azure-npm:windows-amd64-ltsc2022-$(TAG)
 
+              sleep 5s
+              echo "waiting for NPM to start running..."
+              kubectl wait --for=condition=Ready pod -l k8s-app=azure-npm -n kube-system --timeout=20m
             else
               echo "Creating Linux Cluster"; 
               az aks create --no-ssh-key \
@@ -217,6 +222,8 @@ jobs:
               fi
 
               az aks get-credentials -n $(AZURE_CLUSTER) -g $(RESOURCE_GROUP) --file ./kubeconfig
+              mkdir -p ~/.kube/
+              cp ./kubeconfig ~/.kube/config
 
               # deploy azure-npm
               ./kubectl --kubeconfig=./kubeconfig apply -f $(Pipeline.Workspace)/s/npm/azure-npm.yaml
@@ -227,6 +234,10 @@ jobs:
               # swap NPM profile with one specified as parameter
               ./kubectl --kubeconfig=./kubeconfig apply -f $(Pipeline.Workspace)/s/npm/profiles/$(PROFILE).yaml
               ./kubectl --kubeconfig=./kubeconfig rollout restart ds azure-npm -n kube-system
+
+              sleep 5s
+              echo "waiting for NPM to start running..."
+              kubectl wait --for=condition=Ready pod -l k8s-app=azure-npm -n kube-system --timeout=20m
             fi
 
             ./kubectl --kubeconfig=./kubeconfig describe daemonset azure-npm -n kube-system
@@ -239,9 +250,38 @@ jobs:
 
             FQDN=`az aks show -n $(AZURE_CLUSTER) -g $(RESOURCE_GROUP) --query fqdn -o tsv`
             echo "##vso[task.setvariable variable=FQDN]$FQDN"
+
+      - task: AzureCLI@2
+        displayName: "Update Registry Keys"
+        inputs:
+          azureSubscription: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
+          scriptType: "bash"
+          scriptLocation: "inlineScript"
+          failOnStderr: true
+          condition: succeeded()
+          inlineScript: |
+            set -e
+            kubectl get ds -n kube-system azure-npm-win || {
+                echo "skipping this task since windows NPM is not installed
+                exit 0
+            }
+            npmPods=`kubectl get pod -n kube-system -l k8s-app=azure-npm -o jsonpath='{.items[0].metadata.name}'`
+            hadPod=false
+            for pod in $npmPods; do
+                echo $pod | grep "npm-win" || continue
+                hadPod=true
+                kubectl exec -n kube-system $pod -- powershell.exe "reg add HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\hns\State /v HnsAclUpdateChange /t REG_DWORD /d 1 /f"
+                kubectl exec -n kube-system $pod -- powershell.exe "reg add HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\hns\State /v HnsNpmRefresh /t REG_DWORD /d 1 /f"
+                kubectl exec -n kube-system $pod -- powershell.exe "Restart-Service Hns"
+            done
+            if [[ $hadPod == false ]]; then
+                echo "##vso[task.logissue type=error]No NPM pods found"
+                exit 1
+            fi
+            echo "sleeping 2m after updating registry keys..."
+            sleep 2m
+
       - bash: |
-          echo "sleeping 3 minutes to allow NPM pods to restart"
-          sleep 180
           set -o pipefail
 
           ## create the output folder and include the kubeconfig there
@@ -441,8 +481,9 @@ jobs:
             # swap azure-npm image with one built during run
             ./kubectl --kubeconfig=./kubeconfig set image daemonset/azure-npm-win -n kube-system azure-npm=$IMAGE_REGISTRY/azure-npm:windows-amd64-ltsc2022-$(TAG)
 
-            echo "sleeping 3 minutes to allow NPM pods to restart"
-            sleep 180
+            sleep 5s
+            echo "waiting for NPM to start running..."
+            kubectl wait --for=condition=Ready pod -l k8s-app=azure-npm -n kube-system --timeout=20m
 
             ./kubectl --kubeconfig=./kubeconfig get po -n kube-system -owide -A
 
@@ -457,6 +498,32 @@ jobs:
         displayName: "Download Cyclonus"
         failOnStderr: false
         condition: always()
+
+      - task: AzureCLI@2
+        displayName: "Update Registry Keys"
+        inputs:
+          azureSubscription: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
+          scriptType: "bash"
+          scriptLocation: "inlineScript"
+          failOnStderr: true
+          condition: succeeded()
+          inlineScript: |
+            set -e
+            npmPods=`kubectl get pod -n kube-system -l k8s-app=azure-npm -o jsonpath='{.items[0].metadata.name}'`
+            hadPod=false
+            for pod in $npmPods; do
+                echo $pod | grep "npm-win" || continue
+                hadPod=true
+                kubectl exec -n kube-system $pod -- powershell.exe "reg add HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\hns\State /v HnsAclUpdateChange /t REG_DWORD /d 1 /f"
+                kubectl exec -n kube-system $pod -- powershell.exe "reg add HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\hns\State /v HnsNpmRefresh /t REG_DWORD /d 1 /f"
+                kubectl exec -n kube-system $pod -- powershell.exe "Restart-Service Hns"
+            done
+            if [[ $hadPod == false ]]; then
+                echo "##vso[task.logissue type=error]No NPM pods found"
+                exit 1
+            fi
+            echo "sleeping 2m after updating registry keys..."
+            sleep 2m
 
       - script: |
           ./test/cyclonus/test-cyclonus-windows.sh
