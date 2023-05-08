@@ -208,6 +208,8 @@ jobs:
               sleep 5s
               echo "waiting for NPM to start running..."
               kubectl wait --for=condition=Ready pod -l k8s-app=azure-npm -n kube-system --timeout=20m
+              echo "sleep 1m to let NPM restart in case of bootup failure due to HNS errors"
+              sleep 1m
             else
               echo "Creating Linux Cluster"; 
               az aks create --no-ssh-key \
@@ -238,6 +240,8 @@ jobs:
               sleep 5s
               echo "waiting for NPM to start running..."
               kubectl wait --for=condition=Ready pod -l k8s-app=azure-npm -n kube-system --timeout=20m
+              echo "sleep 1m to let NPM restart in case of bootup failure due to HNS errors"
+              sleep 1m
             fi
 
             ./kubectl --kubeconfig=./kubeconfig describe daemonset azure-npm -n kube-system
@@ -265,11 +269,12 @@ jobs:
                 echo "skipping this task since windows NPM is not installed
                 exit 0
             }
-            npmPods=`kubectl get pod -n kube-system -l k8s-app=azure-npm -o jsonpath='{.items[0].metadata.name}'`
+            npmPods=`kubectl get pod -n kube-system -l k8s-app=azure-npm -o jsonpath='{.items[*].metadata.name}'`
             hadPod=false
             for pod in $npmPods; do
-                echo $pod | grep "npm-win" || continue
+                echo $pod | grep -q "npm-win" || continue
                 hadPod=true
+                echo "updating registry keys for pod: $pod"
                 kubectl exec -n kube-system $pod -- powershell.exe "reg add HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\hns\State /v HnsAclUpdateChange /t REG_DWORD /d 1 /f"
                 kubectl exec -n kube-system $pod -- powershell.exe "reg add HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\hns\State /v HnsNpmRefresh /t REG_DWORD /d 1 /f"
                 kubectl exec -n kube-system $pod -- powershell.exe "Restart-Service Hns"
@@ -484,6 +489,8 @@ jobs:
             sleep 5s
             echo "waiting for NPM to start running..."
             kubectl wait --for=condition=Ready pod -l k8s-app=azure-npm -n kube-system --timeout=20m
+            echo "sleep 1m to let NPM restart in case of bootup failure due to HNS errors"
+            sleep 1m
 
             ./kubectl --kubeconfig=./kubeconfig get po -n kube-system -owide -A
 
@@ -509,11 +516,12 @@ jobs:
           condition: succeeded()
           inlineScript: |
             set -e
-            npmPods=`kubectl get pod -n kube-system -l k8s-app=azure-npm -o jsonpath='{.items[0].metadata.name}'`
+            npmPods=`kubectl get pod -n kube-system -l k8s-app=azure-npm -o jsonpath='{.items[*].metadata.name}'`
             hadPod=false
             for pod in $npmPods; do
-                echo $pod | grep "npm-win" || continue
+                echo $pod | grep -q "npm-win" || continue
                 hadPod=true
+                echo "updating registry keys for pod: $pod"
                 kubectl exec -n kube-system $pod -- powershell.exe "reg add HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\hns\State /v HnsAclUpdateChange /t REG_DWORD /d 1 /f"
                 kubectl exec -n kube-system $pod -- powershell.exe "reg add HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\hns\State /v HnsNpmRefresh /t REG_DWORD /d 1 /f"
                 kubectl exec -n kube-system $pod -- powershell.exe "Restart-Service Hns"
