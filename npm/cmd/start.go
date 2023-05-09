@@ -3,31 +3,25 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"time"
 
-	"github.com/Azure/azure-container-networking/common"
 	"github.com/Azure/azure-container-networking/log"
-	"github.com/Azure/azure-container-networking/npm"
 	npmconfig "github.com/Azure/azure-container-networking/npm/config"
-	restserver "github.com/Azure/azure-container-networking/npm/http/server"
 	"github.com/Azure/azure-container-networking/npm/metrics"
 	"github.com/Azure/azure-container-networking/npm/pkg/dataplane"
 	"github.com/Azure/azure-container-networking/npm/pkg/dataplane/ipsets"
 	"github.com/Azure/azure-container-networking/npm/pkg/dataplane/policies"
-	"github.com/Azure/azure-container-networking/npm/pkg/models"
 	"github.com/Azure/azure-container-networking/npm/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"k8s.io/apimachinery/pkg/util/wait"
 	k8sversion "k8s.io/apimachinery/pkg/version"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
-	"k8s.io/utils/exec"
 )
 
 var npmV2DataplaneCfg = &dataplane.Config{
@@ -102,7 +96,7 @@ func start(config npmconfig.Config, flags npmconfig.Flags) error {
 	}
 
 	// Creates the clientset
-	clientset, err := kubernetes.NewForConfig(k8sConfig)
+	_, err = kubernetes.NewForConfig(k8sConfig)
 	if err != nil {
 		klog.Infof("clientset creation failed with error %v.", err)
 		return fmt.Errorf("failed to generate clientset with cluster config: %w", err)
@@ -115,74 +109,77 @@ func start(config npmconfig.Config, flags npmconfig.Flags) error {
 	factor := rand.Float64() + 1 //nolint
 	resyncPeriod := time.Duration(float64(minResyncPeriod.Nanoseconds()) * factor)
 	klog.Infof("Resync period for NPM pod is set to %d.", int(resyncPeriod/time.Minute))
-	factory := informers.NewSharedInformerFactory(clientset, resyncPeriod)
 
-	k8sServerVersion := k8sServerVersion(clientset)
+	return errors.New("fake crash to test error reporting")
 
-	var dp dataplane.GenericDataplane
-	stopChannel := wait.NeverStop
-	if config.Toggles.EnableV2NPM {
-		// update the dataplane config
-		npmV2DataplaneCfg.MaxBatchedACLsPerPod = config.MaxBatchedACLsPerPod
+	// factory := informers.NewSharedInformerFactory(clientset, resyncPeriod)
 
-		npmV2DataplaneCfg.ApplyInBackground = config.Toggles.ApplyInBackground
-		if config.ApplyMaxBatches > 0 {
-			npmV2DataplaneCfg.ApplyMaxBatches = config.ApplyMaxBatches
-		} else {
-			npmV2DataplaneCfg.ApplyMaxBatches = npmconfig.DefaultConfig.ApplyMaxBatches
-		}
-		if config.ApplyIntervalInMilliseconds > 0 {
-			npmV2DataplaneCfg.ApplyInterval = time.Duration(config.ApplyIntervalInMilliseconds * int(time.Millisecond))
-		} else {
-			npmV2DataplaneCfg.ApplyInterval = time.Duration(npmconfig.DefaultConfig.ApplyIntervalInMilliseconds * int(time.Millisecond))
-		}
+	// k8sServerVersion := k8sServerVersion(clientset)
 
-		if config.WindowsNetworkName == "" {
-			npmV2DataplaneCfg.NetworkName = util.AzureNetworkName
-		} else {
-			npmV2DataplaneCfg.NetworkName = config.WindowsNetworkName
-		}
+	// var dp dataplane.GenericDataplane
+	// stopChannel := wait.NeverStop
+	// if config.Toggles.EnableV2NPM {
+	// 	// update the dataplane config
+	// 	npmV2DataplaneCfg.MaxBatchedACLsPerPod = config.MaxBatchedACLsPerPod
 
-		npmV2DataplaneCfg.PlaceAzureChainFirst = config.Toggles.PlaceAzureChainFirst
-		if config.Toggles.ApplyIPSetsOnNeed {
-			npmV2DataplaneCfg.IPSetMode = ipsets.ApplyOnNeed
-		} else {
-			npmV2DataplaneCfg.IPSetMode = ipsets.ApplyAllIPSets
-		}
+	// 	npmV2DataplaneCfg.ApplyInBackground = config.Toggles.ApplyInBackground
+	// 	if config.ApplyMaxBatches > 0 {
+	// 		npmV2DataplaneCfg.ApplyMaxBatches = config.ApplyMaxBatches
+	// 	} else {
+	// 		npmV2DataplaneCfg.ApplyMaxBatches = npmconfig.DefaultConfig.ApplyMaxBatches
+	// 	}
+	// 	if config.ApplyIntervalInMilliseconds > 0 {
+	// 		npmV2DataplaneCfg.ApplyInterval = time.Duration(config.ApplyIntervalInMilliseconds * int(time.Millisecond))
+	// 	} else {
+	// 		npmV2DataplaneCfg.ApplyInterval = time.Duration(npmconfig.DefaultConfig.ApplyIntervalInMilliseconds * int(time.Millisecond))
+	// 	}
 
-		var nodeIP string
-		if util.IsWindowsDP() {
-			nodeIP, err = util.NodeIP()
-			if err != nil {
-				metrics.SendErrorLogAndMetric(util.NpmID, "error: failed to get node IP while booting up: %v", err)
-				return fmt.Errorf("failed to get node IP while booting up: %w", err)
-			}
-			klog.Infof("node IP is %s", nodeIP)
-		}
-		npmV2DataplaneCfg.NodeIP = nodeIP
+	// 	if config.WindowsNetworkName == "" {
+	// 		npmV2DataplaneCfg.NetworkName = util.AzureNetworkName
+	// 	} else {
+	// 		npmV2DataplaneCfg.NetworkName = config.WindowsNetworkName
+	// 	}
 
-		dp, err = dataplane.NewDataPlane(models.GetNodeName(), common.NewIOShim(), npmV2DataplaneCfg, stopChannel)
-		if err != nil {
-			metrics.SendErrorLogAndMetric(util.NpmID, "error: failed to create dataplane with error %v", err)
-			return fmt.Errorf("failed to create dataplane with error %w", err)
-		}
-		dp.RunPeriodicTasks()
-	}
-	npMgr := npm.NewNetworkPolicyManager(config, factory, dp, exec.New(), version, k8sServerVersion)
-	err = metrics.CreateTelemetryHandle(config.NPMVersion(), version, npm.GetAIMetadata())
-	if err != nil {
-		klog.Infof("CreateTelemetryHandle failed with error %v. AITelemetry is not initialized.", err)
-	}
+	// 	npmV2DataplaneCfg.PlaceAzureChainFirst = config.Toggles.PlaceAzureChainFirst
+	// 	if config.Toggles.ApplyIPSetsOnNeed {
+	// 		npmV2DataplaneCfg.IPSetMode = ipsets.ApplyOnNeed
+	// 	} else {
+	// 		npmV2DataplaneCfg.IPSetMode = ipsets.ApplyAllIPSets
+	// 	}
 
-	go restserver.NPMRestServerListenAndServe(config, npMgr)
+	// 	var nodeIP string
+	// 	if util.IsWindowsDP() {
+	// 		nodeIP, err = util.NodeIP()
+	// 		if err != nil {
+	// 			metrics.SendErrorLogAndMetric(util.NpmID, "error: failed to get node IP while booting up: %v", err)
+	// 			return fmt.Errorf("failed to get node IP while booting up: %w", err)
+	// 		}
+	// 		klog.Infof("node IP is %s", nodeIP)
+	// 	}
+	// 	npmV2DataplaneCfg.NodeIP = nodeIP
 
-	metrics.SendLog(util.NpmID, "starting NPM", metrics.PrintLog)
-	if err = npMgr.Start(config, stopChannel); err != nil {
-		metrics.SendErrorLogAndMetric(util.NpmID, "Failed to start NPM due to %+v", err)
-		return fmt.Errorf("failed to start with err: %w", err)
-	}
+	// 	dp, err = dataplane.NewDataPlane(models.GetNodeName(), common.NewIOShim(), npmV2DataplaneCfg, stopChannel)
+	// 	if err != nil {
+	// 		metrics.SendErrorLogAndMetric(util.NpmID, "error: failed to create dataplane with error %v", err)
+	// 		return fmt.Errorf("failed to create dataplane with error %w", err)
+	// 	}
+	// 	dp.RunPeriodicTasks()
+	// }
+	// npMgr := npm.NewNetworkPolicyManager(config, factory, dp, exec.New(), version, k8sServerVersion)
+	// err = metrics.CreateTelemetryHandle(config.NPMVersion(), version, npm.GetAIMetadata())
+	// if err != nil {
+	// 	klog.Infof("CreateTelemetryHandle failed with error %v. AITelemetry is not initialized.", err)
+	// }
 
-	select {}
+	// go restserver.NPMRestServerListenAndServe(config, npMgr)
+
+	// metrics.SendLog(util.NpmID, "starting NPM", metrics.PrintLog)
+	// if err = npMgr.Start(config, stopChannel); err != nil {
+	// 	metrics.SendErrorLogAndMetric(util.NpmID, "Failed to start NPM due to %+v", err)
+	// 	return fmt.Errorf("failed to start with err: %w", err)
+	// }
+
+	// select {}
 }
 
 func initLogging() error {
