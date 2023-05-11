@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Azure/azure-container-networking/log"
+	"github.com/Azure/azure-container-networking/npm/util"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"k8s.io/klog"
@@ -62,6 +63,12 @@ const (
 	delta99th      float64 = 0.001
 )
 
+// windows metrics added after v1.5.1
+const (
+	windowsPrefix = "windows"
+	isNestedLabel = "is_nested"
+)
+
 // Gauge metrics have the methods Inc(), Dec(), and Set(float64)
 // Summary metrics have the method Observe(float64)
 // For any Vector metric, you can call With(prometheus.Labels) before the above methods
@@ -92,6 +99,92 @@ var (
 	controllerPodExecTime       *prometheus.SummaryVec
 	controllerNamespaceExecTime *prometheus.SummaryVec
 	controllerExecTimeLabels    = []string{operationLabel, hadErrorLabel}
+
+	// windows metrics added after v1.5.1
+	listEndpointsLatency = prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Name:      "list_endpoints_latency_seconds",
+			Subsystem: windowsPrefix,
+			Help:      "Latency  in seconds to list HNS endpoints latency",
+			//nolint:gomnd // default bucket consts
+			Buckets: prometheus.ExponentialBuckets(0.001, 2, 18), // 1 ms to ~2 minutes
+		},
+	)
+	getEndpointLatency = prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Name:      "get_endpoint_latency_seconds",
+			Subsystem: windowsPrefix,
+			Help:      "Latency in seconds to get a single HNS endpoint",
+			//nolint:gomnd // default bucket consts
+			Buckets: prometheus.ExponentialBuckets(0.001, 2, 18), // 1 ms to ~2 minutes
+		},
+	)
+	getNetworkLatency = prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Name:      "get_network_latency_seconds",
+			Subsystem: windowsPrefix,
+			Help:      "Latency in seconds to get the HNS network",
+			//nolint:gomnd // default bucket consts
+			Buckets: prometheus.ExponentialBuckets(0.001, 2, 18), // 1 ms to ~2 minutes
+		},
+	)
+	aclLatency = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:      "acl_latency_seconds",
+			Subsystem: windowsPrefix,
+			Help:      "Latency in seconds to add/update ACLs by operation label",
+			//nolint:gomnd // default bucket consts
+			Buckets: prometheus.ExponentialBuckets(0.001, 2, 18), // 1 ms to ~2 minutes
+		},
+		[]string{operationLabel},
+	)
+	setPolicyLatency = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:      "setpolicy_latency_seconds",
+			Subsystem: windowsPrefix,
+			Help:      "Latency in seconds to add/update/delete SetPolicies by operation & is_nested label",
+			//nolint:gomnd // default bucket consts
+			Buckets: prometheus.ExponentialBuckets(0.001, 2, 18), // 1 ms to ~2 minutes
+		},
+		[]string{operationLabel, isNestedLabel},
+	)
+	listEndpointsFailures = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name:      "list_endpoints_failure_total",
+			Subsystem: windowsPrefix,
+			Help:      "Number of failures while listing HNS endpoints",
+		},
+	)
+	getEndpointFailures = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name:      "get_endpoint_failure_total",
+			Subsystem: windowsPrefix,
+			Help:      "Number of failures while getting a single HNS endpoint",
+		},
+	)
+	getNetworkFailures = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name:      "get_network_failure_total",
+			Subsystem: windowsPrefix,
+			Help:      "Number of failures while getting the HNS network",
+		},
+	)
+	aclFailures = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name:      "acl_failure_total",
+			Subsystem: windowsPrefix,
+			Help:      "Number of failures while adding/updating ACLs by operation label",
+		},
+		[]string{operationLabel},
+	)
+	setPolicyFailures = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name:      "setpolicy_failure_total",
+			Subsystem: windowsPrefix,
+			Help:      "Number of failures while adding/updating/deleting SetPolicies by operation & is_nested label",
+		},
+		[]string{operationLabel, isNestedLabel},
+	)
 )
 
 type RegistryType string
@@ -129,6 +222,23 @@ func InitializeAll() {
 	} else {
 		initializeDaemonMetrics()
 		initializeControllerMetrics()
+
+		if util.IsWindowsDP() {
+			// do not add windows metrics for linux
+			// windows metrics added after v1.5.1
+			register(listEndpointsLatency, "list_endpoints_latency_seconds", NodeMetrics)
+			register(getEndpointLatency, "get_endpoint_latency_seconds", NodeMetrics)
+			register(getNetworkLatency, "get_network_latency_seconds", NodeMetrics)
+			register(aclLatency, "acl_latency_seconds", NodeMetrics)
+			register(setPolicyLatency, "setpolicy_latency_seconds", NodeMetrics)
+
+			register(listEndpointsFailures, "list_endpoints_failure_total", NodeMetrics)
+			register(getEndpointFailures, "get_endpoint_failure_total", NodeMetrics)
+			register(getNetworkFailures, "get_network_failure_total", NodeMetrics)
+			register(aclFailures, "acl_failure_total", NodeMetrics)
+			register(setPolicyFailures, "setpolicy_failure_total", NodeMetrics)
+		}
+
 		log.Logf("Finished initializing all Prometheus metrics")
 		haveInitialized = true
 	}
