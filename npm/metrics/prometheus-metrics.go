@@ -103,6 +103,7 @@ var (
 	// windows metrics added after v1.5.1
 	listEndpointsLatency = prometheus.NewHistogram(
 		prometheus.HistogramOpts{
+			Namespace: namespace,
 			Name:      "list_endpoints_latency_seconds",
 			Subsystem: windowsPrefix,
 			Help:      "Latency  in seconds to list HNS endpoints latency",
@@ -112,6 +113,7 @@ var (
 	)
 	getEndpointLatency = prometheus.NewHistogram(
 		prometheus.HistogramOpts{
+			Namespace: namespace,
 			Name:      "get_endpoint_latency_seconds",
 			Subsystem: windowsPrefix,
 			Help:      "Latency in seconds to get a single HNS endpoint",
@@ -121,6 +123,7 @@ var (
 	)
 	getNetworkLatency = prometheus.NewHistogram(
 		prometheus.HistogramOpts{
+			Namespace: namespace,
 			Name:      "get_network_latency_seconds",
 			Subsystem: windowsPrefix,
 			Help:      "Latency in seconds to get the HNS network",
@@ -130,6 +133,7 @@ var (
 	)
 	aclLatency = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
+			Namespace: namespace,
 			Name:      "acl_latency_seconds",
 			Subsystem: windowsPrefix,
 			Help:      "Latency in seconds to add/update ACLs by operation label",
@@ -140,6 +144,7 @@ var (
 	)
 	setPolicyLatency = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
+			Namespace: namespace,
 			Name:      "setpolicy_latency_seconds",
 			Subsystem: windowsPrefix,
 			Help:      "Latency in seconds to add/update/delete SetPolicies by operation & is_nested label",
@@ -150,6 +155,7 @@ var (
 	)
 	listEndpointsFailures = prometheus.NewCounter(
 		prometheus.CounterOpts{
+			Namespace: namespace,
 			Name:      "list_endpoints_failure_total",
 			Subsystem: windowsPrefix,
 			Help:      "Number of failures while listing HNS endpoints",
@@ -157,6 +163,7 @@ var (
 	)
 	getEndpointFailures = prometheus.NewCounter(
 		prometheus.CounterOpts{
+			Namespace: namespace,
 			Name:      "get_endpoint_failure_total",
 			Subsystem: windowsPrefix,
 			Help:      "Number of failures while getting a single HNS endpoint",
@@ -164,6 +171,7 @@ var (
 	)
 	getNetworkFailures = prometheus.NewCounter(
 		prometheus.CounterOpts{
+			Namespace: namespace,
 			Name:      "get_network_failure_total",
 			Subsystem: windowsPrefix,
 			Help:      "Number of failures while getting the HNS network",
@@ -171,6 +179,7 @@ var (
 	)
 	aclFailures = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
+			Namespace: namespace,
 			Name:      "acl_failure_total",
 			Subsystem: windowsPrefix,
 			Help:      "Number of failures while adding/updating ACLs by operation label",
@@ -179,6 +188,7 @@ var (
 	)
 	setPolicyFailures = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
+			Namespace: namespace,
 			Name:      "setpolicy_failure_total",
 			Subsystem: windowsPrefix,
 			Help:      "Number of failures while adding/updating/deleting SetPolicies by operation & is_nested label",
