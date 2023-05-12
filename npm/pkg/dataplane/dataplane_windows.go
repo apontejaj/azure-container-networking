@@ -342,8 +342,11 @@ func (dp *DataPlane) getAllPodEndpoints() ([]*hcn.HostComputeEndpoint, error) {
 
 func (dp *DataPlane) getLocalPodEndpoints() ([]*hcn.HostComputeEndpoint, error) {
 	klog.Info("getting local endpoints")
+	timer := metrics.StartNewTimer()
 	endpoints, err := dp.ioShim.Hns.ListEndpointsQuery(dp.endpointQuery.query)
+	metrics.RecordListEndpointsLatency(timer)
 	if err != nil {
+		metrics.IncListEndpointsFailures()
 		return nil, npmerrors.SimpleErrorWrapper("failed to get local pod endpoints", err)
 	}
 
