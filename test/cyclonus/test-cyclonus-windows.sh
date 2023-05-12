@@ -1,6 +1,7 @@
 curl -fsSL github.com/mattfenwick/cyclonus/releases/latest/download/cyclonus_linux_amd64.tar.gz | tar -zxv
 LOG_FILE=cyclonus-$CLUSTER_NAME
 ./cyclonus_linux_amd64/cyclonus generate \
+    --fail-fast \
     --noisy=true \
     --retries=7 \
     --ignore-loopback=true \
