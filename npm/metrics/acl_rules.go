@@ -1,10 +1,5 @@
 package metrics
 
-import (
-	"github.com/Azure/azure-container-networking/npm/util"
-	"github.com/prometheus/client_golang/prometheus"
-)
-
 // IncNumACLRules increments the number of ACL rules.
 func IncNumACLRules() {
 	numACLRules.Inc()
@@ -32,7 +27,7 @@ func ResetNumACLRules() {
 
 // RecordACLRuleExecTime adds an observation of execution time for adding an ACL rule.
 // The execution time is from the timer's start until now.
-// NOTE: RecordACLLatency is more precise in Windows.
+// NOTE: see acls_windows.go for more precise Windows metrics.
 func RecordACLRuleExecTime(timer *Timer) {
 	timer.stopAndRecord(addACLRuleExecTime)
 }
@@ -47,24 +42,4 @@ func GetNumACLRules() (int, error) {
 // This function is slow.
 func GetACLRuleExecCount() (int, error) {
 	return getCountValue(addACLRuleExecTime)
-}
-
-// RecordACLLatency should be used in Windows DP to record the latency of individual ACL operations.
-func RecordACLLatency(timer *Timer, op OperationKind) {
-	if util.IsWindowsDP() {
-		labels := prometheus.Labels{
-			operationLabel: string(op),
-		}
-		aclLatency.With(labels).Observe(timer.timeElapsed())
-	}
-}
-
-// IncACLFailures should be used in Windows DP to record the number of failures for individual ACL operations.
-func IncACLFailures(op OperationKind) {
-	if util.IsWindowsDP() {
-		labels := prometheus.Labels{
-			operationLabel: string(op),
-		}
-		aclFailures.With(labels).Inc()
-	}
 }
