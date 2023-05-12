@@ -44,3 +44,33 @@ func IncGetNetworkFailures() {
 		getNetworkFailures.Inc()
 	}
 }
+
+func TotalGetNetworkLatencyCalls() (int, error) {
+	return histogramCount(getNetworkLatency)
+}
+
+func TotalGetNetworkFailures() (int, error) {
+	return counterValue(getNetworkFailures)
+}
+
+func TotalSetPolicyLatencyCalls(op OperationKind, isNested bool) (int, error) {
+	nested := "false"
+	if isNested {
+		nested = "true"
+	}
+	return histogramVecCount(setPolicyLatency, prometheus.Labels{
+		operationLabel: string(op),
+		isNestedLabel:  nested,
+	})
+}
+
+func TotalSetPolicyFailures(op OperationKind, isNested bool) (int, error) {
+	nested := "false"
+	if isNested {
+		nested = "true"
+	}
+	return counterValue(setPolicyFailures.With(prometheus.Labels{
+		operationLabel: string(op),
+		isNestedLabel:  nested,
+	}))
+}

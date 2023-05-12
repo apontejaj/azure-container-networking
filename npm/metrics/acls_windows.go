@@ -24,3 +24,15 @@ func IncACLFailures(op OperationKind) {
 		aclFailures.With(labels).Inc()
 	}
 }
+
+func TotalACLLatencyCalls(op OperationKind) (int, error) {
+	return histogramVecCount(aclLatency, prometheus.Labels{
+		operationLabel: string(op),
+	})
+}
+
+func TotalACLFailures(op OperationKind) (int, error) {
+	return counterValue(aclFailures.With(prometheus.Labels{
+		operationLabel: string(op),
+	}))
+}
