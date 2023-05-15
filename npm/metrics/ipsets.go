@@ -63,8 +63,7 @@ func AddEntryToIPSet(setName string) {
 func RemoveEntryFromIPSet(setName string) {
 	_, exists := ipsetInventoryMap[setName]
 	if exists {
-		numIPSetEntries.Dec()
-		if util.IsWindowsDP() && ipsetInventoryMap[setName] == maxMembers {
+		if util.IsWindowsDP() && ipsetInventoryMap[setName] == maxMembers && maxMembers > 0 {
 			// decrease maxMembers if this set previously had the max AND no other set has the max
 			wasUniqueMax := true
 			for s, val := range ipsetInventoryMap {
@@ -85,6 +84,7 @@ func RemoveEntryFromIPSet(setName string) {
 			}
 		}
 
+		numIPSetEntries.Dec()
 		ipsetInventoryMap[setName]--
 		if ipsetInventoryMap[setName] == 0 {
 			removeFromIPSetInventory(setName)
@@ -97,32 +97,29 @@ func RemoveEntryFromIPSet(setName string) {
 // RemoveAllEntriesFromIPSet sets the number of entries for ipset setName to 0.
 // It doesn't ever update the number of IPSets.
 func RemoveAllEntriesFromIPSet(setName string) {
-	if util.IsWindowsDP() {
-		if _, ok := ipsetInventoryMap[setName]; ok {
-			if ipsetInventoryMap[setName] == maxMembers {
-				// determine the new maxMembers if this set previously had the max
-				oldMaxMembers := maxMembers
-				maxMembers = 0
-				for s, val := range ipsetInventoryMap {
-					if setName == s {
-						continue
-					}
+	if util.IsWindowsDP() && ipsetInventoryMap[setName] == maxMembers && maxMembers > 0 {
+		// ipsetInventoryMap[setName] returns 0 if the set doesn't exist in the map
+		// determine the new maxMembers if this set previously had the max
+		oldMaxMembers := maxMembers
+		maxMembers = 0
+		for s, val := range ipsetInventoryMap {
+			if setName == s {
+				continue
+			}
 
-					if val > maxMembers {
-						maxMembers = val
+			if val > maxMembers {
+				maxMembers = val
 
-						if val == oldMaxMembers {
-							// the max didn't change
-							break
-						}
-					}
-				}
-
-				if oldMaxMembers != maxMembers {
-					// update max if it changed
-					maxIPSetMembers.Set(float64(maxMembers))
+				if val == oldMaxMembers {
+					// the max didn't change
+					break
 				}
 			}
+		}
+
+		if oldMaxMembers != maxMembers {
+			// update max if it changed
+			maxIPSetMembers.Set(float64(maxMembers))
 		}
 	}
 
