@@ -563,7 +563,83 @@ func TestMetrics(t *testing.T) {
 		deleteIPSetLatencyCalls:  1,
 		deleteNestedLatencyCalls: 1,
 	}.test(t)
+}
 
+func TestMetricsMaxMember(t *testing.T) {
+	hns := GetHNSFake(t, "azure")
+	io := common.NewMockIOShimWithFakeHNS(hns)
+	iMgr := NewIPSetManager(applyAlwaysCfg, io)
+
+	nsW := NewIPSetMetadata("w", Namespace)
+	nsX := NewIPSetMetadata("x", Namespace)
+	nsY := NewIPSetMetadata("y", Namespace)
+	nsList1 := NewIPSetMetadata("list1", KeyLabelOfNamespace)
+
+	iMgr.CreateIPSets([]*IPSetMetadata{nsW, nsX, nsY, nsList1})
+	count, err := metrics.MaxIPSetMembers()
+	require.Nil(t, err, "failed to get metric")
+	require.Equal(t, 0, count)
+
+	iMgr.AddToSets([]*IPSetMetadata{nsW, nsX}, "1.1.1.1", "pod1")
+	count, err = metrics.MaxIPSetMembers()
+	require.Nil(t, err, "failed to get metric")
+	require.Equal(t, 1, count)
+
+	iMgr.AddToLists([]*IPSetMetadata{nsList1}, []*IPSetMetadata{nsW})
+	count, err = metrics.MaxIPSetMembers()
+	require.Nil(t, err, "failed to get metric")
+	require.Equal(t, 1, count)
+
+	iMgr.AddToLists([]*IPSetMetadata{nsList1}, []*IPSetMetadata{nsX, nsY})
+	count, err = metrics.MaxIPSetMembers()
+	require.Nil(t, err, "failed to get metric")
+	require.Equal(t, 3, count)
+
+	iMgr.AddToSets([]*IPSetMetadata{nsX}, "2.2.2.2", "pod2")
+	count, err = metrics.MaxIPSetMembers()
+	require.Nil(t, err, "failed to get metric")
+	require.Equal(t, 3, count)
+
+	iMgr.RemoveFromList(nsList1, []*IPSetMetadata{nsX, nsY})
+	count, err = metrics.MaxIPSetMembers()
+	require.Nil(t, err, "failed to get metric")
+	require.Equal(t, 2, count)
+
+	iMgr.AddToSets([]*IPSetMetadata{nsX}, "3.3.3.3", "pod3")
+	count, err = metrics.MaxIPSetMembers()
+	require.Nil(t, err, "failed to get metric")
+	require.Equal(t, 3, count)
+
+	iMgr.AddToSets([]*IPSetMetadata{nsX}, "3.3.3.3", "pod3-changed")
+	count, err = metrics.MaxIPSetMembers()
+	require.Nil(t, err, "failed to get metric")
+	require.Equal(t, 3, count)
+
+	iMgr.AddToSets([]*IPSetMetadata{nsX}, "4.4.4.4", "pod4")
+	count, err = metrics.MaxIPSetMembers()
+	require.Nil(t, err, "failed to get metric")
+	require.Equal(t, 4, count)
+
+	iMgr.RemoveFromSets([]*IPSetMetadata{nsX}, "4.4.4.4", "pod4")
+	count, err = metrics.MaxIPSetMembers()
+	require.Nil(t, err, "failed to get metric")
+	require.Equal(t, 3, count)
+
+	iMgr.RemoveFromSets([]*IPSetMetadata{nsX}, "3.3.3.3", "wrong-pod")
+	count, err = metrics.MaxIPSetMembers()
+	require.Nil(t, err, "failed to get metric")
+	require.Equal(t, 3, count)
+
+	// can't delete this set
+	iMgr.DeleteIPSet(nsX.GetPrefixName(), util.SoftDelete)
+	count, err = metrics.MaxIPSetMembers()
+	require.Nil(t, err, "failed to get metric")
+	require.Equal(t, 3, count)
+
+	iMgr.DeleteIPSet(nsX.GetPrefixName(), util.ForceDelete)
+	count, err = metrics.MaxIPSetMembers()
+	require.Nil(t, err, "failed to get metric")
+	require.Equal(t, 1, count)
 }
 
 func verifyHNSCache(t *testing.T, expected map[string]hcn.SetPolicySetting, hns *hnswrapper.Hnsv2wrapperFake) {

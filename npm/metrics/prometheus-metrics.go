@@ -113,6 +113,7 @@ var (
 	getNetworkFailures    prometheus.Counter
 	aclFailures           *prometheus.CounterVec
 	setPolicyFailures     *prometheus.CounterVec
+	maxIPSetMembers       prometheus.Gauge
 )
 
 type RegistryType string
@@ -166,6 +167,8 @@ func InitializeAll() {
 			register(getNetworkFailures, "get_network_failure_total", NodeMetrics)
 			register(aclFailures, "acl_failure_total", NodeMetrics)
 			register(setPolicyFailures, "setpolicy_failure_total", NodeMetrics)
+			// all new metrics should go on the node metrics URL
+			register(maxIPSetMembers, "ipset_members_max", NodeMetrics)
 		}
 
 		log.Logf("Finished initializing all Prometheus metrics")
@@ -195,6 +198,7 @@ func InitializeWindowsMetrics() {
 			Buckets: prometheus.ExponentialBuckets(0.001, 2, 18), // 1 ms to ~2 minutes
 		},
 	)
+
 	getEndpointLatency = prometheus.NewHistogram(
 		prometheus.HistogramOpts{
 			Namespace: namespace,
@@ -286,6 +290,15 @@ func InitializeWindowsMetrics() {
 			Help:      "Number of failures while adding/updating/deleting SetPolicies by operation & is_nested label",
 		},
 		[]string{operationLabel, isNestedLabel},
+	)
+
+	maxIPSetMembers = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "ipset_members_max",
+			Subsystem: windowsPrefix,
+			Help:      "Maximum number of members in a single IPSet",
+		},
 	)
 }
 
