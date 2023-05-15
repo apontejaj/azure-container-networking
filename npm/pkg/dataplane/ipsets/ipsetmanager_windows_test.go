@@ -595,7 +595,7 @@ func TestMetricsMaxMember(t *testing.T) {
 	require.Nil(t, err, "failed to get metric")
 	require.Equal(t, 3, count)
 
-	require.Nil(t, iMgr.AddToSets([]*IPSetMetadata{nsX}, "2.2.2.2", "pod2")
+	require.Nil(t, iMgr.AddToSets([]*IPSetMetadata{nsX}, "2.2.2.2", "pod2"))
 	count, err = metrics.MaxIPSetMembers()
 	require.Nil(t, err, "failed to get metric")
 	require.Equal(t, 3, count)
