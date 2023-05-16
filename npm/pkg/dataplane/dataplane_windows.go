@@ -26,6 +26,72 @@ const (
 
 var errPolicyModeUnsupported = errors.New("only IPSet policy mode is supported")
 
+func (dp *DataPlane) fakeUpdateMetrics() {
+	metrics.IncGetEndpointFailures()
+	metrics.IncListEndpointsFailures()
+	metrics.IncGetNetworkFailures()
+
+	// once for CreateOp
+	metrics.IncACLFailures(metrics.CreateOp)
+	// twice for UpdateOp
+	metrics.IncACLFailures(metrics.UpdateOp)
+	metrics.IncACLFailures(metrics.UpdateOp)
+
+	// SetPolicy failures and amount they increase by
+	for _, v := range []struct {
+		op       metrics.OperationKind
+		isNested bool
+		amount   int
+	}{
+		{metrics.CreateOp, false, 1},
+		{metrics.CreateOp, true, 2},
+		{metrics.UpdateOp, false, 3},
+		{metrics.UpdateOp, true, 4},
+		{metrics.DeleteOp, false, 5},
+		{metrics.DeleteOp, true, 6},
+	} {
+		for i := 0; i < v.amount; i++ {
+			metrics.IncSetPolicyFailures(v.op, v.isNested)
+		}
+	}
+
+	timer := metrics.StartNewTimer()
+	time.Sleep(200 * time.Millisecond)
+	metrics.RecordGetEndpointLatency(timer)
+
+	timer = metrics.StartNewTimer()
+	time.Sleep(200 * time.Millisecond)
+	metrics.RecordListEndpointsLatency(timer)
+
+	timer = metrics.StartNewTimer()
+	time.Sleep(200 * time.Millisecond)
+	metrics.RecordGetNetworkLatency(timer)
+
+	timer = metrics.StartNewTimer()
+	time.Sleep(200 * time.Millisecond)
+	metrics.RecordACLLatency(timer, metrics.CreateOp)
+
+	timer = metrics.StartNewTimer()
+	time.Sleep(200 * time.Millisecond)
+	metrics.RecordACLLatency(timer, metrics.UpdateOp)
+
+	for _, v := range []struct {
+		op       metrics.OperationKind
+		isNested bool
+	}{
+		{metrics.CreateOp, false},
+		{metrics.CreateOp, true},
+		{metrics.UpdateOp, false},
+		{metrics.UpdateOp, true},
+		{metrics.DeleteOp, false},
+		{metrics.DeleteOp, true},
+	} {
+		timer = metrics.StartNewTimer()
+		time.Sleep(200 * time.Millisecond)
+		metrics.RecordSetPolicyLatency(timer, v.op, v.isNested)
+	}
+}
+
 // initializeDataPlane will help gather network and endpoint details
 func (dp *DataPlane) initializeDataPlane() error {
 	klog.Infof("[DataPlane] Initializing dataplane for windows")

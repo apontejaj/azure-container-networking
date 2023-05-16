@@ -124,6 +124,20 @@ func (dp *DataPlane) BootupDataplane() error {
 // RunPeriodicTasks runs periodic tasks. Should only be called once.
 func (dp *DataPlane) RunPeriodicTasks() {
 	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-dp.stopChannel:
+				return
+			case <-ticker.C:
+				dp.fakeUpdateMetrics()
+			}
+		}
+	}()
+
+	go func() {
 		ticker := time.NewTicker(reconcileDuration)
 		defer ticker.Stop()
 

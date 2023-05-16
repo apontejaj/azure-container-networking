@@ -6,6 +6,10 @@ import (
 	npmerrors "github.com/Azure/azure-container-networking/npm/util/errors"
 )
 
+func (dp *DataPlane) fakeUpdateMetrics() {
+	// NOOP in Linux
+}
+
 func (dp *DataPlane) getEndpointsToApplyPolicy(policy *policies.NPMNetworkPolicy) (map[string]string, error) {
 	// NOOP in Linux
 	return nil, nil
