@@ -195,7 +195,7 @@ func InitializeWindowsMetrics() {
 			Subsystem: windowsPrefix,
 			Help:      "Latency  in seconds to list HNS endpoints latency",
 			//nolint:gomnd // default bucket consts
-			Buckets: prometheus.ExponentialBuckets(0.001, 2, 18), // 1 ms to ~2 minutes
+			Buckets: prometheus.ExponentialBuckets(0.016, 2, 14), // upper bounds of 16 ms to ~2 minutes
 		},
 	)
 
@@ -206,7 +206,7 @@ func InitializeWindowsMetrics() {
 			Subsystem: windowsPrefix,
 			Help:      "Latency in seconds to get a single HNS endpoint",
 			//nolint:gomnd // default bucket consts
-			Buckets: prometheus.ExponentialBuckets(0.001, 2, 18), // 1 ms to ~2 minutes
+			Buckets: prometheus.ExponentialBuckets(0.016, 2, 14), // upper bounds of 16 ms to ~2 minutes
 		},
 	)
 
@@ -217,7 +217,7 @@ func InitializeWindowsMetrics() {
 			Subsystem: windowsPrefix,
 			Help:      "Latency in seconds to get the HNS network",
 			//nolint:gomnd // default bucket consts
-			Buckets: prometheus.ExponentialBuckets(0.001, 2, 18), // 1 ms to ~2 minutes
+			Buckets: prometheus.ExponentialBuckets(0.016, 2, 14), // upper bounds of 16 ms to ~2 minutes
 		},
 	)
 
@@ -228,7 +228,7 @@ func InitializeWindowsMetrics() {
 			Subsystem: windowsPrefix,
 			Help:      "Latency in seconds to add/update ACLs by operation label",
 			//nolint:gomnd // default bucket consts
-			Buckets: prometheus.ExponentialBuckets(0.001, 2, 18), // 1 ms to ~2 minutes
+			Buckets: prometheus.ExponentialBuckets(0.016, 2, 14), // upper bounds of 16 ms to ~2 minutes
 		},
 		[]string{operationLabel},
 	)
@@ -240,7 +240,7 @@ func InitializeWindowsMetrics() {
 			Subsystem: windowsPrefix,
 			Help:      "Latency in seconds to add/update/delete SetPolicies by operation & is_nested label",
 			//nolint:gomnd // default bucket consts
-			Buckets: prometheus.ExponentialBuckets(0.001, 2, 18), // 1 ms to ~2 minutes
+			Buckets: prometheus.ExponentialBuckets(0.016, 2, 14), // upper bounds of 16 ms to ~2 minutes
 		},
 		[]string{operationLabel, isNestedLabel},
 	)
