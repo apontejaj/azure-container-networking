@@ -63,7 +63,7 @@ var (
 	}
 
 	listForwardEntriesArgs = []string{
-		util.IptablesWaitFlag, util.IptablesDefaultWaitTime, util.IptablesTableFlag, util.IptablesFilterTable,
+		util.IptablesWaitFlag, util.IptablesDefaultWaitTime, util.IptablesMicrosecondWaitFlag, util.IptablesDefaultMicrosecondWaitTime, util.IptablesTableFlag, util.IptablesFilterTable,
 		util.IptablesNumericFlag, util.IptablesListFlag, util.IptablesForwardChain, util.IptablesLineNumbersFlag,
 	}
 	spaceByte                                 = []byte(" ")
@@ -343,7 +343,7 @@ func (pMgr *PolicyManager) runIPTablesCommand(operationFlag string, args ...stri
 }
 
 func (pMgr *PolicyManager) ignoreErrorsAndRunIPTablesCommand(ignored []*exitErrorInfo, operationFlag string, args ...string) (int, error) {
-	allArgs := []string{util.IptablesWaitFlag, util.IptablesDefaultWaitTime, operationFlag}
+	allArgs := []string{util.IptablesWaitFlag, util.IptablesDefaultWaitTime, util.IptablesMicrosecondWaitFlag, util.IptablesDefaultMicrosecondWaitTime, operationFlag}
 	allArgs = append(allArgs, args...)
 
 	klog.Infof("Executing iptables command with args %v", allArgs)
