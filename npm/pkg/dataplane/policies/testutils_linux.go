@@ -8,11 +8,11 @@ import (
 )
 
 var (
-	fakeIPTablesRestoreCommand        = testutils.TestCmd{Cmd: []string{"iptables-restore", "-w", "60", "-T", "filter", "--noflush"}}
-	fakeIPTablesRestoreFailureCommand = testutils.TestCmd{Cmd: []string{"iptables-restore", "-w", "60", "-T", "filter", "--noflush"}, ExitCode: 1}
+	fakeIPTablesRestoreCommand        = testutils.TestCmd{Cmd: []string{"iptables-restore", "-w", "5", "-W", "10000", "-T", "filter", "--noflush"}}
+	fakeIPTablesRestoreFailureCommand = testutils.TestCmd{Cmd: []string{"iptables-restore", "-w", "5", "-W", "10000", "-T", "filter", "--noflush"}, ExitCode: 1}
 
-	listLineNumbersCommandStrings = []string{"iptables", "-w", "60", "-t", "filter", "-n", "-L", "FORWARD", "--line-numbers"}
-	listAllCommandStrings         = []string{"iptables", "-w", "60", "-t", "filter", "-n", "-L"}
+	listLineNumbersCommandStrings = []string{"iptables", "-w", "5", "-W", "10000", "-t", "filter", "-n", "-L", "FORWARD", "--line-numbers"}
+	listAllCommandStrings         = []string{"iptables", "-w", "5", "-W", "10000", "-t", "filter", "-n", "-L"}
 )
 
 func GetAddPolicyTestCalls(_ *NPMNetworkPolicy) []testutils.TestCmd {
@@ -27,12 +27,12 @@ func GetRemovePolicyTestCalls(policy *NPMNetworkPolicy) []testutils.TestCmd {
 	calls := []testutils.TestCmd{}
 	hasIngress, hasEgress := policy.hasIngressAndEgress()
 	if hasIngress {
-		deleteIngressJumpSpecs := []string{"iptables", "-w", "60", "-D", util.IptablesAzureIngressChain}
+		deleteIngressJumpSpecs := []string{"iptables", "-w", "5", "-W", "10000", "-D", util.IptablesAzureIngressChain}
 		deleteIngressJumpSpecs = append(deleteIngressJumpSpecs, ingressJumpSpecs(policy)...)
 		calls = append(calls, testutils.TestCmd{Cmd: deleteIngressJumpSpecs})
 	}
 	if hasEgress {
-		deleteEgressJumpSpecs := []string{"iptables", "-w", "60", "-D", util.IptablesAzureEgressChain}
+		deleteEgressJumpSpecs := []string{"iptables", "-w", "5", "-W", "10000", "-D", util.IptablesAzureEgressChain}
 		deleteEgressJumpSpecs = append(deleteEgressJumpSpecs, egressJumpSpecs(policy)...)
 		calls = append(calls, testutils.TestCmd{Cmd: deleteEgressJumpSpecs})
 	}
@@ -66,7 +66,7 @@ func GetBootupTestCalls(addDetectCalls bool) []testutils.TestCmd {
 			COMMIT`}, //nolint // AZURE-NPM chain didn't exist
 	}
 	bootUp := []testutils.TestCmd{
-		{Cmd: []string{"iptables", "-w", "60", "-D", "FORWARD", "-j", "AZURE-NPM"}, ExitCode: 2}, //nolint // AZURE-NPM chain didn't exist
+		{Cmd: []string{"iptables", "-w", "5", "-W", "10000", "-D", "FORWARD", "-j", "AZURE-NPM"}, ExitCode: 2}, //nolint // AZURE-NPM chain didn't exist
 		{Cmd: listAllCommandStrings, PipedToCommand: true},
 		{
 			Cmd:      []string{"grep", "Chain AZURE-NPM"},
@@ -75,7 +75,7 @@ func GetBootupTestCalls(addDetectCalls bool) []testutils.TestCmd {
 		fakeIPTablesRestoreCommand,
 		{Cmd: listLineNumbersCommandStrings, PipedToCommand: true},
 		{Cmd: []string{"grep", "AZURE-NPM"}, ExitCode: 1},
-		{Cmd: []string{"iptables", "-w", "60", "-I", "FORWARD", "-j", "AZURE-NPM", "-m", "conntrack", "--ctstate", "NEW"}},
+		{Cmd: []string{"iptables", "-w", "5", "-W", "10000", "-I", "FORWARD", "-j", "AZURE-NPM", "-m", "conntrack", "--ctstate", "NEW"}},
 	}
 
 	if addDetectCalls {
@@ -85,7 +85,7 @@ func GetBootupTestCalls(addDetectCalls bool) []testutils.TestCmd {
 }
 
 func getFakeDeleteJumpCommand(chainName, jumpRule string) testutils.TestCmd {
-	args := []string{"iptables", "-w", "60", "-D", chainName}
+	args := []string{"iptables", "-w", "5", "-W", "10000", "-D", chainName}
 	args = append(args, strings.Split(jumpRule, " ")...)
 	return testutils.TestCmd{Cmd: args}
 }

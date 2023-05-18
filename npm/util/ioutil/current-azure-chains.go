@@ -24,7 +24,7 @@ var (
 
 func AllCurrentAzureChains(exec utilexec.Interface, lockWaitTimeSeconds string) (map[string]struct{}, error) {
 	iptablesListCommand := exec.Command(util.Iptables,
-		util.IptablesWaitFlag, lockWaitTimeSeconds, util.IptablesTableFlag, util.IptablesMicrosecondWaitFlag, util.IptablesDefaultMicrosecondWaitTime, util.IptablesFilterTable,
+		util.IptablesWaitFlag, lockWaitTimeSeconds, util.IptablesMicrosecondWaitFlag, util.IptablesDefaultMicrosecondWaitTime, util.IptablesTableFlag, util.IptablesFilterTable,
 		util.IptablesNumericFlag, util.IptablesListFlag,
 	)
 	grepCommand := exec.Command(Grep, azureChainGrepPattern)
