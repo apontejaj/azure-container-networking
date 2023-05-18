@@ -90,7 +90,7 @@ func NewDataPlane(nodeName string, ioShim *common.IOShim, cfg *Config, stopChann
 	}
 
 	// do not let Linux apply in background
-	dp.applyInBackground = cfg.ApplyInBackground && util.IsWindowsDP()
+	dp.applyInBackground = cfg.ApplyInBackground
 
 	if dp.applyInBackground {
 		dp.updatePodCache = newUpdatePodCache(cfg.ApplyMaxBatches)
