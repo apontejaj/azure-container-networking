@@ -116,7 +116,7 @@ Chain AZURE-NPM-INGRESS (1 references)
 		t.Run(tt.name, func(t *testing.T) {
 			ioshim := common.NewMockIOShim(tt.calls)
 			defer ioshim.VerifyCalls(t, tt.calls)
-			chains, err := AllCurrentAzureChains(ioshim.Exec, "60")
+			chains, err := AllCurrentAzureChains(ioshim.Exec, "5")
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
