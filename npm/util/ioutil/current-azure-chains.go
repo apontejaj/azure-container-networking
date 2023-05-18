@@ -22,11 +22,28 @@ var (
 	errInvalidGrepResult    = errors.New("unexpectedly got no lines while grepping for current Azure chains")
 )
 
+func AllCurrentAzureChainsV1(exec utilexec.Interface, lockWaitTimeSeconds string) (map[string]struct{}, error) {
+	return allCurrentAzureChains(exec, lockWaitTimeSeconds, false)
+}
+
 func AllCurrentAzureChains(exec utilexec.Interface, lockWaitTimeSeconds string) (map[string]struct{}, error) {
-	iptablesListCommand := exec.Command(util.Iptables,
-		util.IptablesWaitFlag, lockWaitTimeSeconds, util.IptablesMicrosecondWaitFlag, util.IptablesDefaultMicrosecondWaitTime, util.IptablesTableFlag, util.IptablesFilterTable,
-		util.IptablesNumericFlag, util.IptablesListFlag,
-	)
+	return allCurrentAzureChains(exec, lockWaitTimeSeconds, true)
+}
+
+func allCurrentAzureChains(exec utilexec.Interface, lockWaitTimeSeconds string, isV2 bool) (map[string]struct{}, error) {
+	var iptablesListCommand utilexec.Cmd
+	if isV2 {
+		iptablesListCommand = exec.Command(util.Iptables,
+			util.IptablesWaitFlag, lockWaitTimeSeconds, util.IptablesMicrosecondWaitFlag, util.IptablesDefaultMicrosecondWaitTime, util.IptablesTableFlag, util.IptablesFilterTable,
+			util.IptablesNumericFlag, util.IptablesListFlag,
+		)
+	} else {
+		iptablesListCommand = exec.Command(util.Iptables,
+			util.IptablesWaitFlag, lockWaitTimeSeconds, util.IptablesTableFlag, util.IptablesFilterTable,
+			util.IptablesNumericFlag, util.IptablesListFlag,
+		)
+	}
+
 	grepCommand := exec.Command(Grep, azureChainGrepPattern)
 	searchResults, gotMatches, err := PipeCommandToGrep(iptablesListCommand, grepCommand)
 	if err != nil {

@@ -138,7 +138,7 @@ func (iptMgr *IptablesManager) UninitNpmChains() error {
 		util.IptablesAzureTargetSetsChain,
 		util.IptablesAzureIngressWrongDropsChain,
 	)
-	currentAzureChains, err := ioutil.AllCurrentAzureChains(iptMgr.exec, util.IptablesDefaultWaitTime)
+	currentAzureChains, err := ioutil.AllCurrentAzureChainsV1(iptMgr.exec, util.V1IptablesDefaultWaitTime)
 	if err != nil {
 		metrics.SendErrorLogAndMetric(util.IptmID, "Warning: failed to get all current AZURE-NPM chains, so stale v2 chains may exist")
 	} else {
@@ -489,7 +489,7 @@ func (iptMgr *IptablesManager) run(entry *IptEntry) (int, error) {
 	}
 
 	if entry.LockWaitTimeInSeconds == "" {
-		entry.LockWaitTimeInSeconds = util.IptablesDefaultWaitTime
+		entry.LockWaitTimeInSeconds = util.V1IptablesDefaultWaitTime
 	}
 
 	cmdArgs := append([]string{util.IptablesWaitFlag, entry.LockWaitTimeInSeconds, iptMgr.OperationFlag, entry.Chain}, entry.Specs...)

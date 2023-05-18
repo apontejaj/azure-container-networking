@@ -62,6 +62,7 @@ const (
 	IptablesJumpFlag                   string = "-j"
 	IptablesWaitFlag                   string = "-w"
 	IptablesDefaultWaitTime            string = "5"
+	V1IptablesDefaultWaitTime          string = "60"
 	IptablesMicrosecondWaitFlag        string = "-W"
 	IptablesDefaultMicrosecondWaitTime string = "10000"
 	IptablesAccept                     string = "ACCEPT"
