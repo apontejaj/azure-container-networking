@@ -262,6 +262,8 @@ func (pMgr *PolicyManager) bootup(_ []string) error {
 		return npmerrors.SimpleErrorWrapper("failed to get current chains for bootup", err)
 	}
 
+	klog.Infof("current azure chains are %+v", currentChains)
+
 	// 2. cleanup old NPM chains, and configure base chains and their rules.
 	creator := pMgr.creatorForBootup(currentChains)
 	if err := restore(creator); err != nil {
