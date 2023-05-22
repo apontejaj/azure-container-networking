@@ -7,8 +7,6 @@ const (
 	defaultApplyMaxBatches      = 100
 	defaultApplyInterval        = 500
 	defaultMaxBatchedACLsPerPod = 30
-	defaultIPTablesMaxBatches   = 100
-	defaultIPTablesInterval     = 500
 	defaultListeningPort        = 10091
 	defaultGrpcPort             = 10092
 	defaultGrpcServicePort      = 9002
@@ -37,9 +35,6 @@ var DefaultConfig = Config{
 	ApplyIntervalInMilliseconds: defaultApplyInterval,
 	MaxBatchedACLsPerPod:        defaultMaxBatchedACLsPerPod,
 
-	IPTablesMaxBatches:             defaultIPTablesMaxBatches,
-	IPTablesIntervalInMilliseconds: defaultIPTablesInterval,
-
 	Toggles: Toggles{
 		EnablePrometheusMetrics: true,
 		EnablePprof:             true,
@@ -48,7 +43,6 @@ var DefaultConfig = Config{
 		PlaceAzureChainFirst:    util.PlaceAzureChainFirst,
 		ApplyIPSetsOnNeed:       false,
 		ApplyInBackground:       true,
-		IPTablesInBackground:    true,
 	},
 }
 
@@ -75,10 +69,8 @@ type Config struct {
 	// MaxBatchedACLsPerPod is the maximum number of ACLs that can be added to a Pod at once in Windows.
 	// The zero value is valid.
 	// A NetworkPolicy's ACLs are always in the same batch, and there will be at least one NetworkPolicy per batch.
-	MaxBatchedACLsPerPod           int     `json:"MaxBatchedACLsPerPod,omitempty"`
-	IPTablesMaxBatches             int     `json:"IPTablesMaxBatches,omitempty"`
-	IPTablesIntervalInMilliseconds int     `json:"IPTablesIntervalInMilliseconds,omitempty"`
-	Toggles                        Toggles `json:"Toggles,omitempty"`
+	MaxBatchedACLsPerPod int     `json:"MaxBatchedACLsPerPod,omitempty"`
+	Toggles              Toggles `json:"Toggles,omitempty"`
 }
 
 type Toggles struct {
@@ -90,8 +82,6 @@ type Toggles struct {
 	ApplyIPSetsOnNeed       bool
 	// ApplyInBackground applies for Windows only
 	ApplyInBackground bool
-	// IPTablesInBackground
-	IPTablesInBackground bool
 }
 
 type Flags struct {

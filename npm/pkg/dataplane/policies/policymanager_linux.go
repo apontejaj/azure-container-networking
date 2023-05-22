@@ -6,11 +6,9 @@ import (
 	"fmt"
 
 	"github.com/Azure/azure-container-networking/log"
-	"github.com/Azure/azure-container-networking/npm/metrics"
 	"github.com/Azure/azure-container-networking/npm/util"
 	npmerrors "github.com/Azure/azure-container-networking/npm/util/errors"
 	"github.com/Azure/azure-container-networking/npm/util/ioutil"
-	"k8s.io/klog"
 )
 
 const (
@@ -43,125 +41,10 @@ Known errors that we should retry on:
     Another app is currently holding the xtables lock. Stopped waiting after 60s.
 */
 
-/*
-Remove all NetworkPolicies that had a RemovePolicy() call.
-Add all NetworkPolicies which had an AddPolicy() call as the most recent call.
-
-Process removals first (e.g. in case a NetPol is updated)
-
-Examples:
-1. NetPol is updated. First there will be RemovePolicy() and then AddPolicy(). We will remove the Policy, then add it.
-2. NetPol is added, then removed before we reconcile. We will NOT add the Policy. We will try removing the Policy, but it will not be there.
-
-TODO: handle #2 above. Make sure we don't error out when failing to delete a NetPol that was never in the kernel
-*/
-func (pMgr *PolicyManager) reconcileDirtyNetPols() error {
-	pMgr.policyMap.Lock()
-	defer pMgr.policyMap.Unlock()
-
-	if len(pMgr.policyMap.linuxDirtyCache) == 0 {
-		return nil
-	}
-
-	klog.Infof("[PolicyManager] reconciling dirty NetPols")
-
-	toRemove := make([]*NPMNetworkPolicy, 0)
-	toAdd := make([]*NPMNetworkPolicy, 0)
-	for key, ops := range pMgr.policyMap.linuxDirtyCache {
-		for _, op := range ops {
-			if op.op == remove && op.wasInKernel {
-				// Remove the NetPol if it was in the kernel when RemovePolicy() was called.
-				// This fakeNetPol will provide all info needed to create the iptables restore file for the original NetPol that was deleted,
-				// indifferent to any NetPol in the PolicyMap with the same name
-				fakeNetPol := &NPMNetworkPolicy{
-					PolicyKey: key,
-					ACLs: []*ACLPolicy{
-						{
-							Direction: op.direction,
-						},
-					},
-				}
-				klog.Infof("[PolicyManager] will remove dirty NetPol. key: %s. direction: %s", key, op.direction)
-				toRemove = append(toRemove, fakeNetPol)
-				break
-			}
-		}
-
-		if ops[len(ops)-1].op == add {
-			policy, ok := pMgr.policyMap.cache[key]
-			if !ok {
-				metrics.SendErrorLogAndMetric(util.IptmID, "error: failed to find dirty policy to add in cache. key: %s", key)
-				continue
-			}
-			klog.Infof("[PolicyManager] will add dirty NetPol. key: %s.", key)
-			toAdd = append(toAdd, policy)
-		}
-	}
-
-	if len(toRemove) > 0 {
-		klog.Infof("[PolicyManager] starting to remove all dirty NetPols")
-		if err := pMgr.removeAllPolicies(toRemove); err != nil {
-			return npmerrors.SimpleErrorWrapper("failed to remove dirty NetPols", err)
-		}
-		klog.Info("[PolicyManager] finished removing all dirty NetPols")
-	}
-
-	// TODO resiliency to errors: retry one at a time
-
-	// in case the removed NetPol is in the cache, mark it as not the kernel
-	for _, fakePolicy := range toRemove {
-		if policy, ok := pMgr.policyMap.cache[fakePolicy.PolicyKey]; ok {
-			policy.inLinuxKernel = false
-		}
-	}
-
-	if len(toAdd) == 0 {
-		// nothing left to do
-		// empty the dirty cache
-		pMgr.policyMap.linuxDirtyCache = make(map[string][]*opInfo)
-		return nil
-	}
-
-	// update dirty cache to only have the remaining add operations
-	newDirtyCache := make(map[string][]*opInfo, len(toAdd))
-	for _, policy := range toAdd {
-		oi := &opInfo{op: add}
-		newDirtyCache[policy.PolicyKey] = []*opInfo{oi}
-	}
-	pMgr.policyMap.linuxDirtyCache = newDirtyCache
-
-	klog.Infof("[PolicyManager] starting to add all dirty NetPols")
-	if err := pMgr.addAllPolicies(toAdd); err != nil {
-		return npmerrors.SimpleErrorWrapper("failed to add dirty NetPols", err)
-	}
-
-	// mark all added NetPols as in the kernel
-	for _, policy := range toAdd {
-		policy.inLinuxKernel = true
-	}
-
-	// empty the dirty cache
-	pMgr.policyMap.linuxDirtyCache = make(map[string][]*opInfo)
-
-	klog.Info("[PolicyManager] finished adding all dirty NetPols")
-	return nil
-}
-
 func (pMgr *PolicyManager) addPolicy(networkPolicy *NPMNetworkPolicy, _ map[string]string) error {
-	if !pMgr.IPTablesInBackground {
-		return pMgr.addAllPolicies([]*NPMNetworkPolicy{networkPolicy})
-	}
-
-	oi := &opInfo{op: add}
-	pMgr.policyMap.linuxDirtyCache[networkPolicy.PolicyKey] = append(pMgr.policyMap.linuxDirtyCache[networkPolicy.PolicyKey], oi)
-	return nil
-
-}
-
-func (pMgr *PolicyManager) addAllPolicies(networkPolicies []*NPMNetworkPolicy) error {
 	// 1. Add rules for the network policies and activate NPM (if necessary).
-	chainsToCreate := chainNames(networkPolicies)
-	creator := pMgr.creatorForNewNetworkPolicies(chainsToCreate, networkPolicies)
+	chainsToCreate := chainNames([]*NPMNetworkPolicy{networkPolicy})
+	creator := pMgr.creatorForNewNetworkPolicies(chainsToCreate, []*NPMNetworkPolicy{networkPolicy})
 
 	// Stop reconciling so we don't contend for iptables, and so reconcile doesn't delete chainsToCreate.
 	pMgr.reconcileManager.forceLock()
@@ -180,47 +63,18 @@ func (pMgr *PolicyManager) addAllPolicies(networkPolicies []*NPMNetworkPolicy) e
 }
 
 func (pMgr *PolicyManager) removePolicy(networkPolicy *NPMNetworkPolicy, _ map[string]string) error {
-	if !pMgr.IPTablesInBackground {
-		return pMgr.removeAllPolicies([]*NPMNetworkPolicy{networkPolicy})
-	}
-
-	hasIngress, hasEgress := networkPolicy.hasIngressAndEgress()
-	d := Ingress
-	if hasIngress && hasEgress {
-		d = Both
-	} else if hasEgress {
-		d = Egress
-	}
-
-	selectorCopy := make([]SetInfo, len(networkPolicy.PodSelectorList))
-	copy(selectorCopy, networkPolicy.PodSelectorList)
-
-	oi := &opInfo{
-		op:              remove,
-		direction:       d,
-		podSelectorList: selectorCopy,
-		wasInKernel:     networkPolicy.inLinuxKernel,
-	}
-
-	pMgr.policyMap.linuxDirtyCache[networkPolicy.PolicyKey] = append(pMgr.policyMap.linuxDirtyCache[networkPolicy.PolicyKey], oi)
-	return nil
-}
-
-func (pMgr *PolicyManager) removeAllPolicies(networkPolicies []*NPMNetworkPolicy) error {
-	chainsToDelete := chainNames(networkPolicies)
+	chainsToDelete := chainNames([]*NPMNetworkPolicy{networkPolicy})
 	creator := pMgr.creatorForRemovingPolicies(chainsToDelete)
 
 	// Stop reconciling so we don't contend for iptables, and so we don't update the staleChains at the same time as reconcile()
 	pMgr.reconcileManager.forceLock()
 	defer pMgr.reconcileManager.forceUnlock()
 
-	for _, networkPolicy := range networkPolicies {
-		// 1. Delete jump rules from ingress/egress chains to ingress/egress policy chains.
-		// We ought to delete these jump rules here in the foreground since if we add an NP back after deleting, iptables-restore --noflush can add duplicate jump rules.
-		deleteErr := pMgr.deleteOldJumpRulesOnRemove(networkPolicy)
-		if deleteErr != nil {
-			return npmerrors.SimpleErrorWrapper("failed to delete jumps to policy chains", deleteErr)
-		}
+	// 1. Delete jump rules from ingress/egress chains to ingress/egress policy chains.
+	// We ought to delete these jump rules here in the foreground since if we add an NP back after deleting, iptables-restore --noflush can add duplicate jump rules.
+	deleteErr := pMgr.deleteOldJumpRulesOnRemove(networkPolicy)
+	if deleteErr != nil {
+		return npmerrors.SimpleErrorWrapper("failed to delete jumps to policy chains", deleteErr)
 	}
 
 	// 2. Flush the policy chains and deactivate NPM (if necessary).

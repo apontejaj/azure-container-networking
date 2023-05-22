@@ -3,7 +3,6 @@ package policies
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/Azure/azure-container-networking/common"
 	"github.com/Azure/azure-container-networking/npm/metrics"
@@ -40,35 +39,11 @@ type PolicyManagerCfg struct {
 	// The zero value is valid.
 	// A NetworkPolicy's ACLs are always in the same batch, and there will be at least one NetworkPolicy per batch.
 	MaxBatchedACLsPerPod int
-
-	// Linux parameters to apply NetPols in background
-	IPTablesMaxBatches   int
-	IPTablesInterval     time.Duration
-	IPTablesInBackground bool
 }
-
-// opInfo is used in Linux to process NetPols in background
-type opInfo struct {
-	op operation
-	// direction is used for remove operation
-	direction Direction
-	// podSelectorList is a copy of the original NetworkPolicy's PodSelectorList
-	podSelectorList []SetInfo
-	// wasInKernel is used for remove operation
-	wasInKernel bool
-}
-
-type operation string
-
-const (
-	add    operation = "add"
-	remove operation = "remove"
-)
 
 type PolicyMap struct {
 	sync.RWMutex
-	cache           map[string]*NPMNetworkPolicy
-	linuxDirtyCache map[string][]*opInfo
+	cache map[string]*NPMNetworkPolicy
 }
 
 type reconcileManager struct {
@@ -93,8 +68,7 @@ type PolicyManager struct {
 func NewPolicyManager(ioShim *common.IOShim, cfg *PolicyManagerCfg) *PolicyManager {
 	return &PolicyManager{
 		policyMap: &PolicyMap{
-			cache:           make(map[string]*NPMNetworkPolicy),
-			linuxDirtyCache: make(map[string][]*opInfo),
+			cache: make(map[string]*NPMNetworkPolicy),
 		},
 		ioShim:      ioShim,
 		staleChains: newStaleChains(),
@@ -134,10 +108,6 @@ func (pMgr *PolicyManager) Bootup(epIDs []string) error {
 
 func (pMgr *PolicyManager) Reconcile() {
 	pMgr.reconcile()
-}
-
-func (pMgr *PolicyManager) ReconcileDirtyNetPols() error {
-	return pMgr.reconcileDirtyNetPols()
 }
 
 func (pMgr *PolicyManager) PolicyExists(policyKey string) bool {

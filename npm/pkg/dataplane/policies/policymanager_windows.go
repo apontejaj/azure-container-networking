@@ -130,11 +130,6 @@ func (pMgr *PolicyManager) reconcile() {
 	// not implemented
 }
 
-func (pMgr *PolicyManager) reconcileDirtyNetPols() error {
-	// not implemented
-	return nil
-}
-
 // AddAllPolicies is used in Windows to add all NetworkPolicies to an endpoint.
 // Will make a series of sequential HNS ADD calls based on MaxBatchedACLsPerPod.
 // A NetworkPolicy's ACLs are always in the same batch, and there will be at least one NetworkPolicy per batch.

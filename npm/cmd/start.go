@@ -125,19 +125,6 @@ func start(config npmconfig.Config, flags npmconfig.Flags) error {
 		// update the dataplane config
 		npmV2DataplaneCfg.MaxBatchedACLsPerPod = config.MaxBatchedACLsPerPod
 
-		npmV2DataplaneCfg.IPTablesInBackground = config.Toggles.IPTablesInBackground
-		if config.IPTablesIntervalInMilliseconds > 0 {
-			npmV2DataplaneCfg.IPTablesInterval = time.Duration(config.IPTablesIntervalInMilliseconds * int(time.Millisecond))
-		} else {
-			npmV2DataplaneCfg.IPTablesInterval = time.Duration(npmconfig.DefaultConfig.IPTablesIntervalInMilliseconds * int(time.Millisecond))
-		}
-
-		if config.IPTablesMaxBatches > 0 {
-			npmV2DataplaneCfg.IPTablesMaxBatches = config.IPTablesMaxBatches
-		} else {
-			npmV2DataplaneCfg.IPTablesMaxBatches = npmconfig.DefaultConfig.IPTablesMaxBatches
-		}
-
 		npmV2DataplaneCfg.ApplyInBackground = config.Toggles.ApplyInBackground
 		if config.ApplyMaxBatches > 0 {
 			npmV2DataplaneCfg.ApplyMaxBatches = config.ApplyMaxBatches
