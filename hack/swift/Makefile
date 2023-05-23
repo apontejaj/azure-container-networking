@@ -5,7 +5,7 @@ KUBECFG = $(HOME)/.kube
 SSH     = $(HOME)/.ssh
 AZCFG   = $(HOME)/.azure
 AZIMG   = mcr.microsoft.com/azure-cli
-AZCLI   ?= docker run --rm -v $(AZCFG):/root/.azure -v $(KUBECFG):/root/.kube -v $(SSH):/root/.ssh $(AZIMG) az
+AZCLI   ?= docker run --rm -v $(AZCFG):/root/.azure -v $(KUBECFG):/root/.kube -v $(SSH):/root/.ssh -v $(PWD):/root/tmpsrc $(AZIMG) az
 
 # overrideable defaults
 REGION     ?= westus2
@@ -93,7 +93,8 @@ overlay-byocni-up: rg-up overlay-net-up ## Brings up an Overlay BYO CNI cluster
 		--pod-cidr 192.168.0.0/16 \
 		--vnet-subnet-id /subscriptions/$(SUB)/resourceGroups/$(GROUP)/providers/Microsoft.Network/virtualNetworks/$(VNET)/subnets/nodenet \
 		--no-ssh-key \
-		--yes
+		--yes \
+		--kube-proxy-config /root/tmpsrc/kube-proxy.json
 	@$(MAKE) set-kubeconf
 
 overlay-cilium-up: rg-up overlay-net-up ## Brings up an Overlay AzCNI cluster
@@ -133,7 +134,8 @@ swift-byocni-up: rg-up swift-net-up ## Bring up a SWIFT BYO CNI cluster
 		--pod-subnet-id /subscriptions/$(SUB)/resourceGroups/$(GROUP)/providers/Microsoft.Network/virtualNetworks/$(VNET)/subnets/podnet \
 		--no-ssh-key \
 		--os-sku $(OS_SKU) \
-		--yes
+		--yes \
+		--kube-proxy-config /root/tmpsrc/kube-proxy.json
 	@$(MAKE) set-kubeconf
 
 swift-cilium-up: rg-up swift-net-up ## Bring up a SWIFT Cilium cluster
