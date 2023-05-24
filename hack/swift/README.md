@@ -21,13 +21,15 @@ SWIFT Infra
   net-up           Create required swift vnet/subnets
 
 AKS Clusters
-  byocni-up        Alias to swift-byocni-up
-  cilium-up        Alias to swift-cilium-up
-  up               Alias to swift-up
-  overlay-up       Brings up an Overlay AzCNI cluster
-  swift-byocni-up  Bring up a SWIFT BYO CNI cluster
-  swift-cilium-up  Bring up a SWIFT Cilium cluster
-  swift-up         Bring up a SWIFT AzCNI cluster
-  down             Delete the cluster
-  vmss-restart     Restart the nodes of the cluster
+  byocni-up             Alias to swift-byocni-up
+  cilium-up             Alias to swift-cilium-up
+  up                    Alias to swift-up
+  overlay-up            Brings up an Overlay AzCNI cluster
+  dualstack-overlay-up  Brings up an dualstack overlay cluster
+  dualstack-windows-up  Brings up windows nodes on dualstack overlay cluster
+  swift-byocni-up       Bring up a SWIFT BYO CNI cluster
+  swift-cilium-up       Bring up a SWIFT Cilium cluster
+  swift-up              Bring up a SWIFT AzCNI cluster
+  down                  Delete the cluster
+  vmss-restart          Restart the nodes of the cluster
 ```

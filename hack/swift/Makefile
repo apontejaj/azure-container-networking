@@ -123,7 +123,28 @@ overlay-up: rg-up overlay-net-up ## Brings up an Overlay AzCNI cluster
 		--yes
 	@$(MAKE) set-kubeconf
 
-swift-byocni-up: rg-up swift-net-up ## Bring up a SWIFT BYO CNI cluster
+dualstack-overlay-up: rg-up overlay-net-up ## Brings up an dualstack Overlay cluster with Linux node only
+	$(AZCLI) aks create -n $(CLUSTER) -g $(GROUP) -l $(REGION) \
+		--kubernetes-version 1.26.3 \
+		--node-count $(NODE_COUNT) \
+		--node-vm-size $(VM_SIZE) \
+		--network-plugin azure \
+		--ip-families ipv4,ipv6 \
+		--network-plugin-mode overlay \
+		--subscription $(SUB)
+	@$(MAKE) set-kubeconf
+
+dualstack-windows-up: ## Brings up windows nodes on dualstack overlay cluster
+	$(AZCLI) aks nodepool add -g $(GROUP) -n npwin \
+	    --cluster-name  $(CLUSTER) \
+		--node-count $(NODE_COUNT) \
+		--node-vm-size $(VM_SIZE) \
+		--os-type Windows \
+		--os-sku Windows2022 \
+		--subscription $(SUB)
+	@$(MAKE) set-kubeconf
+
+swift-byocni-up: rg-up ## Bring up a SWIFT BYO CNI cluster
 	$(AZCLI) aks create -n $(CLUSTER) -g $(GROUP) -l $(REGION) \
 		--node-count $(NODE_COUNT) \
 		--node-vm-size $(VM_SIZE) \
