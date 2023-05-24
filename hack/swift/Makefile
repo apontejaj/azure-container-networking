@@ -85,7 +85,7 @@ up: swift-up ## Alias to swift-up
 
 overlay-byocni-up: rg-up overlay-net-up ## Brings up an Overlay BYO CNI cluster
 	ls
-	docker run --rm -v $(AZCFG):/root/.azure -v $(KUBECFG):/root/.kube -v $(SSH):/root/.ssh -v $(PWD):/root/tmpsrc $(AZIMG) ls root/tmpsrc/hack/swift
+	docker run --rm -v $(AZCFG):/root/.azure -v $(KUBECFG):/root/.kube -v $(SSH):/root/.ssh -v $(PWD):/root/tmpsrc $(AZIMG) ls root/tmpsrc/
 	$(AZCLI) aks create -n $(CLUSTER) -g $(GROUP) -l $(REGION) \
 		--node-count $(NODE_COUNT) \
 		--node-vm-size $(VM_SIZE) \
@@ -96,7 +96,7 @@ overlay-byocni-up: rg-up overlay-net-up ## Brings up an Overlay BYO CNI cluster
 		--vnet-subnet-id /subscriptions/$(SUB)/resourceGroups/$(GROUP)/providers/Microsoft.Network/virtualNetworks/$(VNET)/subnets/nodenet \
 		--no-ssh-key \
 		--yes \
-		--kube-proxy-config /root/tmpsrc/hack/swift/kube-proxy.json
+		--kube-proxy-config ./kube-proxy.json
 	@$(MAKE) set-kubeconf
 
 overlay-cilium-up: rg-up overlay-net-up ## Brings up an Overlay AzCNI cluster
@@ -137,7 +137,7 @@ swift-byocni-up: rg-up swift-net-up ## Bring up a SWIFT BYO CNI cluster
 		--no-ssh-key \
 		--os-sku $(OS_SKU) \
 		--yes \
-		--kube-proxy-config /root/tmpsrc/hack/swfit/kube-proxy.json
+		--kube-proxy-config ./kube-proxy.json
 	@$(MAKE) set-kubeconf
 
 swift-cilium-up: rg-up swift-net-up ## Bring up a SWIFT Cilium cluster
