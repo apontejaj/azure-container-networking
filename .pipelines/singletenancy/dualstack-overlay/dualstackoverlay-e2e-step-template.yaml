@@ -1,0 +1,37 @@
+parameters:
+  name: ""
+  testDropgz: ""
+  clusterName: ""
+
+steps:
+  - bash: |
+      echo $UID
+      sudo rm -rf $(System.DefaultWorkingDirectory)/*
+    displayName: "Set up OS environment"
+  - checkout: self
+
+  - bash: |
+      go version
+      go env
+      mkdir -p '$(GOBIN)'
+      mkdir -p '$(GOPATH)/pkg'
+      mkdir -p '$(modulePath)'
+      echo '##vso[task.prependpath]$(GOBIN)'
+      echo '##vso[task.prependpath]$(GOROOT)/bin'
+    name: "GoEnv"
+    displayName: "Set up the Go environment"
+  - task: AzureCLI@1
+    inputs:
+      azureSubscription: $(AZURE_TEST_AGENT_SERVICE_CONNECTION)
+      scriptLocation: "inlineScript"
+      scriptType: "bash"
+      addSpnToEnvironment: true
+      inlineScript: |
+        mkdir -p ~/.kube/
+        echo "Create AKS DualStack Overlay cluster"
+        make -C ./hack/swift azcfg AZCLI=az REGION=$(REGION_OVERLAY_CLUSTER_TEST)
+        make -C ./hack/swift dualstack-overlay-up AZCLI=az REGION=$(REGION_OVERLAY_CLUSTER_TEST) SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
+        echo "Dualstack Overlay Cluster is successfully created"
+    displayName: Create Overlay cluster
+    condition: succeeded()
+    
