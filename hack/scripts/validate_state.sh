@@ -16,7 +16,7 @@ do
     node_ip=$(kubectl get "$node"  -o jsonpath='{$.status.addresses[?(@.type=="InternalIP")].address}')
     echo "Node internal ip: $node_ip"
     echo "checking whether the node has any pods deployed to it or not"
-    pod_count=$(kubectl get pods -o wide | grep "$node_name" -c)
+    pod_count=$(kubectl get pods -A -o wide | grep "privilege" -c)
     if [[ $pod_count -eq 0 ]]; then
         continue
     fi
