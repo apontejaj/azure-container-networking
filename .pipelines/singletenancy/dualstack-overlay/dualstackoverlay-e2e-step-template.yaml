@@ -30,7 +30,7 @@ steps:
         mkdir -p ~/.kube/
         echo "Create AKS DualStack Overlay cluster"
         make -C ./hack/swift azcfg AZCLI=az REGION=$(REGION_OVERLAY_CLUSTER_TEST)
-        make -C ./hack/swift dualstack-overlay-up AZCLI=az REGION=$(REGION_OVERLAY_CLUSTER_TEST) VM_SIZE=$(VM_SIZE) NODE_COUNT=$(NODE_COUNT) SUB=$(AZURE_BUILD_VALIDATIONS_SERVICE_CONNECTION) CLUSTER=${{ parameters.clusterName }}-$(make revision)
+        make -C ./hack/swift dualstack-overlay-up AZCLI=az REGION=$(REGION_OVERLAY_CLUSTER_TEST) VM_SIZE=$(VM_SIZE) NODE_COUNT=$(NODE_COUNT) SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
         echo "Dualstack Overlay Cluster is successfully created"
     displayName: Create DualStackOverlay cluster
     condition: succeeded()
