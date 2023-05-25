@@ -29,9 +29,4 @@ stages:
               name: ${{ parameters.name }}
               testDropgz: ${{ parameters.testDropgz }}
               clusterName: ${{ parameters.clusterName }}
-  - script: |
-      ls -lah
-      pwd
-      echo "installing kubectl"
-    name: "install kubectl"
-    displayName: "Install kubectl on AKS Overlay"
+              
