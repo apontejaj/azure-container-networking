@@ -44,7 +44,6 @@ steps:
       kubectl cluster-info
       kubectl get node
       kubectl get po -owide -A
-
     name: "install kubectl"
     displayName: "Install kubectl on AKS dualstack overlay cluster"
     
