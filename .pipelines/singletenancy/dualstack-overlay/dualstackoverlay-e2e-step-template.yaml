@@ -22,7 +22,7 @@ steps:
     displayName: "Set up the Go environment"
   - task: AzureCLI@1
     inputs:
-      azureSubscription: $(AZURE_TEST_AGENT_SERVICE_CONNECTION)
+      azureSubscription: $(AZURE_BUILD_VALIDATIONS_SERVICE_CONNECTION)
       scriptLocation: "inlineScript"
       scriptType: "bash"
       addSpnToEnvironment: true
@@ -30,7 +30,21 @@ steps:
         mkdir -p ~/.kube/
         echo "Create AKS DualStack Overlay cluster"
         make -C ./hack/swift azcfg AZCLI=az REGION=$(REGION_OVERLAY_CLUSTER_TEST)
-        make -C ./hack/swift dualstack-overlay-up AZCLI=az REGION=$(REGION_OVERLAY_CLUSTER_TEST) VM_SIZE=$(VM_SIZE) NODE_COUNT=$(NODE_COUNT) SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
+        make -C ./hack/swift dualstack-overlay-up AZCLI=az REGION=$(REGION_OVERLAY_CLUSTER_TEST) VM_SIZE=$(VM_SIZE) NODE_COUNT=$(NODE_COUNT) SUB=$(AZURE_BUILD_VALIDATIONS_SERVICE_CONNECTION) CLUSTER=${{ parameters.clusterName }}-$(make revision)
         echo "Dualstack Overlay Cluster is successfully created"
-    displayName: Create Overlay cluster
+    displayName: Create DualStackOverlay cluster
     condition: succeeded()
+
+  - script: |
+      ls -lah
+      pwd
+      echo "installing kubectl"
+      curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+      sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+      kubectl cluster-info
+      kubectl get node
+      kubectl get po -owide -A
+
+    name: "install kubectl"
+    displayName: "Install kubectl on AKS dualstack overlay cluster"
+    
