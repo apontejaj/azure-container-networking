@@ -131,7 +131,9 @@ dualstack-overlay-up: rg-up overlay-net-up ## Brings up an dualstack Overlay clu
 		--network-plugin azure \
 		--ip-families ipv4,ipv6 \
 		--network-plugin-mode overlay \
-		--subscription $(SUB)
+		--subscription $(SUB) \
+		--no-ssh-key \
+		--yes
 	@$(MAKE) set-kubeconf
 
 dualstack-windows-up: ## Brings up windows nodes on dualstack overlay cluster
@@ -141,7 +143,9 @@ dualstack-windows-up: ## Brings up windows nodes on dualstack overlay cluster
 		--node-vm-size $(VM_SIZE) \
 		--os-type Windows \
 		--os-sku Windows2022 \
-		--subscription $(SUB)
+		--subscription $(SUB) \
+		--no-ssh-key \
+		--yes
 	@$(MAKE) set-kubeconf
 	
 swift-byocni-up: rg-up swift-net-up ## Bring up a SWIFT BYO CNI cluster
