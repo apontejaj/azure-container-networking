@@ -29,6 +29,8 @@ steps:
       inlineScript: |
         mkdir -p ~/.kube/
         echo "Create AKS DualStack Overlay cluster"
+        az version
+        make -C ./hack/swift az-upgrade AZCLI=az
         make -C ./hack/swift azcfg AZCLI=az REGION=$(REGION_OVERLAY_CLUSTER_TEST)
         make -C ./hack/swift dualstack-overlay-up AZCLI=az REGION=$(REGION_OVERLAY_CLUSTER_TEST) VM_SIZE=$(VM_SIZE) NODE_COUNT=$(NODE_COUNT) SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
         echo "Dualstack Overlay Cluster is successfully created"
@@ -55,4 +57,18 @@ steps:
       kubectl get po -owide -A
     name: "Add_Windows_Node"
     displayName: "Add windows node on DualStackOverlay cluster"
-    
+
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: $(AZURE_TEST_AGENT_SERVICE_CONNECTION)
+      scriptLocation: "inlineScript"
+      scriptType: "bash"
+      addSpnToEnvironment: true
+      inlineScript: |
+        echo "Deleting cluster"
+        make -C ./hack/swift azcfg AZCLI=az
+        make -C ./hack/swift down SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(make revision)
+        echo "Cluster and resources down"
+    name: "CleanupDualStackOverlaycluster"
+    displayName: "Cleanup DualStack Overlay Cluster"
+    condition: always()
