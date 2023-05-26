@@ -147,10 +147,6 @@ dualstack-windows-up: ## Brings up windows nodes on dualstack overlay cluster
 		--no-ssh-key \
 		--yes
 	@$(MAKE) set-kubeconf 
-
-az-upgrade: ## Upgrade az version
-    $(AZCLI) upgrade --all true \
-	    --Y
 	
 swift-byocni-up: rg-up swift-net-up ## Bring up a SWIFT BYO CNI cluster
 	$(AZCLI) aks create -n $(CLUSTER) -g $(GROUP) -l $(REGION) \
