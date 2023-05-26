@@ -120,7 +120,7 @@ stages:
             name: "RestartNodes"
             displayName: "Restart Nodes"
           - script: |
-              bash hack/scripts/validate_state.sh
+              bash hack/scripts/validate_state.sh -r true
             name: "ValidateState"
             displayName: "Validate State"
             retryCountOnTaskFailure: 3
