@@ -448,8 +448,8 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 	/*
 		If custom dns server is updated, VM needs reboot for the change to take effect.
 	*/
-	// isGreaterOrEqaulUbuntuVersion() returns ubuntu os version to decide which command to be used to get DNS info
-	osVersion, isGreaterOrEqualUbuntu17 := checkUbuntuVersion(ubuntuVersion17)
+
+	ubuntuVersion, isGreaterOrEqualUbuntu17 := checkUbuntuVersion(ubuntuVersion17)
 	isSystemdResolvedActive := false
 	if isGreaterOrEqualUbuntu17 {
 		p := platform.NewExecClient()
@@ -457,7 +457,7 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 		if _, cmderr := p.ExecuteCommand("systemctl status systemd-resolved"); cmderr == nil {
 			isSystemdResolvedActive = true
 			log.Printf("[net] Saving dns config from %v", extIf.Name)
-			if err = saveDnsConfig(extIf, osVersion); err != nil {
+			if err = saveDnsConfig(extIf, ubuntuVersion); err != nil {
 				log.Printf("[net] Failed to save dns config: %v", err)
 				return err
 			}
