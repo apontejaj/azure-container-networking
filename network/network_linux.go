@@ -31,6 +31,7 @@ const (
 	dnsServersStr     = "DNS Servers"
 	dnsDomainStr      = "DNS Domain"
 	ubuntuVersion17   = 17
+	ubuntuVersion22   = 22
 	// OptVethName key for veth name option
 	OptVethName = "vethname"
 	// SnatBridgeIPKey key for the SNAT bridge
@@ -215,11 +216,13 @@ func getMajorVersion(version string) (int, error) {
 	return 0, fmt.Errorf("[net] Error getting major version")
 }
 
-func isGreaterOrEqaulUbuntuVersion(versionToMatch int) bool {
+// checkUbuntuVersion() checks ubuntu version and whether it's equal or greater than versionToMatch
+// return ubuntu version if it's equal or greater than versionToMatch; otherwise return 0
+func checkUbuntuVersion(versionToMatch int) (int, bool) {
 	osInfo, err := platform.GetOSDetails()
 	if err != nil {
 		log.Printf("[net] Unable to get OS Details: %v", err)
-		return false
+		return 0, false
 	}
 
 	log.Printf("[net] OSInfo: %+v", osInfo)
@@ -232,22 +235,30 @@ func isGreaterOrEqaulUbuntuVersion(versionToMatch int) bool {
 		retrieved_version, err := getMajorVersion(version)
 		if err != nil {
 			log.Printf("[net] Not setting dns. Unable to retrieve major version: %v", err)
-			return false
+			return 0, false
 		}
 
 		if retrieved_version >= versionToMatch {
-			return true
+			return retrieved_version, true
 		}
 	}
 
-	return false
+	return 0, false
 }
 
-func readDnsInfo(ifName string) (DNSInfo, error) {
-	var dnsInfo DNSInfo
+func readDnsInfo(ifName string, osVersion int) (DNSInfo, error) {
+	var (
+		dnsInfo DNSInfo
+		cmd     string
+	)
 
 	p := platform.NewExecClient()
-	cmd := fmt.Sprintf("systemd-resolve --status %s", ifName)
+	if osVersion >= ubuntuVersion22 {
+		cmd = fmt.Sprintf("resolvectl status %s", ifName)
+	} else {
+		cmd = fmt.Sprintf("systemd-resolve --status %s", ifName)
+	}
+
 	out, err := p.ExecuteCommand(cmd)
 	if err != nil {
 		return dnsInfo, err
@@ -289,8 +300,8 @@ func readDnsInfo(ifName string) (DNSInfo, error) {
 	return dnsInfo, nil
 }
 
-func saveDnsConfig(extIf *externalInterface) error {
-	dnsInfo, err := readDnsInfo(extIf.Name)
+func saveDnsConfig(extIf *externalInterface, osVersion int) error {
+	dnsInfo, err := readDnsInfo(extIf.Name, osVersion)
 	if err != nil || len(dnsInfo.Servers) == 0 || dnsInfo.Suffix == "" {
 		log.Printf("[net] Failed to read dns info %+v from interface %v: %v", dnsInfo, extIf.Name, err)
 		return err
@@ -437,7 +448,8 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 	/*
 		If custom dns server is updated, VM needs reboot for the change to take effect.
 	*/
-	isGreaterOrEqualUbuntu17 := isGreaterOrEqaulUbuntuVersion(ubuntuVersion17)
+	// isGreaterOrEqaulUbuntuVersion() returns ubuntu os version to decide which command to be used to get DNS info
+	osVersion, isGreaterOrEqualUbuntu17 := checkUbuntuVersion(ubuntuVersion17)
 	isSystemdResolvedActive := false
 	if isGreaterOrEqualUbuntu17 {
 		p := platform.NewExecClient()
@@ -445,7 +457,7 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 		if _, cmderr := p.ExecuteCommand("systemctl status systemd-resolved"); cmderr == nil {
 			isSystemdResolvedActive = true
 			log.Printf("[net] Saving dns config from %v", extIf.Name)
-			if err = saveDnsConfig(extIf); err != nil {
+			if err = saveDnsConfig(extIf, osVersion); err != nil {
 				log.Printf("[net] Failed to save dns config: %v", err)
 				return err
 			}
