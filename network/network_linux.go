@@ -246,7 +246,7 @@ func checkUbuntuVersion(versionToMatch int) (int, bool) {
 	return 0, false
 }
 
-func readDnsInfo(ifName string, osVersion int) (DNSInfo, error) {
+func readDNSInfo(ifName string, osVersion int) (DNSInfo, error) {
 	var (
 		dnsInfo DNSInfo
 		cmd     string
@@ -300,8 +300,8 @@ func readDnsInfo(ifName string, osVersion int) (DNSInfo, error) {
 	return dnsInfo, nil
 }
 
-func saveDnsConfig(extIf *externalInterface, osVersion int) error {
-	dnsInfo, err := readDnsInfo(extIf.Name, osVersion)
+func saveDNSConfig(extIf *externalInterface, osVersion int) error {
+	dnsInfo, err := readDNSInfo(extIf.Name, osVersion)
 	if err != nil || len(dnsInfo.Servers) == 0 || dnsInfo.Suffix == "" {
 		log.Printf("[net] Failed to read dns info %+v from interface %v: %v", dnsInfo, extIf.Name, err)
 		return err
@@ -457,7 +457,7 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 		if _, cmderr := p.ExecuteCommand("systemctl status systemd-resolved"); cmderr == nil {
 			isSystemdResolvedActive = true
 			log.Printf("[net] Saving dns config from %v", extIf.Name)
-			if err = saveDnsConfig(extIf, ubuntuVersion); err != nil {
+			if err = saveDNSConfig(extIf, ubuntuVersion); err != nil {
 				log.Printf("[net] Failed to save dns config: %v", err)
 				return err
 			}
