@@ -44,6 +44,14 @@ func getTestOverlayGateway() net.IP {
 	return net.ParseIP("169.254.1.1")
 }
 
+func getTestOverlayIPv6Gateway() net.IP {
+	if runtime.GOOS == "windows" {
+		return net.ParseIP("fd34:8e19:aa39:5380::2a4")
+	}
+
+	return net.ParseIP("fe80::1234:5678:9abc")
+}
+
 func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 	require := require.New(t) //nolint further usage of require without passing t
 
@@ -230,13 +238,13 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 				IPs: []*cniTypesCurr.IPConfig{
 					{
 						Address: *getCIDRNotationForAddress("fd11:1234::1/112"),
-						Gateway: net.ParseIP("fe80::1234:5678:9abc"),
+						Gateway: getTestOverlayIPv6Gateway(),
 					},
 				},
 				Routes: []*cniTypes.Route{
 					{
 						Dst: network.Ipv6DefaultRouteDstPrefix,
-						GW:  net.ParseIP("fe80::1234:5678:9abc"),
+						GW:  getTestOverlayIPv6Gateway(),
 					},
 				},
 			},

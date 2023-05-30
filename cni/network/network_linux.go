@@ -150,3 +150,7 @@ func (plugin *NetPlugin) isDualNicFeatureSupported(netNs string) bool {
 func getOverlayGateway(_ *net.IPNet) (net.IP, error) {
 	return net.ParseIP("169.254.1.1"), nil
 }
+
+func getOverlayIPv6Gateway(_ *net.IPNet) (net.IP, error) {
+	return net.ParseIP("fe80::1234:5678:9abc"), nil
+}

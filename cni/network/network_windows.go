@@ -425,3 +425,13 @@ func getOverlayGateway(podsubnet *net.IPNet) (net.IP, error) {
 
 	return ncgw, nil
 }
+
+func getOverlayIPv6Gateway(podv6subnet *net.IPNet) (net.IP, error) {
+	ncgw := podv6subnet.IP
+	ncgw = net.ParseIP(ncgw.String() + "1")
+	if ncgw == nil || !podv6subnet.Contains(ncgw) {
+		return nil, errors.Wrap(errInvalidArgs, "%w: Failed to retrieve dualstack overlay ipv6 gateway from podsubnet"+podv6subnet.IP.String())
+	}
+
+	return ncgw, nil
+}

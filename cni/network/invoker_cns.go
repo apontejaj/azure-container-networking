@@ -21,9 +21,8 @@ import (
 )
 
 var (
-	errEmptyCNIArgs    = errors.New("empty CNI cmd args not allowed")
-	errInvalidArgs     = errors.New("invalid arg(s)")
-	overlayGatewayV6IP = "fe80::1234:5678:9abc"
+	errEmptyCNIArgs = errors.New("empty CNI cmd args not allowed")
+	errInvalidArgs  = errors.New("invalid arg(s)")
 )
 
 type CNSIPAMInvoker struct {
@@ -145,7 +144,10 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 					return IPAMAddResult{}, err
 				}
 			} else if net.ParseIP(info.podIPAddress).To16() != nil {
-				ncgw = net.ParseIP(overlayGatewayV6IP)
+				ncgw, err = getOverlayIPv6Gateway(ncIPNet)
+				if err != nil {
+					return IPAMAddResult{}, err
+				}
 			} else {
 				return IPAMAddResult{}, errors.Wrap(err, "No podIPAddress is found: %w")
 			}
