@@ -342,10 +342,12 @@ func (nm *networkManager) applyIPConfig(extIf *externalInterface, targetIf *net.
 	return nil
 }
 
-func applyDnsConfig(extIf *externalInterface, ifName string) error {
+func applyDnsConfig(extIf *externalInterface, ifName string, ubuntuVersion int) error {
 	var (
 		setDnsList string
 		err        error
+		buf        string
+		cmd        string
 	)
 	p := platform.NewExecClient()
 
@@ -356,12 +358,20 @@ func applyDnsConfig(extIf *externalInterface, ifName string) error {
 				continue
 			}
 
-			buf := fmt.Sprintf("--set-dns=%s", server)
+			if ubuntuVersion >= ubuntuVersion22 {
+				buf = fmt.Sprintf("dns=%s", server)
+			} else {
+				buf = fmt.Sprintf("--set-dns=%s", server)
+			}
 			setDnsList = setDnsList + " " + buf
 		}
 
 		if setDnsList != "" {
-			cmd := fmt.Sprintf("systemd-resolve --interface=%s%s", ifName, setDnsList)
+			if ubuntuVersion >= ubuntuVersion22 {
+				cmd = fmt.Sprintf("resolvectl status --interface=%s%s", ifName, setDnsList)
+			} else {
+				cmd = fmt.Sprintf("systemd-resolve --interface=%s%s", ifName, setDnsList)
+			}
 			_, err = p.ExecuteCommand(cmd)
 			if err != nil {
 				return err
@@ -369,10 +379,13 @@ func applyDnsConfig(extIf *externalInterface, ifName string) error {
 		}
 
 		if extIf.DNSInfo.Suffix != "" {
-			cmd := fmt.Sprintf("systemd-resolve --interface=%s --set-domain=%s", ifName, extIf.DNSInfo.Suffix)
+			if ubuntuVersion >= ubuntuVersion22 {
+				cmd = fmt.Sprintf("resolvectl status --interface=%s domain=%s", ifName, extIf.DNSInfo.Suffix)
+			} else {
+				cmd = fmt.Sprintf("systemd-resolve --interface=%s --set-domain=%s", ifName, extIf.DNSInfo.Suffix)
+			}
 			_, err = p.ExecuteCommand(cmd)
 		}
-
 	}
 
 	return err
@@ -515,7 +528,7 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 	if isGreaterOrEqualUbuntu17 && isSystemdResolvedActive {
 		log.Printf("[net] Applying dns config on %v", bridgeName)
 
-		if err = applyDnsConfig(extIf, bridgeName); err != nil {
+		if err = applyDnsConfig(extIf, bridgeName, ubuntuVersion); err != nil {
 			log.Printf("[net] Failed to apply DNS configuration: %v.", err)
 			return err
 		}
