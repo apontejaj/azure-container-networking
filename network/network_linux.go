@@ -342,7 +342,7 @@ func (nm *networkManager) applyIPConfig(extIf *externalInterface, targetIf *net.
 	return nil
 }
 
-func applyDnsConfig(extIf *externalInterface, ifName string, ubuntuVersion int) error {
+func applyDNSConfig(extIf *externalInterface, ifName string, ubuntuVersion int) error {
 	var (
 		setDnsList string
 		err        error
@@ -528,7 +528,7 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 	if isGreaterOrEqualUbuntu17 && isSystemdResolvedActive {
 		log.Printf("[net] Applying dns config on %v", bridgeName)
 
-		if err = applyDnsConfig(extIf, bridgeName, ubuntuVersion); err != nil {
+		if err = applyDNSConfig(extIf, bridgeName, ubuntuVersion); err != nil {
 			log.Printf("[net] Failed to apply DNS configuration: %v.", err)
 			return err
 		}
