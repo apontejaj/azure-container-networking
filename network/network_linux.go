@@ -359,7 +359,7 @@ func applyDNSConfig(extIf *externalInterface, ifName string, ubuntuVersion int) 
 			}
 
 			if ubuntuVersion >= ubuntuVersion22 {
-				buf = fmt.Sprintf("%s", server)
+				buf = server
 			} else {
 				buf = fmt.Sprintf("--set-dns=%s", server)
 			}
