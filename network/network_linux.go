@@ -368,8 +368,10 @@ func applyDNSConfig(extIf *externalInterface, ifName string, ubuntuVersion int) 
 
 		if setDnsList != "" {
 			if ubuntuVersion >= ubuntuVersion22 {
+				// example command on Ubuntu22: resolvectl dns azure0 168.63.129.16
 				cmd = fmt.Sprintf("resolvectl dns %s%s", ifName, setDnsList)
 			} else {
+				// example command on Ubuntu18: systemd-resolve --interface=azure0 --set-dns=168.63.129.16
 				cmd = fmt.Sprintf("systemd-resolve --interface=%s%s", ifName, setDnsList)
 			}
 			_, err = p.ExecuteCommand(cmd)
@@ -380,8 +382,10 @@ func applyDNSConfig(extIf *externalInterface, ifName string, ubuntuVersion int) 
 
 		if extIf.DNSInfo.Suffix != "" {
 			if ubuntuVersion >= ubuntuVersion22 {
+				// example command on Ubuntu22: resolvectl domain azure0 dlw5dhyl2njevcuzgmfubi2oid.bx.internal.cloudapp.net
 				cmd = fmt.Sprintf("resolvectl domain %s %s", ifName, extIf.DNSInfo.Suffix)
 			} else {
+				// example command on Ubuntu18: systemd-resolve --interface=azure0 --set-domain=dlw5dhyl2njevcuzgmfubi2oid.bx.internal.cloudapp.net
 				cmd = fmt.Sprintf("systemd-resolve --interface=%s --set-domain=%s", ifName, extIf.DNSInfo.Suffix)
 			}
 			_, err = p.ExecuteCommand(cmd)
