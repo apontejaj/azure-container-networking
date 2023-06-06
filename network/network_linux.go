@@ -359,7 +359,7 @@ func applyDNSConfig(extIf *externalInterface, ifName string, ubuntuVersion int) 
 			}
 
 			if ubuntuVersion >= ubuntuVersion22 {
-				buf = fmt.Sprintf("dns=%s", server)
+				buf = fmt.Sprintf("%s", server)
 			} else {
 				buf = fmt.Sprintf("--set-dns=%s", server)
 			}
@@ -368,7 +368,7 @@ func applyDNSConfig(extIf *externalInterface, ifName string, ubuntuVersion int) 
 
 		if setDnsList != "" {
 			if ubuntuVersion >= ubuntuVersion22 {
-				cmd = fmt.Sprintf("resolvectl status --interface=%s%s", ifName, setDnsList)
+				cmd = fmt.Sprintf("resolvectl dns %s%s", ifName, setDnsList)
 			} else {
 				cmd = fmt.Sprintf("systemd-resolve --interface=%s%s", ifName, setDnsList)
 			}
@@ -380,7 +380,7 @@ func applyDNSConfig(extIf *externalInterface, ifName string, ubuntuVersion int) 
 
 		if extIf.DNSInfo.Suffix != "" {
 			if ubuntuVersion >= ubuntuVersion22 {
-				cmd = fmt.Sprintf("resolvectl status --interface=%s domain=%s", ifName, extIf.DNSInfo.Suffix)
+				cmd = fmt.Sprintf("resolvectl domain %s %s", ifName, extIf.DNSInfo.Suffix)
 			} else {
 				cmd = fmt.Sprintf("systemd-resolve --interface=%s --set-domain=%s", ifName, extIf.DNSInfo.Suffix)
 			}
