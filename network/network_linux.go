@@ -216,13 +216,12 @@ func getMajorVersion(version string) (int, error) {
 	return 0, fmt.Errorf("[net] Error getting major version")
 }
 
-// checkUbuntuVersion() checks ubuntu version and whether it's equal or greater than versionToMatch
-// return ubuntu version if it's equal or greater than versionToMatch; otherwise return 0
-func checkUbuntuVersion(versionToMatch int) (int, bool) {
+// getUbuntuVersion() gets Linux ubuntu version; it will return 0 if it's failed to retrieve ubuntu version
+func getUbuntuVersion() int {
 	osInfo, err := platform.GetOSDetails()
 	if err != nil {
 		log.Printf("[net] Unable to get OS Details: %v", err)
-		return 0, false
+		return 0
 	}
 
 	log.Printf("[net] OSInfo: %+v", osInfo)
@@ -235,15 +234,21 @@ func checkUbuntuVersion(versionToMatch int) (int, bool) {
 		retrieved_version, err := getMajorVersion(version)
 		if err != nil {
 			log.Printf("[net] Not setting dns. Unable to retrieve major version: %v", err)
-			return 0, false
+			return 0
 		}
-
-		if retrieved_version >= versionToMatch {
-			return retrieved_version, true
-		}
+		return retrieved_version
 	}
 
-	return 0, false
+	return 0
+}
+
+func isGreaterOrEqaulUbuntuVersion(versionToMatch int) bool {
+	retrieved_version := getUbuntuVersion()
+	if retrieved_version >= versionToMatch {
+		return true
+	}
+
+	return false
 }
 
 func readDNSInfo(ifName string, osVersion int) (DNSInfo, error) {
@@ -466,7 +471,7 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 		If custom dns server is updated, VM needs reboot for the change to take effect.
 	*/
 
-	ubuntuVersion, isGreaterOrEqualUbuntu17 := checkUbuntuVersion(ubuntuVersion17)
+	isGreaterOrEqualUbuntu17 := isGreaterOrEqaulUbuntuVersion(ubuntuVersion17)
 	isSystemdResolvedActive := false
 	if isGreaterOrEqualUbuntu17 {
 		p := platform.NewExecClient()
