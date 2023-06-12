@@ -243,13 +243,9 @@ func getUbuntuVersion() int {
 	return 0
 }
 
-func isGreaterOrEqaulUbuntuVersion(versionToMatch int) bool {
+func isGreaterOrEqualUbuntuVersion(versionToMatch int) bool {
 	ubuntuVerion := getUbuntuVersion()
-	if ubuntuVerion >= versionToMatch {
-		return true
-	}
-
-	return false
+	return ubuntuVerion >= versionToMatch
 }
 
 func readDNSInfo(ifName string, osVersion int) (DNSInfo, error) {
@@ -472,7 +468,7 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 		If custom dns server is updated, VM needs reboot for the change to take effect.
 	*/
 
-	isGreaterOrEqualUbuntu17 := isGreaterOrEqaulUbuntuVersion(ubuntuVersion17)
+	isGreaterOrEqualUbuntu17 := isGreaterOrEqualUbuntuVersion(ubuntuVersion17)
 	ubuntuVersion := getUbuntuVersion()
 	isSystemdResolvedActive := false
 	if isGreaterOrEqualUbuntu17 {
