@@ -130,7 +130,7 @@ jobs:
 
             export CLUSTER_NAME=$(RESOURCE_GROUP)-$(PROFILE)
             echo "Creating cluster named $CLUSTER_NAME"
-            az aks create \
+            az aks create --network-plugin-mode overlay --ip-families ipv4,ipv6 \
                 --resource-group $(RESOURCE_GROUP) \
                 --name $CLUSTER_NAME \
                 --generate-ssh-keys \

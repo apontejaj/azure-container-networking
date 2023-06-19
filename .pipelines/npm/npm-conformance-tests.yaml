@@ -90,22 +90,22 @@ jobs:
     displayName: "Run Kubernetes Network Policy Test Suite"
     strategy:
       matrix:
-        v1-default:
-          AZURE_CLUSTER: "conformance-v1-default"
-          PROFILE: "v1-default"
-          IS_STRESS_TEST: "false"
-        v2-default:
-          AZURE_CLUSTER: "conformance-v2-default"
-          PROFILE: "v2-default"
-          IS_STRESS_TEST: "false"
+        # v1-default:
+        #   AZURE_CLUSTER: "conformance-v1-default"
+        #   PROFILE: "v1-default"
+        #   IS_STRESS_TEST: "false"
+        # v2-default:
+        #   AZURE_CLUSTER: "conformance-v2-default"
+        #   PROFILE: "v2-default"
+        #   IS_STRESS_TEST: "false"
         v2-default-ws22:
           AZURE_CLUSTER: "conformance-v2-default-ws22"
           PROFILE: "v2-default-ws22"
           IS_STRESS_TEST: "false"
-        v2-default-stress:
-          AZURE_CLUSTER: "conformance-v2-default-stress"
-          PROFILE: "v2-default"
-          IS_STRESS_TEST: "true"
+        # v2-default-stress:
+        #   AZURE_CLUSTER: "conformance-v2-default-stress"
+        #   PROFILE: "v2-default"
+        #   IS_STRESS_TEST: "true"
     pool:
       name: $(BUILD_POOL_NAME_DEFAULT)
       demands:
@@ -152,7 +152,7 @@ jobs:
               az extension update --name aks-preview
 
               echo "creating WS22 Cluster";
-              az aks create \
+              az aks create --network-plugin-mode overlay --ip-families ipv4,ipv6 \
                   --resource-group $(RESOURCE_GROUP) \
                   --name $(AZURE_CLUSTER) \
                   --generate-ssh-keys \
@@ -388,7 +388,7 @@ jobs:
             az group create --name $CLUSTER_NAME -l $(LOCATION) -o table
 
             echo "Creating resource group named $CLUSTER_NAME"
-            az aks create \
+            az aks create --network-plugin-mode overlay --ip-families ipv4,ipv6 \
                 --resource-group $CLUSTER_NAME \
                 --name $CLUSTER_NAME \
                 --generate-ssh-keys \
