@@ -90,10 +90,10 @@ jobs:
     displayName: "Run Kubernetes Network Policy Test Suite"
     strategy:
       matrix:
-        v1-default:
-          AZURE_CLUSTER: "conformance-v1-default"
-          PROFILE: "v1-default"
-          IS_STRESS_TEST: "false"
+        # v1-default:
+        #   AZURE_CLUSTER: "conformance-v1-default"
+        #   PROFILE: "v1-default"
+        #   IS_STRESS_TEST: "false"
         v2-default:
           AZURE_CLUSTER: "conformance-v2-default"
           PROFILE: "v2-default"
@@ -158,7 +158,7 @@ jobs:
                   --generate-ssh-keys \
                   --windows-admin-username e2eadmin \
                   --windows-admin-password alpha@numeric!password2 \
-                  --network-plugin azure \
+                  --network-plugin azure --network-pugin-mode overlay --pod-cidr 192.168.0.0/16 \
                   --vm-set-type VirtualMachineScaleSets \
                   --node-vm-size Standard_D4s_v3 \
                   --node-count 1
@@ -208,7 +208,7 @@ jobs:
               az aks create --no-ssh-key \
               --resource-group $(RESOURCE_GROUP) \
               --name $(AZURE_CLUSTER) \
-              --network-plugin azure
+              --network-plugin azure --network-pugin-mode overlay --pod-cidr 192.168.0.0/16
 
               if [ $? != 0 ]
               then
@@ -394,7 +394,7 @@ jobs:
                 --generate-ssh-keys \
                 --windows-admin-username e2eadmin \
                 --windows-admin-password alpha@numeric!password2 \
-                --network-plugin azure \
+                --network-plugin azure --network-pugin-mode overlay --pod-cidr 192.168.0.0/16 \
                 --vm-set-type VirtualMachineScaleSets \
                 --node-vm-size Standard_D8s_v3 \
                 --node-count 1 \

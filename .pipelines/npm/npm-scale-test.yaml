@@ -136,7 +136,7 @@ jobs:
                 --generate-ssh-keys \
                 --windows-admin-username e2eadmin \
                 --windows-admin-password alpha@numeric!password2 \
-                --network-plugin azure \
+                --network-plugin azure --network-pugin-mode overlay --pod-cidr 192.168.0.0/16 \
                 --vm-set-type VirtualMachineScaleSets \
                 --node-vm-size Standard_D4s_v3 \
                 --node-count 1 \
