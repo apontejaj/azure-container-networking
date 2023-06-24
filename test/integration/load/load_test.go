@@ -113,6 +113,10 @@ func TestLoad(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if *validateDualStack {
+		t.Run("Validate dualstack overlay", TestDualStackProperties)
+	}
+
 	if *validateStateFile {
 		t.Run("Validate state file", TestValidateState)
 	}
