@@ -29,6 +29,7 @@ var (
 	skipWait          = flag.Bool("skip-wait", false, "Skip waiting for pods to be ready")
 	restartCase       = flag.Bool("restart-case", false, "In restart case, skip if we don't find state file")
 	namespace         = "load-test"
+	validateDualStack = flag.Bool("validate-dualstack", false, "Validate the dualstack overlay")
 )
 
 /*
@@ -172,6 +173,26 @@ func TestScaleDeployment(t *testing.T) {
 	}
 	deploymentsClient := clientset.AppsV1().Deployments(namespace)
 	err = k8sutils.MustScaleDeployment(ctx, deploymentsClient, deployment, clientset, namespace, podLabelSelector, *replicas, *skipWait)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestDualStackProperties(t *testing.T) {
+	clientset, err := k8sutils.MustGetClientset()
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := k8sutils.MustGetRestConfig(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	defer cancel()
+
+	t.Log("Validating the dualstack node labels")
+	validatorClient := validate.GetValidatorClient(*osType)
+	validator := validatorClient.CreateClient(ctx, clientset, config, namespace, *cniType, *restartCase)
+
+	// validate dualstack overlay scenarios
+	err = validator.ValidateDualStackNodeProperties()
 	if err != nil {
 		t.Fatal(err)
 	}
