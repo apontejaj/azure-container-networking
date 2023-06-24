@@ -22,6 +22,7 @@ const (
 	cnsLabelSelector        = "k8s-app=azure-cns"
 	ciliumLabelSelector     = "k8s-app=cilium"
 	overlayClusterLabelName = "overlay"
+	dualstackNodeStatusAddr = 3
 )
 
 var (
@@ -350,7 +351,7 @@ func (v *LinuxValidator) ValidateDualStackNodeProperties() error {
 
 		// get node allocated IPs and check whether it includes ipv4 and ipv6 address
 		// node status addresses object will return three objects; two of them are ip addresses object(one is ipv4 and one is ipv6)
-		if len(nodes.Items[index].Status.Addresses) < 3 {
+		if len(nodes.Items[index].Status.Addresses) < dualstackNodeStatusAddr {
 			return errors.Wrapf(err, "node %s is missing IPv6 internal IP", nodeName)
 		}
 	}

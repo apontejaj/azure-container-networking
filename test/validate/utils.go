@@ -38,16 +38,16 @@ func getPodIPsWithoutNodeIP(ctx context.Context, clientset *kubernetes.Clientset
 	}
 
 	for _, podIP := range podIPs {
-		if contains := contain(podIP, nodeIPs); contains == false {
+		if !contain(podIP, nodeIPs) {
 			podsIpsWithoutNodeIP = append(podsIpsWithoutNodeIP, podIP)
 		}
 	}
 	return podsIpsWithoutNodeIP
 }
 
-func contain(obj interface{}, target interface{}) bool {
+func contain(obj, target interface{}) bool {
 	targetValue := reflect.ValueOf(target)
-	switch reflect.TypeOf(target).Kind() {
+	switch reflect.TypeOf(target).Kind() { // no lint
 	case reflect.Slice, reflect.Array:
 		for i := 0; i < targetValue.Len(); i++ {
 			if targetValue.Index(i).Interface() == obj {
