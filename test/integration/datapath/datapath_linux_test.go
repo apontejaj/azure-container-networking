@@ -6,6 +6,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -16,13 +18,15 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
+	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	LinuxDeployYamlPath        = "../manifests/datapath/linux-deployment.yaml"
+	LinuxDeployIPV4            = "../manifests/datapath/linux-deployment.yaml"
+	LinuxDeployIPv6            = "../manifests/datapath/linux-deployment-ipv6.yaml"
 	podLabelKey                = "app"
 	podCount                   = 2
 	nodepoolKey                = "agentpool"
@@ -31,12 +35,20 @@ const (
 	defaultRetryDelaySeconds   = 1
 	goldpingerRetryCount       = 24
 	goldpingerDelayTimeSeconds = 5
+	gpFolder                   = "../manifests/goldpinger"
+	gpClusterRolePath          = gpFolder + "/cluster-role.yaml"
+	gpClusterRoleBindingPath   = gpFolder + "/cluster-role-binding.yaml"
+	gpServiceAccountPath       = gpFolder + "/service-account.yaml"
+	gpDaemonset                = gpFolder + "/daemonset.yaml"
+	gpDaemonsetIPv6            = gpFolder + "/daemonset-ipv6.yaml"
+	gpDeployment               = gpFolder + "/deployment.yaml"
 )
 
 var (
 	podPrefix        = flag.String("podName", "goldpinger", "Prefix for test pods")
-	podNamespace     = flag.String("namespace", "datapath-linux", "Namespace for test pods")
+	podNamespace     = flag.String("namespace", "default", "Namespace for test pods")
 	nodepoolSelector = flag.String("nodepoolSelector", "nodepool1", "Provides nodepool as a Node-Selector for pods")
+	testProfile      = flag.String("testName", LinuxDeployIPV4, "Linux datapath test profile")
 	defaultRetrier   = retry.Retrier{
 		Attempts: 10,
 		Delay:    defaultRetryDelaySeconds * time.Second,
@@ -50,18 +62,23 @@ k8s cluster with a Linux nodepool consisting of at least 2 Linux nodes.
 	-nodepoolSelector="yournodepoolname"
 
 To run the test use one of the following commands:
-go test -count=1 test/integration/datapath/datapath_linux_test.go -timeout 3m -tags connection -run ^TestDatapathLinux$ -tags=connection
+go test -count=1 test/integration/datapath/datapath_linux_test.go -timeout 3m -tags connection -run ^TestDatapathLinux$ -tags=connection,integration
    or
-go test -count=1 test/integration/datapath/datapath_linux_test.go -timeout 3m -tags connection -run ^TestDatapathLinux$ -podName=acnpod -nodepoolSelector=npwina -tags=connection
+go test -count=1 test/integration/datapath/datapath_linux_test.go -timeout 3m -tags connection -run ^TestDatapathLinux$ -podName=acnpod -nodepoolSelector=aks-pool1 -tags=connection,integration
 
 
-This test checks pod to pod, pod to node, and pod to internet for datapath connectivity.
+This test checks pod to pod, pod to node, pod to Internet check
 
 Timeout context is controled by the -timeout flag.
 
 */
 
-func TestDatapathLinux(t *testing.T) {
+// return podLabelSelector and nodeLabelSelector
+func createLabelSelectors() (string, string) {
+	return fmt.Sprintf("%s=%s", podLabelKey, *podPrefix), fmt.Sprintf("%s=%s", nodepoolKey, *nodepoolSelector)
+}
+
+func setupLinuxEnvironment(t *testing.T) {
 	ctx := context.Background()
 
 	t.Log("Create Clientset")
@@ -69,13 +86,9 @@ func TestDatapathLinux(t *testing.T) {
 	if err != nil {
 		require.NoError(t, err, "could not get k8s clientset: %v", err)
 	}
-	t.Log("Get REST config")
-	restConfig := k8sutils.MustGetRestConfig(t)
 
 	t.Log("Create Label Selectors")
-
-	podLabelSelector := fmt.Sprintf("%s=%s", podLabelKey, *podPrefix)
-	nodeLabelSelector := fmt.Sprintf("%s=%s", nodepoolKey, *nodepoolSelector)
+	podLabelSelector, nodeLabelSelector := createLabelSelectors()
 
 	t.Log("Get Nodes")
 	nodes, err := k8sutils.GetNodeListByLabelSelector(ctx, clientset, nodeLabelSelector)
@@ -83,17 +96,33 @@ func TestDatapathLinux(t *testing.T) {
 		require.NoError(t, err, "could not get k8s node list: %v", err)
 	}
 
-	// Test Namespace
-	t.Log("Create Namespace")
-	err = k8sutils.MustCreateNamespace(ctx, clientset, *podNamespace)
 	createPodFlag := !(apierrors.IsAlreadyExists(err))
 	t.Logf("%v", createPodFlag)
 
 	if createPodFlag {
+		var daemonset appsv1.DaemonSet
 		t.Log("Creating Linux pods through deployment")
-		deployment, err := k8sutils.MustParseDeployment(LinuxDeployYamlPath)
+		deployment, err := k8sutils.MustParseDeployment(*testProfile)
 		if err != nil {
 			require.NoError(t, err)
+		}
+
+		if *testProfile == LinuxDeployIPV4 {
+			daemonset, err = k8sutils.MustParseDaemonSet(gpDaemonset)
+			if err != nil {
+				t.Fatal(err)
+			}
+		} else {
+			daemonset, err = k8sutils.MustParseDaemonSet(gpDaemonsetIPv6)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		rbacCleanUpFn, err := k8sutils.MustSetUpClusterRBAC(ctx, clientset, gpClusterRolePath, gpClusterRoleBindingPath, gpServiceAccountPath)
+		if err != nil {
+			t.Log(os.Getwd())
+			t.Fatal(err)
 		}
 
 		// Fields for overwritting existing deployment yaml.
@@ -104,14 +133,30 @@ func TestDatapathLinux(t *testing.T) {
 		deployment.Name = *podPrefix
 		deployment.Namespace = *podNamespace
 
-		t.Logf("deployment Spec Template is %+v", deployment.Spec.Template)
 		deploymentsClient := clientset.AppsV1().Deployments(*podNamespace)
 		err = k8sutils.MustCreateDeployment(ctx, deploymentsClient, deployment)
 		if err != nil {
 			require.NoError(t, err)
 		}
-		t.Logf("podNamespace is %s", *podNamespace)
-		t.Logf("podLabelSelector is %s", podLabelSelector)
+
+		daemonsetClient := clientset.AppsV1().DaemonSets(daemonset.Namespace)
+		err = k8sutils.MustCreateDaemonset(ctx, daemonsetClient, daemonset)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		t.Cleanup(func() {
+			t.Log("cleaning up resources")
+			rbacCleanUpFn()
+
+			if err := deploymentsClient.Delete(ctx, deployment.Name, metav1.DeleteOptions{}); err != nil {
+				t.Log(err)
+			}
+
+			if err := daemonsetClient.Delete(ctx, daemonset.Name, metav1.DeleteOptions{}); err != nil {
+				t.Log(err)
+			}
+		})
 
 		t.Log("Waiting for pods to be running state")
 		err = k8sutils.WaitForPodsRunning(ctx, clientset, *podNamespace, podLabelSelector)
@@ -120,18 +165,15 @@ func TestDatapathLinux(t *testing.T) {
 		}
 		t.Log("Successfully created customer linux pods")
 	} else {
-		// Checks namespace already exists from previous attempt
-		t.Log("Namespace already exists")
-
 		t.Log("Checking for pods to be running state")
 		err = k8sutils.WaitForPodsRunning(ctx, clientset, *podNamespace, podLabelSelector)
 		if err != nil {
 			require.NoError(t, err)
 		}
 	}
+
 	t.Log("Checking Linux test environment")
 	for _, node := range nodes.Items {
-
 		pods, err := k8sutils.GetPodsByNode(ctx, clientset, *podNamespace, podLabelSelector, node.Name)
 		if err != nil {
 			require.NoError(t, err, "could not get k8s clientset: %v", err)
@@ -140,8 +182,22 @@ func TestDatapathLinux(t *testing.T) {
 			t.Logf("%s", node.Name)
 			require.NoError(t, errors.New("Less than 2 pods on node"))
 		}
+
 	}
 	t.Log("Linux test environment ready")
+}
+
+func TestDatapathLinux(t *testing.T) {
+	ctx := context.Background()
+
+	t.Log("Get REST config")
+	restConfig := k8sutils.MustGetRestConfig(t)
+
+	t.Log("Create Clientset")
+	clientset, _ := k8sutils.MustGetClientset()
+
+	setupLinuxEnvironment(t)
+	podLabelSelector, _ := createLabelSelectors()
 
 	t.Run("Linux ping tests", func(t *testing.T) {
 		// Check goldpinger health
@@ -150,7 +206,6 @@ func TestDatapathLinux(t *testing.T) {
 
 			checkPodIPsFn := func() error {
 				podList, err := podsClient.List(ctx, metav1.ListOptions{LabelSelector: "app=goldpinger"})
-				t.Logf("podList is %+v", podList)
 				if err != nil {
 					return err
 				}
@@ -180,10 +235,46 @@ func TestDatapathLinux(t *testing.T) {
 			t.Log("all pods have been allocated IPs")
 		})
 
+		// TODO: avoid using yaml file path to control test case
+		if *testProfile == LinuxDeployIPv6 {
+			t.Run("Linux dualstack overlay tests", func(t *testing.T) {
+				t.Run("test dualstack overlay", func(t *testing.T) {
+					podsClient := clientset.CoreV1().Pods(*podNamespace)
+
+					checkPodIPsFn := func() error {
+						podList, err := podsClient.List(ctx, metav1.ListOptions{LabelSelector: "app=goldpinger"})
+						if err != nil {
+							return err
+						}
+
+						for _, pod := range podList.Items {
+							podIPs := pod.Status.PodIPs
+							if len(podIPs) < 2 {
+								return errors.New("a pod only gets one IP")
+							}
+							if net.ParseIP(podIPs[0].IP).To4() == nil || net.ParseIP(podIPs[1].IP).To16() == nil {
+								return errors.New("a pod does not have both ipv4 and ipv6 address")
+							}
+						}
+						return nil
+					}
+					err := defaultRetrier.Do(ctx, checkPodIPsFn)
+					if err != nil {
+						t.Fatalf("dualstack overlay pod properties check is failed due to: %v", err)
+					}
+
+					t.Log("all dualstack linux pods properties have been verified")
+				})
+			})
+		}
+
 		t.Run("all linux pods can ping each other", func(t *testing.T) {
+			clusterCheckCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+			defer cancel()
+
 			pfOpts := k8s.PortForwardingOpts{
-				Namespace:     "default",
-				LabelSelector: "type=goldpinger-pod",
+				Namespace:     *podNamespace,
+				LabelSelector: podLabelSelector,
 				LocalPort:     9090,
 				DestPort:      8080,
 			}
@@ -210,15 +301,11 @@ func TestDatapathLinux(t *testing.T) {
 			defer pf.Stop()
 
 			gpClient := goldpinger.Client{Host: pf.Address()}
-
-			clusterCheckCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
-			defer cancel()
 			clusterCheckFn := func() error {
 				clusterState, err := gpClient.CheckAll(clusterCheckCtx)
 				if err != nil {
 					return err
 				}
-
 				stats := goldpinger.ClusterStats(clusterState)
 				stats.PrintStats()
 				if stats.AllPingsHealthy() {
