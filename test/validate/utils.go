@@ -47,7 +47,7 @@ func getPodIPsWithoutNodeIP(ctx context.Context, clientset *kubernetes.Clientset
 
 func contain(obj, target interface{}) bool {
 	targetValue := reflect.ValueOf(target)
-	switch reflect.TypeOf(target).Kind() { // no lint
+	switch reflect.TypeOf(target).Kind() { //nolint
 	case reflect.Slice, reflect.Array:
 		for i := 0; i < targetValue.Len(); i++ {
 			if targetValue.Index(i).Interface() == obj {
