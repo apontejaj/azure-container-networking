@@ -24,7 +24,7 @@ spec:
             privileged: true
             runAsUser: 0
           volumeMounts:
-            - mountPath: /var/run/azure-cns
+            - mountPath: /var/run/azure-network
               name: azure-cns
             - mountPath: /host
               name: host-root
@@ -33,7 +33,7 @@ spec:
       volumes:
         - name: azure-cns
           hostPath:
-            path: /var/run/azure-cns
+            path: /var/run/azure-network
         - name: azure-cns-noncilium
           hostPath:
             path: /var/run
