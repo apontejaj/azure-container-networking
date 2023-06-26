@@ -259,7 +259,7 @@ func readDNSInfo(ifName string) (DNSInfo, error) {
 		log.Printf("[net] trying command %s", sysResCtlCmd)
 		out, err = p.ExecuteCommand(sysResCtlCmd)
 		if err != nil {
-			return dnsInfo, err
+			return dnsInfo, errors.Wrap(err, "failed to execute command %s", sysResCtlCmd)
 		}
 	}
 
@@ -374,7 +374,7 @@ func applyDNSConfig(extIf *externalInterface, ifName string) error {
 		if extIf.DNSInfo.Suffix != "" {
 			// example command on Ubuntu22: resolvectl domain azure0 dlw5dhyl2njevcuzgmfubi2oid.bx.internal.cloudapp.net
 			resCtlCmd := fmt.Sprintf("resolvectl domain %s %s", ifName, extIf.DNSInfo.Suffix)
-			//example command on Ubuntu18: systemd-resolve --interface=azure0 --set-domain=dlw5dhyl2njevcuzgmfubi2oid.bx.internal.cloudapp.net
+			// example command on Ubuntu18: systemd-resolve --interface=azure0 --set-domain=dlw5dhyl2njevcuzgmfubi2oid.bx.internal.cloudapp.net
 			sysResCtlCmd := fmt.Sprintf("systemd-resolve --interface=%s --set-domain=%s", ifName, extIf.DNSInfo.Suffix)
 
 			if _, err = p.ExecuteCommand(sysResCtlCmd); err != nil {
