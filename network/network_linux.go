@@ -256,10 +256,10 @@ func readDNSInfo(ifName string) (DNSInfo, error) {
 
 	out, err = p.ExecuteCommand(resolveCtlCmd)
 	if err != nil {
-		log.Errorf("resolvectl cmd failed with:%+v",err)
+		log.Errorf("resolvectl cmd failed with:%v",err)
 		out, err = p.ExecuteCommand(systemdResolveCmd)
 		if err != nil {
-			return dnsInfo, fmt.Errorf("failed to execute command %s", systemdResolveCmd)
+			return dnsInfo, errors.New("failed to execute systemdResolveCmd")
 		}
 	}
 
@@ -365,7 +365,7 @@ func applyDNSConfig(extIf *externalInterface, ifName string) error {
 			systemdResolveCmd := fmt.Sprintf("systemd-resolve --interface=%s%s", ifName, "--set-dns="+strings.TrimSpace(setDnsList))
 
 			_, err = p.ExecuteCommand(resolveCtlCmd)
-			log.Errorf("resolvectl cmd failed with:%+v",err)
+			log.Errorf("resolvectl cmd failed with:%v",err)
 			if err != nil {
 				_, err = p.ExecuteCommand(systemdResolveCmd)
 				return err
@@ -379,9 +379,8 @@ func applyDNSConfig(extIf *externalInterface, ifName string) error {
 			systemdResolveCmd := fmt.Sprintf("systemd-resolve --interface=%s --set-domain=%s", ifName, extIf.DNSInfo.Suffix)
 
 			if _, err = p.ExecuteCommand(resolveCtlCmd); err != nil {
-				log.Errorf("resolvectl cmd failed with:%+v",err)
+				log.Errorf("resolvectl cmd failed with:%v",err)
 				_, err = p.ExecuteCommand(systemdResolveCmd)
-				return err
 			}
 		}
 	}
