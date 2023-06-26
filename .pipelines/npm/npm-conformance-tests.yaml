@@ -152,7 +152,7 @@ jobs:
               az extension update --name aks-preview
 
               echo "creating WS22 Cluster";
-              az aks create \
+              az aks create --os-sku Mariner \
                   --resource-group $(RESOURCE_GROUP) \
                   --name $(AZURE_CLUSTER) \
                   --generate-ssh-keys \
@@ -205,7 +205,7 @@ jobs:
 
             else
               echo "Creating Linux Cluster"; 
-              az aks create --no-ssh-key \
+              az aks create --os-sku Mariner --no-ssh-key \
               --resource-group $(RESOURCE_GROUP) \
               --name $(AZURE_CLUSTER) \
               --network-plugin azure
@@ -388,7 +388,7 @@ jobs:
             az group create --name $CLUSTER_NAME -l $(LOCATION) -o table
 
             echo "Creating resource group named $CLUSTER_NAME"
-            az aks create \
+            az aks create --os-sku Mariner \
                 --resource-group $CLUSTER_NAME \
                 --name $CLUSTER_NAME \
                 --generate-ssh-keys \
