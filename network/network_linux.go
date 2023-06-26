@@ -251,13 +251,13 @@ func readDNSInfo(ifName string) (DNSInfo, error) {
 	)
 
 	p := platform.NewExecClient()
-	resCtlCmd := fmt.Sprintf("resolvectl status %s", ifName)
-	sysResCtlCmd := fmt.Sprintf("systemd-resolve --status %s", ifName)
+	resolveCtlCmd := fmt.Sprintf("resolvectl status %s", ifName)
+	systemdResolveCmd := fmt.Sprintf("systemd-resolve --status %s", ifName)
 
-	out, err = p.ExecuteCommand(resCtlCmd)
+	out, err = p.ExecuteCommand(resolveCtlCmd)
 	if err != nil {
-		log.Printf("[net] trying command %s", sysResCtlCmd)
-		out, err = p.ExecuteCommand(sysResCtlCmd)
+		log.Errorf("%+v",err)
+		out, err = p.ExecuteCommand(systemdResolveCmd)
 		if err != nil {
 			return dnsInfo, errors.Wrap(err, "failed to execute command %s", sysResCtlCmd)
 		}
@@ -360,25 +360,28 @@ func applyDNSConfig(extIf *externalInterface, ifName string) error {
 
 		if setDnsList != "" {
 			// example command on Ubuntu22: resolvectl dns azure0 168.63.129.16
-			resCtlCmd := fmt.Sprintf("resolvectl dns %s%s", ifName, setDnsList)
+			resolveCtlCmd := fmt.Sprintf("resolvectl dns %s%s", ifName, setDnsList)
 			// example command on Ubuntu18: systemd-resolve --interface=azure0 --set-dns=168.63.129.16
-			sysResCtlCmd := fmt.Sprintf("systemd-resolve --interface=%s%s", ifName, "--set-dns="+strings.TrimSpace(setDnsList))
+			systemdResolveCmd := fmt.Sprintf("systemd-resolve --interface=%s%s", ifName, "--set-dns="+strings.TrimSpace(setDnsList))
 
-			_, err = p.ExecuteCommand(sysResCtlCmd)
+			_, err = p.ExecuteCommand(resolveCtlCmd)
+			log.Errorf("%+v",err)
 			if err != nil {
-				_, err = p.ExecuteCommand(resCtlCmd)
+				_, err = p.ExecuteCommand(systemdResolveCmd)
 				return err
 			}
 		}
 
 		if extIf.DNSInfo.Suffix != "" {
 			// example command on Ubuntu22: resolvectl domain azure0 dlw5dhyl2njevcuzgmfubi2oid.bx.internal.cloudapp.net
-			resCtlCmd := fmt.Sprintf("resolvectl domain %s %s", ifName, extIf.DNSInfo.Suffix)
+			resolveCtlCmd := fmt.Sprintf("resolvectl domain %s %s", ifName, extIf.DNSInfo.Suffix)
 			// example command on Ubuntu18: systemd-resolve --interface=azure0 --set-domain=dlw5dhyl2njevcuzgmfubi2oid.bx.internal.cloudapp.net
-			sysResCtlCmd := fmt.Sprintf("systemd-resolve --interface=%s --set-domain=%s", ifName, extIf.DNSInfo.Suffix)
+			systemdResolveCmd := fmt.Sprintf("systemd-resolve --interface=%s --set-domain=%s", ifName, extIf.DNSInfo.Suffix)
 
-			if _, err = p.ExecuteCommand(sysResCtlCmd); err != nil {
-				_, err = p.ExecuteCommand(resCtlCmd)
+			if _, err = p.ExecuteCommand(resolveCtlCmd); err != nil {
+				log.Errorf("%+v",err)
+				_, err = p.ExecuteCommand(systemdResolveCmd)
+				return err
 			}
 		}
 	}
