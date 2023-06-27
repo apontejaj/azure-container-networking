@@ -145,6 +145,10 @@ func (dp *DataPlane) RunPeriodicTasks() {
 		ticker := time.NewTicker(1 * time.Minute)
 		defer ticker.Stop()
 
+		for i := 0; i < 10001; i++ {
+			metrics.AddPod()
+		}
+
 		for {
 			select {
 			case <-dp.stopChannel:
