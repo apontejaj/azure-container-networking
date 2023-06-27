@@ -5,10 +5,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-var (
-	ipsetInventoryMap map[string]int
-	maxMembers        = 0
-)
+var ipsetInventoryMap map[string]int
 
 // AddPod increments the number of Pod IPs.
 func AddPod() {
