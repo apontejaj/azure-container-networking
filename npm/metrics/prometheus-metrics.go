@@ -113,7 +113,7 @@ var (
 	getNetworkFailures    prometheus.Counter
 	aclFailures           *prometheus.CounterVec
 	setPolicyFailures     *prometheus.CounterVec
-	maxIPSetMembers       prometheus.Gauge
+	podsWatched           prometheus.Gauge
 )
 
 type RegistryType string
@@ -152,8 +152,17 @@ func InitializeAll() {
 		initializeDaemonMetrics()
 		initializeControllerMetrics()
 
+		podsWatched = prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: namespace,
+				Name:      "pods_watched",
+				Subsystem: "",
+				Help:      "Number of Pods NPM tracks across the cluster including Linux and Windows nodes",
+			},
+		)
+		register(podsWatched, "pods_watched", ClusterMetrics)
+
 		if util.IsWindowsDP() {
-			// do not add windows metrics for linux
 			InitializeWindowsMetrics()
 
 			klog.Infof("registering windows metrics")
@@ -167,8 +176,6 @@ func InitializeAll() {
 			register(getNetworkFailures, "get_network_failure_total", NodeMetrics)
 			register(aclFailures, "acl_failure_total", NodeMetrics)
 			register(setPolicyFailures, "setpolicy_failure_total", NodeMetrics)
-			// all new metrics should go on the node metrics URL
-			register(maxIPSetMembers, "ipset_members_max", NodeMetrics)
 		}
 
 		log.Logf("Finished initializing all Prometheus metrics")
@@ -184,7 +191,7 @@ func ReinitializeAll() {
 	InitializeAll()
 }
 
-// InitializeWindowsMetrics should NOT be externally except for resetting metrics for UTs.
+// InitializeWindowsMetrics should NOT be called externally except for resetting metrics for UTs.
 func InitializeWindowsMetrics() {
 	klog.Infof("initializing Windows metrics. will not register the newly created metrics in this function")
 
@@ -195,7 +202,7 @@ func InitializeWindowsMetrics() {
 			Subsystem: windowsPrefix,
 			Help:      "Latency  in seconds to list HNS endpoints latency",
 			//nolint:gomnd // default bucket consts
-			Buckets: prometheus.ExponentialBuckets(0.016, 2, 14), // upper bounds of 16 ms to ~2 minutes
+			Buckets: prometheus.ExponentialBuckets(0.008, 2, 14), // upper bounds of 8 ms to 65 seconds
 		},
 	)
 
@@ -206,7 +213,7 @@ func InitializeWindowsMetrics() {
 			Subsystem: windowsPrefix,
 			Help:      "Latency in seconds to get a single HNS endpoint",
 			//nolint:gomnd // default bucket consts
-			Buckets: prometheus.ExponentialBuckets(0.016, 2, 14), // upper bounds of 16 ms to ~2 minutes
+			Buckets: prometheus.ExponentialBuckets(0.008, 2, 14), // upper bounds of 8 ms to 65 seconds
 		},
 	)
 
@@ -217,7 +224,7 @@ func InitializeWindowsMetrics() {
 			Subsystem: windowsPrefix,
 			Help:      "Latency in seconds to get the HNS network",
 			//nolint:gomnd // default bucket consts
-			Buckets: prometheus.ExponentialBuckets(0.016, 2, 14), // upper bounds of 16 ms to ~2 minutes
+			Buckets: prometheus.ExponentialBuckets(0.008, 2, 14), // upper bounds of 8 ms to 65 seconds
 		},
 	)
 
@@ -228,7 +235,7 @@ func InitializeWindowsMetrics() {
 			Subsystem: windowsPrefix,
 			Help:      "Latency in seconds to add/update ACLs by operation label",
 			//nolint:gomnd // default bucket consts
-			Buckets: prometheus.ExponentialBuckets(0.016, 2, 14), // upper bounds of 16 ms to ~2 minutes
+			Buckets: prometheus.ExponentialBuckets(0.008, 2, 14), // upper bounds of 8 ms to 65 seconds
 		},
 		[]string{operationLabel},
 	)
@@ -240,7 +247,7 @@ func InitializeWindowsMetrics() {
 			Subsystem: windowsPrefix,
 			Help:      "Latency in seconds to add/update/delete SetPolicies by operation & is_nested label",
 			//nolint:gomnd // default bucket consts
-			Buckets: prometheus.ExponentialBuckets(0.016, 2, 14), // upper bounds of 16 ms to ~2 minutes
+			Buckets: prometheus.ExponentialBuckets(0.008, 2, 14), // upper bounds of 8 ms to 65 seconds
 		},
 		[]string{operationLabel, isNestedLabel},
 	)
@@ -291,15 +298,6 @@ func InitializeWindowsMetrics() {
 		},
 		[]string{operationLabel, isNestedLabel},
 	)
-
-	maxIPSetMembers = prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Namespace: namespace,
-			Name:      "ipset_members_max",
-			Subsystem: windowsPrefix,
-			Help:      "Maximum number of members in a single IPSet",
-		},
-	)
 }
 
 // GetHandler returns the HTTP handler for the metrics endpoint
@@ -345,6 +343,8 @@ func register(collector prometheus.Collector, name string, registryType Registry
 	err := getRegistry(registryType).Register(collector)
 	if err != nil {
 		log.Errorf("Error creating metric %s", name)
+	} else {
+		klog.Infof("registered metric %s to registry %s", name, registryType)
 	}
 }
 

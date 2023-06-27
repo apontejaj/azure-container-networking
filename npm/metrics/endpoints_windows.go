@@ -1,29 +1,19 @@
 package metrics
 
-import "github.com/Azure/azure-container-networking/npm/util"
-
 func RecordListEndpointsLatency(timer *Timer) {
-	if util.IsWindowsDP() {
-		listEndpointsLatency.Observe(timer.timeElapsed())
-	}
+	listEndpointsLatency.Observe(timer.timeElapsedSeconds())
 }
 
 func IncListEndpointsFailures() {
-	if util.IsWindowsDP() {
-		listEndpointsFailures.Inc()
-	}
+	listEndpointsFailures.Inc()
 }
 
 func RecordGetEndpointLatency(timer *Timer) {
-	if util.IsWindowsDP() {
-		getEndpointLatency.Observe(timer.timeElapsed())
-	}
+	getEndpointLatency.Observe(timer.timeElapsedSeconds())
 }
 
 func IncGetEndpointFailures() {
-	if util.IsWindowsDP() {
-		getEndpointFailures.Inc()
-	}
+	getEndpointFailures.Inc()
 }
 
 // TotalListEndpointsLatencyCalls returns the number of times RecordListEndpointsLatency has been called.

@@ -345,7 +345,7 @@ jobs:
           done
 
           exit $exitCode
-        displayName: "Run Test Suite and Get Logs"
+        displayName: "Run Test Suite and Get Logs ($(PROFILE))"
         failOnStderr: false
 
       - publish: $(System.DefaultWorkingDirectory)/npmLogs_$(AZURE_CLUSTER)
@@ -396,8 +396,9 @@ jobs:
                 --windows-admin-password alpha@numeric!password2 \
                 --network-plugin azure \
                 --vm-set-type VirtualMachineScaleSets \
-                --node-vm-size Standard_D4s_v3 \
-                --node-count 1
+                --node-vm-size Standard_D8s_v3 \
+                --node-count 1 \
+                --uptime-sla
 
             # don't schedule anything on the linux system pool
             echo "Updating $CLUSTER_NAME to not schedule anything on linux pool..."
@@ -463,7 +464,7 @@ jobs:
         name: cyclonus
         displayName: "Run Cyclonus Test"
         failOnStderr: false
-        condition: always()
+        condition: succeeded()
 
       - bash: |
           export CLUSTER_NAME=$(RESOURCE_GROUP)-$(PROFILE)
@@ -508,6 +509,7 @@ jobs:
           azureSubscription: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
           scriptType: "bash"
           scriptLocation: "inlineScript"
+          condition: succeeded()
           inlineScript: |
             echo Deleting $(RESOURCE_GROUP)
             az group delete -n $(RESOURCE_GROUP) --yes

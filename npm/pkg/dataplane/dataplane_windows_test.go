@@ -20,6 +20,8 @@ const (
 )
 
 func TestMetrics(t *testing.T) {
+	metrics.InitializeWindowsMetrics()
+
 	cfg := defaultWindowsDPCfg
 	hns := ipsets.GetHNSFake(t, cfg.NetworkName)
 	hns.Delay = defaultHNSLatency
@@ -65,11 +67,15 @@ func TestCapzCalico(t *testing.T) {
 }
 
 func TestApplyInBackground(t *testing.T) {
-	testSerialCases(t, applyInBackgroundTests(), time.Duration(100*time.Millisecond))
+	testSerialCases(t, applyInBackgroundTests(), time.Duration(200*time.Millisecond))
 }
 
 func TestRemoteEndpoints(t *testing.T) {
 	testSerialCases(t, remoteEndpointTests(), 0)
+}
+
+func TestApplyInBackgroundBootupPhase(t *testing.T) {
+	testSerialCases(t, applyInBackgroundBootupPhaseTests(), time.Duration(200*time.Millisecond))
 }
 
 func TestAllMultiJobCases(t *testing.T) {
@@ -176,6 +182,8 @@ func testMultiJobCases(t *testing.T, tests []*MultiJobTestCase, finalSleep time.
 				require.FailNow(t, "encountered errors in multi-job test: %+v", errStrings)
 			}
 
+			// just care about eventual consistency, so add extra applyDP e.g. in case finishBootupPhase() runs last
+			require.NoError(t, dp.applyDataPlaneNow("UT FINAL APPLY"))
 			dptestutils.VerifyHNSCache(t, hns, tt.ExpectedSetPolicies, tt.ExpectedEnpdointACLs)
 		})
 	}

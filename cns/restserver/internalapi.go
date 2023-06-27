@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Azure/azure-container-networking/cns"
@@ -104,7 +105,7 @@ func (service *HTTPRestService) SyncNodeStatus(dncEP, infraVnet, nodeID string, 
 	if !skipNCVersionCheck {
 		nmaNCs := map[string]string{}
 		for _, nc := range ncVersionListResp.Containers {
-			nmaNCs[cns.SwiftPrefix+nc.NetworkContainerID] = nc.Version
+			nmaNCs[cns.SwiftPrefix+strings.ToLower(nc.NetworkContainerID)] = nc.Version
 		}
 
 		// check if the version is valid and save it to service state
@@ -220,7 +221,7 @@ func (service *HTTPRestService) syncHostNCVersion(ctx context.Context, channelMo
 
 	nmaNCs := map[string]string{}
 	for _, nc := range ncVersionListResp.Containers {
-		nmaNCs[nc.NetworkContainerID] = nc.Version
+		nmaNCs[strings.ToLower(nc.NetworkContainerID)] = nc.Version
 	}
 	for ncID := range outdatedNCs {
 		nmaNCVersionStr, ok := nmaNCs[ncID]
@@ -275,7 +276,7 @@ func (service *HTTPRestService) syncHostNCVersion(ctx context.Context, channelMo
 
 // This API will be called by CNS RequestController on CRD update.
 func (service *HTTPRestService) ReconcileNCState(ncRequest *cns.CreateNetworkContainerRequest, podInfoByIP map[string]cns.PodInfo, nnc *v1alpha.NodeNetworkConfig) types.ResponseCode {
-	logger.Printf("Reconciling NC state with podInfo %+v", podInfoByIP)
+	logger.Printf("Reconciling NC state with CreateNCRequest: [%v], PodInfo [%+v], NNC: [%+v]", ncRequest, podInfoByIP, nnc)
 	// check if ncRequest is null, then return as there is no CRD state yet
 	if ncRequest == nil {
 		logger.Printf("CNS starting with no NC state, podInfoMap count %d", len(podInfoByIP))
@@ -399,8 +400,13 @@ func (service *HTTPRestService) CreateOrUpdateNetworkContainerInternal(req *cns.
 	existingNCInfo, ok := service.getNetworkContainerDetails(req.NetworkContainerid)
 	if ok {
 		existingReq := existingNCInfo.CreateNetworkContainerRequest
-		if !reflect.DeepEqual(existingReq.IPConfiguration, req.IPConfiguration) {
-			logger.Errorf("[Azure CNS] Error. PrimaryCA is not same, NCId %s, old CA %s, new CA %s", req.NetworkContainerid, existingReq.PrimaryInterfaceIdentifier, req.PrimaryInterfaceIdentifier)
+		if !reflect.DeepEqual(existingReq.IPConfiguration.IPSubnet, req.IPConfiguration.IPSubnet) {
+			logger.Errorf("[Azure CNS] Error. PrimaryCA is not same, NCId %s, old CA %s/%d, new CA %s/%d",
+				req.NetworkContainerid,
+				existingReq.IPConfiguration.IPSubnet.IPAddress,
+				existingReq.IPConfiguration.IPSubnet.PrefixLength,
+				req.IPConfiguration.IPSubnet.IPAddress,
+				req.IPConfiguration.IPSubnet.PrefixLength)
 			return types.PrimaryCANotSame
 		}
 	}

@@ -18,10 +18,11 @@ import (
 const (
 	reconcileDuration = time.Duration(5 * time.Minute)
 
-	contextBackground = "BACKGROUND"
-	contextApplyDP    = "APPLY-DP"
-	contextAddNetPol  = "ADD-NETPOL"
-	contextDelNetPol  = "DEL-NETPOL"
+	contextBackground      = "BACKGROUND"
+	contextApplyDP         = "APPLY-DP"
+	contextAddNetPol       = "ADD-NETPOL"
+	contextAddNetPolBootup = "BOOTUP-ADD-NETPOL"
+	contextDelNetPol       = "DEL-NETPOL"
 )
 
 var ErrInvalidApplyConfig = errors.New("invalid apply config")
@@ -48,7 +49,8 @@ func newEndpointCache() *endpointCache {
 
 type applyInfo struct {
 	sync.Mutex
-	numBatches int
+	numBatches    int
+	inBootupPhase bool
 }
 
 type DataPlane struct {
@@ -85,8 +87,10 @@ func NewDataPlane(nodeName string, ioShim *common.IOShim, cfg *Config, stopChann
 		nodeName:      nodeName,
 		ioShim:        ioShim,
 		endpointQuery: new(endpointQuery),
-		applyInfo:     &applyInfo{},
-		stopChannel:   stopChannel,
+		applyInfo: &applyInfo{
+			inBootupPhase: true,
+		},
+		stopChannel: stopChannel,
 	}
 
 	// do not let Linux apply in background
@@ -119,6 +123,20 @@ func NewDataPlane(nodeName string, ioShim *common.IOShim, cfg *Config, stopChann
 func (dp *DataPlane) BootupDataplane() error {
 	// NOTE: used to create an all-namespaces set, but there's no need since it will be created by the control plane
 	return dp.bootupDataPlane() //nolint:wrapcheck // unnecessary to wrap error
+}
+
+// FinishBootupPhase marks the point when Pod Controller is starting to run, so dp.AddPolicy() can no longer apply IPSets in the background.
+// This function must be called on Windows when ApplyInBackground is true.
+func (dp *DataPlane) FinishBootupPhase() {
+	if !dp.applyInBackground {
+		return
+	}
+
+	dp.applyInfo.Lock()
+	defer dp.applyInfo.Unlock()
+
+	klog.Infof("[DataPlane] finished bootup phase")
+	dp.applyInfo.inBootupPhase = false
 }
 
 // RunPeriodicTasks runs periodic tasks. Should only be called once.
@@ -273,24 +291,21 @@ func (dp *DataPlane) RemoveFromList(listName *ipsets.IPSetMetadata, setNames []*
 // and accordingly makes changes in dataplane. This function helps emulate a single call to
 // dataplane instead of multiple ipset operations calls ipset operations calls to dataplane
 func (dp *DataPlane) ApplyDataPlane() error {
-	if dp.applyInBackground {
-		return dp.incrementBatchAndApplyIfNeeded(contextApplyDP)
+	if !dp.applyInBackground {
+		return dp.applyDataPlaneNow(contextApplyDP)
 	}
 
-	return dp.applyDataPlaneNow(contextApplyDP)
-}
-
-func (dp *DataPlane) incrementBatchAndApplyIfNeeded(context string) error {
+	// increment batch and apply dataplane if needed
 	dp.applyInfo.Lock()
 	dp.applyInfo.numBatches++
 	newCount := dp.applyInfo.numBatches
 	dp.applyInfo.Unlock()
 
-	klog.Infof("[DataPlane] [%s] new batch count: %d", context, newCount)
+	klog.Infof("[DataPlane] [%s] new batch count: %d", contextApplyDP, newCount)
 
 	if newCount >= dp.ApplyMaxBatches {
-		klog.Infof("[DataPlane] [%s] applying now since reached maximum batch count: %d", context, newCount)
-		return dp.applyDataPlaneNow(context)
+		klog.Infof("[DataPlane] [%s] applying now since reached maximum batch count: %d", contextApplyDP, newCount)
+		return dp.applyDataPlaneNow(contextApplyDP)
 	}
 
 	return nil
@@ -377,12 +392,56 @@ func (dp *DataPlane) AddPolicy(policy *policies.NPMNetworkPolicy) error {
 		return fmt.Errorf("[DataPlane] error while adding Rule IPSet references: %w", err)
 	}
 
+	inBootupPhase := false
+	if dp.applyInBackground {
+		dp.applyInfo.Lock()
+		inBootupPhase = dp.applyInfo.inBootupPhase
+		if inBootupPhase {
+			// keep holding the lock to block FinishBootupPhase() and prevent PodController from
+			// coming back online and causing race issues from updatePod() within applyDataPlaneNow()
+			defer dp.applyInfo.Unlock()
+		} else {
+			dp.applyInfo.Unlock()
+		}
+	}
+
+	if inBootupPhase {
+		// During bootup phase, the Pod controller will not be running.
+		// We don't need to worry about adding Policies to Endpoints, so we don't need IPSets in the kernel yet.
+		// Ideally, we get all NetworkPolicies in the cache before the Pod controller starts
+
+		// increment batch and apply IPSets if needed
+		dp.applyInfo.numBatches++
+		newCount := dp.applyInfo.numBatches
+		klog.Infof("[DataPlane] [%s] new batch count: %d", contextAddNetPolBootup, newCount)
+		if newCount >= dp.ApplyMaxBatches {
+			klog.Infof("[DataPlane] [%s] applying now since reached maximum batch count: %d", contextAddNetPolBootup, newCount)
+			klog.Infof("[DataPlane] [%s] starting to apply ipsets", contextAddNetPolBootup)
+			err = dp.ipsetMgr.ApplyIPSets()
+			if err != nil {
+				return fmt.Errorf("[DataPlane] [%s] error while applying IPSets: %w", contextAddNetPolBootup, err)
+			}
+			klog.Infof("[DataPlane] [%s] finished applying ipsets", contextAddNetPolBootup)
+
+			dp.applyInfo.numBatches = 0
+		}
+
+		err = dp.policyMgr.AddPolicy(policy, nil)
+		if err != nil {
+			return fmt.Errorf("[DataPlane] [%s] error while adding policy: %w", contextAddNetPolBootup, err)
+		}
+
+		return nil
+	}
+
+	// standard, non-bootup phase
 	err = dp.applyDataPlaneNow(contextAddNetPol)
 	if err != nil {
 		return err
 	}
 
-	endpointList, err := dp.getEndpointsToApplyPolicy(policy)
+	var endpointList map[string]string
+	endpointList, err = dp.getEndpointsToApplyPolicy(policy)
 	if err != nil {
 		return fmt.Errorf("[DataPlane] error while getting endpoints to apply policy after applying dataplane: %w", err)
 	}
@@ -391,6 +450,7 @@ func (dp *DataPlane) AddPolicy(policy *policies.NPMNetworkPolicy) error {
 	if err != nil {
 		return fmt.Errorf("[DataPlane] error while adding policy: %w", err)
 	}
+
 	return nil
 }
 
@@ -400,15 +460,15 @@ func (dp *DataPlane) RemovePolicy(policyKey string) error {
 	// because policy Manager will remove from policy from cache
 	// keep a local copy to remove references for ipsets
 	policy, ok := dp.policyMgr.GetPolicy(policyKey)
+	if !ok {
+		klog.Infof("[DataPlane] Policy %s is not found. Might been deleted already", policyKey)
+		return nil
+	}
+
 	endpoints := make(map[string]string, len(policy.PodEndpoints))
 
 	for podIP, endpointID := range policy.PodEndpoints {
 		endpoints[podIP] = endpointID
-	}
-
-	if !ok {
-		klog.Infof("[DataPlane] Policy %s is not found. Might been deleted already", policyKey)
-		return nil
 	}
 
 	// Use the endpoint list saved in cache for this network policy to remove
