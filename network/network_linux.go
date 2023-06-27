@@ -259,7 +259,7 @@ func readDNSInfo(ifName string) (DNSInfo, error) {
 		log.Errorf("resolvectl cmd failed with:%v",err) //nolint
 		out, err = p.ExecuteCommand(systemdResolveCmd)
 		if err != nil {
-			return dnsInfo, err
+			return dnsInfo, err //nolint
 		}
 	}
 
