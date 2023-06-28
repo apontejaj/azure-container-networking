@@ -34,6 +34,8 @@ func GetValidatorClient(os string) validatorClient {
 	switch os {
 	case "linux":
 		return &LinuxClient{}
+	case "windows":
+		return &WindowsClient{}
 	default:
 		return nil
 	}

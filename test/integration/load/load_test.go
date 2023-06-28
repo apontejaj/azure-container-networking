@@ -14,7 +14,6 @@ import (
 
 const (
 	manifestDir      = "../manifests"
-	noopdeployment   = manifestDir + "/load/noop-deployment.yaml"
 	podLabelSelector = "load-test=true"
 )
 
@@ -31,6 +30,11 @@ var (
 	namespace         = "load-test"
 	validateDualStack = flag.Bool("validate-dualstack", false, "Validate the dualstack overlay")
 )
+
+var noopDeploymentMap = map[string]string{
+	"windows": manifestDir + "/noop-deployment-windows.yaml",
+	"linux":   manifestDir + "/noop-deployment-linux.yaml",
+}
 
 /*
 In order to run the scale tests, you need a k8s cluster and its kubeconfig.
@@ -76,7 +80,7 @@ func TestLoad(t *testing.T) {
 		}
 	}
 
-	deployment, err := k8sutils.MustParseDeployment(noopdeployment)
+	deployment, err := k8sutils.MustParseDeployment(noopDeploymentMap[*osType])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +175,7 @@ func TestScaleDeployment(t *testing.T) {
 		}
 	}
 
-	deployment, err := k8sutils.MustParseDeployment(noopdeployment)
+	deployment, err := k8sutils.MustParseDeployment(noopDeploymentMap[*osType])
 	if err != nil {
 		t.Fatal(err)
 	}
