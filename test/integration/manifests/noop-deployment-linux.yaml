@@ -21,4 +21,3 @@ spec:
             privileged: true
       nodeSelector:
         kubernetes.io/os: linux
-        
