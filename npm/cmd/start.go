@@ -218,8 +218,9 @@ func k8sServerVersion(kubeclientset kubernetes.Interface) *k8sversion.Info {
 	return serverVersion
 }
 
+// labelNode labels this node to help AKS identify which nodes NPM has been installed on
 func labelNode(clientset *kubernetes.Clientset, nodeName string) {
-	msg := fmt.Sprintf("labeling this node %s with azure-npm=installed", nodeName)
+	msg := fmt.Sprintf("labeling this node %s with %s=%s", nodeName, util.NPMNodeLabelKey, util.NPMNodeLabelValue)
 	metrics.SendLog(util.NpmID, msg, metrics.PrintLog)
 
 	k8sNode, err := clientset.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
@@ -231,7 +232,7 @@ func labelNode(clientset *kubernetes.Clientset, nodeName string) {
 	if k8sNode.Labels == nil {
 		k8sNode.Labels = make(map[string]string)
 	}
-	k8sNode.Labels["azure-npm"] = "installed"
+	k8sNode.Labels[util.NPMNodeLabelKey] = util.NPMNodeLabelValue
 	_, err = clientset.CoreV1().Nodes().Update(context.TODO(), k8sNode, metav1.UpdateOptions{})
 	if err != nil {
 		metrics.SendErrorLogAndMetric(util.NpmID, "error: failed to label node because we failed to update k8s node. nodeName: %s. err: %s", nodeName, err.Error())

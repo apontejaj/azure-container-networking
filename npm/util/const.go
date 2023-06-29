@@ -25,6 +25,9 @@ const (
 	// The version of k8s that accept "AND" between namespaceSelector and podSelector is "1.11"
 	k8sMajorVerForNewPolicyDef string = "1"
 	k8sMinorVerForNewPolicyDef string = "11"
+
+	NPMNodeLabelKey   string = "azure-npm"
+	NPMNodeLabelValue string = "installed"
 )
 
 var (
