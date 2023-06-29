@@ -251,18 +251,17 @@ func readDNSInfo(ifName string) (DNSInfo, error) {
 	)
 
 	p := platform.NewExecClient()
-	resolveCtlCmd := fmt.Sprintf("resolvectl status %s", ifName)
-	systemdResolveCmd := fmt.Sprintf("systemd-resolve --status %s", ifName)
+	domainResolutionCmd := fmt.Sprintf("resolvectl status %s", ifName)
 
-	out, err = p.ExecuteCommand(resolveCtlCmd)
-	if err != nil {
-		log.Errorf("resolvectl cmd failed with:%v",err) //nolint
-		out, err = p.ExecuteCommand(systemdResolveCmd)
-		if err != nil {
-			return dnsInfo, err //nolint
-		}
+	if _, err := p.ExecuteCommand("which resolvectl"); err != nil {
+		domainResolutionCmd = fmt.Sprintf("systemd-resolve --status %s", ifName)
 	}
 
+	out, err = p.ExecuteCommand(domainResolutionCmd)
+	if err != nil {
+		return dnsInfo, err //nolint
+	}
+	
 	log.Printf("[net] console output for above cmd: %s", out)
 
 	lineArr := strings.Split(out, lineDelimiter)
@@ -360,27 +359,28 @@ func applyDNSConfig(extIf *externalInterface, ifName string) error {
 
 		if setDnsList != "" {
 			// example command on Ubuntu22: resolvectl dns azure0 168.63.129.16
-			resolveCtlCmd := fmt.Sprintf("resolvectl dns %s%s", ifName, setDnsList)
-			// example command on Ubuntu18: systemd-resolve --interface=azure0 --set-dns=168.63.129.16
-			systemdResolveCmd := fmt.Sprintf("systemd-resolve --interface=%s%s", ifName, "--set-dns="+strings.TrimSpace(setDnsList))
+			domainResolutionCmd := fmt.Sprintf("resolvectl dns %s%s", ifName, setDnsList)
+			if _, err := p.ExecuteCommand("which resolvectl"); err != nil {
+				// example command on Ubuntu18: systemd-resolve --interface=azure0 --set-dns=168.63.129.16
+				domainResolutionCmd = fmt.Sprintf("systemd-resolve --interface=%s%s", ifName, "--set-dns="+strings.TrimSpace(setDnsList))
+			}
 
-			_, err = p.ExecuteCommand(resolveCtlCmd)
-			log.Errorf("resolvectl cmd failed with:%v",err) //nolint
+			_, err = p.ExecuteCommand(domainResolutionCmd)
 			if err != nil {
-				_, err = p.ExecuteCommand(systemdResolveCmd)
 				return err
 			}
 		}
 
 		if extIf.DNSInfo.Suffix != "" {
 			// example command on Ubuntu22: resolvectl domain azure0 dlw5dhyl2njevcuzgmfubi2oid.bx.internal.cloudapp.net
-			resolveCtlCmd := fmt.Sprintf("resolvectl domain %s %s", ifName, extIf.DNSInfo.Suffix)
-			// example command on Ubuntu18: systemd-resolve --interface=azure0 --set-domain=dlw5dhyl2njevcuzgmfubi2oid.bx.internal.cloudapp.net
-			systemdResolveCmd := fmt.Sprintf("systemd-resolve --interface=%s --set-domain=%s", ifName, extIf.DNSInfo.Suffix)
+			domainResolutionCmd := fmt.Sprintf("resolvectl domain %s %s", ifName, extIf.DNSInfo.Suffix)
+			if _, err := p.ExecuteCommand("which resolvectl"); err != nil {
+				// example command on Ubuntu18: systemd-resolve --interface=azure0 --set-domain=dlw5dhyl2njevcuzgmfubi2oid.bx.internal.cloudapp.net
+				domainResolutionCmd = fmt.Sprintf("systemd-resolve --interface=%s --set-domain=%s", ifName, extIf.DNSInfo.Suffix)
+			}
 
-			if _, err = p.ExecuteCommand(resolveCtlCmd); err != nil {
-				log.Errorf("resolvectl cmd failed with:%v",err) //nolint
-				_, err = p.ExecuteCommand(systemdResolveCmd)
+			if _, err = p.ExecuteCommand(domainResolutionCmd); err != nil {
+				log.Errorf("domainResolutionCmd failed with:%v", err) //nolint
 			}
 		}
 	}
