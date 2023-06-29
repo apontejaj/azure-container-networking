@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"github.com/Azure/azure-container-networking/npm/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	k8sversion "k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/informers"
@@ -119,6 +121,9 @@ func start(config npmconfig.Config, flags npmconfig.Flags) error {
 
 	k8sServerVersion := k8sServerVersion(clientset)
 
+	nodeName := models.GetNodeName()
+	labelNode(clientset, nodeName)
+
 	var dp dataplane.GenericDataplane
 	stopChannel := wait.NeverStop
 	if config.Toggles.EnableV2NPM {
@@ -161,7 +166,7 @@ func start(config npmconfig.Config, flags npmconfig.Flags) error {
 		}
 		npmV2DataplaneCfg.NodeIP = nodeIP
 
-		dp, err = dataplane.NewDataPlane(models.GetNodeName(), common.NewIOShim(), npmV2DataplaneCfg, stopChannel)
+		dp, err = dataplane.NewDataPlane(nodeName, common.NewIOShim(), npmV2DataplaneCfg, stopChannel)
 		if err != nil {
 			metrics.SendErrorLogAndMetric(util.NpmID, "error: failed to create dataplane with error %v", err)
 			return fmt.Errorf("failed to create dataplane with error %w", err)
@@ -211,4 +216,21 @@ func k8sServerVersion(kubeclientset kubernetes.Interface) *k8sversion.Info {
 		metrics.SendErrorLogAndMetric(util.NpmID, "Error: failed to retrieving kubernetes version with err: %s", err.Error())
 	}
 	return serverVersion
+}
+
+func labelNode(clientset *kubernetes.Clientset, nodeName string) {
+	k8sNode, err := clientset.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+	if err != nil {
+		metrics.SendErrorLogAndMetric(util.NpmID, "error: failed to label node because we failed to get k8s node. nodeName: %s. err: %s", nodeName, err.Error())
+		return
+	}
+
+	if k8sNode.Labels == nil {
+		k8sNode.Labels = make(map[string]string)
+	}
+	k8sNode.Labels["azure-npm"] = "installed"
+	_, err = clientset.CoreV1().Nodes().Update(context.TODO(), k8sNode, metav1.UpdateOptions{})
+	if err != nil {
+		metrics.SendErrorLogAndMetric(util.NpmID, "error: failed to label node because we failed to update k8s node. nodeName: %s. err: %s", nodeName, err.Error())
+	}
 }
