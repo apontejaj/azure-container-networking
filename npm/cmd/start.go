@@ -219,6 +219,9 @@ func k8sServerVersion(kubeclientset kubernetes.Interface) *k8sversion.Info {
 }
 
 func labelNode(clientset *kubernetes.Clientset, nodeName string) {
+	msg := fmt.Sprintf("labeling this node %s with azure-npm=installed", nodeName)
+	metrics.SendLog(util.NpmID, msg, metrics.PrintLog)
+
 	k8sNode, err := clientset.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 	if err != nil {
 		metrics.SendErrorLogAndMetric(util.NpmID, "error: failed to label node because we failed to get k8s node. nodeName: %s. err: %s", nodeName, err.Error())
