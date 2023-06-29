@@ -365,7 +365,7 @@ func applyDNSConfig(extIf *externalInterface, ifName string) error {
 				domainResolutionCmd = fmt.Sprintf("systemd-resolve --interface=%s%s", ifName, "--set-dns="+strings.TrimSpace(setDnsList))
 			}
 
-			_, err = p.ExecuteCommand(domainResolutionCmd)
+			_, err := p.ExecuteCommand(domainResolutionCmd)
 			if err != nil {
 				return err
 			}
@@ -379,7 +379,7 @@ func applyDNSConfig(extIf *externalInterface, ifName string) error {
 				domainResolutionCmd = fmt.Sprintf("systemd-resolve --interface=%s --set-domain=%s", ifName, extIf.DNSInfo.Suffix)
 			}
 
-			if _, err = p.ExecuteCommand(domainResolutionCmd); err != nil {
+			if _, err := p.ExecuteCommand(domainResolutionCmd); err != nil {
 				log.Errorf("domainResolutionCmd failed with:%v", err) //nolint
 			}
 		}
