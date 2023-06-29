@@ -253,7 +253,7 @@ func readDNSInfo(ifName string) (DNSInfo, error) {
 	p := platform.NewExecClient()
 	domainResolutionCmd := fmt.Sprintf("resolvectl status %s", ifName)
 
-	if _, err := p.ExecuteCommand("which resolvectl"); err != nil {
+	if _, err = p.ExecuteCommand("which resolvectl"); err != nil {
 		domainResolutionCmd = fmt.Sprintf("systemd-resolve --status %s", ifName)
 	}
 
@@ -261,7 +261,6 @@ func readDNSInfo(ifName string) (DNSInfo, error) {
 	if err != nil {
 		return dnsInfo, err //nolint
 	}
-	
 	log.Printf("[net] console output for above cmd: %s", out)
 
 	lineArr := strings.Split(out, lineDelimiter)
@@ -360,12 +359,12 @@ func applyDNSConfig(extIf *externalInterface, ifName string) error {
 		if setDnsList != "" {
 			// example command on Ubuntu22: resolvectl dns azure0 168.63.129.16
 			domainResolutionCmd := fmt.Sprintf("resolvectl dns %s%s", ifName, setDnsList)
-			if _, err := p.ExecuteCommand("which resolvectl"); err != nil {
+			if _, err = p.ExecuteCommand("which resolvectl"); err != nil {
 				// example command on Ubuntu18: systemd-resolve --interface=azure0 --set-dns=168.63.129.16
 				domainResolutionCmd = fmt.Sprintf("systemd-resolve --interface=%s%s", ifName, "--set-dns="+strings.TrimSpace(setDnsList))
 			}
 
-			_, err := p.ExecuteCommand(domainResolutionCmd)
+			_, err = p.ExecuteCommand(domainResolutionCmd)
 			if err != nil {
 				return err
 			}
@@ -374,12 +373,12 @@ func applyDNSConfig(extIf *externalInterface, ifName string) error {
 		if extIf.DNSInfo.Suffix != "" {
 			// example command on Ubuntu22: resolvectl domain azure0 dlw5dhyl2njevcuzgmfubi2oid.bx.internal.cloudapp.net
 			domainResolutionCmd := fmt.Sprintf("resolvectl domain %s %s", ifName, extIf.DNSInfo.Suffix)
-			if _, err := p.ExecuteCommand("which resolvectl"); err != nil {
+			if _, err = p.ExecuteCommand("which resolvectl"); err != nil {
 				// example command on Ubuntu18: systemd-resolve --interface=azure0 --set-domain=dlw5dhyl2njevcuzgmfubi2oid.bx.internal.cloudapp.net
 				domainResolutionCmd = fmt.Sprintf("systemd-resolve --interface=%s --set-domain=%s", ifName, extIf.DNSInfo.Suffix)
 			}
 
-			if _, err := p.ExecuteCommand(domainResolutionCmd); err != nil {
+			if _, err = p.ExecuteCommand(domainResolutionCmd); err != nil {
 				log.Errorf("domainResolutionCmd failed with:%v", err) //nolint
 			}
 		}
