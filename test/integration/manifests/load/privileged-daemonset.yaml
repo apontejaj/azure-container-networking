@@ -33,11 +33,7 @@ spec:
       volumes:
         - name: azure-cns
           hostPath:
-<<<<<<< HEAD
             path: /var/run/azure-network
-=======
-            path: /var/run/azure-cns
->>>>>>> d691eef5 (fix conflicts)
         - name: azure-cns-noncilium
           hostPath:
             path: /var/run
