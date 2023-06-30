@@ -8,6 +8,7 @@ import (
 
 	k8sutils "github.com/Azure/azure-container-networking/test/internal/k8sutils"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -106,24 +107,25 @@ func (w *WindowsClient) CreateClient(ctx context.Context, clienset *kubernetes.C
 }
 
 func (v *WindowsValidator) ValidateStateFile() error {
-	checks := []struct {
-		name             string
-		stateFileIps     func([]byte) (map[string]string, error)
-		podLabelSelector string
-		podNamespace     string
-		cmd              []string
-	}{
+	checkSet := make(map[string][]check) // key is cni type, value is a list of check
+
+	checkSet["cniv1"] = []check{
 		{"hns", hnsStateFileIps, privilegedLabelSelector, privilegedNamespace, hnsEndPpointCmd},
 		{"azure-vnet", azureVnetIps, privilegedLabelSelector, privilegedNamespace, azureVnetCmd},
 		{"azure-vnet-ipam", azureVnetIpamIps, privilegedLabelSelector, privilegedNamespace, azureVnetIpamCmd},
 	}
 
-	for _, check := range checks {
+	checkSet["cniv2"] = []check{
+		{"azure-vnet", azureVnetIps, privilegedLabelSelector, privilegedNamespace, azureVnetCmd},
+	}
+
+	for _, check := range checkSet[v.cni] {
 		err := v.validate(check.stateFileIps, check.cmd, check.name, check.podNamespace, check.podLabelSelector)
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -140,6 +142,7 @@ func hnsStateFileIps(result []byte) (map[string]string, error) {
 			hnsPodIps[v.IPAddress.String()] = v.MacAddress
 		}
 	}
+
 	return hnsPodIps, nil
 }
 
@@ -155,11 +158,13 @@ func azureVnetIps(result []byte) (map[string]string, error) {
 		for _, v := range v.Networks {
 			for _, e := range v.Endpoints {
 				for _, v := range e.IPAddresses {
+					// collect both ipv4 and ipv6 addresses
 					azureVnetPodIps[v.IP.String()] = e.IfName
 				}
 			}
 		}
 	}
+
 	return azureVnetPodIps, nil
 }
 
@@ -224,5 +229,35 @@ func (v *WindowsValidator) validate(stateFileIps stateFileIpsFunc, cmd []string,
 }
 
 func (v *WindowsValidator) ValidateRestartNetwork() error {
+	return nil
+}
+
+func (v *WindowsValidator) ValidateDualStackNodeProperties() error {
+	log.Print("Validating Dualstack Overlay Windows Node properties")
+	nodes, err := k8sutils.GetNodeListByLabelSelector(v.ctx, v.clientset, windowsNodeSelector)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get node list")
+	}
+
+	for index := range nodes.Items {
+		nodeName := nodes.Items[index].ObjectMeta.Name
+		// check node status
+		nodeConditions := nodes.Items[index].Status.Conditions
+		if nodeConditions[len(nodeConditions)-1].Type != corev1.NodeReady {
+			return errors.Wrapf(err, "node %s status is not ready", nodeName)
+		}
+
+		// get node labels
+		nodeLabels := nodes.Items[index].ObjectMeta.GetLabels()
+		for key := range nodeLabels {
+			if value, ok := dualstackoverlaynodelabel[key]; ok {
+				log.Printf("label %s is correctly shown on the node %+v", key, nodeName)
+				if value != overlayClusterLabelName {
+					return errors.Wrapf(err, "node %s overlay label name is wrong", nodeName)
+				}
+			}
+		}
+	}
+
 	return nil
 }

@@ -74,26 +74,26 @@ type Address struct {
 // parse azure-vnet.json
 // azure cni manages endpoint state
 type AzureCniState struct {
-	AzureCniState Network `json:"Network"`
+	AzureCniState AzureVnetNetwork `json:"Network"`
 }
 
-type Network struct {
+type AzureVnetNetwork struct {
 	Version            string                   `json:"Version"`
 	TimeStamp          string                   `json:"TimeStamp"`
 	ExternalInterfaces map[string]InterfaceInfo `json:"ExternalInterfaces"` // key: interface name; value: Interface Info
 }
 
 type InterfaceInfo struct {
-	Name     string                 `json:"Name"`
-	Networks map[string]NetworkInfo `json:"Networks"` // key: networkName, value: NetworkInfo
+	Name     string                          `json:"Name"`
+	Networks map[string]AzureVnetNetworkInfo `json:"Networks"` // key: networkName, value: AzureVnetNetworkInfo
 }
 
 type AzureVnetInfo struct {
 	Name     string
-	Networks map[string]NetworkInfo // key: network name, value: NetworkInfo
+	Networks map[string]AzureVnetNetworkInfo // key: network name, value: NetworkInfo
 }
 
-type NetworkInfo struct {
+type AzureVnetNetworkInfo struct {
 	ID        string
 	Mode      string
 	Subnets   []Subnet
@@ -158,7 +158,7 @@ func (l *LinuxClient) CreateClient(ctx context.Context, clienset *kubernetes.Cli
 func (v *LinuxValidator) ValidateStateFile() error {
 	checkSet := make(map[string][]check) // key is cni type, value is a list of check
 
-	// TODO: add cniv1 when adding related test cases
+	// TODO: add cniv1 when adding Linux related test cases
 	checkSet["cilium"] = []check{
 		{"cns", cnsStateFileIps, cnsLabelSelector, privilegedNamespace, cnsStateFileCmd},
 		{"cilium", ciliumStateFileIps, ciliumLabelSelector, privilegedNamespace, ciliumStateFileCmd},
@@ -167,7 +167,7 @@ func (v *LinuxValidator) ValidateStateFile() error {
 
 	checkSet["cniv2"] = []check{
 		{"cns cache", cnsCacheStateFileIps, cnsLabelSelector, privilegedNamespace, cnsLocalCacheCmd},
-		{"azure cns noncilium", azureCNSNonCiliumStateFileIPs, privilegedLabelSelector, privilegedNamespace, azureCnsStateFileCmd},
+		{"azure dualstackoverlay", azureDualStackStateFileIPs, privilegedLabelSelector, privilegedNamespace, azureCnsStateFileCmd},
 	}
 
 	for _, check := range checkSet[v.cni] {
@@ -225,15 +225,15 @@ func cnsStateFileIps(result []byte) (map[string]string, error) {
 	return cnsPodIps, nil
 }
 
-func azureCNSNonCiliumStateFileIPs(result []byte) (map[string]string, error) {
-	var azureCNSNonCiliumResult AzureCniState
-	err := json.Unmarshal(result, &azureCNSNonCiliumResult)
+func azureDualStackStateFileIPs(result []byte) (map[string]string, error) {
+	var azureDualStackResult AzureCniState
+	err := json.Unmarshal(result, &azureDualStackResult)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to unmarshal azure cni endpoint list")
 	}
 
 	azureCnsPodIps := make(map[string]string)
-	for _, v := range azureCNSNonCiliumResult.AzureCniState.ExternalInterfaces {
+	for _, v := range azureDualStackResult.AzureCniState.ExternalInterfaces {
 		for _, networks := range v.Networks {
 			for _, ip := range networks.Endpoints {
 				pod := ip.PODName

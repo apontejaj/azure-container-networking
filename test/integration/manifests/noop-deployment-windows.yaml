@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: noop
-        image: mcr.microsoft.com/windows/nanoserver:ltsc2022
+        image: mcr.microsoft.com/dotnet/framework/samples:aspnetapp
         ports:
           - containerPort: 80
       nodeSelector:
