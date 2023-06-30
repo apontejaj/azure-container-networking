@@ -19,7 +19,8 @@ const (
 )
 
 var (
-	hnsEndPpointCmd  = []string{"powershell", "-c", "Get-HnsEndpoint | ConvertTo-Json"}
+	hnsEndPointCmd   = []string{"powershell", "-c", "Get-HnsEndpoint | ConvertTo-Json"}
+	hnsNetworkCmd    = []string{"powershell", "-c", "Get-HnsNetwork | ConvertTo-Json"}
 	azureVnetCmd     = []string{"powershell", "-c", "cat ../../k/azure-vnet.json"}
 	azureVnetIpamCmd = []string{"powershell", "-c", "cat ../../k/azure-vnet-ipam.json"}
 )
@@ -79,6 +80,14 @@ type AddressRecord struct {
 	InUse bool
 }
 
+type HNSNetwork struct {
+	Name           string `json:"Name"`
+	IPv6           bool   `json:"IPv6"`
+	ManagementIP   string `json:"ManagementIP"`
+	ManagementIPv6 string `json:"ManagementIPv6"`
+	State          int    `json:"State"`
+}
+
 func (w *WindowsClient) CreateClient(ctx context.Context, clienset *kubernetes.Clientset, config *rest.Config, namespace, cni string, restartCase bool) IValidator {
 	// deploy privileged pod
 	privilegedDaemonSet, err := k8sutils.MustParseDaemonSet(privilegedWindowsDaemonSetPath)
@@ -110,7 +119,7 @@ func (v *WindowsValidator) ValidateStateFile() error {
 	checkSet := make(map[string][]check) // key is cni type, value is a list of check
 
 	checkSet["cniv1"] = []check{
-		{"hns", hnsStateFileIps, privilegedLabelSelector, privilegedNamespace, hnsEndPpointCmd},
+		{"hns", hnsStateFileIps, privilegedLabelSelector, privilegedNamespace, hnsEndPointCmd},
 		{"azure-vnet", azureVnetIps, privilegedLabelSelector, privilegedNamespace, azureVnetCmd},
 		{"azure-vnet-ipam", azureVnetIpamIps, privilegedLabelSelector, privilegedNamespace, azureVnetIpamCmd},
 	}
@@ -119,8 +128,9 @@ func (v *WindowsValidator) ValidateStateFile() error {
 		{"azure-vnet", azureVnetIps, privilegedLabelSelector, privilegedNamespace, azureVnetCmd},
 	}
 
+	// this is checking all IPs of the pods with the statefile
 	for _, check := range checkSet[v.cni] {
-		err := v.validate(check.stateFileIps, check.cmd, check.name, check.podNamespace, check.podLabelSelector)
+		err := v.validateIPs(check.stateFileIps, check.cmd, check.name, check.podNamespace, check.podLabelSelector)
 		if err != nil {
 			return err
 		}
@@ -144,6 +154,17 @@ func hnsStateFileIps(result []byte) (map[string]string, error) {
 	}
 
 	return hnsPodIps, nil
+}
+
+// return windows HNS network state
+func hnsNetworkState(result []byte) ([]HNSNetwork, error) {
+	var hnsNetworkResult []HNSNetwork
+	err := json.Unmarshal(result, &hnsNetworkResult)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal hns network list")
+	}
+
+	return hnsNetworkResult, nil
 }
 
 func azureVnetIps(result []byte) (map[string]string, error) {
@@ -189,7 +210,7 @@ func azureVnetIpamIps(result []byte) (map[string]string, error) {
 	return azureVnetIpamPodIps, nil
 }
 
-func (v *WindowsValidator) validate(stateFileIps stateFileIpsFunc, cmd []string, checkType, namespace, labelSelector string) error {
+func (v *WindowsValidator) validateIPs(stateFileIps stateFileIpsFunc, cmd []string, checkType, namespace, labelSelector string) error {
 	log.Println("Validating ", checkType, " state file")
 	nodes, err := k8sutils.GetNodeListByLabelSelector(v.ctx, v.clientset, windowsNodeSelector)
 	if err != nil {
@@ -254,6 +275,42 @@ func (v *WindowsValidator) ValidateDualStackNodeProperties() error {
 				log.Printf("label %s is correctly shown on the node %+v", key, nodeName)
 				if value != overlayClusterLabelName {
 					return errors.Wrapf(err, "node %s overlay label name is wrong", nodeName)
+				}
+			}
+		}
+
+		// check windows HNS network state
+		pod, err := k8sutils.GetPodsByNode(v.ctx, v.clientset, privilegedNamespace, privilegedLabelSelector, nodes.Items[index].Name)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get privileged pod")
+		}
+
+		podName := pod.Items[0].Name
+		// exec into the pod to get the state file
+		result, err := k8sutils.ExecCmdOnPod(v.ctx, v.clientset, privilegedNamespace, podName, hnsNetworkCmd, v.config)
+		if err != nil {
+			return errors.Wrapf(err, "failed to exec into privileged pod")
+		}
+
+		hnsNetwork, err := hnsNetworkState(result)
+		if err != nil {
+			return errors.Wrapf(err, "failed to unmarshal hns network list")
+		}
+
+		if len(hnsNetwork) == 0 { //nolint
+			return errors.Wrapf(err, "windows node does not have any HNS network")
+		} else if len(hnsNetwork) == 1 { //nolint
+			return errors.Wrapf(err, "HNS default ext network or azure network does not exist")
+		} else {
+			for _, network := range hnsNetwork {
+				if !network.IPv6 {
+					return errors.Wrapf(err, "windows HNS network IPv6 flag is not set correctly")
+				}
+				if network.State != 1 {
+					return errors.Wrapf(err, "windows HNS network state is not correct")
+				}
+				if network.ManagementIPv6 == "" || network.ManagementIP == "" {
+					return errors.Wrapf(err, "windows HNS network is missing ipv4 or ipv6 management IP")
 				}
 			}
 		}
