@@ -61,8 +61,7 @@ func WindowsPodToPodPingTestSameNode(ctx context.Context, clientset *kubernetes.
 	if len(secondPod.Status.PodIPs) > 1 {
 		for _, ip := range secondPod.Status.PodIPs {
 			if net.ParseIP(ip.IP).To16() != nil {
-				secondPodIPv6 := ip.IP
-				resultTwo := podTest(ctx, clientset, firstPod, []string{"ping", secondPodIPv6}, rc, pingPassedWindows)
+				resultTwo := podTest(ctx, clientset, firstPod, []string{"ping", ip.IP}, rc, pingPassedWindows)
 				if resultTwo != nil {
 					return resultTwo
 				}
@@ -109,8 +108,7 @@ func WindowsPodToPodPingTestDiffNode(ctx context.Context, clientset *kubernetes.
 	if len(secondPod.Status.PodIPs) > 1 {
 		for _, ip := range secondPod.Status.PodIPs {
 			if net.ParseIP(ip.IP).To16() != nil {
-				secondPodIPv6 := ip.IP
-				resultTwo := podTest(ctx, clientset, firstPod, []string{"ping ", secondPodIPv6}, rc, pingPassedWindows)
+				resultTwo := podTest(ctx, clientset, firstPod, []string{"ping ", ip.IP}, rc, pingPassedWindows)
 				if resultTwo != nil {
 					return resultTwo
 				}
