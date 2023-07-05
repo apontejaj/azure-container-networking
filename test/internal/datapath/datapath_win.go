@@ -3,6 +3,7 @@ package datapath
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/Azure/azure-container-networking/test/internal/k8sutils"
@@ -48,8 +49,28 @@ func WindowsPodToPodPingTestSameNode(ctx context.Context, clientset *kubernetes.
 	}
 	logrus.Infof("Second pod: %v %v", secondPod.Name, secondPod.Status.PodIP)
 
+	// ipv4 ping test
 	// Ping the second pod from the first pod
-	return podTest(ctx, clientset, firstPod, []string{"ping", secondPod.Status.PodIP}, rc, pingPassedWindows)
+	resultOne := podTest(ctx, clientset, firstPod, []string{"ping", secondPod.Status.PodIP}, rc, pingPassedWindows)
+	if resultOne != nil {
+		return resultOne
+	}
+
+	// ipv6 ping test
+	// ipv6 Ping the second pod from the first pod
+	if len(secondPod.Status.PodIPs) > 1 {
+		for _, ip := range secondPod.Status.PodIPs {
+			if net.ParseIP(ip.IP).To16() != nil {
+				secondPodIPv6 := ip.IP
+				resultTwo := podTest(ctx, clientset, firstPod, []string{"ping", secondPodIPv6}, rc, pingPassedWindows)
+				if resultTwo != nil {
+					return resultTwo
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 func WindowsPodToPodPingTestDiffNode(ctx context.Context, clientset *kubernetes.Clientset, nodeName1, nodeName2, podNamespace, labelSelector string, rc *restclient.Config) error {
@@ -80,7 +101,24 @@ func WindowsPodToPodPingTestDiffNode(ctx context.Context, clientset *kubernetes.
 	logrus.Infof("Second pod: %v %v", secondPod.Name, secondPod.Status.PodIP)
 
 	// Ping the second pod from the first pod located on different nodes
-	return podTest(ctx, clientset, firstPod, []string{"ping", secondPod.Status.PodIP}, rc, pingPassedWindows)
+	resultOne := podTest(ctx, clientset, firstPod, []string{"ping", secondPod.Status.PodIP}, rc, pingPassedWindows)
+	if resultOne != nil {
+		return resultOne
+	}
+
+	if len(secondPod.Status.PodIPs) > 1 {
+		for _, ip := range secondPod.Status.PodIPs {
+			if net.ParseIP(ip.IP).To16() != nil {
+				secondPodIPv6 := ip.IP
+				resultTwo := podTest(ctx, clientset, firstPod, []string{"ping ", secondPodIPv6}, rc, pingPassedWindows)
+				if resultTwo != nil {
+					return resultTwo
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 func WindowsPodToNode(ctx context.Context, clientset *kubernetes.Clientset, nodeName, nodeIP, podNamespace, labelSelector string, rc *restclient.Config) error {
@@ -108,6 +146,7 @@ func WindowsPodToNode(ctx context.Context, clientset *kubernetes.Clientset, node
 	logrus.Infof("Second pod: %v", secondPod.Name)
 
 	// Ping from pod to node
+	logrus.Infof("Node IP: %s", nodeIP)
 	resultOne := podTest(ctx, clientset, firstPod, []string{"ping", nodeIP}, rc, pingPassedWindows)
 	resultTwo := podTest(ctx, clientset, secondPod, []string{"ping", nodeIP}, rc, pingPassedWindows)
 
