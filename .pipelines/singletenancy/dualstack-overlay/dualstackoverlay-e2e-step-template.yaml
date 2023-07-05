@@ -61,7 +61,6 @@ steps:
     displayName: "Add windows node on DualStackOverlay cluster"
 
   - script: |
-      echo "DualStack Overlay Linux control plane Load test"
       cd test/integration/load
       go test -timeout 30m -tags load -run ^TestLoad$ -tags=load
       echo "DualStack Overlay Linux control plane CNS validation test"
@@ -74,7 +73,6 @@ steps:
     displayName: "DualStack Overlay Linux Tests"
 
   - script: |
-      echo "DualStack Overlay Windows control plane Load test"
       cd test/integration/load
       go test -timeout 30m -tags load -run ^TestLoad$ -tags=load -os=windows
       echo "DualStack Overlay Windows control plane CNS validation test"
