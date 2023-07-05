@@ -60,6 +60,32 @@ steps:
     name: "Add_Windows_Node"
     displayName: "Add windows node on DualStackOverlay cluster"
 
+  - script: |
+      echo "DualStack Overlay Linux control plane Load test"
+      cd test/integration/load
+      go test -timeout 30m -tags load -run ^TestLoad$ -tags=load
+      echo "DualStack Overlay Linux control plane CNS validation test"
+      go test -timeout 30m -tags load -cni cniv2 -run ^TestValidateState$ -tags=load
+      echo "DualStack Overlay Linux control plane Node properties test"
+      go test -timeout 30m -tags load -run ^TestDualStackProperties$ -tags=load
+      echo "DualStack Overlay Linux datapath test"
+      go test -count=1 test/integration/datapath/datapath_linux_test.go -timeout 1m -tags connection -run ^TestDatapathLinux$ -tags=connection,integration
+    name: "DualStack_Overlay_Linux_tests"
+    displayName: "DualStack Overlay Linux Tests"
+
+  - script: |
+      echo "DualStack Overlay Windows control plane Load test"
+      cd test/integration/load
+      go test -timeout 30m -tags load -run ^TestLoad$ -tags=load -os=windows
+      echo "DualStack Overlay Windows control plane CNS validation test"
+      go test -timeout 30m -tags load -run ^TestDualStackProperties$ -tags=load -os=windows -cni cniv2
+      echo "DualStack Overlay Windows control plane Node properties test"
+      go test -timeout 30m -tags load -cni cniv2 -run ^TestValidateState$ -tags=load -os=windows
+      echo "DualStack Overlay Windows datapath test"
+      go test -count=1 test/integration/datapath/datapath_windows_test.go -timeout 3m -tags connection -run ^TestDatapathWin$ -tags=connection
+    name: "DualStack_Overlay_Windows_tests"
+    displayName: "DualStack Overlay Windows Tests"
+
   - task: AzureCLI@2
     inputs:
       azureSubscription: $(AZURE_TEST_AGENT_SERVICE_CONNECTION)
