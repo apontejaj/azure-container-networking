@@ -33,8 +33,8 @@ steps:
         az extension add --name aks-preview
         mkdir -p ~/.kube/
         echo "Create AKS DualStack Overlay cluster"
-        make -C ./hack/swift azcfg AZCLI=az REGION=$(REGION_OVERLAY_CLUSTER_TEST)
-        make -C ./hack/swift dualstack-overlay-up AZCLI=az REGION=$(REGION_OVERLAY_CLUSTER_TEST) VM_SIZE=$(VM_SIZE) NODE_COUNT=$(NODE_COUNT) SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
+        make -C ./hack/aks azcfg AZCLI=az REGION=$(REGION_OVERLAY_CLUSTER_TEST)
+        make -C ./hack/aks dualstack-overlay-up AZCLI=az REGION=$(REGION_OVERLAY_CLUSTER_TEST) VM_SIZE=$(VM_SIZE) NODE_COUNT=$(NODE_COUNT) SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
         echo "Dualstack Overlay Cluster is successfully created"
     displayName: Create DualStackOverlay cluster
     condition: succeeded()
@@ -52,7 +52,7 @@ steps:
     displayName: "Install kubectl on AKS dualstack overlay cluster"
 
   - script: |
-      make -C ./hack/swift dualstack-windows-up AZCLI=az VM_SIZE=$(VM_SIZE) NODE_COUNT=$(NODE_COUNT) SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
+      make -C ./hack/aks dualstack-windows-up AZCLI=az VM_SIZE=$(VM_SIZE) NODE_COUNT=$(NODE_COUNT) SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
       echo "Windows node are successfully added to Dualstack Overlay Cluster"
       kubectl cluster-info
       kubectl get node
@@ -92,8 +92,8 @@ steps:
       addSpnToEnvironment: true
       inlineScript: |
         echo "Deleting cluster"
-        make -C ./hack/swift azcfg AZCLI=az
-        make -C ./hack/swift down SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(make revision)
+        make -C ./hack/aks azcfg AZCLI=az
+        make -C ./hack/aks down SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(make revision)
         echo "Cluster and resources down"
     name: "CleanupDualStackOverlaycluster"
     displayName: "Cleanup DualStack Overlay Cluster"
