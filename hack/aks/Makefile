@@ -230,9 +230,7 @@ dualstack-windows-up: ## Brings up windows nodes on dualstack overlay cluster
 		--node-count $(NODE_COUNT) \
 		--node-vm-size $(VM_SIZE) \
 		--os-type Windows \
-		--subscription $(SUB) \
-		--no-ssh-key \
-		--yes
+		--subscription $(SUB)
 	@$(MAKE) set-kubeconf 
 	
 down: ## Delete the cluster
