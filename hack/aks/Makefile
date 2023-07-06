@@ -231,9 +231,7 @@ dualstack-windows-up: ## Brings up windows nodes on dualstack overlay cluster
 		--node-vm-size $(VM_SIZE) \
 		--os-type Windows \
 		--os-sku Windows2022 \
-		--subscription $(SUB) \
-		--no-ssh-key \
-		--yes
+		--subscription $(SUB)
 	@$(MAKE) set-kubeconf 
 	
 down: ## Delete the cluster
