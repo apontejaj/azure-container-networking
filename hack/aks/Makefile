@@ -230,7 +230,6 @@ dualstack-windows-up: ## Brings up windows nodes on dualstack overlay cluster
 		--node-count $(NODE_COUNT) \
 		--node-vm-size $(VM_SIZE) \
 		--os-type Windows \
-		--os-sku Windows2022 \
 		--subscription $(SUB) \
 		--no-ssh-key \
 		--yes

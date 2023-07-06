@@ -31,6 +31,7 @@ steps:
         az version
         echo "Install az cli extension preview"
         az extension add --name aks-preview
+        az extension update --name aks-preview
         mkdir -p ~/.kube/
         echo "Create AKS DualStack Overlay cluster"
         make -C ./hack/aks azcfg AZCLI=az REGION=$(REGION_OVERLAY_CLUSTER_TEST)
@@ -68,19 +69,21 @@ steps:
       echo "DualStack Overlay Linux control plane Node properties test"
       go test -timeout 30m -tags load -run ^TestDualStackProperties$ -tags=load
       echo "DualStack Overlay Linux datapath test"
-      go test -count=1 test/integration/datapath/datapath_linux_test.go -timeout 1m -tags connection -run ^TestDatapathLinux$ -tags=connection,integration
+      cd ../datapath
+      go test -count=1 datapath_linux_test.go -timeout 1m -tags connection -run ^TestDatapathLinux$ -tags=connection,integration
     name: "DualStack_Overlay_Linux_tests"
     displayName: "DualStack Overlay Linux Tests"
 
   - script: |
-      cd test/integration/load
+      cd ../load
       go test -timeout 30m -tags load -run ^TestLoad$ -tags=load -os=windows
       echo "DualStack Overlay Windows control plane CNS validation test"
       go test -timeout 30m -tags load -run ^TestDualStackProperties$ -tags=load -os=windows -cni cniv2
       echo "DualStack Overlay Windows control plane Node properties test"
       go test -timeout 30m -tags load -cni cniv2 -run ^TestValidateState$ -tags=load -os=windows
       echo "DualStack Overlay Windows datapath test"
-      go test -count=1 test/integration/datapath/datapath_windows_test.go -timeout 3m -tags connection -run ^TestDatapathWin$ -tags=connection
+      cd ../datapath
+      go test -count=1 datapath_windows_test.go -timeout 3m -tags connection -run ^TestDatapathWin$ -tags=connection
     name: "DualStack_Overlay_Windows_tests"
     displayName: "DualStack Overlay Windows Tests"
 
