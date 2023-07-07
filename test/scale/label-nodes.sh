@@ -21,7 +21,6 @@ do
     echo "Current : $node"
     node_name="${node##*/}"
     echo "Apply label to the node"
-    kubectl label node $node_name scale-test=true
     kubectl label node $node_name connectivity-test=true
     if [ $? -eq 0 ]; then
         echo "Label applied to the node"
