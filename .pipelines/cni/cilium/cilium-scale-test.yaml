@@ -49,7 +49,8 @@ stages:
               addSpnToEnvironment: true
               inlineScript: |
                 echo "Set node label scale-test=true for testing"
-                cd test/scale ./label-nodes.sh
+                cd test/scale 
+                ./label-nodes.sh
             name: "LabelNodes"
             displayName: "Label all Nodes"
   - stage: test_network_policies
@@ -66,7 +67,7 @@ stages:
               inlineScript: |
                 echo "deploy network policies"
                 echo "this is where we'll call test-scale for network policies"
-            name: "ScaleUpCluster"
+            name: "TestNetworkPolicies"
             displayName: "Network Policies Scale Test"
   - stage: test_lb_services
     displayName: "Test Load Balancing Service"
@@ -82,7 +83,7 @@ stages:
               inlineScript: |
                 echo "Set 1 deployment, 60 replicas, and 1 service."
                 echo "this is where we'll call test-scale for services"
-            name: "ScaleUpCluster"
+            name: "TestLBServices"
             displayName: "LB Services Scale Test"
   - stage: scale_down_cluster
     displayName: "Scale Down Cluster"
