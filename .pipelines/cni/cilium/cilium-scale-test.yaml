@@ -50,6 +50,7 @@ stages:
               inlineScript: |
                 echo "Set node label scale-test=true for testing"
                 cd test/scale 
+                chmod +x label-nodes.sh
                 ./label-nodes.sh
             name: "LabelNodes"
             displayName: "Label all Nodes"
