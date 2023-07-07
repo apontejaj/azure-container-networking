@@ -83,6 +83,8 @@ steps:
   - script: |
       pwd
       cd test/integration/load
+      echo "Delete Linux load-test namespace"
+      kubectl delete ns load-test
       go test -timeout 30m -tags load -run ^TestLoad$ -tags=load -os=windows
       echo "DualStack Overlay Windows control plane CNS validation test"
       go test -timeout 30m -tags load -run ^TestDualStackProperties$ -tags=load -os=windows -cni cniv2
