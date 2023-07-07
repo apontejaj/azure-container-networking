@@ -224,6 +224,18 @@ dualstack-overlay-up: rg-up overlay-net-up ## Brings up an dualstack Overlay clu
 		--yes
 	@$(MAKE) set-kubeconf
 
+dualstack-overlay-byocni-up: rg-up overlay-net-up ## Brings up an dualstack Overlay BYO CNI cluster
+	$(AZCLI) aks create -n $(CLUSTER) -g $(GROUP) -l $(REGION) \
+		--node-count $(NODE_COUNT) \
+		--node-vm-size $(VM_SIZE) \
+		--network-plugin none \
+		--network-plugin-mode overlay \
+		--ip-families ipv4,ipv6 \
+		--subscription $(SUB) \
+		--no-ssh-key \
+		--yes
+	@$(MAKE) set-kubeconf
+
 dualstack-windows-up: ## Brings up windows nodes on dualstack overlay cluster
 	$(AZCLI) aks nodepool add -g $(GROUP) -n npwin \
 	    --cluster-name  $(CLUSTER) \
