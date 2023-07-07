@@ -49,6 +49,7 @@ stages:
               addSpnToEnvironment: true
               inlineScript: |
                 echo "Set node label scale-test=true for testing"
+                az aks get-credentials --resource-group cilium-scale --name cilium-scale
                 cd test/scale 
                 chmod +x label-nodes.sh
                 ./label-nodes.sh
@@ -67,6 +68,7 @@ stages:
               addSpnToEnvironment: true
               inlineScript: |
                 echo "scale deployment and test network policies"
+                az aks get-credentials --resource-group cilium-scale --name cilium-scale
                 cd test/scale
                 chmod +x test-scale.sh
                 ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=80 --num-real-deployments=1 --num-real-replicas=20 --num-network-policies=2000 --num-unapplied-network-policies=2000 --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=1 --delete-labels
