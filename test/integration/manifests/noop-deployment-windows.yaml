@@ -16,8 +16,8 @@ spec:
     spec:
       containers:
       - name: noop
-        image: mcr.microsoft.com/dotnet/framework/samples:aspnetapp
+        image: mcr.microsoft.com/oss/kubernetes/pause:3.6-windows-ltsc2022-amd64
         ports:
           - containerPort: 80
       nodeSelector:
-        "kubernetes.io/os": windows
+        kubernetes.io/os: windows
