@@ -15,6 +15,10 @@ import (
 	restclient "k8s.io/client-go/rest"
 )
 
+var (
+	ipv6PrefixPolicy = []string{"powershell", "-c", "netsh interface ipv6 add prefixpolicy fd00::/8 3 1"}
+)
+
 func podTest(ctx context.Context, clientset *kubernetes.Clientset, srcPod *apiv1.Pod, cmd []string, rc *restclient.Config, passFunc func(string) error) error {
 	logrus.Infof("podTest() - %v %v", srcPod.Name, cmd)
 	output, err := k8sutils.ExecCmdOnPod(ctx, clientset, srcPod.Namespace, srcPod.Name, cmd, rc)
@@ -193,6 +197,26 @@ func WindowsPodToInternet(ctx context.Context, clientset *kubernetes.Clientset, 
 
 	if resultTwo != nil {
 		return resultTwo
+	}
+
+	// test Invoke-WebRequest an URL by IPv6 address on one pod
+	// to Invoke-WebRequest a website by using IPv6 address, need to apply IPv6PrefixPolicy "netsh interface ipv6 add prefixpolicy fd00::/8 3 1"
+	// then PS C:\> Test-NetConnection www.bing.com
+	//              RemoteAddress  : 2620:1ec:c11::200
+	if len(secondPod.Status.PodIPs) > 1 {
+		for _, ip := range secondPod.Status.PodIPs {
+			if net.ParseIP(ip.IP).To16() != nil {
+				_, err = k8sutils.ExecCmdOnPod(ctx, clientset, podNamespace, pods.Items[0].Name, ipv6PrefixPolicy, rc)
+				if err != nil {
+					return errors.Wrapf(err, "failed to exec command on windows pod")
+				}
+
+				resultThree := podTest(ctx, clientset, secondPod, []string{"powershell", "Invoke-WebRequest", "www.bing.com", "-UseBasicParsing"}, rc, webRequestPassedWindows)
+				if resultThree != nil {
+					return resultThree
+				}
+			}
+		}
 	}
 
 	return nil

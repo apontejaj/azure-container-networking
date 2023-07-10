@@ -23,6 +23,7 @@ var (
 	hnsNetworkCmd    = []string{"powershell", "-c", "Get-HnsNetwork | ConvertTo-Json"}
 	azureVnetCmd     = []string{"powershell", "-c", "cat ../../k/azure-vnet.json"}
 	azureVnetIpamCmd = []string{"powershell", "-c", "cat ../../k/azure-vnet-ipam.json"}
+	nsLookupCmd      = []string{"powershell", "nslookup", "www.bing.com"}
 )
 
 type WindowsClient struct{}
