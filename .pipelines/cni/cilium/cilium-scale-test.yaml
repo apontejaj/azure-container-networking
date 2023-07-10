@@ -71,10 +71,10 @@ stages:
                 az aks get-credentials --resource-group cilium-scale --name cilium-scale
                 cd test/scale
                 chmod +x test-scale.sh
-                ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=80 --num-real-deployments=1 --num-real-replicas=20 --num-network-policies=2000 --num-unapplied-network-policies=2000 --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=1 --delete-labels
+                ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=200 --num-real-deployments=1 --num-real-replicas=80 --num-network-policies=2000 --num-unapplied-network-policies=2000 --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=1 --delete-labels
                 cd connectivity
                 chmod +x test-connectivity.sh
-                ./test-connectivity.sh --num-scale-pods-to-verify=40000 --max-wait-for-initial-connectivity=600 --max-wait-after-adding-netpol=120
+                ./test-connectivity.sh --num-scale-pods-to-verify=40 --max-wait-for-initial-connectivity=600 --max-wait-after-adding-netpol=120
             name: "TestNetworkPolicies"
             displayName: "Network Policies Scale Test"
   - stage: test_lb_services
