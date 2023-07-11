@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/Azure/azure-container-networking/common"
 	npmconfig "github.com/Azure/azure-container-networking/npm/config"
 	"github.com/Azure/azure-container-networking/npm/metrics"
 	"github.com/Azure/azure-container-networking/npm/pkg/dataplane"
 	"github.com/Azure/azure-container-networking/npm/pkg/dataplane/ipsets"
+	"github.com/Azure/azure-container-networking/npm/pkg/dataplane/policies"
 	"github.com/Azure/azure-container-networking/npm/pkg/models"
 	"github.com/Azure/azure-container-networking/npm/util"
 	"github.com/spf13/cobra"
@@ -20,12 +20,23 @@ import (
 	"k8s.io/klog"
 )
 
+var npmV2CleanupCfg = &dataplane.Config{
+	IPSetManagerCfg: &ipsets.IPSetManagerCfg{
+		NetworkName: util.AzureNetworkName,
+		// NOTE: NetworkName and IPSetMode must be set later by the npm ConfigMap or default config
+	},
+	PolicyManagerCfg: &policies.PolicyManagerCfg{
+		OnlyDeleteAtBootup: true,
+		PolicyMode:         policies.IPSetPolicyMode,
+		// NOTE: PlaceAzureChainFirst must be set later by the npm ConfigMap or default config
+	},
+}
+
 // newCleanupNPMCmd returns the cleanup command, which deletes NPM state in the dataplane.
 func newCleanupNPMCmd() *cobra.Command {
-	// getTuplesCmd represents the getTuples command
-	startNPMCmd := &cobra.Command{
-		Use:   "start",
-		Short: "Starts the Azure NPM process",
+	cleanupCmd := &cobra.Command{
+		Use:   "cleanup",
+		Short: "Cleans up Azure NPM state in the kernel",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := &npmconfig.Config{}
 			err := viper.Unmarshal(config)
@@ -41,9 +52,9 @@ func newCleanupNPMCmd() *cobra.Command {
 		},
 	}
 
-	startNPMCmd.Flags().String(flagKubeConfigPath, flagDefaults[flagKubeConfigPath], "path to kubeconfig")
+	cleanupCmd.Flags().String(flagKubeConfigPath, flagDefaults[flagKubeConfigPath], "path to kubeconfig")
 
-	return startNPMCmd
+	return cleanupCmd
 }
 
 func cleanup(config npmconfig.Config, flags npmconfig.Flags) error {
@@ -55,6 +66,11 @@ func cleanup(config npmconfig.Config, flags npmconfig.Flags) error {
 		klog.Infof("NPM is running on Linux Dataplane")
 	}
 	klog.Infof("starting cleanup for NPM version %d with image %s", config.NPMVersion(), version)
+
+	if !config.Toggles.EnableV2NPM {
+		klog.Error("cleanup is only supported for v2 NPM")
+		return fmt.Errorf("cleanup is only supported for v2 NPM")
+	}
 
 	var err error
 
@@ -90,54 +106,22 @@ func cleanup(config npmconfig.Config, flags npmconfig.Flags) error {
 		return fmt.Errorf("failed to generate clientset with cluster config: %w", err)
 	}
 
-	nodeName := models.GetNodeName()
-
 	stopChannel := wait.NeverStop
-	if config.Toggles.EnableV2NPM {
-		// update the dataplane config
-		npmV2DataplaneCfg.MaxBatchedACLsPerPod = config.MaxBatchedACLsPerPod
-
-		npmV2DataplaneCfg.ApplyInBackground = config.Toggles.ApplyInBackground
-		if config.ApplyMaxBatches > 0 {
-			npmV2DataplaneCfg.ApplyMaxBatches = config.ApplyMaxBatches
-		} else {
-			npmV2DataplaneCfg.ApplyMaxBatches = npmconfig.DefaultConfig.ApplyMaxBatches
-		}
-		if config.ApplyIntervalInMilliseconds > 0 {
-			npmV2DataplaneCfg.ApplyInterval = time.Duration(config.ApplyIntervalInMilliseconds * int(time.Millisecond))
-		} else {
-			npmV2DataplaneCfg.ApplyInterval = time.Duration(npmconfig.DefaultConfig.ApplyIntervalInMilliseconds * int(time.Millisecond))
-		}
-
-		if config.WindowsNetworkName == "" {
-			npmV2DataplaneCfg.NetworkName = util.AzureNetworkName
-		} else {
-			npmV2DataplaneCfg.NetworkName = config.WindowsNetworkName
-		}
-
-		npmV2DataplaneCfg.PlaceAzureChainFirst = config.Toggles.PlaceAzureChainFirst
-		if config.Toggles.ApplyIPSetsOnNeed {
-			npmV2DataplaneCfg.IPSetMode = ipsets.ApplyOnNeed
-		} else {
-			npmV2DataplaneCfg.IPSetMode = ipsets.ApplyAllIPSets
-		}
-
-		var nodeIP string
-		if util.IsWindowsDP() {
-			nodeIP, err = util.NodeIP()
-			if err != nil {
-				metrics.SendErrorLogAndMetric(util.NpmCleanupID, "error: failed to get node IP while booting up: %v", err)
-				return fmt.Errorf("failed to get node IP while booting up: %w", err)
-			}
-			klog.Infof("node IP is %s", nodeIP)
-		}
-		npmV2DataplaneCfg.NodeIP = nodeIP
-
-		_, err := dataplane.NewDataPlane(nodeName, common.NewIOShim(), npmV2DataplaneCfg, stopChannel)
+	var nodeIP string
+	if util.IsWindowsDP() {
+		nodeIP, err = util.NodeIP()
 		if err != nil {
-			metrics.SendErrorLogAndMetric(util.NpmCleanupID, "error: failed to create dataplane with error %v", err)
-			return fmt.Errorf("failed to create dataplane with error %w", err)
+			metrics.SendErrorLogAndMetric(util.NpmCleanupID, "error: failed to get node IP while booting up: %v", err)
+			return fmt.Errorf("failed to get node IP while booting up: %w", err)
 		}
+		klog.Infof("node IP is %s", nodeIP)
+	}
+	npmV2CleanupCfg.NodeIP = nodeIP
+	nodeName := models.GetNodeName()
+	_, err = dataplane.NewDataPlane(nodeName, common.NewIOShim(), npmV2CleanupCfg, stopChannel)
+	if err != nil {
+		metrics.SendErrorLogAndMetric(util.NpmCleanupID, "error: failed to create dataplane with error %v", err)
+		return fmt.Errorf("failed to create dataplane with error %w", err)
 	}
 
 	metrics.SendLog(util.NpmCleanupID, "finished cleanup", metrics.PrintLog)
