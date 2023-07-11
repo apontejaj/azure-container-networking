@@ -122,7 +122,8 @@ func start(config npmconfig.Config, flags npmconfig.Flags) error {
 	k8sServerVersion := k8sServerVersion(clientset)
 
 	nodeName := models.GetNodeName()
-	if err := labelNode(clientset, nodeName, util.InstalledLabelValue); err != nil {
+	err = labelNode(clientset, nodeName, util.InstalledLabelValue)
+	if err != nil {
 		metrics.SendErrorLogAndMetric(util.NpmID, "error: failed to label node as NPM installed. err: %s", err.Error())
 	}
 

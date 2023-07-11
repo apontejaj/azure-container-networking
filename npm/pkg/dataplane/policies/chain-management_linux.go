@@ -288,11 +288,7 @@ func (pMgr *PolicyManager) bootup(_ []string) error {
 	// 3. if we're deleting everything at bootup, then delete all chains immediately
 	if pMgr.OnlyDeleteAtBootup {
 		klog.Info("deleting all chains")
-		if err := pMgr.cleanupStaleChains(); err != nil {
-			return err
-		}
-
-		return nil
+		return pMgr.cleanupStaleChains()
 	}
 
 	// 3. otherwise, add/reposition the jump to AZURE-NPM
