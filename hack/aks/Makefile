@@ -226,6 +226,7 @@ dualstack-overlay-up: rg-up overlay-net-up ## Brings up an dualstack Overlay clu
 
 dualstack-overlay-byocni-up: rg-up overlay-net-up ## Brings up an dualstack Overlay BYO CNI cluster
 	$(AZCLI) aks create -n $(CLUSTER) -g $(GROUP) -l $(REGION) \
+		--kubernetes-version 1.26.3 \
 		--node-count $(NODE_COUNT) \
 		--node-vm-size $(VM_SIZE) \
 		--network-plugin none \
