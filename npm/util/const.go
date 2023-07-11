@@ -28,6 +28,7 @@ const (
 
 	NPMNodeLabelKey     string = "azure-npm"
 	InstalledLabelValue string = "installed"
+	RemovedLabelValue   string = "removed"
 )
 
 var (
@@ -273,6 +274,7 @@ const (
 	ControllerID
 	DaemonDataplaneID // for v2
 	FanOutServerID    // for v2
+	NpmCleanupID
 )
 
 func DetectIptablesVersion(ioShim *common.IOShim) {

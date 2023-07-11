@@ -47,6 +47,7 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.AddCommand(newStartNPMControlplaneCmd())
 	rootCmd.AddCommand(newStartNPMDaemonCmd())
 	rootCmd.AddCommand(startCmd)
+	rootCmd.AddCommand(newCleanupNPMCmd())
 
 	rootCmd.AddCommand(newDebugCmd())
 
