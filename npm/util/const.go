@@ -26,8 +26,8 @@ const (
 	k8sMajorVerForNewPolicyDef string = "1"
 	k8sMinorVerForNewPolicyDef string = "11"
 
-	NPMNodeLabelKey   string = "azure-npm"
-	NPMNodeLabelValue string = "installed"
+	NPMNodeLabelKey     string = "azure-npm"
+	InstalledLabelValue string = "installed"
 )
 
 var (

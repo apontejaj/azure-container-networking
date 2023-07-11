@@ -122,7 +122,9 @@ func start(config npmconfig.Config, flags npmconfig.Flags) error {
 	k8sServerVersion := k8sServerVersion(clientset)
 
 	nodeName := models.GetNodeName()
-	labelNode(clientset, nodeName)
+	if err := labelNode(clientset, nodeName, util.InstalledLabelValue); err != nil {
+		metrics.SendErrorLogAndMetric(util.NpmID, "error: failed to label node as NPM installed. err: %s", err.Error())
+	}
 
 	var dp dataplane.GenericDataplane
 	stopChannel := wait.NeverStop
@@ -218,23 +220,23 @@ func k8sServerVersion(kubeclientset kubernetes.Interface) *k8sversion.Info {
 	return serverVersion
 }
 
-// labelNode labels this node to help AKS identify which nodes NPM has been installed on
-func labelNode(clientset *kubernetes.Clientset, nodeName string) {
-	msg := fmt.Sprintf("labeling this node %s with %s=%s", nodeName, util.NPMNodeLabelKey, util.NPMNodeLabelValue)
+func labelNode(clientset *kubernetes.Clientset, nodeName, labelValue string) error {
+	msg := fmt.Sprintf("labeling this node %s with %s=%s", nodeName, util.NPMNodeLabelKey, labelValue)
 	metrics.SendLog(util.NpmID, msg, metrics.PrintLog)
 
 	k8sNode, err := clientset.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
 	if err != nil {
-		metrics.SendErrorLogAndMetric(util.NpmID, "error: failed to label node because we failed to get k8s node. nodeName: %s. err: %s", nodeName, err.Error())
-		return
+		return fmt.Errorf("failed to get k8s node. nodeName: %s. err: %w", nodeName, err)
 	}
 
 	if k8sNode.Labels == nil {
 		k8sNode.Labels = make(map[string]string)
 	}
-	k8sNode.Labels[util.NPMNodeLabelKey] = util.NPMNodeLabelValue
+	k8sNode.Labels[util.NPMNodeLabelKey] = labelValue
 	_, err = clientset.CoreV1().Nodes().Update(context.TODO(), k8sNode, metav1.UpdateOptions{})
 	if err != nil {
-		metrics.SendErrorLogAndMetric(util.NpmID, "error: failed to label node because we failed to update k8s node. nodeName: %s. err: %s", nodeName, err.Error())
+		return fmt.Errorf("failed to update k8s node. nodeName: %s. err: %w", nodeName, err)
 	}
+
+	return nil
 }
