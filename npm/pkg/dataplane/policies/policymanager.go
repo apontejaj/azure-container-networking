@@ -29,9 +29,9 @@ const (
 )
 
 type PolicyManagerCfg struct {
-	// OnlyDeleteAtBootup informs Linux pMgr that it should not add the base iptables rules at bootup,
+	// CleanupOnly informs Linux pMgr that it should not add the base iptables rules at bootup,
 	// and that it should delete the chains after flushing.
-	OnlyDeleteAtBootup bool
+	CleanupOnly bool
 	// NodeIP is only used in Windows
 	NodeIP string
 	// PolicyMode only affects Windows

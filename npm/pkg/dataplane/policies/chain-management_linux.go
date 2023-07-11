@@ -285,10 +285,14 @@ func (pMgr *PolicyManager) bootup(_ []string) error {
 		return npmerrors.SimpleErrorWrapper("failed to run iptables-restore for bootup", err)
 	}
 
-	// 3. if we're deleting everything at bootup, then delete all chains immediately
-	if pMgr.OnlyDeleteAtBootup {
+	// 3. if we're only cleaning up bootup, then delete all chains immediately
+	if pMgr.CleanupOnly {
 		klog.Info("deleting all chains")
-		return pMgr.cleanupStaleChains()
+		if err := pMgr.cleanupStaleChains(); err != nil {
+			return fmt.Errorf("failed to delete all chains due to %w", err)
+		}
+
+		return nil
 	}
 
 	// 3. otherwise, add/reposition the jump to AZURE-NPM
@@ -311,8 +315,9 @@ func (pMgr *PolicyManager) reconcile() {
 	}
 
 	if err := pMgr.cleanupStaleChains(); err != nil {
-		metrics.SendErrorLogAndMetric(util.IptmID, "error: %s", err.Error())
-		klog.Error(err.Error())
+		msg := fmt.Sprintf("failed to clean up old policy chains due to %s", err.Error())
+		metrics.SendErrorLogAndMetric(util.IptmID, "error: %s", msg)
+		klog.Error(msg)
 	}
 }
 
@@ -326,11 +331,7 @@ func (pMgr *PolicyManager) cleanupStaleChains() error {
 	}
 
 	klog.Infof("cleaning up these stale chains: %+v", staleChains)
-	if err := pMgr.cleanupChains(staleChains); err != nil {
-		return fmt.Errorf("failed to clean up old policy chains with the following error: %w", err)
-	}
-
-	return nil
+	return pMgr.cleanupChains(staleChains)
 }
 
 // cleanupChains deletes all the chains in the given list.
@@ -421,7 +422,7 @@ func (pMgr *PolicyManager) creatorForBootup(currentChains map[string]struct{}) *
 		pMgr.staleChains.add(chain) // won't add base chains
 	}
 
-	if pMgr.OnlyDeleteAtBootup {
+	if pMgr.CleanupOnly {
 		creator.AddLine("", nil, util.IptablesRestoreCommit)
 		return creator
 	}

@@ -26,8 +26,8 @@ var npmV2CleanupCfg = &dataplane.Config{
 		// NOTE: NetworkName and IPSetMode must be set later by the npm ConfigMap or default config
 	},
 	PolicyManagerCfg: &policies.PolicyManagerCfg{
-		OnlyDeleteAtBootup: true,
-		PolicyMode:         policies.IPSetPolicyMode,
+		CleanupOnly: true,
+		PolicyMode:  policies.IPSetPolicyMode,
 		// NOTE: PlaceAzureChainFirst must be set later by the npm ConfigMap or default config
 	},
 }
