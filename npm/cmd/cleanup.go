@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/Azure/azure-container-networking/common"
@@ -21,21 +20,15 @@ import (
 	"k8s.io/klog"
 )
 
-var (
-	errCleanupUnsupported = errors.New("cleanup is only supported for v2 NPM")
-
-	npmV2CleanupCfg = &dataplane.Config{
-		IPSetManagerCfg: &ipsets.IPSetManagerCfg{
-			NetworkName: util.AzureNetworkName,
-			// NOTE: NetworkName and IPSetMode must be set later by the npm ConfigMap or default config
-		},
-		PolicyManagerCfg: &policies.PolicyManagerCfg{
-			CleanupOnly: true,
-			PolicyMode:  policies.IPSetPolicyMode,
-			// NOTE: PlaceAzureChainFirst must be set later by the npm ConfigMap or default config
-		},
-	}
-)
+var npmV2CleanupCfg = &dataplane.Config{
+	IPSetManagerCfg: &ipsets.IPSetManagerCfg{
+		NetworkName: util.AzureNetworkName,
+	},
+	PolicyManagerCfg: &policies.PolicyManagerCfg{
+		CleanupOnly: true,
+		PolicyMode:  policies.IPSetPolicyMode,
+	},
+}
 
 // newCleanupNPMCmd returns the cleanup command, which deletes NPM state in the dataplane.
 func newCleanupNPMCmd() *cobra.Command {
@@ -43,17 +36,11 @@ func newCleanupNPMCmd() *cobra.Command {
 		Use:   "cleanup",
 		Short: "Cleans up Azure NPM state in the kernel",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			config := &npmconfig.Config{}
-			err := viper.Unmarshal(config)
-			if err != nil {
-				return fmt.Errorf("failed to load config with error: %w", err)
-			}
-
 			flags := npmconfig.Flags{
 				KubeConfigPath: viper.GetString(flagKubeConfigPath),
 			}
 
-			return cleanup(*config, flags)
+			return cleanup(flags)
 		},
 	}
 
@@ -62,20 +49,13 @@ func newCleanupNPMCmd() *cobra.Command {
 	return cleanupCmd
 }
 
-func cleanup(config npmconfig.Config, flags npmconfig.Flags) error {
-	klog.Infof("loaded config: %+v", config)
+func cleanup(flags npmconfig.Flags) error {
 	if util.IsWindowsDP() {
-		config.Toggles.EnableV2NPM = true
 		klog.Infof("NPM is running on Windows Dataplane. Enabling V2 NPM")
 	} else {
 		klog.Infof("NPM is running on Linux Dataplane")
 	}
-	klog.Infof("starting cleanup for NPM version %d with image %s", config.NPMVersion(), version)
-
-	if !config.Toggles.EnableV2NPM {
-		klog.Error("cleanup is only supported for v2 NPM")
-		return errCleanupUnsupported
-	}
+	klog.Infof("starting cleanup for NPM image %s", version)
 
 	var err error
 
