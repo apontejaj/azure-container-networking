@@ -285,17 +285,7 @@ func (pMgr *PolicyManager) bootup(_ []string) error {
 		return npmerrors.SimpleErrorWrapper("failed to run iptables-restore for bootup", err)
 	}
 
-	// 3. if we're only cleaning up bootup, then delete all chains immediately
-	if pMgr.CleanupOnly {
-		klog.Info("deleting all chains")
-		if err := pMgr.cleanupStaleChains(); err != nil {
-			return fmt.Errorf("failed to delete all chains due to %w", err)
-		}
-
-		return nil
-	}
-
-	// 3. otherwise, add/reposition the jump to AZURE-NPM
+	// 3. add/reposition the jump to AZURE-NPM
 	if err := pMgr.positionAzureChainJumpRule(); err != nil {
 		baseErrString := "failed to add/reposition jump from FORWARD chain to AZURE-NPM chain"
 		metrics.SendErrorLogAndMetric(util.IptmID, "error: %s with error: %s", baseErrString, err.Error())
@@ -316,22 +306,18 @@ func (pMgr *PolicyManager) reconcile() {
 
 	pMgr.reconcileManager.Lock()
 	defer pMgr.reconcileManager.Unlock()
-	if err := pMgr.cleanupStaleChains(); err != nil {
-		msg := fmt.Sprintf("failed to clean up old policy chains due to %s", err.Error())
-		metrics.SendErrorLogAndMetric(util.IptmID, "error: %s", msg)
-		klog.Error(msg)
-	}
-}
-
-func (pMgr *PolicyManager) cleanupStaleChains() error {
 	staleChains := pMgr.staleChains.emptyAndGetAll()
 
 	if len(staleChains) == 0 {
-		return nil
+		return
 	}
 
 	klog.Infof("cleaning up these stale chains: %+v", staleChains)
-	return pMgr.cleanupChains(staleChains)
+	if err := pMgr.cleanupChains(staleChains); err != nil {
+		msg := fmt.Sprintf("failed to clean up old policy chains with the following error: %s", err.Error())
+		metrics.SendErrorLogAndMetric(util.IptmID, "error: %s", msg)
+		klog.Error(msg)
+	}
 }
 
 // cleanupChains deletes all the chains in the given list.
@@ -420,11 +406,6 @@ func (pMgr *PolicyManager) creatorForBootup(currentChains map[string]struct{}) *
 		creator.AddLine("", nil, fmt.Sprintf("-F %s", chain))
 		// Step 2.2 in bootup() comment: delete deprecated chains and old v2 policy chains in the background
 		pMgr.staleChains.add(chain) // won't add base chains
-	}
-
-	if pMgr.CleanupOnly {
-		creator.AddLine("", nil, util.IptablesRestoreCommit)
-		return creator
 	}
 
 	// add AZURE-NPM-INGRESS chain rules
