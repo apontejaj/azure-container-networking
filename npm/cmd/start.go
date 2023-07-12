@@ -125,6 +125,7 @@ func start(config npmconfig.Config, flags npmconfig.Flags) error {
 	err = labelNode(clientset, nodeName, util.InstalledLabelValue)
 	if err != nil {
 		metrics.SendErrorLogAndMetric(util.NpmID, "error: failed to label node as NPM installed. err: %s", err.Error())
+		return fmt.Errorf("failed to label node as NPM installed. err: %w", err)
 	}
 
 	var dp dataplane.GenericDataplane
@@ -233,7 +234,12 @@ func labelNode(clientset *kubernetes.Clientset, nodeName, labelValue string) err
 	if k8sNode.Labels == nil {
 		k8sNode.Labels = make(map[string]string)
 	}
-	k8sNode.Labels[util.NPMNodeLabelKey] = labelValue
+
+	if _, ok := k8sNode.Labels[util.NPMNodeLabelKey]; ok {
+		klog.Infof("node %s already labeled with %s=%s", nodeName, util.NPMNodeLabelKey, labelValue)
+		return nil
+	}
+
 	_, err = clientset.CoreV1().Nodes().Update(context.TODO(), k8sNode, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update k8s node. nodeName: %s. err: %w", nodeName, err)
