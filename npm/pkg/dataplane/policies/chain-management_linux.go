@@ -314,6 +314,8 @@ func (pMgr *PolicyManager) reconcile() {
 		klog.Error(msg)
 	}
 
+	pMgr.reconcileManager.Lock()
+	defer pMgr.reconcileManager.Unlock()
 	if err := pMgr.cleanupStaleChains(); err != nil {
 		msg := fmt.Sprintf("failed to clean up old policy chains due to %s", err.Error())
 		metrics.SendErrorLogAndMetric(util.IptmID, "error: %s", msg)
@@ -322,8 +324,6 @@ func (pMgr *PolicyManager) reconcile() {
 }
 
 func (pMgr *PolicyManager) cleanupStaleChains() error {
-	pMgr.reconcileManager.Lock()
-	defer pMgr.reconcileManager.Unlock()
 	staleChains := pMgr.staleChains.emptyAndGetAll()
 
 	if len(staleChains) == 0 {
