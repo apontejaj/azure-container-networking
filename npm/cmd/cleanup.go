@@ -25,16 +25,16 @@ var (
 	errCleanupUnsupported = errors.New("cleanup is only supported for v2 NPM")
 
 	npmV2CleanupCfg = &dataplane.Config{
-	IPSetManagerCfg: &ipsets.IPSetManagerCfg{
-		NetworkName: util.AzureNetworkName,
-		// NOTE: NetworkName and IPSetMode must be set later by the npm ConfigMap or default config
-	},
-	PolicyManagerCfg: &policies.PolicyManagerCfg{
-		CleanupOnly: true,
-		PolicyMode:  policies.IPSetPolicyMode,
-		// NOTE: PlaceAzureChainFirst must be set later by the npm ConfigMap or default config
-	},
-}
+		IPSetManagerCfg: &ipsets.IPSetManagerCfg{
+			NetworkName: util.AzureNetworkName,
+			// NOTE: NetworkName and IPSetMode must be set later by the npm ConfigMap or default config
+		},
+		PolicyManagerCfg: &policies.PolicyManagerCfg{
+			CleanupOnly: true,
+			PolicyMode:  policies.IPSetPolicyMode,
+			// NOTE: PlaceAzureChainFirst must be set later by the npm ConfigMap or default config
+		},
+	}
 )
 
 // newCleanupNPMCmd returns the cleanup command, which deletes NPM state in the dataplane.
@@ -136,7 +136,8 @@ func cleanup(config npmconfig.Config, flags npmconfig.Flags) error {
 		return err
 	}
 
-	metrics.SendLog(util.NpmCleanupID, "labeled node as NPM removed", metrics.PrintLog)
+	metrics.SendLog(util.NpmCleanupID, "finished cleanup. labeled node as NPM removed", metrics.PrintLog)
 
-	return nil
+	// infinite sleep to prevent Completed/CrashLoopBackOff state when running cleanup
+	select {}
 }
