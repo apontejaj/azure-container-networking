@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/Azure/azure-container-networking/common"
@@ -20,7 +21,10 @@ import (
 	"k8s.io/klog"
 )
 
-var npmV2CleanupCfg = &dataplane.Config{
+var (
+	errCleanupUnsupported = errors.New("cleanup is only supported for v2 NPM")
+
+	npmV2CleanupCfg = &dataplane.Config{
 	IPSetManagerCfg: &ipsets.IPSetManagerCfg{
 		NetworkName: util.AzureNetworkName,
 		// NOTE: NetworkName and IPSetMode must be set later by the npm ConfigMap or default config
@@ -31,6 +35,7 @@ var npmV2CleanupCfg = &dataplane.Config{
 		// NOTE: PlaceAzureChainFirst must be set later by the npm ConfigMap or default config
 	},
 }
+)
 
 // newCleanupNPMCmd returns the cleanup command, which deletes NPM state in the dataplane.
 func newCleanupNPMCmd() *cobra.Command {
@@ -69,7 +74,7 @@ func cleanup(config npmconfig.Config, flags npmconfig.Flags) error {
 
 	if !config.Toggles.EnableV2NPM {
 		klog.Error("cleanup is only supported for v2 NPM")
-		return fmt.Errorf("cleanup is only supported for v2 NPM")
+		return errCleanupUnsupported
 	}
 
 	var err error
