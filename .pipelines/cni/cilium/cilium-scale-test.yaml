@@ -2,7 +2,7 @@ pr: none
 trigger: none
 
 stages:
-  - stage: connect_to_scale_cluster
+  - stage: Connect to Scale Cluster
     displayName: "Connect to existing cluster cilium-scale"
     jobs:
       - job: connect_to_scale_test_cluster
@@ -20,7 +20,7 @@ stages:
                 kubectl get pod -A
             name: "ConnectToCluster"
             displayName: "Connect to cilium-scale"
-  - stage: update_cilium_version
+  - stage: Update Cilium Version
     displayName: "Update Cilium Version and Restart Nodes"
     jobs:
       - job: update_version
@@ -48,29 +48,15 @@ stages:
                 kubectl get pod -A
             name: "UpdateCiliumVersion"
             displayName: "Update Cilium Version"
-  - stage: scale_up_cluster
+  - stage: Scale Up Cluster
     displayName: "Scale Up Cluster"
     jobs:
       - job: scale_up
         steps:
-          - task: AzureCLI@1
-            inputs:
-              azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
-              scriptLocation: "inlineScript"
-              scriptType: "bash"
-              addSpnToEnvironment: true
-              inlineScript: |
-                echo "Gradually scale nodes up to 1000 for testing"
-                echo "Scale to 300 nodes"
-                az aks nodepool scale --name nodepool1 --cluster-name cilium-scale --resource-group cilium-scale --node-count 300
-                echo "Scale to 600 nodes"
-                az aks nodepool scale --name nodepool1 --cluster-name cilium-scale --resource-group cilium-scale --node-count 600
-                echo "Scale to 1000 nodes"
-                az aks nodepool scale --name nodepool1 --cluster-name cilium-scale --resource-group cilium-scale --node-count 1000
-            name: "ScaleUpCluster"
-            displayName: "Scale Up Cluster to 1000 Nodes"
-            timeoutInMinutes: 180
-  - stage: label_nodes
+          - template: ../scale-test-templates/scale-up-template.yaml
+            parameters:
+              clusterName: "cilium-scale"
+  - stage: Label Nodes
     displayName: "Label Nodes for Testing"
     jobs:
       - job: label_nodes
@@ -82,14 +68,33 @@ stages:
               scriptType: "bash"
               addSpnToEnvironment: true
               inlineScript: |
-                echo "Set node label scale-test=true for testing"
+                echo "Set node label scale-test=true and connectivity-test=true for testing"
                 az aks get-credentials --resource-group cilium-scale --name cilium-scale
                 cd test/scale 
                 chmod +x label-nodes.sh
                 ./label-nodes.sh
             name: "LabelNodes"
             displayName: "Label all Nodes"
-  - stage: test_network_policies
+  - stage: Scale Cluster Deployments
+    displayName: "Scale deploments for Network Policies Check"
+    jobs:
+      - job: scale_deployments
+        steps:
+          - task: AzureCLI@1
+            inputs:
+              azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+              scriptLocation: "inlineScript"
+              scriptType: "bash"
+              addSpnToEnvironment: true
+              inlineScript: |
+                echo "scale deployment and to prep for network policies test"
+                az aks get-credentials --resource-group cilium-scale --name cilium-scale
+                cd test/scale
+                chmod +x test-scale.sh
+                ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=200 --num-real-deployments=1 --num-real-replicas=80 --num-network-policies=2000 --num-unapplied-network-policies=2000 --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=1 --delete-labels
+            name: "scaling"
+            displayName: "Run scale script"
+  - stage: Test Network Policy Connectivity
     displayName: "Test Network Policies"
     jobs:
       - job: network_policies
@@ -101,17 +106,14 @@ stages:
               scriptType: "bash"
               addSpnToEnvironment: true
               inlineScript: |
-                echo "scale deployment and test network policies"
+                echo "Run network policies test"
                 az aks get-credentials --resource-group cilium-scale --name cilium-scale
-                cd test/scale
-                chmod +x test-scale.sh
-                ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=200 --num-real-deployments=1 --num-real-replicas=80 --num-network-policies=2000 --num-unapplied-network-policies=2000 --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=1 --delete-labels
-                cd connectivity
+                cd test/scale/connectivity
                 chmod +x test-connectivity.sh
                 ./test-connectivity.sh --num-scale-pods-to-verify=40 --max-wait-for-initial-connectivity=600 --max-wait-after-adding-netpol=120
             name: "TestNetworkPolicies"
             displayName: "Network Policies Scale Test"
-  - stage: test_lb_services
+  - stage: Test LB Services
     displayName: "Test Load Balancing Service"
     jobs:
       - job: deploy_service
@@ -129,40 +131,31 @@ stages:
                 ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=200 --num-real-deployments=1 --num-real-replicas=60 --num-network-policies=10 --num-unapplied-network-policies=10 --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=1 --delete-labels
             name: "TestLBServices"
             displayName: "LB Services Scale Test"
-  - stage: scale_down_cluster
+  - stage: Scale Down Cluster
     displayName: "Scale Down Cluster"
     jobs:
       - job: scale_down
         steps:
-          - task: AzureCLI@1
-            inputs:
-              azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
-              scriptLocation: "inlineScript"
-              scriptType: "bash"
-              addSpnToEnvironment: true
-              inlineScript: |
-                echo "Tests completed. Scale back down to 5 nodes. Scale down at increments of 100"
-                echo "Scaling to 900 nodes"
-                az aks nodepool scale --name nodepool1 --cluster-name cilium-scale --resource-group cilium-scale --node-count 900
-                echo "Scaling to 800 nodes"
-                az aks nodepool scale --name nodepool1 --cluster-name cilium-scale --resource-group cilium-scale --node-count 800
-                echo "Scaling to 700 nodes"
-                az aks nodepool scale --name nodepool1 --cluster-name cilium-scale --resource-group cilium-scale --node-count 700
-                echo "Scaling to 600 nodes"
-                az aks nodepool scale --name nodepool1 --cluster-name cilium-scale --resource-group cilium-scale --node-count 600
-                echo "Scaling to 500 nodes"
-                az aks nodepool scale --name nodepool1 --cluster-name cilium-scale --resource-group cilium-scale --node-count 500
-                echo "Scaling to 400 nodes"
-                az aks nodepool scale --name nodepool1 --cluster-name cilium-scale --resource-group cilium-scale --node-count 400
-                echo "Scaling to 300 nodes"
-                az aks nodepool scale --name nodepool1 --cluster-name cilium-scale --resource-group cilium-scale --node-count 300
-                echo "Scaling to 200 nodes"
-                az aks nodepool scale --name nodepool1 --cluster-name cilium-scale --resource-group cilium-scale --node-count 200
-                echo "Scaling to 100 nodes"
-                az aks nodepool scale --name nodepool1 --cluster-name cilium-scale --resource-group cilium-scale --node-count 100
-                echo "Scaling to 5 nodes"
-                az aks nodepool scale --name nodepool1 --cluster-name cilium-scale --resource-group cilium-scale --node-count 5
-            name: "ScaleDownCluster"
-            displayName: "Scale Down Cluster to 5 Nodes" 
-            timeoutInMinutes: 180
+          - template: ../scale-test-templates/scale-down-template.yaml
+            parameters:
+              clusterName: "cilium-scale"
+  - stage: Delete Test Namespaces
+    displayName: "Delete Test Namespaces"
+    jobs:
+      - job: delete_namespaces
+        steps:
+        - task: AzureCLI@1
+          inputs:
+            azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+            scriptLocation: "inlineScript"
+            scriptType: "bash"
+            addSpnToEnvironment: true
+            inlineScript: |
+              echo "scale deployment and test network policies"
+              az aks get-credentials --resource-group cilium-scale --name cilium-scale
+              kubectl delete ns scale-test
+              kubectl delete ns connectivity-test
+              kubectl get ns
+          name: "DeleteTestNamespaces"
+          displayName: "Delete Test Namespaces"
                 
