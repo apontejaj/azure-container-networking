@@ -2,7 +2,7 @@ pr: none
 trigger: none
 
 stages:
-  - stage: Connect to Scale Cluster
+  - stage: connect_to_scale_cluster
     displayName: "Connect to existing cluster cilium-scale"
     jobs:
       - job: connect_to_scale_test_cluster
@@ -20,7 +20,7 @@ stages:
                 kubectl get pod -A
             name: "ConnectToCluster"
             displayName: "Connect to cilium-scale"
-  - stage: Update Cilium Version
+  - stage: update_cilium_version
     displayName: "Update Cilium Version and Restart Nodes"
     jobs:
       - job: update_version
@@ -48,7 +48,7 @@ stages:
                 kubectl get pod -A
             name: "UpdateCiliumVersion"
             displayName: "Update Cilium Version"
-  - stage: Scale Up Cluster
+  - stage: scale_up_cluster
     displayName: "Scale Up Cluster"
     jobs:
       - job: scale_up
@@ -56,7 +56,7 @@ stages:
           - template: ../scale-test-templates/scale-up-cluster.yaml
             parameters:
               clusterName: "cilium-scale"
-  - stage: Label Nodes
+  - stage: label_nodes
     displayName: "Label Nodes for Testing"
     jobs:
       - job: label_nodes
@@ -75,7 +75,7 @@ stages:
                 ./label-nodes.sh
             name: "LabelNodes"
             displayName: "Label all Nodes"
-  - stage: Scale Cluster Deployments
+  - stage: scale_cluster_deployments
     displayName: "Scale deploments for Network Policies Check"
     jobs:
       - job: scale_deployments
@@ -94,7 +94,7 @@ stages:
                 ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=200 --num-real-deployments=1 --num-real-replicas=80 --num-network-policies=2000 --num-unapplied-network-policies=2000 --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=1 --delete-labels
             name: "scaling"
             displayName: "Run scale script"
-  - stage: Test Network Policy Connectivity
+  - stage: test_network_policies_connectivity
     displayName: "Test Network Policies"
     jobs:
       - job: network_policies
@@ -113,7 +113,7 @@ stages:
                 ./test-connectivity.sh --num-scale-pods-to-verify=40 --max-wait-for-initial-connectivity=600 --max-wait-after-adding-netpol=120
             name: "TestNetworkPolicies"
             displayName: "Network Policies Scale Test"
-  - stage: Test LB Services
+  - stage: test_lb_services
     displayName: "Test Load Balancing Service"
     jobs:
       - job: deploy_service
@@ -131,7 +131,7 @@ stages:
                 ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=200 --num-real-deployments=1 --num-real-replicas=60 --num-network-policies=10 --num-unapplied-network-policies=10 --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=1 --delete-labels
             name: "TestLBServices"
             displayName: "LB Services Scale Test"
-  - stage: Scale Down Cluster
+  - stage: scale_down_cluster
     displayName: "Scale Down Cluster"
     jobs:
       - job: scale_down
@@ -139,7 +139,7 @@ stages:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
               clusterName: "cilium-scale"
-  - stage: Delete Test Namespaces
+  - stage: delete_test_namespaces
     displayName: "Delete Test Namespaces"
     jobs:
       - job: delete_namespaces
