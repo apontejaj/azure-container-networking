@@ -18,7 +18,7 @@ steps:
     name: "ScaleUp300"
     displayName: "Scale up to 300 Nodes"
   
-   - task: AzureCLI@1
+  - task: AzureCLI@1
     inputs:
       azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
       scriptLocation: "inlineScript"
@@ -33,7 +33,7 @@ steps:
     name: "ScaleUp600"
     displayName: "Scale up to 600 Nodes"
 
-   - task: AzureCLI@1
+  - task: AzureCLI@1
     inputs:
       azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
       scriptLocation: "inlineScript"
