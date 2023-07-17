@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	ipv6PrefixPolicy = []string{"powershell", "netsh interface ipv6 add prefixpolicy fd00::/8 3 1"}
+	ipv6PrefixPolicy = []string{"powershell", "-c", "netsh interface ipv6 add prefixpolicy fd00::/8 3 1"}
 )
 
 func podTest(ctx context.Context, clientset *kubernetes.Clientset, srcPod *apiv1.Pod, cmd []string, rc *restclient.Config, passFunc func(string) error) error {
@@ -205,6 +205,7 @@ func WindowsPodToInternet(ctx context.Context, clientset *kubernetes.Clientset, 
 	//              RemoteAddress  : 2620:1ec:c11::200
 	if len(secondPod.Status.PodIPs) > 1 {
 		for _, ip := range secondPod.Status.PodIPs {
+			logrus.Infof("pods.Items[0].Name is %s", pods.Items[0].Name)
 			if net.ParseIP(ip.IP).To16() != nil {
 				_, err = k8sutils.ExecCmdOnPod(ctx, clientset, podNamespace, pods.Items[0].Name, ipv6PrefixPolicy, rc)
 				if err != nil {
