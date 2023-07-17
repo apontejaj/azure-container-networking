@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	ipv6PrefixPolicy = []string{"powershell", "-c", "netsh interface ipv6 add prefixpolicy fd00::/8 3 1"}
+	ipv6PrefixPolicy = []string{"powershell", "netsh interface ipv6 add prefixpolicy fd00::/8 3 1"}
 )
 
 func podTest(ctx context.Context, clientset *kubernetes.Clientset, srcPod *apiv1.Pod, cmd []string, rc *restclient.Config, passFunc func(string) error) error {
