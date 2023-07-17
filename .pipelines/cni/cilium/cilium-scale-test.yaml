@@ -2,24 +2,6 @@ pr: none
 trigger: none
 
 stages:
-  - stage: connect_to_scale_cluster
-    displayName: "Connect to existing cluster cilium-scale"
-    jobs:
-      - job: connect_to_scale_test_cluster
-        steps:
-          - task: AzureCLI@1
-            inputs:
-              azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
-              scriptLocation: "inlineScript"
-              scriptType: "bash"
-              addSpnToEnvironment: true
-              inlineScript: |
-                az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
-                echo "verify there are currently nodes"
-                kubectl get node
-                kubectl get pod -A
-            name: "ConnectToCluster"
-            displayName: "Connect to cilium-scale"
   - stage: update_cilium_version
     displayName: "Update Cilium Version and Restart Nodes"
     jobs:
@@ -139,7 +121,7 @@ stages:
                 ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=200 --num-real-deployments=1 --num-real-replicas=60 --num-network-policies=10 --num-unapplied-network-policies=10 --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=1 --delete-labels
             name: "TestLBServices"
             displayName: "LB Services Scale Test"
-  - stage: scale_down_cluster
+  - stage: scale_down_cluster_1
     displayName: "Scale Down Cluster"
     jobs:
       - job: scale_down
@@ -147,6 +129,31 @@ stages:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
               clusterName: "cilium-scale"
+              nodeCount1: 900
+              nodeCount2: 800
+              nodCount3: 700
+  - stage: scale_down_cluster_2
+    displayName: "Scale Down Cluster"
+    jobs:
+      - job: scale_down
+        steps:
+          - template: ../scale-test-templates/scale-down-cluster.yaml
+            parameters:
+              clusterName: "cilium-scale"
+              nodeCount1: 600
+              nodeCount2: 500
+              nodCount3: 400
+  - stage: scale_down_cluster_3
+    displayName: "Scale Down Cluster"
+    jobs:
+      - job: scale_down
+        steps:
+          - template: ../scale-test-templates/scale-down-cluster.yaml
+            parameters:
+              clusterName: "cilium-scale"
+              nodeCount1: 300
+              nodeCount2: 200
+              nodCount3: 5
   - stage: delete_test_namespaces
     displayName: "Delete Test Namespaces"
     jobs:
