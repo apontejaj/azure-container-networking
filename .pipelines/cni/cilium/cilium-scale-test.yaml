@@ -122,7 +122,7 @@ stages:
             name: "TestLBServices"
             displayName: "LB Services Scale Test"
   - stage: scale_down_cluster_1
-    displayName: "Scale Down Cluster"
+    displayName: "Scale Down Cluster 1000-700"
     jobs:
       - job: scale_down
         steps:
@@ -131,9 +131,9 @@ stages:
               clusterName: "cilium-scale"
               nodeCount1: 900
               nodeCount2: 800
-              nodCount3: 700
+              nodeCount3: 700
   - stage: scale_down_cluster_2
-    displayName: "Scale Down Cluster"
+    displayName: "Scale Down Cluster 700-400"
     jobs:
       - job: scale_down
         steps:
@@ -142,9 +142,9 @@ stages:
               clusterName: "cilium-scale"
               nodeCount1: 600
               nodeCount2: 500
-              nodCount3: 400
+              nodeCount3: 400
   - stage: scale_down_cluster_3
-    displayName: "Scale Down Cluster"
+    displayName: "Scale Down Cluster 400-5"
     jobs:
       - job: scale_down
         steps:
@@ -153,7 +153,7 @@ stages:
               clusterName: "cilium-scale"
               nodeCount1: 300
               nodeCount2: 200
-              nodCount3: 5
+              nodeCount3: 5
   - stage: delete_test_namespaces
     displayName: "Delete Test Namespaces"
     jobs:

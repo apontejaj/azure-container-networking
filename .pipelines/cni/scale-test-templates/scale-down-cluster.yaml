@@ -2,7 +2,7 @@ parameters:
   clusterName: ""
   nodeCount1: ""
   nodeCount2: ""
-  nodCount3: ""
+  nodeCount3: ""
 
 steps:
   - task: AzureCLI@1

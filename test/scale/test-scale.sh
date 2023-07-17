@@ -444,7 +444,7 @@ fi
 if [[ $numKwokPods -gt 0 ]]; then
     $KUBECTL $KUBECONFIG_ARG apply -f generated/deployments/kwok/
 fi
-if [[ $numServices -gt 0 ]]; then
+if [[ $numRealServices -gt 0 ]]; then
     $KUBECTL $KUBECONFIG_ARG apply -f generated/services/real/
 fi
 set +x
