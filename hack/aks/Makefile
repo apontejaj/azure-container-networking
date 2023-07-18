@@ -241,24 +241,22 @@ dualstack-overlay-byocni-up: rg-up overlay-net-up ## Brings up an dualstack Over
 		--yes
 	@$(MAKE) set-kubeconf
 
-overlay-byocni-up: rg-up overlay-net-up ## Brings up an Overlay BYO CNI cluster
-	$(AZCLI) aks create -n $(CLUSTER) -g $(GROUP) -l $(REGION) \
-		--node-count $(NODE_COUNT) \
-		--node-vm-size $(VM_SIZE) \
-		--load-balancer-sku basic \
-		--network-plugin none \
-		--network-plugin-mode overlay \
-		--pod-cidr 192.168.0.0/16 \
-		--vnet-subnet-id /subscriptions/$(SUB)/resourceGroups/$(GROUP)/providers/Microsoft.Network/virtualNetworks/$(VNET)/subnets/nodenet \
-		--no-ssh-key \
-		--yes
-	@$(MAKE) set-kubeconf
-
 dualstack-windows-up: ## Brings up windows nodes on dualstack overlay cluster
 	$(AZCLI) aks nodepool add -g $(GROUP) -n npwin \
 	    --cluster-name  $(CLUSTER) \
 		--node-count $(NODE_COUNT) \
 		--node-vm-size $(VM_SIZE) \
+		--os-type Windows \
+		--os-sku Windows2022 \
+		--subscription $(SUB)
+	@$(MAKE) set-kubeconf 
+
+dualstack-windows--byocni-up: ## Brings up windows nodes on dualstack overlay cluster without CNS and CNI installed
+	$(AZCLI) aks nodepool add -g $(GROUP) -n npwin \
+	    --cluster-name  $(CLUSTER) \
+		--node-count $(NODE_COUNT) \
+		--node-vm-size $(VM_SIZE) \
+		--network-plugin none \
 		--os-type Windows \
 		--os-sku Windows2022 \
 		--subscription $(SUB)
