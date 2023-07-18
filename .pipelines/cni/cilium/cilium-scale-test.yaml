@@ -147,70 +147,70 @@ stages:
   - stage: scale_down_cluster_1
     displayName: "Scale Down Cluster 1000-800"
     jobs:
-      - job: scale_down
+      - job: scale_down900
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
               clusterName: "cilium-scale"
               nodeCount: 900
         timeoutInMinutes: 120
-      - job: scale_down
+      - job: scale_down800
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
               clusterName: "cilium-scale"
               nodeCount: 800
         timeoutInMinutes: 120
-      - job: scale_down
+      - job: scale_down700
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
               clusterName: "cilium-scale"
               nodeCount: 700
         timeoutInMinutes: 120
-      - job: scale_down
+      - job: scale_down600
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
               clusterName: "cilium-scale"
               nodeCount: 600
         timeoutInMinutes: 120
-      - job: scale_down
+      - job: scale_down500
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
               clusterName: "cilium-scale"
               nodeCount: 500
         timeoutInMinutes: 120
-      - job: scale_down
+      - job: scale_down400
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
               clusterName: "cilium-scale"
               nodeCount: 400
         timeoutInMinutes: 120
-      - job: scale_down
+      - job: scale_down300
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
               clusterName: "cilium-scale"
               nodeCount: 300
         timeoutInMinutes: 120
-      - job: scale_down
+      - job: scale_down200
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
               clusterName: "cilium-scale"
               nodeCount: 200
         timeoutInMinutes: 120
-      - job: scale_down
+      - job: scale_down100
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
               clusterName: "cilium-scale"
               nodeCount: 100
         timeoutInMinutes: 120
-      - job: scale_down
+      - job: scale_down5
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
