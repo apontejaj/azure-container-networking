@@ -103,8 +103,8 @@ stages:
                 ./test-connectivity.sh --num-scale-pods-to-verify=40 --max-wait-for-initial-connectivity=600 --max-wait-after-adding-netpol=120
             name: "TestNetworkPolicies"
             displayName: "Network Policies Scale Test"
-  - stage: test_lb_services
-    displayName: "Test Load Balancing Service"
+  - stage: scale_for_load_tests
+    displayName: "Scale for load tests"
     jobs:
       - job: deploy_service
         steps:
@@ -118,11 +118,34 @@ stages:
                 az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
                 cd test/scale
                 chmod +x test-scale.sh
-                ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=200 --num-real-deployments=1 --num-real-replicas=60 --num-network-policies=10 --num-unapplied-network-policies=10 --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=1 --delete-labels
+                ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=200 --num-real-deployments=0 --num-real-replicas=60 --num-network-policies=10 --num-unapplied-network-policies=10 --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=1 --delete-labels --num-real-nginx-deployments=1
             name: "TestLBServices"
-            displayName: "LB Services Scale Test"
+            displayName: "Scale for load tests"
+  - stage: benchmark_testing
+    displayName: "Run apachebench test"
+    jobs:
+      - job: ap_test
+        steps:
+          - task: AzureCLI@1
+            inputs:
+              azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+              scriptLocation: "inlineScript"
+              scriptType: "bash"
+              addSpnToEnvironment: true
+              inlineScript: |
+                echo "Deploy apachebench pod and run test"
+                kubectl apply -f ../scale-test-templates/apache.yaml
+                kubectl get pod -owide
+                AB_POD=$(kubectl get pod | grep apachebench | grep Running | awk '{print $1}' || true)
+                kubectl exec -it $AB_POD -- ab -n 100000 -c 3 -r http://real-svc-00001.scale-test/
+                echo "k top node"
+                kubectl top node
+                echo "k top pod"
+                kubectl top pod
+            name: "TestLBServices"
+            displayName: "Scale for load tests"
   - stage: scale_down_cluster_1
-    displayName: "Scale Down Cluster 1000-700"
+    displayName: "Scale Down Cluster 1000-800"
     jobs:
       - job: scale_down
         steps:
@@ -131,20 +154,28 @@ stages:
               clusterName: "cilium-scale"
               nodeCount1: 900
               nodeCount2: 800
-              nodeCount3: 700
   - stage: scale_down_cluster_2
-    displayName: "Scale Down Cluster 700-400"
+    displayName: "Scale Down Cluster 800-600"
     jobs:
       - job: scale_down
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
               clusterName: "cilium-scale"
-              nodeCount1: 600
-              nodeCount2: 500
-              nodeCount3: 400
+              nodeCount1: 700
+              nodeCount2: 600
   - stage: scale_down_cluster_3
-    displayName: "Scale Down Cluster 400-5"
+    displayName: "Scale Down Cluster 600-400"
+    jobs:
+      - job: scale_down
+        steps:
+          - template: ../scale-test-templates/scale-down-cluster.yaml
+            parameters:
+              clusterName: "cilium-scale"
+              nodeCount1: 500
+              nodeCount2: 400
+  - stage: scale_down_cluster_4
+    displayName: "Scale Down Cluster 400-200"
     jobs:
       - job: scale_down
         steps:
@@ -153,7 +184,16 @@ stages:
               clusterName: "cilium-scale"
               nodeCount1: 300
               nodeCount2: 200
-              nodeCount3: 5
+  - stage: scale_down_cluster_5
+    displayName: "Scale Down Cluster 200-5"
+    jobs:
+      - job: scale_down
+        steps:
+          - template: ../scale-test-templates/scale-down-cluster.yaml
+            parameters:
+              clusterName: "cilium-scale"
+              nodeCount1: 100
+              nodeCount2: 5
   - stage: delete_test_namespaces
     displayName: "Delete Test Namespaces"
     jobs:
