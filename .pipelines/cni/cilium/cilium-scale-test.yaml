@@ -31,14 +31,19 @@ stages:
             name: "UpdateCiliumVersion"
             displayName: "Update Cilium Version"
   - stage: scale_up_cluster
-    timeoutInMinutes: 360
     displayName: "Scale Up Cluster"
     jobs:
-      - job: scale_down
+      - job: scale_up
         steps:
-          - template: ../scale-test-templates/scale-up-cluster.yaml
-            parameters:
-              clusterName: "cilium-scale"
+          - task: AzureCLI@1
+            inputs:
+              azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+              scriptLocation: "inlineScript"
+              scriptType: "bash"
+              addSpnToEnvironment: true
+              inlineScript: |
+                az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
+                az aks nodepool scale --name nodepool1 --cluster-name ${CLUSTER} --resource-group ${CLUSTER} --node-count 1000
             name: "ScaleUpCluster"
             displayName: "Scale up cluster"
   - stage: label_nodes
@@ -139,8 +144,7 @@ stages:
                 kubectl top pod
             name: "TestLBServices"
             displayName: "Scale for load tests"
-  - stage: scale_down_cluster
-    timeoutInMinutes: 360
+  - stage: scale_down_cluster_1
     displayName: "Scale Down Cluster 1000-800"
     jobs:
       - job: scale_down
@@ -148,48 +152,71 @@ stages:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
               clusterName: "cilium-scale"
-              # nodeCount1: 900
-              # nodeCount2: 800
-  # - stage: scale_down_cluster_2
-  #   displayName: "Scale Down Cluster 800-600"
-  #   jobs:
-  #     - job: scale_down
-  #       steps:
-  #         - template: ../scale-test-templates/scale-down-cluster.yaml
-  #           parameters:
-  #             clusterName: "cilium-scale"
-  #             nodeCount1: 700
-  #             nodeCount2: 600
-  # - stage: scale_down_cluster_3
-  #   displayName: "Scale Down Cluster 600-400"
-  #   jobs:
-  #     - job: scale_down
-  #       steps:
-  #         - template: ../scale-test-templates/scale-down-cluster.yaml
-  #           parameters:
-  #             clusterName: "cilium-scale"
-  #             nodeCount1: 500
-  #             nodeCount2: 400
-  # - stage: scale_down_cluster_4
-  #   displayName: "Scale Down Cluster 400-200"
-  #   jobs:
-  #     - job: scale_down
-  #       steps:
-  #         - template: ../scale-test-templates/scale-down-cluster.yaml
-  #           parameters:
-  #             clusterName: "cilium-scale"
-  #             nodeCount1: 300
-  #             nodeCount2: 200
-  # - stage: scale_down_cluster_5
-  #   displayName: "Scale Down Cluster 200-5"
-  #   jobs:
-  #     - job: scale_down
-  #       steps:
-  #         - template: ../scale-test-templates/scale-down-cluster.yaml
-  #           parameters:
-  #             clusterName: "cilium-scale"
-  #             nodeCount1: 100
-  #             nodeCount2: 5
+              nodeCount: 900
+        timeoutInMinutes: 120
+      - job: scale_down
+        steps:
+          - template: ../scale-test-templates/scale-down-cluster.yaml
+            parameters:
+              clusterName: "cilium-scale"
+              nodeCount: 800
+        timeoutInMinutes: 120
+      - job: scale_down
+        steps:
+          - template: ../scale-test-templates/scale-down-cluster.yaml
+            parameters:
+              clusterName: "cilium-scale"
+              nodeCount: 700
+        timeoutInMinutes: 120
+      - job: scale_down
+        steps:
+          - template: ../scale-test-templates/scale-down-cluster.yaml
+            parameters:
+              clusterName: "cilium-scale"
+              nodeCount: 600
+        timeoutInMinutes: 120
+      - job: scale_down
+        steps:
+          - template: ../scale-test-templates/scale-down-cluster.yaml
+            parameters:
+              clusterName: "cilium-scale"
+              nodeCount: 500
+        timeoutInMinutes: 120
+      - job: scale_down
+        steps:
+          - template: ../scale-test-templates/scale-down-cluster.yaml
+            parameters:
+              clusterName: "cilium-scale"
+              nodeCount: 400
+        timeoutInMinutes: 120
+      - job: scale_down
+        steps:
+          - template: ../scale-test-templates/scale-down-cluster.yaml
+            parameters:
+              clusterName: "cilium-scale"
+              nodeCount: 300
+        timeoutInMinutes: 120
+      - job: scale_down
+        steps:
+          - template: ../scale-test-templates/scale-down-cluster.yaml
+            parameters:
+              clusterName: "cilium-scale"
+              nodeCount: 200
+        timeoutInMinutes: 120
+      - job: scale_down
+        steps:
+          - template: ../scale-test-templates/scale-down-cluster.yaml
+            parameters:
+              clusterName: "cilium-scale"
+              nodeCount: 100
+        timeoutInMinutes: 120
+      - job: scale_down
+        steps:
+          - template: ../scale-test-templates/scale-down-cluster.yaml
+            parameters:
+              clusterName: "cilium-scale"
+              nodeCount: 5
+        timeoutInMinutes: 120
   - stage: delete_test_namespaces
     displayName: "Delete Test Namespaces"
     jobs:
