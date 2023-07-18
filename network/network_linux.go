@@ -361,7 +361,7 @@ func applyDNSConfig(extIf *externalInterface, ifName string) error {
 			domainResolutionCmd := fmt.Sprintf("resolvectl dns %s%s", ifName, setDnsList)
 			if _, err = p.ExecuteCommand("which resolvectl"); err != nil {
 				// example command on Ubuntu18: systemd-resolve --interface=azure0 --set-dns=168.63.129.16
-				domainResolutionCmd = fmt.Sprintf("systemd-resolve --interface=%s%s", ifName, "--set-dns="+strings.TrimSpace(setDnsList))
+				domainResolutionCmd = fmt.Sprintf("systemd-resolve --interface=%s --set-dns=%s", ifName, strings.TrimSpace(setDnsList))
 			}
 
 			_, err = p.ExecuteCommand(domainResolutionCmd)
