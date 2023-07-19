@@ -49,16 +49,11 @@ steps:
       kubectl cluster-info
       kubectl get node
       kubectl get po -owide -A
-    name: "installKubectl"
-    displayName: "Install kubectl on AKS dualstack overlay cluster"
-
-  - script: |
-      echo "Start DualStack overlay E2E Tests"
       sudo -E env "PATH=$PATH" make test-integration CNS_VERSION=$(make cns-version) CNI_DROPGZ_VERSION=$(make cni-dropgz-version) INSTALL_CNS=true INSTALL_AZURE_VNET=true TEST_DROPGZ=${{ parameters.testDropgz }}
       kubectl get po -owide -A
     retryCountOnTaskFailure: 3
-    name: "dualStackOverlayTest"
-    displayName: "Run DualStack overlay E2E"
+    name: "installKubectl"
+    displayName: "Install kubectl on AKS dualstack overlay cluster"
 
   - script: |
       cd test/integration/load
