@@ -133,6 +133,7 @@ stages:
               scriptType: "bash"
               addSpnToEnvironment: true
               inlineScript: |
+                az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
                 echo "Deploy apachebench pod and run test"
                 kubectl apply -f ../scale-test-templates/apache.yaml
                 kubectl get pod -owide
@@ -143,9 +144,9 @@ stages:
                 echo "k top pod"
                 kubectl top pod
             name: "TestLBServices"
-            displayName: "Scale for load tests"
+            displayName: "Apachebench testing"
   - stage: scale_down_cluster_1
-    displayName: "Scale Down Cluster 1000-800"
+    displayName: "Scale Down Cluster"
     jobs:
       - job: scale_down900
         steps:
