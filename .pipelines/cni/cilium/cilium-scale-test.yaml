@@ -33,7 +33,7 @@ stages:
   - stage: scale_up_cluster
     displayName: "Scale Up Cluster"
     jobs:
-      - job: scale_up100
+      - job: scale_up1000
         steps:
           - task: AzureCLI@1
             inputs:
@@ -43,8 +43,7 @@ stages:
               addSpnToEnvironment: true
               inlineScript: |
                 set -ex
-                make -C ./hack/aks azcfg AZCLI=az REGION=$(LOCATION)
-                make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}
+                az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
                 echo "Scaling to 1000 nodes"
                 vmss_name=$(az vmss list -g MC_${CLUSTER}_${CLUSTER}_$(LOCATION) --query "[].name" -o tsv)
                 make -C ./hack/aks scale-vmss AZCLI=az CLUSTER=${CLUSTER} REGION=$(LOCATION) VMSS_NAME=$vmss_name NODE_COUNT=1000
