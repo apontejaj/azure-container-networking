@@ -18,12 +18,20 @@ rules:
       - ""
     resources:
       - pods
-      - nodes
       - namespaces
     verbs:
       - get
       - list
       - watch
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - get
+      - list
+      - watch
+      - update
   - apiGroups:
       - networking.k8s.io
     resources:
