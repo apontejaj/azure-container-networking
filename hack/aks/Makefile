@@ -251,7 +251,7 @@ dualstack-windows-up: ## Brings up windows nodes on dualstack overlay cluster
 		--subscription $(SUB)
 	@$(MAKE) set-kubeconf 
 
-dualstack-windows--byocni-up: ## Brings up windows nodes on dualstack overlay cluster without CNS and CNI installed
+dualstack-windows-byocni-up: ## Brings up windows nodes on dualstack overlay cluster without CNS and CNI installed
 	$(AZCLI) aks nodepool add -g $(GROUP) -n npwin \
 	    --cluster-name  $(CLUSTER) \
 		--node-count $(NODE_COUNT) \

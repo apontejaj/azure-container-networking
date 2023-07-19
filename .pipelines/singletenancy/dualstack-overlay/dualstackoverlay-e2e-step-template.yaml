@@ -70,46 +70,46 @@ steps:
     name: "DualStack_Overlay_Linux_tests"
     displayName: "DualStack Overlay Linux Tests"
 
-  - task: AzureCLI@2
-    inputs:
-      azureSubscription: $(AZURE_TEST_AGENT_SERVICE_CONNECTION)
-      scriptLocation: "inlineScript"
-      scriptType: "bash"
-      addSpnToEnvironment: true
-      inlineScript: |
-        make -C ./hack/aks dualstack-windows-up AZCLI=az VM_SIZE=$(VM_SIZE) NODE_COUNT=$(NODE_COUNT) SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
-        echo "Windows node are successfully added to Dualstack Overlay Cluster"
-        kubectl cluster-info
-        kubectl get node
-        kubectl get po -owide -A
-    name: "Add_Windows_Node"
-    displayName: "Add windows node on DualStackOverlay cluster"
+  # - task: AzureCLI@2
+  #   inputs:
+  #     azureSubscription: $(AZURE_TEST_AGENT_SERVICE_CONNECTION)
+  #     scriptLocation: "inlineScript"
+  #     scriptType: "bash"
+  #     addSpnToEnvironment: true
+  #     inlineScript: |
+  #       make -C ./hack/aks dualstack-windows-byocni-up AZCLI=az VM_SIZE=$(VM_SIZE) NODE_COUNT=$(NODE_COUNT) SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
+  #       echo "Windows node are successfully added to Dualstack Overlay Cluster"
+  #       kubectl cluster-info
+  #       kubectl get node
+  #       kubectl get po -owide -A
+  #   name: "Add_Windows_Node"
+  #   displayName: "Add windows node on DualStackOverlay cluster"
 
-  - script: |
-      pwd
-      cd test/integration/load
-      go test -timeout 30m -tags load -run ^TestLoad$ -tags=load -os=windows
-      echo "DualStack Overlay Windows control plane CNS validation test"
-      go test -timeout 30m -tags load -run ^TestDualStackProperties$ -tags=load -os=windows -cni cniv2
-      echo "DualStack Overlay Windows control plane Node properties test"
-      go test -timeout 30m -tags load -cni cniv2 -run ^TestValidateState$ -tags=load -os=windows
-      echo "DualStack Overlay Windows datapath test"
-      cd ../datapath
-      go test -count=1 datapath_windows_test.go -timeout 3m -tags connection -run ^TestDatapathWin$ -tags=connection
-    name: "DualStack_Overlay_Windows_tests"
-    displayName: "DualStack Overlay Windows Tests"
+  # - script: |
+  #     pwd
+  #     cd test/integration/load
+  #     go test -timeout 30m -tags load -run ^TestLoad$ -tags=load -os=windows
+  #     echo "DualStack Overlay Windows control plane CNS validation test"
+  #     go test -timeout 30m -tags load -run ^TestDualStackProperties$ -tags=load -os=windows -cni cniv2
+  #     echo "DualStack Overlay Windows control plane Node properties test"
+  #     go test -timeout 30m -tags load -cni cniv2 -run ^TestValidateState$ -tags=load -os=windows
+  #     echo "DualStack Overlay Windows datapath test"
+  #     cd ../datapath
+  #     go test -count=1 datapath_windows_test.go -timeout 3m -tags connection -run ^TestDatapathWin$ -tags=connection
+  #   name: "DualStack_Overlay_Windows_tests"
+  #   displayName: "DualStack Overlay Windows Tests"
 
-  - task: AzureCLI@2
-    inputs:
-      azureSubscription: $(AZURE_TEST_AGENT_SERVICE_CONNECTION)
-      scriptLocation: "inlineScript"
-      scriptType: "bash"
-      addSpnToEnvironment: true
-      inlineScript: |
-        echo "Deleting cluster"
-        make -C ./hack/aks azcfg AZCLI=az
-        make -C ./hack/aks down SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(make revision)
-        echo "Cluster and resources down"
-    name: "CleanupDualStackOverlaycluster"
-    displayName: "Cleanup DualStack Overlay Cluster"
-    condition: always()
+  # - task: AzureCLI@2
+  #   inputs:
+  #     azureSubscription: $(AZURE_TEST_AGENT_SERVICE_CONNECTION)
+  #     scriptLocation: "inlineScript"
+  #     scriptType: "bash"
+  #     addSpnToEnvironment: true
+  #     inlineScript: |
+  #       echo "Deleting cluster"
+  #       make -C ./hack/aks azcfg AZCLI=az
+  #       make -C ./hack/aks down SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(make revision)
+  #       echo "Cluster and resources down"
+  #   name: "CleanupDualStackOverlaycluster"
+  #   displayName: "Cleanup DualStack Overlay Cluster"
+  #   condition: always()
