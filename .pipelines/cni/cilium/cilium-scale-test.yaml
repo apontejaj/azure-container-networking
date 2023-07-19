@@ -156,6 +156,7 @@ stages:
               nodeCount: 900
         timeoutInMinutes: 120
       - job: scale_down800
+        dependsOn: scale_down900
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
@@ -163,6 +164,7 @@ stages:
               nodeCount: 800
         timeoutInMinutes: 120
       - job: scale_down700
+        dependsOn: scale_down800
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
@@ -170,6 +172,7 @@ stages:
               nodeCount: 700
         timeoutInMinutes: 120
       - job: scale_down600
+        dependsOn: scale_down700
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
@@ -177,6 +180,7 @@ stages:
               nodeCount: 600
         timeoutInMinutes: 120
       - job: scale_down500
+        dependsOn: scale_down600
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
@@ -184,6 +188,7 @@ stages:
               nodeCount: 500
         timeoutInMinutes: 120
       - job: scale_down400
+        dependsOn: scale_down500
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
@@ -191,6 +196,7 @@ stages:
               nodeCount: 400
         timeoutInMinutes: 120
       - job: scale_down300
+        dependsOn: scale_down400
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
@@ -198,6 +204,7 @@ stages:
               nodeCount: 300
         timeoutInMinutes: 120
       - job: scale_down200
+        dependsOn: scale_down300
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
@@ -205,6 +212,7 @@ stages:
               nodeCount: 200
         timeoutInMinutes: 120
       - job: scale_down100
+        dependsOn: scale_down200
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
@@ -212,6 +220,7 @@ stages:
               nodeCount: 100
         timeoutInMinutes: 120
       - job: scale_down5
+        dependsOn: scale_down100
         steps:
           - template: ../scale-test-templates/scale-down-cluster.yaml
             parameters:
