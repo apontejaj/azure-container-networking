@@ -253,6 +253,8 @@ func labelNode(clientset *kubernetes.Clientset, nodeName, labelValue string) err
 		return nil
 	}
 
+	k8sNode.Labels[util.NPMNodeLabelKey] = labelValue
+
 	_, err = clientset.CoreV1().Nodes().Update(context.TODO(), k8sNode, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update k8s node. nodeName: %s. err: %w", nodeName, err)
