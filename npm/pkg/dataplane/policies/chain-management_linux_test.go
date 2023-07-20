@@ -40,6 +40,75 @@ Chain AZURE-NPM-ACCEPT (1 references)
 `
 )
 
+var cleanupOnlyCfg = &PolicyManagerCfg{
+	CleanupOnly: true,
+	PolicyMode:  IPSetPolicyMode,
+}
+
+func TestCleanupSuccess(t *testing.T) {
+	metrics.ReinitializeAll()
+	calls := []testutils.TestCmd{
+		{Cmd: []string{"iptables", "-w", "60", "-D", "FORWARD", "-j", "AZURE-NPM", "-m", "conntrack", "--ctstate", "NEW"}},
+		fakeIPTablesRestoreCommand,
+		{Cmd: []string{"iptables", "-w", "60", "-X", "AZURE-NPM"}},
+	}
+	ioshim := common.NewMockIOShim(calls)
+	defer ioshim.VerifyCalls(t, calls)
+	pMgr := NewPolicyManager(ioshim, cleanupOnlyCfg)
+
+	require.NoError(t, pMgr.cleanup(map[string]struct{}{
+		"AZURE-NPM": {},
+	}))
+}
+
+func TestCleanupFailure(t *testing.T) {
+	metrics.ReinitializeAll()
+	calls := []testutils.TestCmd{
+		{Cmd: []string{"iptables", "-w", "60", "-D", "FORWARD", "-j", "AZURE-NPM", "-m", "conntrack", "--ctstate", "NEW"}},
+		fakeIPTablesRestoreFailureCommand,
+		fakeIPTablesRestoreFailureCommand,
+	}
+	ioshim := common.NewMockIOShim(calls)
+	defer ioshim.VerifyCalls(t, calls)
+	pMgr := NewPolicyManager(ioshim, cleanupOnlyCfg)
+
+	require.Error(t, pMgr.cleanup(map[string]struct{}{
+		"AZURE-NPM": {},
+	}))
+}
+
+func TestCleanupOKFailure(t *testing.T) {
+	metrics.ReinitializeAll()
+	calls := []testutils.TestCmd{
+		{Cmd: []string{"iptables", "-w", "60", "-D", "FORWARD", "-j", "AZURE-NPM", "-m", "conntrack", "--ctstate", "NEW"}, ExitCode: 9},
+		fakeIPTablesRestoreCommand,
+		{Cmd: []string{"iptables", "-w", "60", "-X", "AZURE-NPM"}, ExitCode: 9},
+	}
+	ioshim := common.NewMockIOShim(calls)
+	defer ioshim.VerifyCalls(t, calls)
+	pMgr := NewPolicyManager(ioshim, cleanupOnlyCfg)
+
+	require.NoError(t, pMgr.cleanup(map[string]struct{}{
+		"AZURE-NPM": {},
+	}))
+}
+
+func TestCleanupBadFailure(t *testing.T) {
+	metrics.ReinitializeAll()
+	calls := []testutils.TestCmd{
+		{Cmd: []string{"iptables", "-w", "60", "-D", "FORWARD", "-j", "AZURE-NPM", "-m", "conntrack", "--ctstate", "NEW"}, ExitCode: 1},
+		fakeIPTablesRestoreCommand,
+		{Cmd: []string{"iptables", "-w", "60", "-X", "AZURE-NPM-INGRESS-123456"}, ExitCode: 9},
+	}
+	ioshim := common.NewMockIOShim(calls)
+	defer ioshim.VerifyCalls(t, calls)
+	pMgr := NewPolicyManager(ioshim, cleanupOnlyCfg)
+
+	require.Error(t, pMgr.cleanup(map[string]struct{}{
+		"AZURE-NPM-INGRESS-123456": {},
+	}))
+}
+
 // similar to TestBootup in policymanager.go except an error occurs
 func TestBootupFailure(t *testing.T) {
 	metrics.ReinitializeAll()
