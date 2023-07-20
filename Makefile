@@ -762,6 +762,11 @@ test-azure-ipam: ## run the unit test for azure-ipam
 kind:
 	kind create cluster --config ./test/kind/kind.yaml
 
+# install azure Linux CNS and CNI dropgz images
+install-azure-images:
+	CNI_DROPGZ_VERSION=$(CNI_DROPGZ_VERSION) \
+	CNS_VERSION=$(CNS_VERSION) \
+	go test -mod=readonly -buildvcs=false -timeout 1h -coverpkg=./... -race -covermode atomic -coverprofile=coverage.out -tags=integration ./test/integration/setup_test.go
 
 ##@ Utilities
 
