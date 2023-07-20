@@ -238,7 +238,7 @@ stages:
               inlineScript: |
                 az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
                 echo "Deploy apachebench pod and run test"
-                cd ../scale-test-templates
+                cd .pipelines/cni/scale-test-templates
                 kubectl apply -f apache.yaml
                 kubectl get pod -owide
                 AB_POD=$(kubectl get pod | grep apachebench | grep Running | awk '{print $1}' || true)
