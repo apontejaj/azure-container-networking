@@ -26,7 +26,7 @@ const (
 	k8sMajorVerForNewPolicyDef string = "1"
 	k8sMinorVerForNewPolicyDef string = "11"
 
-	NPMNodeLabelKey     string = "kubernetes.azure.com/azure-npm"
+	NPMNodeLabelKey     string = "acn.azure.com/azure-npm"
 	InstalledLabelValue string = "installed"
 	RemovedLabelValue   string = "removed"
 )
