@@ -155,7 +155,7 @@ func (nm *networkManager) newNetworkImplHnsV1(nwInfo *NetworkInfo, extIf *extern
 
 	defer func() {
 		if err != nil {
-			log.Logger.Info("HNSNetworkRequest DELETE id", zap.String("Id", hnsResponse.Id), zap.String("component", "net"))
+			log.Logger.Info("HNSNetworkRequest DELETE", zap.String("Id", hnsResponse.Id), zap.String("component", "net"))
 			hnsResponse, err := Hnsv1.DeleteNetwork(hnsResponse.Id)
 			log.Logger.Error("HNSNetworkRequest DELETE response", zap.Any("hnsResponse", hnsResponse), zap.Any("error:", err), zap.String("component", "net"))
 		}
@@ -259,7 +259,7 @@ func (nm *networkManager) configureHcnNetwork(nwInfo *NetworkInfo, extIf *extern
 
 		netAdapterNamePolicy, err := policy.GetHcnNetAdapterPolicy(adapterName)
 		if err != nil {
-			log.Logger.Error("Failed to serialize network adapter policy due to error", zap.Any("error:", err), zap.String("component", "net"))
+			log.Logger.Error("Failed to serialize network adapter policy due to", zap.Any("error:", err), zap.String("component", "net"))
 			return nil, err
 		}
 
@@ -278,7 +278,7 @@ func (nm *networkManager) configureHcnNetwork(nwInfo *NetworkInfo, extIf *extern
 		vlanID, _ := strconv.ParseUint(opt[VlanIDKey].(string), baseDecimal, bitSize)
 		subnetPolicy, err = policy.SerializeHcnSubnetVlanPolicy((uint32)(vlanID))
 		if err != nil {
-			log.Logger.Error("Failed to serialize subnet vlan policy due to error", zap.Any("error:", err), zap.String("component", "net"))
+			log.Logger.Error("Failed to serialize subnet vlan policy due to", zap.Any("error:", err), zap.String("component", "net"))
 			return nil, err
 		}
 
@@ -323,7 +323,7 @@ func (nm *networkManager) configureHcnNetwork(nwInfo *NetworkInfo, extIf *extern
 func (nm *networkManager) newNetworkImplHnsV2(nwInfo *NetworkInfo, extIf *externalInterface) (*network, error) {
 	hcnNetwork, err := nm.configureHcnNetwork(nwInfo, extIf)
 	if err != nil {
-		log.Logger.Error("Failed to configure hcn network due to error", zap.Any("error:", err), zap.String("component", "net"))
+		log.Logger.Error("Failed to configure hcn network due to", zap.Any("error:", err), zap.String("component", "net"))
 		return nil, err
 	}
 

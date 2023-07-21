@@ -217,7 +217,7 @@ func (client *TransparentVlanEndpointClient) PopulateVM(epInfo *EndpointInfo) er
 			if deleteNSIfNotNilErr != nil {
 				log.Logger.Info("removing vlan veth due to failure...", zap.String("component", "transparent vlan"))
 				if delErr := client.netlink.DeleteLink(client.vlanIfName); delErr != nil {
-					log.Logger.Error("deleting vlan veth failed on addendpoint failure", zap.Any("error:", delErr.Error()))
+					log.Logger.Error("deleting vlan veth failed on addendpoint failure with", zap.Any("error:", delErr.Error()))
 				}
 			}
 		}()
@@ -263,20 +263,20 @@ func (client *TransparentVlanEndpointClient) PopulateVM(epInfo *EndpointInfo) er
 	// Disable RA for veth pair, and delete if any failure
 	if err = client.netUtilsClient.DisableRAForInterface(client.vnetVethName); err != nil {
 		if delErr := client.netlink.DeleteLink(client.vnetVethName); delErr != nil {
-			log.Logger.Error("Deleting vnet veth failed on addendpoint failure", zap.Any("error:", delErr.Error()))
+			log.Logger.Error("Deleting vnet veth failed on addendpoint failure with", zap.Any("error:", delErr.Error()))
 		}
 		return errors.Wrap(err, "failed to disable RA on vnet veth, deleting")
 	}
 	if err = client.netUtilsClient.DisableRAForInterface(client.containerVethName); err != nil {
 		if delErr := client.netlink.DeleteLink(client.containerVethName); delErr != nil {
-			log.Logger.Error("Deleting container veth failed on addendpoint failure", zap.Any("error:", delErr.Error()))
+			log.Logger.Error("Deleting container veth failed on addendpoint failure with", zap.Any("error:", delErr.Error()))
 		}
 		return errors.Wrap(err, "failed to disable RA on container veth, deleting")
 	}
 
 	if err = client.netlink.SetLinkNetNs(client.vnetVethName, uintptr(client.vnetNSFileDescriptor)); err != nil {
 		if delErr := client.netlink.DeleteLink(client.vnetVethName); delErr != nil {
-			log.Logger.Error("Deleting vnet veth failed on addendpoint failure", zap.Any("error:", delErr.Error()))
+			log.Logger.Error("Deleting vnet veth failed on addendpoint failure with", zap.Any("error:", delErr.Error()))
 		}
 		return errors.Wrap(err, "failed to move vnetVethName into vnet ns, deleting")
 	}
@@ -482,7 +482,7 @@ func (client *TransparentVlanEndpointClient) GetVnetRoutes(ipAddresses []net.IPN
 		} else {
 			ipNet = net.IPNet{IP: ipAddr.IP, Mask: net.CIDRMask(ipv6FullMask, ipv6Bits)}
 		}
-		log.Logger.Info("Getting route for this ip", zap.String("ip", ipNet.String()), zap.String("component", "net"))
+		log.Logger.Info("Getting route for this", zap.String("ip", ipNet.String()), zap.String("component", "net"))
 		routeInfo.Dst = ipNet
 		routeInfoList = append(routeInfoList, routeInfo)
 
@@ -527,7 +527,7 @@ func (client *TransparentVlanEndpointClient) addDefaultRoutes(linkToName string,
 // Example: (169.254.2.1) at 12:34:56:78:9a:bc [ether] PERM on <interfaceName>
 func (client *TransparentVlanEndpointClient) AddDefaultArp(interfaceName, destMac string) error {
 	_, virtualGwNet, _ := net.ParseCIDR(virtualGwIPVlanString)
-	log.Logger.Info("Adding static arp for IP address and MAC in namespace",
+	log.Logger.Info("Adding static arp for",
 		zap.String("IP", virtualGwNet.String()), zap.String("MAC", destMac), zap.String("component", "net"))
 	hardwareAddr, err := net.ParseMAC(destMac)
 	if err != nil {
@@ -626,7 +626,7 @@ func ExecuteInNS(nsName string, f func() error) error {
 	defer func() {
 		log.Logger.Info("Exiting ns", zap.String("nsFileName", ns.file.Name()), zap.String("component", "ExecuteInNS"))
 		if err := ns.Exit(); err != nil {
-			log.Logger.Error("Could not exit ns", zap.Any("error:", err)), zap.String("component", "ExecuteInNS"))
+			log.Logger.Error("Could not exit ns", zap.Any("error:", err), zap.String("component", "ExecuteInNS"))
 		}
 		returnedTo, err := GetCurrentThreadNamespace()
 		if err != nil {

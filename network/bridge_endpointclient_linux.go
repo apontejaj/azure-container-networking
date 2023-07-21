@@ -106,7 +106,7 @@ func (client *LinuxBridgeEndpointClient) AddEndpointRules(epInfo *EndpointInfo) 
 			}
 
 			if err := client.netlink.SetOrRemoveLinkAddress(linkInfo, netlink.ADD, netlink.NUD_PERMANENT); err != nil {
-				log.Logger.Info("Failed setting arp in vm", zap.Any("error:", err), zap.String("component", "net"))
+				log.Logger.Info("Failed setting arp in vm with", zap.Any("error:", err), zap.String("component", "net"))
 			}
 		}
 	}
@@ -150,7 +150,7 @@ func (client *LinuxBridgeEndpointClient) DeleteEndpointRules(ep *endpoint) {
 			}
 			err := client.netlink.SetOrRemoveLinkAddress(linkInfo, netlink.REMOVE, netlink.NUD_INCOMPLETE)
 			if err != nil {
-				log.Logger.Info("Failed removing arp from vm", zap.Any("error:", err), zap.String("component", "net"))
+				log.Logger.Info("Failed removing arp from vm with", zap.Any("error:", err), zap.String("component", "net"))
 			}
 		}
 	}
@@ -232,7 +232,7 @@ func addRuleToRouteViaHost(epInfo *EndpointInfo) error {
 		log.Logger.Info("Checking if EB rule already exists in table chain", zap.String("rule", rule), zap.String("tableName", tableName), zap.String("chainName", chainName), zap.String("component", "net"))
 		exists, err := ebtables.EbTableRuleExists(tableName, chainName, rule)
 		if err != nil {
-			log.Logger.Error("Failed to check if EB table rule exists", zap.Any("error:", err), zap.String("component", "net"))
+			log.Logger.Error("Failed to check if EB table rule exists with", zap.Any("error:", err), zap.String("component", "net"))
 			return err
 		}
 
@@ -243,7 +243,7 @@ func addRuleToRouteViaHost(epInfo *EndpointInfo) error {
 			// Add EB rule to route via host.
 			log.Logger.Info("Adding EB rule to route via host for IP", zap.Any("address", ipAddr), zap.String("component", "net"))
 			if err := ebtables.SetBrouteAccept(ipAddr, ebtables.Append); err != nil {
-				log.Logger.Error("Failed to add EB rule to route via host", zap.Any("error:", err), zap.String("component", "net"))
+				log.Logger.Error("Failed to add EB rule to route via host with", zap.Any("error:", err), zap.String("component", "net"))
 				return err
 			}
 		}

@@ -8,13 +8,14 @@ import (
 	"net"
 	"strings"
 
+	"github.com/Azure/azure-container-networking/cni/log"
 	"github.com/Azure/azure-container-networking/ebtables"
 	"github.com/Azure/azure-container-networking/iptables"
-	"github.com/Azure/azure-container-networking/log"
 	"github.com/Azure/azure-container-networking/netlink"
 	"github.com/Azure/azure-container-networking/network/networkutils"
 	"github.com/Azure/azure-container-networking/platform"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 const (
@@ -55,7 +56,7 @@ func NewSnatClient(hostIfName string,
 	nl netlink.NetlinkInterface,
 	plClient platform.ExecClient,
 ) Client {
-	log.Printf("Initialize new snat client")
+	log.Logger.Info("Initialize new snat client")
 	snatClient := Client{
 		hostSnatVethName:       hostIfName,
 		containerSnatVethName:  contIfName,
@@ -69,7 +70,7 @@ func NewSnatClient(hostIfName string,
 
 	snatClient.SkipAddressesFromBlock = append(snatClient.SkipAddressesFromBlock, skipAddressesFromBlock...)
 
-	log.Printf("Initialize new snat client %+v", snatClient)
+	log.Logger.Info("Initialize new snat client", zap.Any("snatClient", snatClient))
 
 	return snatClient
 }
@@ -77,7 +78,7 @@ func NewSnatClient(hostIfName string,
 func (client *Client) CreateSnatEndpoint() error {
 	// Create linux Bridge for outbound connectivity
 	if err := client.createSnatBridge(client.SnatBridgeIP, client.hostPrimaryMac); err != nil {
-		log.Printf("creating snat bridge failed with error %v", err)
+		log.Logger.Error("creating snat bridge failed with", zap.Any("error:", err))
 		return err
 	}
 
@@ -86,26 +87,26 @@ func (client *Client) CreateSnatEndpoint() error {
 	if client.enableProxyArpOnBridge {
 		// Enable proxy arp on bridge
 		if err := nuc.SetProxyArp(SnatBridgeName); err != nil {
-			log.Printf("Enabling proxy arp failed with error %v", err)
+			log.Logger.Error("Enabling proxy arp failed with", zap.Any("error:", err))
 			return errors.Wrap(err, "")
 		}
 	}
 
 	// SNAT Rule to masquerade packets destined to non-vnet ip
 	if err := client.addMasqueradeRule(client.SnatBridgeIP); err != nil {
-		log.Printf("Adding snat rule failed with error %v", err)
+		log.Logger.Error("Adding snat rule failed with", zap.Any("error:", err))
 		return err
 	}
 
 	// Drop all vlan packets coming via linux bridge.
 	if err := client.addVlanDropRule(); err != nil {
-		log.Printf("Adding vlan drop rule failed with error %v", err)
+		log.Logger.Error("Adding vlan drop rule failed with", zap.Any("error:", err))
 		return err
 	}
 
 	// Create veth pair to tie one end to container and other end to linux bridge
 	if err := nuc.CreateEndpoint(client.hostSnatVethName, client.containerSnatVethName, nil); err != nil {
-		log.Printf("Creating Snat Endpoint failed with error %v", err)
+		log.Logger.Error("Creating Snat Endpoint failed with", zap.Any("error:", err))
 		return newErrorSnatClient(err.Error())
 	}
 
@@ -119,7 +120,7 @@ func (client *Client) CreateSnatEndpoint() error {
 // AllowIPAddressesOnSnatBridge adds iptables rules  that allows only specific Private IPs via linux bridge
 func (client *Client) AllowIPAddressesOnSnatBridge() error {
 	if err := networkutils.AllowIPAddresses(SnatBridgeName, client.SkipAddressesFromBlock, iptables.Insert); err != nil {
-		log.Printf("AllowIPAddresses failed with error %v", err)
+		log.Logger.Error("AllowIPAddresses failed with", zap.Any("error:", err))
 		return newErrorSnatClient(err.Error())
 	}
 
@@ -129,7 +130,7 @@ func (client *Client) AllowIPAddressesOnSnatBridge() error {
 // BlockIPAddressesOnSnatBridge adds iptables rules  that blocks all private IPs flowing via linux bridge
 func (client *Client) BlockIPAddressesOnSnatBridge() error {
 	if err := networkutils.BlockIPAddresses(SnatBridgeName, iptables.Append); err != nil {
-		log.Printf("AllowIPAddresses failed with error %v", err)
+		log.Logger.Error("AllowIPAddresses failed with", zap.Any("error:", err))
 		return newErrorSnatClient(err.Error())
 	}
 
@@ -138,7 +139,8 @@ func (client *Client) BlockIPAddressesOnSnatBridge() error {
 
 // Move container veth inside container network namespace
 func (client *Client) MoveSnatEndpointToContainerNS(netnsPath string, nsID uintptr) error {
-	log.Printf("[snat] Setting link %v netns %v.", client.containerSnatVethName, netnsPath)
+	log.Logger.Info("Setting link netns", zap.String("containerSnatVethName", client.containerSnatVethName),
+		zap.Any("netnsPath", netnsPath), zap.String("component", "snat"))
 	err := client.netlink.SetLinkNetNs(client.containerSnatVethName, nsID)
 	if err != nil {
 		return newErrorSnatClient(err.Error())
@@ -170,13 +172,13 @@ func (client *Client) AllowInboundFromHostToNC() error {
 
 	// Create CNI Output chain
 	if err := iptables.CreateChain(iptables.V4, iptables.Filter, iptables.CNIOutputChain); err != nil {
-		log.Printf("AllowInboundFromHostToNC: Creating %v failed with error: %v", iptables.CNIOutputChain, err)
+		log.Logger.Error("AllowInboundFromHostToNC: Creating failed with", zap.Any("CNIOutputChain", iptables.CNIOutputChain), zap.Any("error:", err))
 		return newErrorSnatClient(err.Error())
 	}
 
 	// Forward traffic from Ouptut chain to CNI Output chain
 	if err := iptables.InsertIptableRule(iptables.V4, iptables.Filter, iptables.Output, "", iptables.CNIOutputChain); err != nil {
-		log.Printf("AllowInboundFromHostToNC: Inserting forward rule to %v failed with error: %v", iptables.CNIOutputChain, err)
+		log.Logger.Error("AllowInboundFromHostToNC: Inserting forward rule to failed with", zap.Any("CNIOutputChain", iptables.CNIOutputChain), zap.Any("error:", err))
 		return newErrorSnatClient(err.Error())
 	}
 
@@ -184,19 +186,19 @@ func (client *Client) AllowInboundFromHostToNC() error {
 	matchCondition := fmt.Sprintf("-s %s -d %s", bridgeIP.String(), containerIP.String())
 	err := iptables.InsertIptableRule(iptables.V4, iptables.Filter, iptables.CNIOutputChain, matchCondition, iptables.Accept)
 	if err != nil {
-		log.Printf("AllowInboundFromHostToNC: Inserting output rule failed: %v", err)
+		log.Logger.Error("AllowInboundFromHostToNC: Inserting output rule failed with ", zap.Any("error:", err))
 		return newErrorSnatClient(err.Error())
 	}
 
 	// Create cniinput chain
 	if err := iptables.CreateChain(iptables.V4, iptables.Filter, iptables.CNIInputChain); err != nil {
-		log.Printf("AllowInboundFromHostToNC: Creating %v failed with error: %v", iptables.CNIInputChain, err)
+		log.Logger.Error("AllowInboundFromHostToNC: Creating failed with", zap.Any("CNIOutputChain", iptables.CNIOutputChain), zap.Any("error:", err))
 		return newErrorSnatClient(err.Error())
 	}
 
 	// Forward from Input to cniinput chain
 	if err := iptables.InsertIptableRule(iptables.V4, iptables.Filter, iptables.Input, "", iptables.CNIInputChain); err != nil {
-		log.Printf("AllowInboundFromHostToNC: Inserting forward rule to %v failed with error: %v", iptables.CNIInputChain, err)
+		log.Logger.Error("AllowInboundFromHostToNC: Inserting forward rule to failed with", zap.Any("CNIOutputChain", iptables.CNIOutputChain), zap.Any("error:", err))
 		return newErrorSnatClient(err.Error())
 	}
 
@@ -204,14 +206,15 @@ func (client *Client) AllowInboundFromHostToNC() error {
 	matchCondition = fmt.Sprintf(" -i %s -m state --state %s,%s", SnatBridgeName, iptables.Established, iptables.Related)
 	err = iptables.InsertIptableRule(iptables.V4, iptables.Filter, iptables.CNIInputChain, matchCondition, iptables.Accept)
 	if err != nil {
-		log.Printf("AllowInboundFromHostToNC: Inserting input rule failed: %v", err)
+		log.Logger.Error("AllowInboundFromHostToNC: Inserting input rule failed with", zap.Any("error:", err))
 		return newErrorSnatClient(err.Error())
 	}
 
 	snatContainerVeth, _ := net.InterfaceByName(client.containerSnatVethName)
 
 	// Add static arp entry for localIP to prevent arp going out of VM
-	log.Printf("Adding static arp entry for ip %s mac %s", containerIP, snatContainerVeth.HardwareAddr.String())
+	log.Logger.Info("Adding static arp entry for ip", zap.Any("containerIP", containerIP),
+		zap.String("HardwareAddr", snatContainerVeth.HardwareAddr.String()))
 	linkInfo := netlink.LinkInfo{
 		Name:       SnatBridgeName,
 		IPAddr:     containerIP,
@@ -220,7 +223,8 @@ func (client *Client) AllowInboundFromHostToNC() error {
 
 	err = client.netlink.SetOrRemoveLinkAddress(linkInfo, netlink.ADD, netlink.NUD_PERMANENT)
 	if err != nil {
-		log.Printf("AllowInboundFromHostToNC: Error adding static arp entry for ip %s mac %s: %v", containerIP, snatContainerVeth.HardwareAddr.String(), err)
+		log.Logger.Error("AllowInboundFromHostToNC: Error adding static arp entry for ip", zap.Any("containerIP", containerIP),
+			zap.String("HardwareAddr", snatContainerVeth.HardwareAddr.String()), zap.Any("error:", err))
 		return newErrorSnatClient(err.Error())
 	}
 
@@ -234,11 +238,11 @@ func (client *Client) DeleteInboundFromHostToNC() error {
 	matchCondition := fmt.Sprintf("-s %s -d %s", bridgeIP.String(), containerIP.String())
 	err := iptables.DeleteIptableRule(iptables.V4, iptables.Filter, iptables.CNIOutputChain, matchCondition, iptables.Accept)
 	if err != nil {
-		log.Printf("DeleteInboundFromHostToNC: Error removing output rule %v", err)
+		log.Logger.Error("DeleteInboundFromHostToNC: Error removing output rule", zap.Any("error:", err))
 	}
 
 	// Remove static arp entry added for container local IP
-	log.Printf("Removing static arp entry for ip %s ", containerIP)
+	log.Logger.Info("Removing static arp entry for ip", zap.Any("containerIP", containerIP))
 	linkInfo := netlink.LinkInfo{
 		Name:       SnatBridgeName,
 		IPAddr:     containerIP,
@@ -247,7 +251,8 @@ func (client *Client) DeleteInboundFromHostToNC() error {
 
 	err = client.netlink.SetOrRemoveLinkAddress(linkInfo, netlink.REMOVE, netlink.NUD_INCOMPLETE)
 	if err != nil {
-		log.Printf("AllowInboundFromHostToNC: Error removing static arp entry for ip %s: %v", containerIP, err)
+		log.Logger.Error("AllowInboundFromHostToNC: Error removing static arp entry for ip", zap.Any("containerIP", containerIP),
+			zap.Any("error:", err))
 	}
 
 	return err
@@ -259,13 +264,15 @@ func (client *Client) AllowInboundFromNCToHost() error {
 
 	// Create CNI Input chain
 	if err := iptables.CreateChain(iptables.V4, iptables.Filter, iptables.CNIInputChain); err != nil {
-		log.Printf("AllowInboundFromHostToNC: Creating %v failed with error: %v", iptables.CNIInputChain, err)
+		log.Logger.Error("AllowInboundFromHostToNC: Creating failed with", zap.String("CNIInputChain", iptables.CNIInputChain),
+			zap.Any("error:", err))
 		return err
 	}
 
 	// Forward traffic from Input to cniinput chain
 	if err := iptables.InsertIptableRule(iptables.V4, iptables.Filter, iptables.Input, "", iptables.CNIInputChain); err != nil {
-		log.Printf("AllowInboundFromHostToNC: Inserting forward rule to %v failed with error: %v", iptables.CNIInputChain, err)
+		log.Logger.Error("AllowInboundFromHostToNC: Inserting forward rule to failed with", zap.String("CNIInputChain", iptables.CNIInputChain),
+			zap.Any("error:", err))
 		return err
 	}
 
@@ -273,19 +280,21 @@ func (client *Client) AllowInboundFromNCToHost() error {
 	matchCondition := fmt.Sprintf("-s %s -d %s", containerIP.String(), bridgeIP.String())
 	err := iptables.InsertIptableRule(iptables.V4, iptables.Filter, iptables.CNIInputChain, matchCondition, iptables.Accept)
 	if err != nil {
-		log.Printf("AllowInboundFromHostToNC: Inserting output rule failed: %v", err)
+		log.Logger.Error("AllowInboundFromHostToNC: Inserting output rule failed with", zap.Any("error:", err))
 		return err
 	}
 
 	// Create CNI output chain
 	if err := iptables.CreateChain(iptables.V4, iptables.Filter, iptables.CNIOutputChain); err != nil {
-		log.Printf("AllowInboundFromHostToNC: Creating %v failed with error: %v", iptables.CNIOutputChain, err)
+		log.Logger.Error("AllowInboundFromHostToNC: Creating failed with", zap.String("CNIInputChain", iptables.CNIInputChain),
+			zap.Any("error:", err))
 		return err
 	}
 
 	// Forward traffic from Output to CNI Output chain
 	if err := iptables.InsertIptableRule(iptables.V4, iptables.Filter, iptables.Output, "", iptables.CNIOutputChain); err != nil {
-		log.Printf("AllowInboundFromHostToNC: Inserting forward rule to %v failed with error: %v", iptables.CNIOutputChain, err)
+		log.Logger.Error("AllowInboundFromHostToNC: Inserting forward rule to failed with", zap.String("CNIInputChain", iptables.CNIInputChain),
+			zap.Any("error:", err))
 		return err
 	}
 
@@ -293,14 +302,14 @@ func (client *Client) AllowInboundFromNCToHost() error {
 	matchCondition = fmt.Sprintf(" -o %s -m state --state %s,%s", SnatBridgeName, iptables.Established, iptables.Related)
 	err = iptables.InsertIptableRule(iptables.V4, iptables.Filter, iptables.CNIOutputChain, matchCondition, iptables.Accept)
 	if err != nil {
-		log.Printf("AllowInboundFromHostToNC: Inserting input rule failed: %v", err)
+		log.Logger.Error("AllowInboundFromHostToNC: Inserting input rule failed with", zap.Any("error:", err))
 		return err
 	}
 
 	snatContainerVeth, _ := net.InterfaceByName(client.containerSnatVethName)
 
 	// Add static arp entry for localIP to prevent arp going out of VM
-	log.Printf("Adding static arp entry for ip %s mac %s", containerIP, snatContainerVeth.HardwareAddr.String())
+	log.Logger.Info("Adding static arp entry for ip", zap.Any("containerIP", containerIP), zap.String("HardwareAddr", snatContainerVeth.HardwareAddr.String()))
 	linkInfo := netlink.LinkInfo{
 		Name:       SnatBridgeName,
 		IPAddr:     containerIP,
@@ -309,7 +318,8 @@ func (client *Client) AllowInboundFromNCToHost() error {
 
 	err = client.netlink.SetOrRemoveLinkAddress(linkInfo, netlink.ADD, netlink.NUD_PERMANENT)
 	if err != nil {
-		log.Printf("AllowInboundFromNCToHost: Error adding static arp entry for ip %s mac %s: %v", containerIP, snatContainerVeth.HardwareAddr.String(), err)
+		log.Logger.Error("AllowInboundFromNCToHost: Error adding static arp entry for ip", zap.Any("containerIP", containerIP),
+			zap.String("HardwareAddr", snatContainerVeth.HardwareAddr.String()), zap.Any("error:", err))
 	}
 
 	return err
@@ -322,11 +332,11 @@ func (client *Client) DeleteInboundFromNCToHost() error {
 	matchCondition := fmt.Sprintf("-s %s -d %s", containerIP.String(), bridgeIP.String())
 	err := iptables.DeleteIptableRule(iptables.V4, iptables.Filter, iptables.CNIInputChain, matchCondition, iptables.Accept)
 	if err != nil {
-		log.Printf("DeleteInboundFromNCToHost: Error removing output rule %v", err)
+		log.Logger.Error("DeleteInboundFromNCToHost: Error removing output rule", zap.Any("error:", err))
 	}
 
 	// Remove static arp entry added for container local IP
-	log.Printf("Removing static arp entry for ip %s ", containerIP)
+	log.Logger.Info("Removing static arp entry for ip ", zap.Any("containerIP", containerIP))
 	linkInfo := netlink.LinkInfo{
 		Name:       SnatBridgeName,
 		IPAddr:     containerIP,
@@ -335,7 +345,8 @@ func (client *Client) DeleteInboundFromNCToHost() error {
 
 	err = client.netlink.SetOrRemoveLinkAddress(linkInfo, netlink.REMOVE, netlink.NUD_INCOMPLETE)
 	if err != nil {
-		log.Printf("DeleteInboundFromNCToHost: Error removing static arp entry for ip %s: %v", containerIP, err)
+		log.Logger.Error("DeleteInboundFromNCToHost: Error removing static arp entry for ip",
+			zap.Any("containerIP", containerIP), zap.Any("error:", err))
 	}
 
 	return err
@@ -343,7 +354,8 @@ func (client *Client) DeleteInboundFromNCToHost() error {
 
 // Configures Local IP Address for container Veth
 func (client *Client) ConfigureSnatContainerInterface() error {
-	log.Printf("[snat] Adding IP address %v to link %v.", client.localIP, client.containerSnatVethName)
+	log.Logger.Info("Adding IP address", zap.String("localIP", client.localIP),
+		zap.String("containerSnatVethName", client.containerSnatVethName), zap.String("component", "snat"))
 	ip, intIpAddr, _ := net.ParseCIDR(client.localIP)
 	err := client.netlink.AddIPAddress(client.containerSnatVethName, ip, intIpAddr)
 	if err != nil {
@@ -353,10 +365,12 @@ func (client *Client) ConfigureSnatContainerInterface() error {
 }
 
 func (client *Client) DeleteSnatEndpoint() error {
-	log.Printf("[snat] Deleting snat veth pair %v.", client.hostSnatVethName)
+	log.Logger.Info("Deleting snat veth pair", zap.String("hostSnatVethName", client.hostSnatVethName),
+		zap.String("component", "snat"))
 	err := client.netlink.DeleteLink(client.hostSnatVethName)
 	if err != nil {
-		log.Printf("[snat] Failed to delete veth pair %v: %v.", client.hostSnatVethName, err)
+		log.Logger.Error("Failed to delete veth pair", zap.String("hostSnatVethName", client.hostSnatVethName),
+			zap.Any("error:", err), zap.String("component", "snat"))
 		return newErrorSnatClient(err.Error())
 	}
 
@@ -366,12 +380,14 @@ func (client *Client) DeleteSnatEndpoint() error {
 func (client *Client) setBridgeMac(hostPrimaryMac string) error {
 	hwAddr, err := net.ParseMAC(hostPrimaryMac)
 	if err != nil {
-		log.Errorf("Error while parsing host primary mac: %s error:%+v", hostPrimaryMac, err)
+		log.Logger.Error("Error while parsing host primary mac", zap.String("hostPrimaryMac", hostPrimaryMac),
+			zap.Any("error:", err))
 		return err
 	}
 
 	if err = client.netlink.SetLinkAddress(SnatBridgeName, hwAddr); err != nil {
-		log.Errorf("Error while setting macaddr on bridge: %s error:%+v", hwAddr.String(), err)
+		log.Logger.Error("Error while setting macaddr on bridge", zap.String("hwAddr", hwAddr.String()),
+			zap.Any("error:", err))
 	}
 	return err
 }
@@ -380,7 +396,7 @@ func (client *Client) DropArpForSnatBridgeApipaRange(snatBridgeIP, azSnatVethIfN
 	var err error
 	_, ipCidr, _ := net.ParseCIDR(snatBridgeIP)
 	if err = ebtables.SetArpDropRuleForIpCidr(ipCidr.String(), azSnatVethIfName); err != nil {
-		log.Errorf("Error setting arp drop rule for snatbridge ip :%s", snatBridgeIP)
+		log.Logger.Error("Error setting arp drop rule for snatbridge ip", zap.String("snatBridgeIP", snatBridgeIP))
 	}
 
 	return err
@@ -390,9 +406,9 @@ func (client *Client) DropArpForSnatBridgeApipaRange(snatBridgeIP, azSnatVethIfN
 func (client *Client) createSnatBridge(snatBridgeIP, hostPrimaryMac string) error {
 	_, err := net.InterfaceByName(SnatBridgeName)
 	if err == nil {
-		log.Printf("Snat Bridge already exists")
+		log.Logger.Info("Snat Bridge already exists")
 	} else {
-		log.Printf("[net] Creating Snat bridge %v.", SnatBridgeName)
+		log.Logger.Info("Creating Snat bridge", zap.String("SnatBridgeName", SnatBridgeName), zap.String("component", "net"))
 
 		link := netlink.BridgeLink{
 			LinkInfo: netlink.LinkInfo{
@@ -406,7 +422,7 @@ func (client *Client) createSnatBridge(snatBridgeIP, hostPrimaryMac string) erro
 		}
 	}
 
-	log.Printf("Setting snat bridge mac: %s", hostPrimaryMac)
+	log.Logger.Info("Setting snat bridge mac", zap.String("hostPrimaryMac", hostPrimaryMac))
 	if err := client.setBridgeMac(hostPrimaryMac); err != nil {
 		return err
 	}
@@ -417,12 +433,12 @@ func (client *Client) createSnatBridge(snatBridgeIP, hostPrimaryMac string) erro
 		return err
 	}
 
-	log.Printf("Assigning %v on snat bridge", snatBridgeIP)
+	log.Logger.Info("Assigning on snat bridge", zap.String("snatBridgeIP", snatBridgeIP))
 
 	ip, addr, _ := net.ParseCIDR(snatBridgeIP)
 	err = client.netlink.AddIPAddress(SnatBridgeName, ip, addr)
 	if err != nil && !strings.Contains(strings.ToLower(err.Error()), "file exists") {
-		log.Printf("[net] Failed to add IP address %v: %v.", addr, err)
+		log.Logger.Error("Failed to add IP address", zap.Any("addr", addr), zap.Any("error:", err), zap.String("component", "net"))
 		return newErrorSnatClient(err.Error())
 	}
 
@@ -444,17 +460,17 @@ func (client *Client) addMasqueradeRule(snatBridgeIPWithPrefix string) error {
 func (client *Client) addVlanDropRule() error {
 	out, err := client.plClient.ExecuteCommand(l2PreroutingEntries)
 	if err != nil {
-		log.Printf("Error while listing ebtable rules %v", err)
+		log.Logger.Error("Error while listing ebtable rules", zap.String("component", "net"))
 		return err
 	}
 
 	out = strings.TrimSpace(out)
 	if strings.Contains(out, vlanDropMatch) {
-		log.Printf("vlan drop rule already exists")
+		log.Logger.Info("vlan drop rule already exists")
 		return nil
 	}
 
-	log.Printf("Adding ebtable rule to drop vlan traffic on snat bridge %v", vlanDropAddRule)
+	log.Logger.Info("Adding ebtable rule to drop vlan traffic on snat bridge", zap.String("vlanDropAddRule", vlanDropAddRule))
 	_, err = client.plClient.ExecuteCommand(vlanDropAddRule)
 	return err
 }

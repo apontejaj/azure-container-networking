@@ -81,7 +81,7 @@ func (client *TransparentEndpointClient) AddEndpoints(epInfo *EndpointInfo) erro
 	if _, err := client.netioshim.GetNetworkInterfaceByName(client.hostVethName); err == nil {
 		log.Logger.Info("Deleting old host veth", zap.String("hostVethName", client.hostVethName))
 		if err = client.netlink.DeleteLink(client.hostVethName); err != nil {
-			log.Logger.Error("Failed to delete old hostveth", zap.String("hostVethName", client.hostVethName), zap.Any("error:", err),
+			log.Logger.Error("Failed to delete old", zap.String("hostVethName", client.hostVethName), zap.Any("error:", err),
 				zap.String("component", "net"))
 			return newErrorTransparentEndpointClient(err.Error())
 		}
@@ -105,7 +105,7 @@ func (client *TransparentEndpointClient) AddEndpoints(epInfo *EndpointInfo) erro
 	defer func() {
 		if err != nil {
 			if delErr := client.netlink.DeleteLink(client.hostVethName); delErr != nil {
-				log.Logger.Error("Deleting veth failed on addendpoint failure", zap.Any("error:", delErr))
+				log.Logger.Error("Deleting veth failed on addendpoint failure with", zap.Any("error:", delErr))
 			}
 		}
 	}()
@@ -154,7 +154,7 @@ func (client *TransparentEndpointClient) AddEndpointRules(epInfo *EndpointInfo) 
 		} else {
 			ipNet = net.IPNet{IP: ipAddr.IP, Mask: net.CIDRMask(ipv6FullMask, ipv6Bits)}
 		}
-		log.Logger.Info("Adding route for the ip", zap.String("ip", ipNet.String()), zap.String("component", "net"))
+		log.Logger.Info("Adding route for the", zap.String("ip", ipNet.String()), zap.String("component", "net"))
 		routeInfo.Dst = ipNet
 		routeInfoList = append(routeInfoList, routeInfo)
 		if err := addRoutes(client.netlink, client.netioshim, client.hostVethName, routeInfoList); err != nil {
@@ -186,10 +186,10 @@ func (client *TransparentEndpointClient) DeleteEndpointRules(ep *endpoint) {
 			ipNet = net.IPNet{IP: ipAddr.IP, Mask: net.CIDRMask(ipv6FullMask, ipv6Bits)}
 		}
 
-		log.Logger.Info("Deleting route for the ip", zap.String("ip", ipNet.String()), zap.String("component", "net"))
+		log.Logger.Info("Deleting route for the", zap.String("ip", ipNet.String()), zap.String("component", "net"))
 		routeInfo.Dst = ipNet
 		if err := deleteRoutes(client.netlink, client.netioshim, client.hostVethName, []RouteInfo{routeInfo}); err != nil {
-			log.Logger.Error("Failed to delete route on VM for the ip", zap.String("ip", ipNet.String()), zap.Any("error:", err))
+			log.Logger.Error("Failed to delete route on VM for the", zap.String("ip", ipNet.String()), zap.Any("error:", err))
 		}
 	}
 }

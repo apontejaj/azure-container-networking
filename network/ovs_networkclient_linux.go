@@ -110,7 +110,7 @@ func (client *OVSNetworkClient) CreateBridge() error {
 
 func (client *OVSNetworkClient) DeleteBridge() error {
 	if err := client.ovsctlClient.DeleteOVSBridge(client.bridgeName); err != nil {
-		log.Logger.Error("Deleting ovs bridge failed with error", zap.Any("error:", err))
+		log.Logger.Error("Deleting ovs bridge failed with", zap.Any("error:", err))
 	}
 
 	return nil

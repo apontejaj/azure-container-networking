@@ -145,7 +145,7 @@ func (nw *network) deleteEndpoint(nl netlink.NetlinkInterface, plc platform.Exec
 	log.Logger.Info("Deleting endpoint from network", zap.String("endpointID", endpointID), zap.String("Id", nw.Id), zap.String("component", "net"))
 	defer func() {
 		if err != nil {
-			log.Logger.Error("Failed to delete endpoint with err", zap.String("endpointID", endpointID), zap.Any("error:", err), zap.String("component", "net"))
+			log.Logger.Error("Failed to delete endpoint with", zap.String("endpointID", endpointID), zap.Any("error:", err), zap.String("component", "net"))
 		}
 	}()
 
@@ -270,7 +270,7 @@ func (ep *endpoint) detach() error {
 		return errEndpointNotInUse
 	}
 
-	log.Logger.Info("Detached endpoint %v from sandbox %v.", zap.String("Id", ep.Id), zap.String("sandboxKey", ep.SandboxKey), zap.String("component", "net"))
+	log.Logger.Info("Detached endpoint from sandbox", zap.String("Id", ep.Id), zap.String("sandboxKey", ep.SandboxKey), zap.String("component", "net"))
 
 	ep.SandboxKey = ""
 

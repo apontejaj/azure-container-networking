@@ -217,7 +217,7 @@ func (nw *network) configureHcnEndpoint(epInfo *EndpointInfo) (*hcn.HostComputeE
 			hcnEndpoint.Policies = append(hcnEndpoint.Policies, epPolicy)
 		}
 	} else {
-		log.Logger.Error("Failed to get endpoint policies due to error", zap.Any("error:", err), zap.String("component", "net"))
+		log.Logger.Error("Failed to get endpoint policies due to", zap.Any("error:", err), zap.String("component", "net"))
 		return nil, err
 	}
 
@@ -313,7 +313,7 @@ func (nw *network) createHostNCApipaEndpoint(cli apipaClient, epInfo *EndpointIn
 func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (*endpoint, error) {
 	hcnEndpoint, err := nw.configureHcnEndpoint(epInfo)
 	if err != nil {
-		log.Logger.Error("Failed to configure hcn endpoint due to error", zap.Any("error:", err), zap.String("component", "net"))
+		log.Logger.Error("Failed to configure hcn endpoint due to", zap.Any("error:", err), zap.String("component", "net"))
 		return nil, err
 	}
 

@@ -112,14 +112,14 @@ func (client *OVSEndpointClient) AddEndpointRules(epInfo *EndpointInfo) error {
 	log.Logger.Info("Get ovs port for interface", zap.String("hostVethName", client.hostVethName), zap.String("component", "ovs"))
 	containerOVSPort, err := client.ovsctlClient.GetOVSPortNumber(client.hostVethName)
 	if err != nil {
-		log.Logger.Error("Get ofport failed with error", zap.Any("error:", err), zap.String("component", "ovs"))
+		log.Logger.Error("Get ofport failed with", zap.Any("error:", err), zap.String("component", "ovs"))
 		return err
 	}
 
 	log.Logger.Info("Get ovs port for interface", zap.String("hostPrimaryIfName", client.hostPrimaryIfName), zap.String("component", "ovs"))
 	hostPort, err := client.ovsctlClient.GetOVSPortNumber(client.hostPrimaryIfName)
 	if err != nil {
-		log.Logger.Error("Get ofport failed with error", zap.Any("error:", err), zap.String("component", "ovs"))
+		log.Logger.Error("Get ofport failed with", zap.Any("error:", err), zap.String("component", "ovs"))
 		return err
 	}
 
@@ -158,13 +158,13 @@ func (client *OVSEndpointClient) DeleteEndpointRules(ep *endpoint) {
 	log.Logger.Info("Get ovs port for interface", zap.String("HostIfName", ep.HostIfName), zap.String("component", "ovs"))
 	containerPort, err := client.ovsctlClient.GetOVSPortNumber(client.hostVethName)
 	if err != nil {
-		log.Logger.Error("Get portnum failed with error", zap.Any("error:", err), zap.String("component", "ovs"))
+		log.Logger.Error("Get portnum failed with", zap.Any("error:", err), zap.String("component", "ovs"))
 	}
 
 	log.Logger.Info("Get ovs port for interface", zap.String("hostPrimaryIfName", client.hostPrimaryIfName), zap.String("component", "ovs"))
 	hostPort, err := client.ovsctlClient.GetOVSPortNumber(client.hostPrimaryIfName)
 	if err != nil {
-		log.Logger.Error("Get portnum failed with error", zap.Any("error:", err), zap.String("component", "ovs"))
+		log.Logger.Error("Get portnum failed with", zap.Any("error:", err), zap.String("component", "ovs"))
 	}
 
 	// Delete IP SNAT

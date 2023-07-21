@@ -98,7 +98,7 @@ func (nm *networkManager) newNetworkImpl(nwInfo *NetworkInfo, extIf *externalInt
 
 	err := nm.handleCommonOptions(ifName, nwInfo)
 	if err != nil {
-		log.Logger.Error("handleCommonOptions failed", zap.Any("error:", err))
+		log.Logger.Error("handleCommonOptions failed with", zap.Any("error:", err))
 		return nil, err
 	}
 
@@ -158,7 +158,7 @@ func (nm *networkManager) saveIPConfig(hostIf *net.Interface, extIf *externalInt
 	// Save the default routes on the interface.
 	routes, err := nm.netlink.GetIPRoute(&netlink.Route{Dst: &net.IPNet{}, LinkIndex: hostIf.Index})
 	if err != nil {
-		log.Logger.Error("Failed to query routes", zap.Any("error:", err), zap.String("component", "net"))
+		log.Logger.Error("Failed to query routes with", zap.Any("error:", err), zap.String("component", "net"))
 		return err
 	}
 
@@ -219,7 +219,7 @@ func getMajorVersion(version string) (int, error) {
 func isGreaterOrEqaulUbuntuVersion(versionToMatch int) bool {
 	osInfo, err := platform.GetOSDetails()
 	if err != nil {
-		log.Logger.Error("Unable to get OS Details", zap.Any("error:", err), zap.String("component", "net"))
+		log.Logger.Error("Unable to get OS Details with", zap.Any("error:", err), zap.String("component", "net"))
 		return false
 	}
 
@@ -378,7 +378,7 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 
 	log.Logger.Info("Connecting interface", zap.String("Name", extIf.Name), zap.String("component", "net"))
 	defer func() {
-		log.Logger.Info("Connecting interface completed with err", zap.String("Name", extIf.Name), zap.Any("error:", err), zap.String("component", "net"))
+		log.Logger.Info("Connecting interface completed", zap.String("Name", extIf.Name), zap.Any("error:", err), zap.String("component", "net"))
 	}()
 
 	// Check whether this interface is already connected.
@@ -511,7 +511,7 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 		log.Logger.Info("Applying dns config on", zap.String("bridgeName", bridgeName), zap.String("component", "net"))
 
 		if err = applyDnsConfig(extIf, bridgeName); err != nil {
-			log.Logger.Error("Failed to apply DNS configuration", zap.Any("error:", err), zap.String("component", "net"))
+			log.Logger.Error("Failed to apply DNS configuration with", zap.Any("error:", err), zap.String("component", "net"))
 			return err
 		}
 
@@ -521,12 +521,12 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 	if nwInfo.IPV6Mode == IPV6Nat {
 		// adds pod cidr gateway ip to bridge
 		if err = nm.addIpv6NatGateway(nwInfo); err != nil {
-			log.Logger.Error("Adding IPv6 Nat Gateway failed", zap.Any("error:", err), zap.String("component", "net"))
+			log.Logger.Error("Adding IPv6 Nat Gateway failed with", zap.Any("error:", err), zap.String("component", "net"))
 			return err
 		}
 
 		if err = nm.addIpv6SnatRule(extIf, nwInfo); err != nil {
-			log.Logger.Error("Adding IPv6 Snat Rule failed", zap.Any("error:", err), zap.String("component", "net"))
+			log.Logger.Error("Adding IPv6 Snat Rule failed with", zap.Any("error:", err), zap.String("component", "net"))
 			return err
 		}
 

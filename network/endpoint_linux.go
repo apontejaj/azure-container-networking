@@ -134,7 +134,7 @@ func (nw *network) newEndpointImpl(
 	// Cleanup on failure.
 	defer func() {
 		if err != nil {
-			log.Logger.Info("CNI error. Delete Endpoint and rules that are created.", zap.Any("Error:", err), zap.String("contIfName", contIfName))
+			log.Logger.Info("CNI error. Delete Endpoint and rules that are created with", zap.Any("Error:", err), zap.String("contIfName", contIfName))
 			endpt := &endpoint{
 				Id:                       epInfo.Id,
 				IfName:                   contIfName,
@@ -201,14 +201,14 @@ func (nw *network) newEndpointImpl(
 		defer func() {
 			log.Logger.Info("Exiting netns", zap.Any("NetNsPath", epInfo.NetNsPath), zap.String("component", "net"))
 			if err := ns.Exit(); err != nil {
-				log.Logger.Error("Failed to exit netns", zap.Any("Error:", err), zap.String("component", "net"))
+				log.Logger.Error("Failed to exit netns with", zap.Any("Error:", err), zap.String("component", "net"))
 			}
 		}()
 	}
 
 	if epInfo.IPV6Mode != "" {
 		// Enable ipv6 setting in container
-		log.Logger.Info("Enable ipv6 setting in container.")
+		log.Logger.Info("Enable ipv6 setting in container")
 		nuc := networkutils.NewNetworkUtils(nl, plc)
 		if err = nuc.UpdateIPV6Setting(0); err != nil {
 			return nil, fmt.Errorf("Enable ipv6 in container failed:%w", err)
@@ -304,7 +304,7 @@ func addRoutes(nl netlink.NetlinkInterface, netioshim netio.NetIOInterface, inte
 		} else {
 			interfaceIf, err := netioshim.GetNetworkInterfaceByName(interfaceName)
 			if err != nil {
-				log.Logger.Error("Interface not found", zap.Any("Error:", err))
+				log.Logger.Error("Interface not found with", zap.Any("Error:", err))
 				return fmt.Errorf("addRoutes failed: %w", err)
 			}
 			ifIndex = interfaceIf.Index
@@ -374,7 +374,7 @@ func deleteRoutes(nl netlink.NetlinkInterface, netioshim netio.NetIOInterface, i
 			Scope:     route.Scope,
 		}
 
-		log.Logger.Info("Deleting IP route from link.", zap.Any("route", route), zap.String("interfaceName", interfaceName), zap.String("component", "net"))
+		log.Logger.Info("Deleting IP route from link", zap.Any("route", route), zap.String("interfaceName", interfaceName), zap.String("component", "net"))
 		if err := nl.DeleteIPRoute(nlRoute); err != nil {
 			return err
 		}
@@ -390,7 +390,7 @@ func (nm *networkManager) updateEndpointImpl(nw *network, existingEpInfo *Endpoi
 	var err error
 
 	existingEpFromRepository := nw.Endpoints[existingEpInfo.Id]
-	log.Logger.Info("Going to retrieve endpoint with Id to update.", zap.String("Id", existingEpInfo.Id), zap.String("component", "updateEndpointImpl"))
+	log.Logger.Info("Going to retrieve endpoint with Id to update", zap.String("Id", existingEpInfo.Id), zap.String("component", "updateEndpointImpl"))
 	if existingEpFromRepository == nil {
 		log.Logger.Info("Endpoint cannot be updated as it does not exist", zap.String("component", "updateEndpointImpl"))
 		err = errEndpointNotFound
@@ -418,7 +418,7 @@ func (nm *networkManager) updateEndpointImpl(nw *network, existingEpInfo *Endpoi
 		defer func() {
 			log.Logger.Info("Exiting netns", zap.Any("netns", netns), zap.String("component", "updateEndpointImpl"))
 			if err := ns.Exit(); err != nil {
-				log.Logger.Error(" Failed to exit netns", zap.Any("Error:", err), zap.String("component", "updateEndpointImpl"))
+				log.Logger.Error(" Failed to exit netns with", zap.Any("Error:", err), zap.String("component", "updateEndpointImpl"))
 			}
 		}()
 	} else {
