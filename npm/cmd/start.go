@@ -248,7 +248,7 @@ func labelNode(clientset *kubernetes.Clientset, nodeName, labelValue string) err
 		k8sNode.Labels = make(map[string]string)
 	}
 
-	if _, ok := k8sNode.Labels[util.NPMNodeLabelKey]; ok {
+	if val, ok := k8sNode.Labels[util.NPMNodeLabelKey]; ok && val == labelValue {
 		klog.Infof("node %s already labeled with %s=%s", nodeName, util.NPMNodeLabelKey, labelValue)
 		return nil
 	}
