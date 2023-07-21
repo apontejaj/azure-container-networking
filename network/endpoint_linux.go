@@ -354,7 +354,7 @@ func deleteRoutes(nl netlink.NetlinkInterface, netioshim netio.NetIOInterface, i
 		} else if interfaceName != "" {
 			interfaceIf, _ := netioshim.GetNetworkInterfaceByName(interfaceName)
 			if interfaceIf == nil {
-				log.Logger.Info("[net] Not deleting route. Interface doesn't exist", zap.String("interfaceName", interfaceName), zap.String("component", "net"))
+				log.Logger.Info("Not deleting route. Interface doesn't exist", zap.String("interfaceName", interfaceName), zap.String("component", "net"))
 				continue
 			}
 			ifIndex = interfaceIf.Index
@@ -390,9 +390,9 @@ func (nm *networkManager) updateEndpointImpl(nw *network, existingEpInfo *Endpoi
 	var err error
 
 	existingEpFromRepository := nw.Endpoints[existingEpInfo.Id]
-	log.Logger.Info("[updateEndpointImpl] Going to retrieve endpoint with Id to update.", zap.String("Id", existingEpInfo.Id))
+	log.Logger.Info("Going to retrieve endpoint with Id to update.", zap.String("Id", existingEpInfo.Id), zap.String("component", "updateEndpointImpl"))
 	if existingEpFromRepository == nil {
-		log.Logger.Info("[updateEndpointImpl] Endpoint cannot be updated as it does not exist.")
+		log.Logger.Info("Endpoint cannot be updated as it does not exist", zap.String("component", "updateEndpointImpl"))
 		err = errEndpointNotFound
 		return nil, err
 	}
@@ -401,7 +401,7 @@ func (nm *networkManager) updateEndpointImpl(nw *network, existingEpInfo *Endpoi
 	// Network namespace for the container interface has to be specified
 	if netns != "" {
 		// Open the network namespace.
-		log.Logger.Info("[updateEndpointImpl] Opening netns", zap.Any("netns", netns))
+		log.Logger.Info("Opening netns", zap.Any("netns", netns), zap.String("component", "updateEndpointImpl"))
 		ns, err = OpenNamespace(netns)
 		if err != nil {
 			return nil, err
@@ -409,25 +409,26 @@ func (nm *networkManager) updateEndpointImpl(nw *network, existingEpInfo *Endpoi
 		defer ns.Close()
 
 		// Enter the container network namespace.
-		log.Logger.Info("[updateEndpointImpl] Entering netns", zap.Any("netns", netns))
+		log.Logger.Info("Entering netns", zap.Any("netns", netns), zap.String("component", "updateEndpointImpl"))
 		if err = ns.Enter(); err != nil {
 			return nil, err
 		}
 
 		// Return to host network namespace.
 		defer func() {
-			log.Logger.Info("[updateEndpointImpl] Exiting netns", zap.Any("netns", netns))
+			log.Logger.Info("Exiting netns", zap.Any("netns", netns), zap.String("component", "updateEndpointImpl"))
 			if err := ns.Exit(); err != nil {
-				log.Logger.Error("[updateEndpointImpl] Failed to exit netns", zap.Any("Error:", err))
+				log.Logger.Error(" Failed to exit netns", zap.Any("Error:", err), zap.String("component", "updateEndpointImpl"))
 			}
 		}()
 	} else {
-		log.Logger.Info("[updateEndpointImpl] Endpoint cannot be updated as the network namespace does not exist: Epid", zap.String("Id", existingEpInfo.Id))
+		log.Logger.Info("Endpoint cannot be updated as the network namespace does not exist: Epid", zap.String("Id", existingEpInfo.Id),
+			zap.String("component", "updateEndpointImpl"))
 		err = errNamespaceNotFound
 		return nil, err
 	}
 
-	log.Logger.Info("[updateEndpointImpl] Going to update routes in netns", zap.Any("netns", netns))
+	log.Logger.Info("Going to update routes in netns", zap.Any("netns", netns), zap.String("component", "updateEndpointImpl"))
 	if err = nm.updateRoutes(existingEpInfo, targetEpInfo); err != nil {
 		return nil, err
 	}
