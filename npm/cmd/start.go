@@ -3,7 +3,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"math/rand"
 	"time"
@@ -21,7 +20,6 @@ import (
 	"github.com/Azure/azure-container-networking/npm/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	k8sversion "k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/informers"
@@ -233,32 +231,4 @@ func k8sServerVersion(kubeclientset kubernetes.Interface) *k8sversion.Info {
 		metrics.SendErrorLogAndMetric(util.NpmID, "Error: failed to retrieving kubernetes version with err: %s", err.Error())
 	}
 	return serverVersion
-}
-
-func labelNode(clientset *kubernetes.Clientset, nodeName, labelValue string) error {
-	msg := fmt.Sprintf("labeling this node %s with %s=%s", nodeName, util.NPMNodeLabelKey, labelValue)
-	metrics.SendLog(util.NpmID, msg, metrics.PrintLog)
-
-	k8sNode, err := clientset.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to get k8s node. nodeName: %s. err: %w", nodeName, err)
-	}
-
-	if k8sNode.Labels == nil {
-		k8sNode.Labels = make(map[string]string)
-	}
-
-	if val, ok := k8sNode.Labels[util.NPMNodeLabelKey]; ok && val == labelValue {
-		klog.Infof("node %s already labeled with %s=%s", nodeName, util.NPMNodeLabelKey, labelValue)
-		return nil
-	}
-
-	k8sNode.Labels[util.NPMNodeLabelKey] = labelValue
-
-	_, err = clientset.CoreV1().Nodes().Update(context.TODO(), k8sNode, metav1.UpdateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to update k8s node. nodeName: %s. err: %w", nodeName, err)
-	}
-
-	return nil
 }
