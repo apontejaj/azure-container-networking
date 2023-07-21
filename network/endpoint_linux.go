@@ -10,12 +10,13 @@ import (
 	"net"
 	"strings"
 
-	"github.com/Azure/azure-container-networking/log"
+	"github.com/Azure/azure-container-networking/cni/log"
 	"github.com/Azure/azure-container-networking/netio"
 	"github.com/Azure/azure-container-networking/netlink"
 	"github.com/Azure/azure-container-networking/network/networkutils"
 	"github.com/Azure/azure-container-networking/ovsctl"
 	"github.com/Azure/azure-container-networking/platform"
+	"go.uber.org/zap"
 )
 
 const (
@@ -38,7 +39,7 @@ func ConstructEndpointID(containerID string, _ string, ifName string) (string, s
 	if len(containerID) > 8 {
 		containerID = containerID[:8]
 	} else {
-		log.Printf("Container ID is not greater than 8 ID: %v", containerID)
+		log.Logger.Info("Container ID is not greater than 8 ID", zap.String("containerID", containerID))
 		return "", ""
 	}
 
@@ -66,7 +67,7 @@ func (nw *network) newEndpointImpl(
 	var vlanid int = 0
 
 	if nw.Endpoints[epInfo.Id] != nil {
-		log.Printf("[net] Endpoint alreday exists.")
+		log.Logger.Info("Endpoint alreday exists", zap.String("component", "net"))
 		err = errEndpointExists
 		return nil, err
 	}
@@ -83,13 +84,13 @@ func (nw *network) newEndpointImpl(
 
 	if _, ok := epInfo.Data[OptVethName]; ok {
 		key := epInfo.Data[OptVethName].(string)
-		log.Printf("Generate veth name based on the key provided %v", key)
+		log.Logger.Info("Generate veth name based on the key provided", zap.String("key", key))
 		vethname := generateVethName(key)
 		hostIfName = fmt.Sprintf("%s%s", hostVEthInterfacePrefix, vethname)
 		contIfName = fmt.Sprintf("%s%s2", hostVEthInterfacePrefix, vethname)
 	} else {
 		// Create a veth pair.
-		log.Printf("Generate veth name based on endpoint id")
+		log.Logger.Info("Generate veth name based on endpoint id")
 		hostIfName = fmt.Sprintf("%s%s", hostVEthInterfacePrefix, epInfo.Id[:7])
 		contIfName = fmt.Sprintf("%s%s-2", hostVEthInterfacePrefix, epInfo.Id[:7])
 	}
@@ -99,13 +100,13 @@ func (nw *network) newEndpointImpl(
 		//nolint:gocritic
 		if vlanid != 0 {
 			if nw.Mode == opModeTransparentVlan {
-				log.Printf("Transparent vlan client")
+				log.Logger.Info("Transparent vlan client")
 				if _, ok := epInfo.Data[SnatBridgeIPKey]; ok {
 					nw.SnatBridgeIP = epInfo.Data[SnatBridgeIPKey].(string)
 				}
 				epClient = NewTransparentVlanEndpointClient(nw, epInfo, hostIfName, contIfName, vlanid, localIP, nl, plc)
 			} else {
-				log.Printf("OVS client")
+				log.Logger.Info("OVS client")
 				if _, ok := epInfo.Data[SnatBridgeIPKey]; ok {
 					nw.SnatBridgeIP = epInfo.Data[SnatBridgeIPKey].(string)
 				}
@@ -122,10 +123,10 @@ func (nw *network) newEndpointImpl(
 					plc)
 			}
 		} else if nw.Mode != opModeTransparent {
-			log.Printf("Bridge client")
+			log.Logger.Info("Bridge client")
 			epClient = NewLinuxBridgeEndpointClient(nw.extIf, hostIfName, contIfName, nw.Mode, nl, plc)
 		} else {
-			log.Printf("Transparent client")
+			log.Logger.Info("Transparent client")
 			epClient = NewTransparentEndpointClient(nw.extIf, hostIfName, contIfName, nw.Mode, nl, plc)
 		}
 	}
@@ -133,7 +134,7 @@ func (nw *network) newEndpointImpl(
 	// Cleanup on failure.
 	defer func() {
 		if err != nil {
-			log.Printf("CNI error:%v. Delete Endpoint %v and rules that are created.", err, contIfName)
+			log.Logger.Info("CNI error. Delete Endpoint and rules that are created.", zap.Any("Error:", err.Error()), zap.String("contIfName", contIfName))
 			endpt := &endpoint{
 				Id:                       epInfo.Id,
 				IfName:                   contIfName,
@@ -179,7 +180,7 @@ func (nw *network) newEndpointImpl(
 	// If a network namespace for the container interface is specified...
 	if epInfo.NetNsPath != "" {
 		// Open the network namespace.
-		log.Printf("[net] Opening netns %v.", epInfo.NetNsPath)
+		log.Logger.Info("Opening netns", zap.Any("NetNsPath", epInfo.NetNsPath), zap.String("component", "net"))
 		ns, err = OpenNamespace(epInfo.NetNsPath)
 		if err != nil {
 			return nil, err
@@ -191,23 +192,23 @@ func (nw *network) newEndpointImpl(
 		}
 
 		// Enter the container network namespace.
-		log.Printf("[net] Entering netns %v.", epInfo.NetNsPath)
+		log.Logger.Info("Entering netns", zap.Any("NetNsPath", epInfo.NetNsPath), zap.String("component", "net"))
 		if err = ns.Enter(); err != nil {
 			return nil, err
 		}
 
 		// Return to host network namespace.
 		defer func() {
-			log.Printf("[net] Exiting netns %v.", epInfo.NetNsPath)
+			log.Logger.Info("Exiting netns", zap.Any("NetNsPath", epInfo.NetNsPath), zap.String("component", "net"))
 			if err := ns.Exit(); err != nil {
-				log.Printf("[net] Failed to exit netns, err:%v.", err)
+				log.Logger.Error("Failed to exit netns", zap.Any("Error:", err.Error()), zap.String("component", "net"))
 			}
 		}()
 	}
 
 	if epInfo.IPV6Mode != "" {
 		// Enable ipv6 setting in container
-		log.Printf("Enable ipv6 setting in container.")
+		log.Logger.Info("Enable ipv6 setting in container.")
 		nuc := networkutils.NewNetworkUtils(nl, plc)
 		if err = nuc.UpdateIPV6Setting(0); err != nil {
 			return nil, fmt.Errorf("Enable ipv6 in container failed:%w", err)
@@ -267,7 +268,7 @@ func (nw *network) deleteEndpointImpl(nl netlink.NetlinkInterface, plc platform.
 		if ep.VlanID != 0 {
 			epInfo := ep.getInfo()
 			if nw.Mode == opModeTransparentVlan {
-				log.Printf("Transparent vlan client")
+				log.Logger.Info("Transparent vlan client")
 				epClient = NewTransparentVlanEndpointClient(nw, epInfo, ep.HostIfName, "", ep.VlanID, ep.LocalIP, nl, plc)
 
 			} else {
@@ -303,7 +304,7 @@ func addRoutes(nl netlink.NetlinkInterface, netioshim netio.NetIOInterface, inte
 		} else {
 			interfaceIf, err := netioshim.GetNetworkInterfaceByName(interfaceName)
 			if err != nil {
-				log.Errorf("Interface not found:%v", err)
+				log.Logger.Error("Interface not found", zap.Any("Error:", err.Error()))
 				return fmt.Errorf("addRoutes failed: %w", err)
 			}
 			ifIndex = interfaceIf.Index
@@ -325,12 +326,12 @@ func addRoutes(nl netlink.NetlinkInterface, netioshim netio.NetIOInterface, inte
 			Table:     route.Table,
 		}
 
-		log.Printf("[net] Adding IP route %+v to link %v.", route, interfaceName)
+		log.Logger.Info("Adding IP route to link", zap.Any("route", route), zap.String("interfaceName", interfaceName), zap.String("component", "net"))
 		if err := nl.AddIPRoute(nlRoute); err != nil {
 			if !strings.Contains(strings.ToLower(err.Error()), "file exists") {
 				return err
 			} else {
-				log.Printf("[net] route already exists")
+				log.Logger.Info("route already exists", zap.String("component", "net"))
 			}
 		}
 	}
@@ -345,7 +346,7 @@ func deleteRoutes(nl netlink.NetlinkInterface, netioshim netio.NetIOInterface, i
 		if route.DevName != "" {
 			devIf, _ := netioshim.GetNetworkInterfaceByName(route.DevName)
 			if devIf == nil {
-				log.Printf("[net] Not deleting route. Interface %v doesn't exist", interfaceName)
+				log.Logger.Info("Not deleting route. Interface doesn't exist", zap.String("interfaceName", interfaceName), zap.String("component", "net"))
 				continue
 			}
 
@@ -353,7 +354,7 @@ func deleteRoutes(nl netlink.NetlinkInterface, netioshim netio.NetIOInterface, i
 		} else if interfaceName != "" {
 			interfaceIf, _ := netioshim.GetNetworkInterfaceByName(interfaceName)
 			if interfaceIf == nil {
-				log.Printf("[net] Not deleting route. Interface %v doesn't exist", interfaceName)
+				log.Logger.Info("[net] Not deleting route. Interface doesn't exist", zap.String("interfaceName", interfaceName), zap.String("component", "net"))
 				continue
 			}
 			ifIndex = interfaceIf.Index
@@ -373,7 +374,7 @@ func deleteRoutes(nl netlink.NetlinkInterface, netioshim netio.NetIOInterface, i
 			Scope:     route.Scope,
 		}
 
-		log.Printf("[net] Deleting IP route %+v from link %v.", route, interfaceName)
+		log.Logger.Info("Deleting IP route from link.", zap.Any("route", route), zap.String("interfaceName", interfaceName), zap.String("component", "net"))
 		if err := nl.DeleteIPRoute(nlRoute); err != nil {
 			return err
 		}
@@ -389,9 +390,9 @@ func (nm *networkManager) updateEndpointImpl(nw *network, existingEpInfo *Endpoi
 	var err error
 
 	existingEpFromRepository := nw.Endpoints[existingEpInfo.Id]
-	log.Printf("[updateEndpointImpl] Going to retrieve endpoint with Id %+v to update.", existingEpInfo.Id)
+	log.Logger.Info("[updateEndpointImpl] Going to retrieve endpoint with Id to update.", zap.String("Id", existingEpInfo.Id))
 	if existingEpFromRepository == nil {
-		log.Printf("[updateEndpointImpl] Endpoint cannot be updated as it does not exist.")
+		log.Logger.Info("[updateEndpointImpl] Endpoint cannot be updated as it does not exist.")
 		err = errEndpointNotFound
 		return nil, err
 	}
@@ -400,7 +401,7 @@ func (nm *networkManager) updateEndpointImpl(nw *network, existingEpInfo *Endpoi
 	// Network namespace for the container interface has to be specified
 	if netns != "" {
 		// Open the network namespace.
-		log.Printf("[updateEndpointImpl] Opening netns %v.", netns)
+		log.Logger.Info("[updateEndpointImpl] Opening netns", zap.Any("netns", netns))
 		ns, err = OpenNamespace(netns)
 		if err != nil {
 			return nil, err
@@ -408,25 +409,25 @@ func (nm *networkManager) updateEndpointImpl(nw *network, existingEpInfo *Endpoi
 		defer ns.Close()
 
 		// Enter the container network namespace.
-		log.Printf("[updateEndpointImpl] Entering netns %v.", netns)
+		log.Logger.Info("[updateEndpointImpl] Entering netns", zap.Any("netns", netns))
 		if err = ns.Enter(); err != nil {
 			return nil, err
 		}
 
 		// Return to host network namespace.
 		defer func() {
-			log.Printf("[updateEndpointImpl] Exiting netns %v.", netns)
+			log.Logger.Info("[updateEndpointImpl] Exiting netns", zap.Any("netns", netns))
 			if err := ns.Exit(); err != nil {
-				log.Printf("[updateEndpointImpl] Failed to exit netns, err:%v.", err)
+				log.Logger.Error("[updateEndpointImpl] Failed to exit netns", zap.Any("Error:", err.Error()))
 			}
 		}()
 	} else {
-		log.Printf("[updateEndpointImpl] Endpoint cannot be updated as the network namespace does not exist: Epid: %v", existingEpInfo.Id)
+		log.Logger.Info("[updateEndpointImpl] Endpoint cannot be updated as the network namespace does not exist: Epid", zap.String("Id", existingEpInfo.Id))
 		err = errNamespaceNotFound
 		return nil, err
 	}
 
-	log.Printf("[updateEndpointImpl] Going to update routes in netns %v.", netns)
+	log.Logger.Info("[updateEndpointImpl] Going to update routes in netns", zap.Any("netns", netns))
 	if err = nm.updateRoutes(existingEpInfo, targetEpInfo); err != nil {
 		return nil, err
 	}
@@ -443,8 +444,8 @@ func (nm *networkManager) updateEndpointImpl(nw *network, existingEpInfo *Endpoi
 }
 
 func (nm *networkManager) updateRoutes(existingEp *EndpointInfo, targetEp *EndpointInfo) error {
-	log.Printf("Updating routes for the endpoint %+v.", existingEp)
-	log.Printf("Target endpoint is %+v", targetEp)
+	log.Logger.Info("Updating routes for the endpoint", zap.Any("existingEp", existingEp))
+	log.Logger.Info("Target endpoint is", zap.Any("targetEp", targetEp))
 
 	existingRoutes := make(map[string]RouteInfo)
 	targetRoutes := make(map[string]RouteInfo)
@@ -455,8 +456,8 @@ func (nm *networkManager) updateRoutes(existingEp *EndpointInfo, targetEp *Endpo
 	// we do not support enable/disable snat for now
 	defaultDst := net.ParseIP("0.0.0.0")
 
-	log.Printf("Going to collect routes and skip default and infravnet routes if applicable.")
-	log.Printf("Key for default route: %+v", defaultDst.String())
+	log.Logger.Info("Going to collect routes and skip default and infravnet routes if applicable.")
+	log.Logger.Info("Key for default route", zap.String("route", defaultDst.String()))
 
 	infraVnetKey := ""
 	if targetEp.EnableInfraVnet {
@@ -466,15 +467,15 @@ func (nm *networkManager) updateRoutes(existingEp *EndpointInfo, targetEp *Endpo
 		}
 	}
 
-	log.Printf("Key for route to infra vnet: %+v", infraVnetKey)
+	log.Logger.Info("Key for route to infra vnet", zap.String("infraVnetKey", infraVnetKey))
 	for _, route := range existingEp.Routes {
 		destination := route.Dst.IP.String()
-		log.Printf("Checking destination as %+v to skip or not", destination)
+		log.Logger.Info("Checking destination as to skip or not", zap.Any("destination", destination))
 		isDefaultRoute := destination == defaultDst.String()
 		isInfraVnetRoute := targetEp.EnableInfraVnet && (destination == infraVnetKey)
 		if !isDefaultRoute && !isInfraVnetRoute {
 			existingRoutes[route.Dst.String()] = route
-			log.Printf("%+v was skipped", destination)
+			log.Logger.Info("was skipped", zap.Any("destination", destination))
 		}
 	}
 
@@ -486,7 +487,7 @@ func (nm *networkManager) updateRoutes(existingEp *EndpointInfo, targetEp *Endpo
 		dst := existingRoute.Dst.String()
 		if _, ok := targetRoutes[dst]; !ok {
 			tobeDeletedRoutes = append(tobeDeletedRoutes, existingRoute)
-			log.Printf("Adding following route to the tobeDeleted list: %+v", existingRoute)
+			log.Logger.Info("Adding following route to the tobeDeleted list", zap.Any("existingRoute", existingRoute))
 		}
 	}
 
@@ -494,7 +495,7 @@ func (nm *networkManager) updateRoutes(existingEp *EndpointInfo, targetEp *Endpo
 		dst := targetRoute.Dst.String()
 		if _, ok := existingRoutes[dst]; !ok {
 			tobeAddedRoutes = append(tobeAddedRoutes, targetRoute)
-			log.Printf("Adding following route to the tobeAdded list: %+v", targetRoute)
+			log.Logger.Info("Adding following route to the tobeAdded list", zap.Any("targetRoute", targetRoute))
 		}
 
 	}
@@ -509,7 +510,7 @@ func (nm *networkManager) updateRoutes(existingEp *EndpointInfo, targetEp *Endpo
 		return err
 	}
 
-	log.Printf("Successfully updated routes for the endpoint %+v using target: %+v", existingEp, targetEp)
+	log.Logger.Info("Successfully updated routes for the endpoint using target", zap.Any("existingEp", existingEp), zap.Any("targetEp", targetEp))
 
 	return nil
 }

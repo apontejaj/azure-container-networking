@@ -3,12 +3,13 @@ package network
 import (
 	"fmt"
 
-	"github.com/Azure/azure-container-networking/log"
+	"github.com/Azure/azure-container-networking/cni/log"
 	"github.com/Azure/azure-container-networking/netlink"
 	"github.com/Azure/azure-container-networking/network/networkutils"
 	"github.com/Azure/azure-container-networking/network/snat"
 	"github.com/Azure/azure-container-networking/platform"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 func GetSnatHostIfName(epInfo *EndpointInfo) string {
@@ -58,7 +59,7 @@ func AddSnatEndpointRules(snatClient *snat.Client, hostToNC, ncToHost bool, nl n
 func MoveSnatEndpointToContainerNS(snatClient *snat.Client, netnsPath string, nsID uintptr) error {
 	if err := snatClient.MoveSnatEndpointToContainerNS(netnsPath, nsID); err != nil {
 		if delErr := snatClient.DeleteSnatEndpoint(); delErr != nil {
-			log.Errorf("failed to delete snat endpoint on error(moving to container ns): %v", delErr)
+			log.Logger.Error("failed to delete snat endpoint on error(moving to container ns)", zap.Any("delErr", delErr))
 		}
 		return errors.Wrap(err, "failed to move snat endpoint to container ns. deleted snat endpoint")
 	}
@@ -90,14 +91,14 @@ func DeleteSnatEndpointRules(snatClient *snat.Client, hostToNC, ncToHost bool) {
 	if hostToNC {
 		err := snatClient.DeleteInboundFromHostToNC()
 		if err != nil {
-			log.Errorf("failed to delete inbound from host to nc rules")
+			log.Logger.Error("failed to delete inbound from host to nc rules")
 		}
 	}
 
 	if ncToHost {
 		err := snatClient.DeleteInboundFromNCToHost()
 		if err != nil {
-			log.Errorf("failed to delete inbound from nc to host rules")
+			log.Logger.Error("failed to delete inbound from nc to host rules")
 		}
 	}
 }

@@ -3,9 +3,10 @@ package network
 import (
 	"fmt"
 
+	"github.com/Azure/azure-container-networking/cni/log"
 	cnms "github.com/Azure/azure-container-networking/cnms/cnmspackage"
 	"github.com/Azure/azure-container-networking/ebtables"
-	"github.com/Azure/azure-container-networking/log"
+	"go.uber.org/zap"
 )
 
 const (
@@ -16,7 +17,7 @@ const (
 func (nm *networkManager) monitorNetworkState(networkMonitor *cnms.NetworkMonitor) error {
 	currentEbtableRulesMap, err := cnms.GetEbTableRulesInMap()
 	if err != nil {
-		log.Printf("GetEbTableRulesInMap failed with error %v", err)
+		log.Logger.Error("GetEbTableRulesInMap failed", zap.Any("error:", err))
 		return err
 	}
 

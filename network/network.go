@@ -8,9 +8,10 @@ import (
 	"net"
 	"strings"
 
-	"github.com/Azure/azure-container-networking/log"
+	"github.com/Azure/azure-container-networking/cni/log"
 	"github.com/Azure/azure-container-networking/network/policy"
 	"github.com/Azure/azure-container-networking/platform"
+	"go.uber.org/zap"
 )
 
 const (
@@ -122,7 +123,8 @@ func (nm *networkManager) newExternalInterface(ifName string, subnet string) err
 
 	nm.ExternalInterfaces[ifName] = &extIf
 
-	log.Printf("[net] Added ExternalInterface %v for subnet %v.", ifName, subnet)
+	log.Logger.Info("Added ExternalInterface for subnet", zap.String("ifName", ifName), zap.Any("subnet", subnet),
+		zap.String("component", "net"))
 
 	return nil
 }
@@ -131,7 +133,7 @@ func (nm *networkManager) newExternalInterface(ifName string, subnet string) err
 func (nm *networkManager) deleteExternalInterface(ifName string) error {
 	delete(nm.ExternalInterfaces, ifName)
 
-	log.Printf("[net] Deleted ExternalInterface %v.", ifName)
+	log.Logger.Info("Deleted ExternalInterface", zap.String("ifName", ifName), zap.String("component", "net"))
 
 	return nil
 }
@@ -164,10 +166,11 @@ func (nm *networkManager) newNetwork(nwInfo *NetworkInfo) (*network, error) {
 	var nw *network
 	var err error
 
-	log.Printf("[net] Creating network %s.", nwInfo.PrettyString())
+	log.Logger.Info("Creating network", zap.String("network", nwInfo.PrettyString()), zap.String("component", "net"))
 	defer func() {
 		if err != nil {
-			log.Printf("[net] Failed to create network %v, err:%v.", nwInfo.Id, err)
+			log.Logger.Error("Failed to create network", zap.String("Id", nwInfo.Id), zap.Any("error:", err),
+				zap.String("component", "net"))
 		}
 	}()
 
@@ -205,7 +208,8 @@ func (nm *networkManager) newNetwork(nwInfo *NetworkInfo) (*network, error) {
 	nw.Subnets = nwInfo.Subnets
 	extIf.Networks[nwInfo.Id] = nw
 
-	log.Printf("[net] Created network %v on interface %v.", nwInfo.Id, extIf.Name)
+	log.Logger.Info("Created network on interface", zap.String("Id", nwInfo.Id), zap.String("Name", extIf.Name),
+		zap.String("component", "net"))
 	return nw, nil
 }
 
@@ -213,10 +217,11 @@ func (nm *networkManager) newNetwork(nwInfo *NetworkInfo) (*network, error) {
 func (nm *networkManager) deleteNetwork(networkID string) error {
 	var err error
 
-	log.Printf("[net] Deleting network %v.", networkID)
+	log.Logger.Info("Deleting network", zap.String("networkID", networkID), zap.String("component", "net"))
 	defer func() {
 		if err != nil {
-			log.Printf("[net] Failed to delete network %v, err:%v.", networkID, err)
+			log.Logger.Error("Failed to delete network", zap.String("networkID", networkID), zap.Any("error:", err),
+				zap.String("component", "net"))
 		}
 	}()
 
@@ -237,7 +242,7 @@ func (nm *networkManager) deleteNetwork(networkID string) error {
 		delete(nw.extIf.Networks, networkID)
 	}
 
-	log.Printf("[net] Deleted network %+v.", nw)
+	log.Logger.Info("Deleted network", zap.Any("nw", nw), zap.String("component", "net"))
 	return nil
 }
 
@@ -256,7 +261,7 @@ func (nm *networkManager) getNetwork(networkId string) (*network, error) {
 // getNetworkIDForNetNs finds the network that contains the endpoint that was created for this netNs. Returns
 // and errNetworkNotFound if the netNs is not found in any network
 func (nm *networkManager) FindNetworkIDFromNetNs(netNs string) (string, error) {
-	log.Printf("Querying state for network for NetNs [%s]", netNs)
+	log.Logger.Info("Querying state for network for NetNs", zap.String("netNs", netNs))
 
 	// Look through the external interfaces
 	for _, iface := range nm.ExternalInterfaces {
@@ -266,7 +271,7 @@ func (nm *networkManager) FindNetworkIDFromNetNs(netNs string) (string, error) {
 			for _, endpoint := range network.Endpoints {
 				// If the netNs matches for this endpoint, return the network ID (which is the name)
 				if endpoint.NetNs == netNs {
-					log.Printf("Found network [%s] for NetNS [%s]", network.Id, netNs)
+					log.Logger.Info("Found network for NetNS", zap.String("Id", network.Id), zap.String("netNs", netNs))
 					return network.Id, nil
 				}
 			}
@@ -287,7 +292,7 @@ func (nm *networkManager) GetNumEndpointsByContainerID(containerID string) int {
 			for _, endpoint := range network.Endpoints {
 				// If the netNs matches for this endpoint, return the network ID (which is the name)
 				if endpoint.ContainerID == containerID {
-					log.Printf("Found endpoint [%s] for containerID [%s]", endpoint.Id, containerID)
+					log.Logger.Info("Found endpoint for containerID", zap.String("Id", endpoint.Id), zap.String("containerID", containerID))
 					numEndpoints++
 				}
 			}
