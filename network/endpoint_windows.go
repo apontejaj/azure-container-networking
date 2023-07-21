@@ -124,7 +124,7 @@ func (nw *network) newEndpointImplHnsV1(epInfo *EndpointInfo) (*endpoint, error)
 		if err != nil {
 			log.Logger.Info("HNSEndpointRequest DELETE id", zap.String("Id", hnsResponse.Id), zap.String("component", "net"))
 			hnsResponse, err := Hnsv1.DeleteEndpoint(hnsResponse.Id)
-			log.Logger.Info("HNSEndpointRequest DELETE response", zap.Any("hnsResponse", hnsResponse), zap.Any("error:", err.Error()), zap.String("component", "net"))
+			log.Logger.Info("HNSEndpointRequest DELETE response", zap.Any("hnsResponse", hnsResponse), zap.Any("error:"), zap.String("component", "net"))
 		}
 	}()
 
@@ -136,7 +136,7 @@ func (nw *network) newEndpointImplHnsV1(epInfo *EndpointInfo) (*endpoint, error)
 		log.Logger.Info("Attaching endpoint to container", zap.String("Id", hnsResponse.Id), zap.String("ContainerID", epInfo.ContainerID), zap.String("component", "net"))
 		err = Hnsv1.HotAttachEndpoint(epInfo.ContainerID, hnsResponse.Id)
 		if err != nil {
-			log.Logger.Error("Failed to attach endpoint", zap.Any("error:", err.Error()))
+			log.Logger.Error("Failed to attach endpoint", zap.Any("error:", err))
 			return nil, err
 		}
 	}
@@ -313,7 +313,7 @@ func (nw *network) createHostNCApipaEndpoint(cli apipaClient, epInfo *EndpointIn
 func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (*endpoint, error) {
 	hcnEndpoint, err := nw.configureHcnEndpoint(epInfo)
 	if err != nil {
-		log.Logger.Error("Failed to configure hcn endpoint due to error", zap.Any("error:", err.Error()), zap.String("component", "net"))
+		log.Logger.Error("Failed to configure hcn endpoint due to error", zap.Any("error:", err), zap.String("component", "net"))
 		return nil, err
 	}
 

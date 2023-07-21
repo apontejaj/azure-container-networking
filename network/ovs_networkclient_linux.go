@@ -10,11 +10,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Azure/azure-container-networking/log"
+	"github.com/Azure/azure-container-networking/cni/log"
 	"github.com/Azure/azure-container-networking/netlink"
 	"github.com/Azure/azure-container-networking/network/networkutils"
 	"github.com/Azure/azure-container-networking/ovsctl"
 	"github.com/Azure/azure-container-networking/platform"
+	"go.uber.org/zap"
 )
 
 var errorOVSNetworkClient = errors.New("OVSNetworkClient Error")
@@ -40,7 +41,7 @@ const (
 func updateOVSConfig(option string) error {
 	f, err := os.OpenFile(ovsConfigFile, os.O_APPEND|os.O_RDWR, 0o666)
 	if err != nil {
-		log.Printf("Error while opening ovs config %v", err)
+		log.Logger.Error("Error while opening ovs config", zap.Any("error:", err))
 		return err
 	}
 
@@ -53,15 +54,15 @@ func updateOVSConfig(option string) error {
 	conSplit := strings.Split(contents, "\n")
 	for _, existingOption := range conSplit {
 		if option == existingOption {
-			log.Printf("Not updating ovs config. Found option already written")
+			log.Logger.Info("Not updating ovs config. Found option already written")
 			return nil
 		}
 	}
 
-	log.Printf("writing ovsconfig option %v", option)
+	log.Logger.Info("writing ovsconfig option", zap.Any("option", option))
 
 	if _, err = f.WriteString(option); err != nil {
-		log.Printf("Error while writing ovs config %v", err)
+		log.Logger.Error("Error while writing ovs config", zap.Any("error:", err))
 		return err
 	}
 
@@ -109,7 +110,7 @@ func (client *OVSNetworkClient) CreateBridge() error {
 
 func (client *OVSNetworkClient) DeleteBridge() error {
 	if err := client.ovsctlClient.DeleteOVSBridge(client.bridgeName); err != nil {
-		log.Printf("Deleting ovs bridge failed with error %v", err)
+		log.Logger.Error("Deleting ovs bridge failed with error", zap.Any("error:", err))
 	}
 
 	return nil
@@ -125,12 +126,14 @@ func (client *OVSNetworkClient) AddL2Rules(extIf *externalInterface) error {
 	}
 
 	// Arp SNAT Rule
-	log.Printf("[ovs] Adding ARP SNAT rule for egress traffic on interface %v", client.hostInterfaceName)
+	log.Logger.Info("Adding ARP SNAT rule for egress traffic on interface", zap.String("hostInterfaceName", client.hostInterfaceName),
+		zap.String("component", "ovs"))
 	if err := client.ovsctlClient.AddArpSnatRule(client.bridgeName, mac, macHex, ofport); err != nil {
 		return err
 	}
 
-	log.Printf("[ovs] Adding DNAT rule for ingress ARP traffic on interface %v.", client.hostInterfaceName)
+	log.Logger.Info("Adding DNAT rule for ingress ARP traffic on interface", zap.String("hostInterfaceName", client.hostInterfaceName),
+		zap.String("component", "ovs"))
 	err = client.ovsctlClient.AddArpDnatRule(client.bridgeName, ofport, macHex)
 	if err != nil {
 		return newErrorOVSNetworkClient(err.Error())
@@ -141,7 +144,8 @@ func (client *OVSNetworkClient) AddL2Rules(extIf *externalInterface) error {
 
 func (client *OVSNetworkClient) DeleteL2Rules(extIf *externalInterface) {
 	if err := client.ovsctlClient.DeletePortFromOVS(client.bridgeName, client.hostInterfaceName); err != nil {
-		log.Printf("[ovs] Deletion of interface %v from bridge %v failed", client.hostInterfaceName, client.bridgeName)
+		log.Logger.Error("Deletion of interface from bridge failed", zap.String("hostInterfaceName", client.hostInterfaceName),
+			zap.String("bridgeName", client.bridgeName), zap.String("component", "ovs"))
 	}
 }
 

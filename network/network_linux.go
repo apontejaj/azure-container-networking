@@ -98,7 +98,7 @@ func (nm *networkManager) newNetworkImpl(nwInfo *NetworkInfo, extIf *externalInt
 
 	err := nm.handleCommonOptions(ifName, nwInfo)
 	if err != nil {
-		log.Logger.Error("handleCommonOptions failed", zap.Any("error:", err.Error()))
+		log.Logger.Error("handleCommonOptions failed", zap.Any("error:", err))
 		return nil, err
 	}
 
@@ -158,7 +158,7 @@ func (nm *networkManager) saveIPConfig(hostIf *net.Interface, extIf *externalInt
 	// Save the default routes on the interface.
 	routes, err := nm.netlink.GetIPRoute(&netlink.Route{Dst: &net.IPNet{}, LinkIndex: hostIf.Index})
 	if err != nil {
-		log.Logger.Error("Failed to query routes", zap.Any("error:", err.Error()), zap.String("component", "net"))
+		log.Logger.Error("Failed to query routes", zap.Any("error:", err), zap.String("component", "net"))
 		return err
 	}
 
@@ -219,7 +219,7 @@ func getMajorVersion(version string) (int, error) {
 func isGreaterOrEqaulUbuntuVersion(versionToMatch int) bool {
 	osInfo, err := platform.GetOSDetails()
 	if err != nil {
-		log.Logger.Error("Unable to get OS Details", zap.Any("error:", err.Error()), zap.String("component", "net"))
+		log.Logger.Error("Unable to get OS Details", zap.Any("error:", err), zap.String("component", "net"))
 		return false
 	}
 
@@ -232,7 +232,7 @@ func isGreaterOrEqaulUbuntuVersion(versionToMatch int) bool {
 		version = strings.Trim(version, "\"")
 		retrieved_version, err := getMajorVersion(version)
 		if err != nil {
-			log.Logger.Error("Not setting dns. Unable to retrieve major version", zap.Any("error:", err.Error()), zap.String("component", "net"))
+			log.Logger.Error("Not setting dns. Unable to retrieve major version", zap.Any("error:", err), zap.String("component", "net"))
 			return false
 		}
 
@@ -564,7 +564,7 @@ func (nm *networkManager) disconnectExternalInterface(extIf *externalInterface, 
 	hostIf, _ := net.InterfaceByName(extIf.Name)
 	err := nm.applyIPConfig(extIf, hostIf)
 	if err != nil {
-		log.Logger.Error("Failed to apply IP configuration", zap.Any("error:", err.Error()), zap.String("component", "net"))
+		log.Logger.Error("Failed to apply IP configuration", zap.Any("error:", err), zap.String("component", "net"))
 	}
 
 	extIf.IPAddresses = nil
@@ -580,7 +580,7 @@ func (*networkManager) addToIptables(cmds []iptables.IPTableEntry) error {
 		if err != nil {
 			return err
 		}
-		log.Logger.Info("Succesfully run iptables rule", zap.Any("cmd", cmd))
+		log.Logger.Info("Successfully run iptables rule", zap.Any("cmd", cmd))
 	}
 	return nil
 }
@@ -659,7 +659,7 @@ func AddStaticRoute(nl netlink.NetlinkInterface, netioshim netio.NetIOInterface,
 	routes = append(routes, route)
 	if err := addRoutes(nl, netioshim, interfaceName, routes); err != nil {
 		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "file exists") {
-			log.Logger.Error("addroutes failed with error", zap.Any("error:", err.Error()))
+			log.Logger.Error("addroutes failed with error", zap.Any("error:", err))
 			return err
 		}
 	}

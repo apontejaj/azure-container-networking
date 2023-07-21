@@ -134,7 +134,7 @@ func (nw *network) newEndpointImpl(
 	// Cleanup on failure.
 	defer func() {
 		if err != nil {
-			log.Logger.Info("CNI error. Delete Endpoint and rules that are created.", zap.Any("Error:", err.Error()), zap.String("contIfName", contIfName))
+			log.Logger.Info("CNI error. Delete Endpoint and rules that are created.", zap.Any("Error:", err), zap.String("contIfName", contIfName))
 			endpt := &endpoint{
 				Id:                       epInfo.Id,
 				IfName:                   contIfName,
@@ -201,7 +201,7 @@ func (nw *network) newEndpointImpl(
 		defer func() {
 			log.Logger.Info("Exiting netns", zap.Any("NetNsPath", epInfo.NetNsPath), zap.String("component", "net"))
 			if err := ns.Exit(); err != nil {
-				log.Logger.Error("Failed to exit netns", zap.Any("Error:", err.Error()), zap.String("component", "net"))
+				log.Logger.Error("Failed to exit netns", zap.Any("Error:", err), zap.String("component", "net"))
 			}
 		}()
 	}
@@ -304,7 +304,7 @@ func addRoutes(nl netlink.NetlinkInterface, netioshim netio.NetIOInterface, inte
 		} else {
 			interfaceIf, err := netioshim.GetNetworkInterfaceByName(interfaceName)
 			if err != nil {
-				log.Logger.Error("Interface not found", zap.Any("Error:", err.Error()))
+				log.Logger.Error("Interface not found", zap.Any("Error:", err))
 				return fmt.Errorf("addRoutes failed: %w", err)
 			}
 			ifIndex = interfaceIf.Index
@@ -418,7 +418,7 @@ func (nm *networkManager) updateEndpointImpl(nw *network, existingEpInfo *Endpoi
 		defer func() {
 			log.Logger.Info("[updateEndpointImpl] Exiting netns", zap.Any("netns", netns))
 			if err := ns.Exit(); err != nil {
-				log.Logger.Error("[updateEndpointImpl] Failed to exit netns", zap.Any("Error:", err.Error()))
+				log.Logger.Error("[updateEndpointImpl] Failed to exit netns", zap.Any("Error:", err))
 			}
 		}()
 	} else {

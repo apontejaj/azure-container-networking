@@ -157,7 +157,7 @@ func (nm *networkManager) newNetworkImplHnsV1(nwInfo *NetworkInfo, extIf *extern
 		if err != nil {
 			log.Logger.Info("HNSNetworkRequest DELETE id", zap.String("Id", hnsResponse.Id), zap.String("component", "net"))
 			hnsResponse, err := Hnsv1.DeleteNetwork(hnsResponse.Id)
-			log.Logger.Error("HNSNetworkRequest DELETE response", zap.Any("hnsResponse", hnsResponse), zap.Any("error:", err.Error()), zap.String("component", "net"))
+			log.Logger.Error("HNSNetworkRequest DELETE response", zap.Any("hnsResponse", hnsResponse), zap.Any("error:", err), zap.String("component", "net"))
 		}
 	}()
 
@@ -209,13 +209,13 @@ func (nm *networkManager) appIPV6RouteEntry(nwInfo *NetworkInfo) error {
 		cmd := fmt.Sprintf(routeCmd, "delete", nwInfo.Subnets[1].Prefix.String(),
 			ifName, ipv6DefaultHop)
 		if out, err = nm.plClient.ExecuteCommand(cmd); err != nil {
-			log.Logger.Error("Deleting ipv6 route failed", zap.Any("out", out), zap.Any("error:", err.Error()))
+			log.Logger.Error("Deleting ipv6 route failed", zap.Any("out", out), zap.Any("error:", err.))
 		}
 
 		cmd = fmt.Sprintf(routeCmd, "add", nwInfo.Subnets[1].Prefix.String(),
 			ifName, ipv6DefaultHop)
 		if out, err = nm.plClient.ExecuteCommand(cmd); err != nil {
-			log.Logger.Error("Adding ipv6 route failed", out, err)
+			log.Logger.Error("Adding ipv6 route failed", zap.Any("out", out), zap.Any("error:", err))
 		}
 	}
 
