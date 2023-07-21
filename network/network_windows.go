@@ -209,7 +209,7 @@ func (nm *networkManager) appIPV6RouteEntry(nwInfo *NetworkInfo) error {
 		cmd := fmt.Sprintf(routeCmd, "delete", nwInfo.Subnets[1].Prefix.String(),
 			ifName, ipv6DefaultHop)
 		if out, err = nm.plClient.ExecuteCommand(cmd); err != nil {
-			log.Logger.Error("Deleting ipv6 route failed", zap.Any("out", out), zap.Any("error:", err.))
+			log.Logger.Error("Deleting ipv6 route failed", zap.Any("out", out), zap.Any("error:", err))
 		}
 
 		cmd = fmt.Sprintf(routeCmd, "add", nwInfo.Subnets[1].Prefix.String(),
