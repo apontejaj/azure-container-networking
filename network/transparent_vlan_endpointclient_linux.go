@@ -454,7 +454,7 @@ func (client *TransparentVlanEndpointClient) ConfigureVnetInterfacesAndRoutesImp
 
 	// Delete old route if any for this IP
 	err = deleteRoutes(client.netlink, client.netioshim, "", routeInfoList)
-	log.Logger.Info("Deleting old routes returned", zap.Any("error:", err), zap.String("component", "transparent vlan"))
+	log.Logger.Info("Deleting old routes returned", zap.Error(err), zap.String("component", "transparent vlan"))
 
 	if err = addRoutes(client.netlink, client.netioshim, client.vnetVethName, routeInfoList); err != nil {
 		return errors.Wrap(err, "failed adding routes to vnet specific to this container")
@@ -604,7 +604,7 @@ func ExecuteInNS(nsName string, f func() error) error {
 	// Current namespace
 	returnedTo, err := GetCurrentThreadNamespace()
 	if err != nil {
-		log.Logger.Error("Could not get NS we are in", zap.Any("error:", err), zap.String("component", "ExecuteInNS"))
+		log.Logger.Error("Could not get NS we are in", zap.Error(err), zap.String("component", "ExecuteInNS"))
 	} else {
 		log.Logger.Info("In NS before switch", zap.String("fileName", returnedTo.file.Name()), zap.String("component", "ExecuteInNS"))
 	}
@@ -626,11 +626,11 @@ func ExecuteInNS(nsName string, f func() error) error {
 	defer func() {
 		log.Logger.Info("Exiting ns", zap.String("nsFileName", ns.file.Name()), zap.String("component", "ExecuteInNS"))
 		if err := ns.Exit(); err != nil {
-			log.Logger.Error("Could not exit ns", zap.Any("error:", err), zap.String("component", "ExecuteInNS"))
+			log.Logger.Error("Could not exit ns", zap.Error(err), zap.String("component", "ExecuteInNS"))
 		}
 		returnedTo, err := GetCurrentThreadNamespace()
 		if err != nil {
-			log.Logger.Error("Could not get NS we returned to", zap.Any("error:", err), zap.String("component", "ExecuteInNS"))
+			log.Logger.Error("Could not get NS we returned to", zap.Error(err), zap.String("component", "ExecuteInNS"))
 		} else {
 			log.Logger.Info("Returned to NS", zap.String("fileName", returnedTo.file.Name()), zap.String("component", "ExecuteInNS"))
 		}

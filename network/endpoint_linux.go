@@ -134,7 +134,7 @@ func (nw *network) newEndpointImpl(
 	// Cleanup on failure.
 	defer func() {
 		if err != nil {
-			log.Logger.Info("CNI error. Delete Endpoint and rules that are created with", zap.Any("Error:", err), zap.String("contIfName", contIfName))
+			log.Logger.Info("CNI error. Delete Endpoint and rules that are created with", zap.Error(err), zap.String("contIfName", contIfName))
 			endpt := &endpoint{
 				Id:                       epInfo.Id,
 				IfName:                   contIfName,
@@ -201,7 +201,7 @@ func (nw *network) newEndpointImpl(
 		defer func() {
 			log.Logger.Info("Exiting netns", zap.Any("NetNsPath", epInfo.NetNsPath), zap.String("component", "net"))
 			if err := ns.Exit(); err != nil {
-				log.Logger.Error("Failed to exit netns with", zap.Any("Error:", err), zap.String("component", "net"))
+				log.Logger.Error("Failed to exit netns with", zap.Error(err), zap.String("component", "net"))
 			}
 		}()
 	}
@@ -304,7 +304,7 @@ func addRoutes(nl netlink.NetlinkInterface, netioshim netio.NetIOInterface, inte
 		} else {
 			interfaceIf, err := netioshim.GetNetworkInterfaceByName(interfaceName)
 			if err != nil {
-				log.Logger.Error("Interface not found with", zap.Any("Error:", err))
+				log.Logger.Error("Interface not found with", zap.Error(err))
 				return fmt.Errorf("addRoutes failed: %w", err)
 			}
 			ifIndex = interfaceIf.Index
@@ -390,7 +390,7 @@ func (nm *networkManager) updateEndpointImpl(nw *network, existingEpInfo *Endpoi
 	var err error
 
 	existingEpFromRepository := nw.Endpoints[existingEpInfo.Id]
-	log.Logger.Info("Going to retrieve endpoint with Id to update", zap.String("Id", existingEpInfo.Id), zap.String("component", "updateEndpointImpl"))
+	log.Logger.Info("Going to retrieve endpoint with Id to update", zap.String("id", existingEpInfo.Id), zap.String("component", "updateEndpointImpl"))
 	if existingEpFromRepository == nil {
 		log.Logger.Info("Endpoint cannot be updated as it does not exist", zap.String("component", "updateEndpointImpl"))
 		err = errEndpointNotFound
@@ -418,11 +418,11 @@ func (nm *networkManager) updateEndpointImpl(nw *network, existingEpInfo *Endpoi
 		defer func() {
 			log.Logger.Info("Exiting netns", zap.Any("netns", netns), zap.String("component", "updateEndpointImpl"))
 			if err := ns.Exit(); err != nil {
-				log.Logger.Error(" Failed to exit netns with", zap.Any("Error:", err), zap.String("component", "updateEndpointImpl"))
+				log.Logger.Error(" Failed to exit netns with", zap.Error(err), zap.String("component", "updateEndpointImpl"))
 			}
 		}()
 	} else {
-		log.Logger.Info("Endpoint cannot be updated as the network namespace does not exist: Epid", zap.String("Id", existingEpInfo.Id),
+		log.Logger.Info("Endpoint cannot be updated as the network namespace does not exist: Epid", zap.String("id", existingEpInfo.Id),
 			zap.String("component", "updateEndpointImpl"))
 		err = errNamespaceNotFound
 		return nil, err

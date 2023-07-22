@@ -41,7 +41,7 @@ const (
 func updateOVSConfig(option string) error {
 	f, err := os.OpenFile(ovsConfigFile, os.O_APPEND|os.O_RDWR, 0o666)
 	if err != nil {
-		log.Logger.Error("Error while opening ovs config", zap.Any("error:", err))
+		log.Logger.Error("Error while opening ovs config", zap.Error(err))
 		return err
 	}
 
@@ -62,7 +62,7 @@ func updateOVSConfig(option string) error {
 	log.Logger.Info("writing ovsconfig option", zap.Any("option", option))
 
 	if _, err = f.WriteString(option); err != nil {
-		log.Logger.Error("Error while writing ovs config", zap.Any("error:", err))
+		log.Logger.Error("Error while writing ovs config", zap.Error(err))
 		return err
 	}
 
@@ -110,7 +110,7 @@ func (client *OVSNetworkClient) CreateBridge() error {
 
 func (client *OVSNetworkClient) DeleteBridge() error {
 	if err := client.ovsctlClient.DeleteOVSBridge(client.bridgeName); err != nil {
-		log.Logger.Error("Deleting ovs bridge failed with", zap.Any("error:", err))
+		log.Logger.Error("Deleting ovs bridge failed with", zap.Error(err))
 	}
 
 	return nil

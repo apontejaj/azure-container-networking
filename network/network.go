@@ -169,7 +169,7 @@ func (nm *networkManager) newNetwork(nwInfo *NetworkInfo) (*network, error) {
 	log.Logger.Info("Creating network", zap.String("network", nwInfo.PrettyString()), zap.String("component", "net"))
 	defer func() {
 		if err != nil {
-			log.Logger.Error("Failed to create network", zap.String("Id", nwInfo.Id), zap.Any("error:", err),
+			log.Logger.Error("Failed to create network", zap.String("id", nwInfo.Id), zap.Error(err),
 				zap.String("component", "net"))
 		}
 	}()
@@ -208,7 +208,7 @@ func (nm *networkManager) newNetwork(nwInfo *NetworkInfo) (*network, error) {
 	nw.Subnets = nwInfo.Subnets
 	extIf.Networks[nwInfo.Id] = nw
 
-	log.Logger.Info("Created network on interface", zap.String("Id", nwInfo.Id), zap.String("Name", extIf.Name),
+	log.Logger.Info("Created network on interface", zap.String("id", nwInfo.Id), zap.String("Name", extIf.Name),
 		zap.String("component", "net"))
 	return nw, nil
 }
@@ -220,7 +220,7 @@ func (nm *networkManager) deleteNetwork(networkID string) error {
 	log.Logger.Info("Deleting network", zap.String("networkID", networkID), zap.String("component", "net"))
 	defer func() {
 		if err != nil {
-			log.Logger.Error("Failed to delete network", zap.String("networkID", networkID), zap.Any("error:", err),
+			log.Logger.Error("Failed to delete network", zap.String("networkID", networkID), zap.Error(err),
 				zap.String("component", "net"))
 		}
 	}()
@@ -271,7 +271,7 @@ func (nm *networkManager) FindNetworkIDFromNetNs(netNs string) (string, error) {
 			for _, endpoint := range network.Endpoints {
 				// If the netNs matches for this endpoint, return the network ID (which is the name)
 				if endpoint.NetNs == netNs {
-					log.Logger.Info("Found network for NetNS", zap.String("Id", network.Id), zap.String("netNs", netNs))
+					log.Logger.Info("Found network for NetNS", zap.String("id", network.Id), zap.String("netNs", netNs))
 					return network.Id, nil
 				}
 			}
@@ -292,7 +292,7 @@ func (nm *networkManager) GetNumEndpointsByContainerID(containerID string) int {
 			for _, endpoint := range network.Endpoints {
 				// If the netNs matches for this endpoint, return the network ID (which is the name)
 				if endpoint.ContainerID == containerID {
-					log.Logger.Info("Found endpoint for containerID", zap.String("Id", endpoint.Id), zap.String("containerID", containerID))
+					log.Logger.Info("Found endpoint for containerID", zap.String("id", endpoint.Id), zap.String("containerID", containerID))
 					numEndpoints++
 				}
 			}

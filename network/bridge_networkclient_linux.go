@@ -74,13 +74,13 @@ func (client *LinuxBridgeClient) DeleteBridge() error {
 	// Disconnect external interface from its bridge.
 	err := client.netlink.SetLinkMaster(client.hostInterfaceName, "")
 	if err != nil {
-		log.Logger.Error("Failed to disconnect interface from bridge", zap.String("hostInterfaceName", client.hostInterfaceName), zap.Any("error:", err), zap.String("component", "net"))
+		log.Logger.Error("Failed to disconnect interface from bridge", zap.String("hostInterfaceName", client.hostInterfaceName), zap.Error(err), zap.String("component", "net"))
 	}
 
 	// Delete the bridge.
 	err = client.netlink.DeleteLink(client.bridgeName)
 	if err != nil {
-		log.Logger.Error("Failed to delete bridge", zap.String("bridgeName", client.bridgeName), zap.Any("error:", err), zap.String("component", "net"))
+		log.Logger.Error("Failed to delete bridge", zap.String("bridgeName", client.bridgeName), zap.Error(err), zap.String("component", "net"))
 	}
 
 	return nil

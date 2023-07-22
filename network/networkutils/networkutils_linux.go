@@ -71,7 +71,7 @@ func (nu NetworkUtils) CreateEndpoint(hostVethName, containerVethName string, ma
 
 	err := nu.netlink.AddLink(&link)
 	if err != nil {
-		log.Logger.Error("[net] Failed to create veth pair with", zap.Any("error:", err), zap.String("component", "net"))
+		log.Logger.Error("[net] Failed to create veth pair with", zap.Error(err), zap.String("component", "net"))
 		return newErrorNetworkUtils(err.Error())
 	}
 
@@ -207,14 +207,14 @@ func (nu NetworkUtils) EnableIPForwarding(ifName string) error {
 	cmd := fmt.Sprint(enableIPForwardCmd)
 	_, err := nu.plClient.ExecuteCommand(cmd)
 	if err != nil {
-		log.Logger.Error("Enable ipforwarding failed with", zap.Any("error:", err), zap.String("component", "net"))
+		log.Logger.Error("Enable ipforwarding failed with", zap.Error(err), zap.String("component", "net"))
 		return err
 	}
 
 	// Append a rule in forward chain to allow forwarding from bridge
 	if err := iptables.AppendIptableRule(iptables.V4, iptables.Filter, iptables.Forward, "", iptables.Accept); err != nil {
 		log.Logger.Error("Appending forward chain rule: allow traffic coming from snatbridge failed with",
-			zap.Any("error:", err), zap.String("component", "net"))
+			zap.Error(err), zap.String("component", "net"))
 		return err
 	}
 
@@ -225,7 +225,7 @@ func (nu NetworkUtils) EnableIPV6Forwarding() error {
 	cmd := fmt.Sprint(enableIPV6ForwardCmd)
 	_, err := nu.plClient.ExecuteCommand(cmd)
 	if err != nil {
-		log.Logger.Error("Enable ipv6 forwarding failed with", zap.Any("error:", err), zap.String("component", "net"))
+		log.Logger.Error("Enable ipv6 forwarding failed with", zap.Error(err), zap.String("component", "net"))
 		return err
 	}
 
@@ -238,7 +238,7 @@ func (nu NetworkUtils) UpdateIPV6Setting(disable int) error {
 	cmd := fmt.Sprintf(toggleIPV6Cmd, disable)
 	_, err := nu.plClient.ExecuteCommand(cmd)
 	if err != nil {
-		log.Logger.Error("Update IPV6 Setting failed with", zap.Any("error:", err), zap.String("component", "net"))
+		log.Logger.Error("Update IPV6 Setting failed with", zap.Error(err), zap.String("component", "net"))
 	}
 
 	return err
@@ -259,14 +259,14 @@ func (nu NetworkUtils) DisableRAForInterface(ifName string) error {
 	raFilePath := fmt.Sprintf(acceptRAV6File, ifName)
 	exist, err := platform.CheckIfFileExists(raFilePath)
 	if !exist {
-		log.Logger.Error("accept_ra file doesn't exist with", zap.Any("error:", err), zap.String("component", "net"))
+		log.Logger.Error("accept_ra file doesn't exist with", zap.Error(err), zap.String("component", "net"))
 		return nil
 	}
 
 	cmd := fmt.Sprintf(disableRACmd, ifName)
 	out, err := nu.plClient.ExecuteCommand(cmd)
 	if err != nil {
-		log.Logger.Error("Diabling ra failed with", zap.Any("error:", err), zap.Any("out", out), zap.String("component", "net"))
+		log.Logger.Error("Diabling ra failed with", zap.Error(err), zap.Any("out", out), zap.String("component", "net"))
 	}
 
 	return err

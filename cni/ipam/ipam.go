@@ -157,7 +157,7 @@ func (plugin *ipamPlugin) Add(args *cniSkel.CmdArgs) error {
 	defer func() {
 		log.Logger.Info("ADD command completed",
 			zap.Any("result", result),
-			zap.Any("error:", err),
+			zap.Error(err),
 			zap.String("component", "cni-ipam"))
 	}()
 

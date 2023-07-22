@@ -81,7 +81,7 @@ func (client *TransparentEndpointClient) AddEndpoints(epInfo *EndpointInfo) erro
 	if _, err := client.netioshim.GetNetworkInterfaceByName(client.hostVethName); err == nil {
 		log.Logger.Info("Deleting old host veth", zap.String("hostVethName", client.hostVethName))
 		if err = client.netlink.DeleteLink(client.hostVethName); err != nil {
-			log.Logger.Error("Failed to delete old", zap.String("hostVethName", client.hostVethName), zap.Any("error:", err),
+			log.Logger.Error("Failed to delete old", zap.String("hostVethName", client.hostVethName), zap.Error(err),
 				zap.String("component", "net"))
 			return newErrorTransparentEndpointClient(err.Error())
 		}
@@ -127,12 +127,12 @@ func (client *TransparentEndpointClient) AddEndpoints(epInfo *EndpointInfo) erro
 	log.Logger.Info("Setting mtu on veth interface", zap.Any("MTU", primaryIf.MTU), zap.String("hostVethName", client.hostVethName))
 	if err := client.netlink.SetLinkMTU(client.hostVethName, primaryIf.MTU); err != nil {
 		log.Logger.Error("Setting mtu failed for hostveth", zap.String("hostVethName", client.hostVethName),
-			zap.Any("error:", err))
+			zap.Error(err))
 	}
 
 	if err := client.netlink.SetLinkMTU(client.containerVethName, primaryIf.MTU); err != nil {
 		log.Logger.Error("Setting mtu failed for containerveth", zap.String("containerVethName", client.containerVethName),
-			zap.Any("error:", err))
+			zap.Error(err))
 	}
 
 	return nil
@@ -164,7 +164,7 @@ func (client *TransparentEndpointClient) AddEndpointRules(epInfo *EndpointInfo) 
 
 	log.Logger.Info("calling setArpProxy for", zap.String("hostVethName", client.hostVethName))
 	if err := client.setArpProxy(client.hostVethName); err != nil {
-		log.Logger.Error("setArpProxy failed with", zap.Any("error:", err))
+		log.Logger.Error("setArpProxy failed with", zap.Error(err))
 		return err
 	}
 
@@ -189,7 +189,7 @@ func (client *TransparentEndpointClient) DeleteEndpointRules(ep *endpoint) {
 		log.Logger.Info("Deleting route for the", zap.String("ip", ipNet.String()), zap.String("component", "net"))
 		routeInfo.Dst = ipNet
 		if err := deleteRoutes(client.netlink, client.netioshim, client.hostVethName, []RouteInfo{routeInfo}); err != nil {
-			log.Logger.Error("Failed to delete route on VM for the", zap.String("ip", ipNet.String()), zap.Any("error:", err))
+			log.Logger.Error("Failed to delete route on VM for the", zap.String("ip", ipNet.String()), zap.Error(err))
 		}
 	}
 }
@@ -315,7 +315,7 @@ func (client *TransparentEndpointClient) setIPV6NeighEntry() error {
 	}
 
 	if err := client.netlink.SetOrRemoveLinkAddress(linkInfo, netlink.ADD, netlink.NUD_PERMANENT); err != nil {
-		log.Logger.Error("Failed setting neigh entry in container", zap.Any("error:", err))
+		log.Logger.Error("Failed setting neigh entry in container", zap.Error(err))
 		return fmt.Errorf("Failed setting neigh entry in container: %w", err)
 	}
 

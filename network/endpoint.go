@@ -122,7 +122,7 @@ func (nw *network) newEndpoint(
 
 	defer func() {
 		if err != nil {
-			log.Logger.Error("Failed to create endpoint with err", zap.String("Id", epInfo.Id), zap.Any("error:", err), zap.String("component", "net"))
+			log.Logger.Error("Failed to create endpoint with err", zap.String("id", epInfo.Id), zap.Error(err), zap.String("component", "net"))
 		}
 	}()
 
@@ -142,17 +142,17 @@ func (nw *network) newEndpoint(
 func (nw *network) deleteEndpoint(nl netlink.NetlinkInterface, plc platform.ExecClient, endpointID string) error {
 	var err error
 
-	log.Logger.Info("Deleting endpoint from network", zap.String("endpointID", endpointID), zap.String("Id", nw.Id), zap.String("component", "net"))
+	log.Logger.Info("Deleting endpoint from network", zap.String("endpointID", endpointID), zap.String("id", nw.Id), zap.String("component", "net"))
 	defer func() {
 		if err != nil {
-			log.Logger.Error("Failed to delete endpoint with", zap.String("endpointID", endpointID), zap.Any("error:", err), zap.String("component", "net"))
+			log.Logger.Error("Failed to delete endpoint with", zap.String("endpointID", endpointID), zap.Error(err), zap.String("component", "net"))
 		}
 	}()
 
 	// Look up the endpoint.
 	ep, err := nw.getEndpoint(endpointID)
 	if err != nil {
-		log.Logger.Error("Endpoint not found. Not Returning error", zap.String("endpointID", endpointID), zap.Any("error:", err), zap.String("component", "net"))
+		log.Logger.Error("Endpoint not found. Not Returning error", zap.String("endpointID", endpointID), zap.Error(err), zap.String("component", "net"))
 		return nil
 	}
 
@@ -259,7 +259,7 @@ func (ep *endpoint) attach(sandboxKey string) error {
 
 	ep.SandboxKey = sandboxKey
 
-	log.Logger.Info("Attached endpoint to sandbox", zap.String("Id", ep.Id), zap.String("sandboxKey", sandboxKey), zap.String("component", "net"))
+	log.Logger.Info("Attached endpoint to sandbox", zap.String("id", ep.Id), zap.String("sandboxKey", sandboxKey), zap.String("component", "net"))
 
 	return nil
 }
@@ -270,7 +270,7 @@ func (ep *endpoint) detach() error {
 		return errEndpointNotInUse
 	}
 
-	log.Logger.Info("Detached endpoint from sandbox", zap.String("Id", ep.Id), zap.String("sandboxKey", ep.SandboxKey), zap.String("component", "net"))
+	log.Logger.Info("Detached endpoint from sandbox", zap.String("id", ep.Id), zap.String("sandboxKey", ep.SandboxKey), zap.String("component", "net"))
 
 	ep.SandboxKey = ""
 
@@ -282,14 +282,14 @@ func (nm *networkManager) updateEndpoint(nw *network, exsitingEpInfo *EndpointIn
 	var err error
 
 	log.Logger.Info("Updating existing endpoint in network to target", zap.Any("exsitingEpInfo", exsitingEpInfo),
-		zap.String("Id", nw.Id), zap.Any("targetEpInfo", targetEpInfo), zap.String("component", "net"))
+		zap.String("id", nw.Id), zap.Any("targetEpInfo", targetEpInfo), zap.String("component", "net"))
 	defer func() {
 		if err != nil {
-			log.Logger.Error("Failed to update endpoint with err", zap.String("Id", exsitingEpInfo.Id), zap.Any("error:", err), zap.String("component", "net"))
+			log.Logger.Error("Failed to update endpoint with err", zap.String("id", exsitingEpInfo.Id), zap.Error(err), zap.String("component", "net"))
 		}
 	}()
 
-	log.Logger.Info("Trying to retrieve endpoint id", zap.String("Id", exsitingEpInfo.Id))
+	log.Logger.Info("Trying to retrieve endpoint id", zap.String("id", exsitingEpInfo.Id))
 
 	ep := nw.Endpoints[exsitingEpInfo.Id]
 	if ep == nil {

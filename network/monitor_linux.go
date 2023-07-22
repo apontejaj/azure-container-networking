@@ -17,7 +17,7 @@ const (
 func (nm *networkManager) monitorNetworkState(networkMonitor *cnms.NetworkMonitor) error {
 	currentEbtableRulesMap, err := cnms.GetEbTableRulesInMap()
 	if err != nil {
-		log.Logger.Error("GetEbTableRulesInMap failed with", zap.Any("error:", err))
+		log.Logger.Error("GetEbTableRulesInMap failed with", zap.Error(err))
 		return err
 	}
 

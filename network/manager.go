@@ -147,7 +147,7 @@ func (nm *networkManager) restore(isRehydrationRequired bool) error {
 			log.Logger.Info("network store empty", zap.String("component", "net"))
 			return nil
 		} else {
-			log.Logger.Error("Failed to restore state", zap.Any("error:", err), zap.String("component", "net"))
+			log.Logger.Error("Failed to restore state", zap.Error(err), zap.String("component", "net"))
 			return err
 		}
 	}
@@ -162,14 +162,14 @@ func (nm *networkManager) restore(isRehydrationRequired bool) error {
 				rebooted = true
 				if clearNwConfig, err := platform.ClearNetworkConfiguration(); clearNwConfig {
 					if err != nil {
-						log.Logger.Error("Failed to clear network configuration", zap.Any("error:", err), zap.String("component", "net"))
+						log.Logger.Error("Failed to clear network configuration", zap.Error(err), zap.String("component", "net"))
 						return err
 					}
 
 					// Delete the networks left behind after reboot
 					for _, extIf := range nm.ExternalInterfaces {
 						for _, nw := range extIf.Networks {
-							log.Logger.Info("Deleting the network on reboot", zap.String("Id", nw.Id))
+							log.Logger.Info("Deleting the network on reboot", zap.String("id", nw.Id))
 							_ = nm.deleteNetwork(nw.Id)
 						}
 					}
@@ -200,7 +200,7 @@ func (nm *networkManager) restore(isRehydrationRequired bool) error {
 				nwInfo, err := nm.GetNetworkInfo(nw.Id)
 				if err != nil {
 					log.Logger.Error("Failed to fetch network info for network extif err. This should not happen",
-						zap.Any("nw", nw), zap.Any("extIf", extIf), zap.Any("error:", err), zap.String("component", "net"))
+						zap.Any("nw", nw), zap.Any("extIf", extIf), zap.Error(err), zap.String("component", "net"))
 					return err
 				}
 
@@ -209,7 +209,7 @@ func (nm *networkManager) restore(isRehydrationRequired bool) error {
 				_, err = nm.newNetworkImpl(&nwInfo, extIf)
 				if err != nil {
 					log.Logger.Error("Restoring network failed for nwInfo extif. This should not happen",
-						zap.Any("nwInfo", nwInfo), zap.Any("extIf", extIf), zap.Any("error:", err), zap.String("component", "net"))
+						zap.Any("nwInfo", nwInfo), zap.Any("extIf", extIf), zap.Error(err), zap.String("component", "net"))
 					return err
 				}
 			}
@@ -234,7 +234,7 @@ func (nm *networkManager) save() error {
 	if err == nil {
 		log.Logger.Info("Save succeeded", zap.String("component", "net"))
 	} else {
-		log.Logger.Error("Save failed", zap.Any("error:", err), zap.String("component", "net"))
+		log.Logger.Error("Save failed", zap.Error(err), zap.String("component", "net"))
 	}
 	return err
 }
