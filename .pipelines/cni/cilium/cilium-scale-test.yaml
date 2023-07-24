@@ -146,7 +146,6 @@ stages:
                 sleep 5s
                 kubectl get pod -owide
                 mkdir results
-                ls
                 cd results
                 AB_POD=$(kubectl get pod -l app=apachebench | grep apachebench | awk '{print $1}')
                 kubectl exec -it $AB_POD -- ab -n 100000 -c 3 -r http://real-svc-00001.scale-test/ >> "ab_100krequests_60kpods.log"
@@ -176,83 +175,22 @@ stages:
     jobs:
       - job: scale_down900
         steps:
-          - template: ../scale-test-templates/scale-cluster.yaml
-            parameters:
-              clusterName: "cilium-scale"
-              nodeCount: 900
-        timeoutInMinutes: 120
-      - job: scale_down800
-        dependsOn: scale_down900
-        steps:
-          - template: ../scale-test-templates/scale-cluster.yaml
-            parameters:
-              clusterName: "cilium-scale"
-              nodeCount: 800
-        timeoutInMinutes: 120
-      - job: scale_down700
-        dependsOn: scale_down800
-        steps:
-          - template: ../scale-test-templates/scale-cluster.yaml
-            parameters:
-              clusterName: "cilium-scale"
-              nodeCount: 700
-        timeoutInMinutes: 120
-      - job: scale_down600
-        dependsOn: scale_down700
-        steps:
-          - template: ../scale-test-templates/scale-cluster.yaml
-            parameters:
-              clusterName: "cilium-scale"
-              nodeCount: 600
-        timeoutInMinutes: 120
-      - job: scale_down500
-        dependsOn: scale_down600
-        steps:
-          - template: ../scale-test-templates/scale-cluster.yaml
-            parameters:
-              clusterName: "cilium-scale"
-              nodeCount: 500
-        timeoutInMinutes: 120
-      - job: scale_down400
-        dependsOn: scale_down500
-        steps:
-          - template: ../scale-test-templates/scale-cluster.yaml
-            parameters:
-              clusterName: "cilium-scale"
-              nodeCount: 400
-        timeoutInMinutes: 120
-      - job: scale_down300
-        dependsOn: scale_down400
-        steps:
-          - template: ../scale-test-templates/scale-cluster.yaml
-            parameters:
-              clusterName: "cilium-scale"
-              nodeCount: 300
-        timeoutInMinutes: 120
-      - job: scale_down200
-        dependsOn: scale_down300
-        steps:
-          - template: ../scale-test-templates/scale-cluster.yaml
-            parameters:
-              clusterName: "cilium-scale"
-              nodeCount: 200
-        timeoutInMinutes: 120
-      - job: scale_down100
-        dependsOn: scale_down200
-        steps:
-          - template: ../scale-test-templates/scale-cluster.yaml
-            parameters:
-              clusterName: "cilium-scale"
-              nodeCount: 100
-        timeoutInMinutes: 120
-      - job: scale_down5
-        dependsOn: scale_down100
-        steps:
-          - template: ../scale-test-templates/scale-cluster.yaml
-            parameters:
-              clusterName: "cilium-scale"
-              nodeCount: 5
-        timeoutInMinutes: 120
+          - task: AzureCLI@1
+            inputs:
+              azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+              scriptLocation: "inlineScript"
+              scriptType: "bash"
+              addSpnToEnvironment: true
+              inlineScript: |
+                set -ex
+                az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
+                echo "Scaling to 5 nodes"
+                vmss_name=$(az vmss list -g MC_${CLUSTER}_${CLUSTER}_$(LOCATION) --query "[].name" -o tsv)
+                make -C ./hack/aks scale-vmss AZCLI=az CLUSTER=${CLUSTER} REGION=$(LOCATION) VMSS_NAME=$vmss_name NODE_COUNT=5
+                kubectl get node
+            name: "ScaleUp1000"
+            displayName: "Scale down to 5 Nodes"
+            timeoutInMinutes: 0
   - stage: delete_test_namespaces
     displayName: "Delete Test Namespaces"
     jobs:
