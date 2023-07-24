@@ -146,6 +146,8 @@ stages:
                 sleep 5s
                 kubectl get pod -owide
                 mkdir results
+                ls
+                cd results
                 AB_POD=$(kubectl get pod -l app=apachebench | grep apachebench | awk '{print $1}')
                 kubectl exec -it $AB_POD -- ab -n 100000 -c 3 -r http://real-svc-00001.scale-test/ >> "ab_100krequests_60kpods.log"
                 echo "running k top node" 
@@ -157,7 +159,8 @@ stages:
                 echo $ARTIFACT_DIR
                 sudo rm -rf $ARTIFACT_DIR
                 sudo mkdir $ARTIFACT_DIR
-                sudo cp results/* $ARTIFACT_DIR
+                cd ..
+                sudo cp ./results/* $ARTIFACT_DIR
             name: "TestLBServices"
             displayName: "Apachebench testing"
           - task: PublishBuildArtifacts@1
