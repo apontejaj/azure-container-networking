@@ -246,7 +246,7 @@ dualstack-overlay-byocni-up: rg-up overlay-net-up ## Brings up an dualstack Over
 	$(AZCLI) aks create -n $(CLUSTER) -g $(GROUP) -l $(REGION) \
 		--kubernetes-version 1.26.3 \
 		--node-count $(NODE_COUNT) \
-				--node-vm-size $(VM_SIZE) \
+		--node-vm-size $(VM_SIZE) \
 		--network-plugin none \
 		--network-plugin-mode overlay \
 		--aks-custom-headers AKSHTTPCustomFeatures=Microsoft.ContainerService/AzureOverlayDualStackPreview \
