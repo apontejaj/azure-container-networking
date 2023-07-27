@@ -65,5 +65,22 @@ steps:
       kubectl delete ns load-test
       echo "DualStack Overlay Linux control plane CNS validation test"
       sudo go test -timeout 30m -tags load -cni cniv2 -run ^TestValidateState$ -tags=load
+      cd ../datapath
+      sudo go test -count=1 datapath_linux_test.go -timeout 1m -tags connection -run ^TestDatapathLinux$ -tags=connection,integration
     name: "DualStack_Overlay_Linux_tests"
     displayName: "DualStack Overlay Linux Tests"
+
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: $(AZURE_TEST_AGENT_SERVICE_CONNECTION)
+      scriptLocation: "inlineScript"
+      scriptType: "bash"
+      addSpnToEnvironment: true
+      inlineScript: |
+        echo "Deleting cluster"
+        make -C ./hack/aks azcfg AZCLI=az
+        make -C ./hack/aks down SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(make revision)
+        echo "Cluster and resources down"
+    name: "CleanupDualStackOverlaycluster"
+    displayName: "Cleanup DualStack Overlay Cluster"
+    condition: always()
