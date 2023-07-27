@@ -236,6 +236,7 @@ dualstack-overlay-up: rg-up overlay-net-up ## Brings up an dualstack Overlay clu
 		--network-plugin azure \
 		--ip-families ipv4,ipv6 \
 		--network-plugin-mode overlay \
+		--aks-custom-headers AKSHTTPCustomFeatures=Microsoft.ContainerService/AzureOverlayDualStackPreview \
 		--subscription $(SUB) \
 		--no-ssh-key \
 		--yes
@@ -254,7 +255,7 @@ dualstack-overlay-byocni-up: rg-up overlay-net-up ## Brings up an dualstack Over
 		--no-ssh-key \
 		--yes
 	@$(MAKE) set-kubeconf
-	
+
 down: ## Delete the cluster
 	$(AZCLI) aks delete -g $(GROUP) -n $(CLUSTER) --yes
 	@$(MAKE) unset-kubeconf
