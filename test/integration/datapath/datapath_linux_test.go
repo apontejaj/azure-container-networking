@@ -199,7 +199,6 @@ func TestDatapathLinux(t *testing.T) {
 	t.Run("Linux ping tests", func(t *testing.T) {
 		// Check goldpinger health
 		t.Run("all pods have IPs assigned", func(t *testing.T) {
-			time.Sleep(30 * time.Second)
 			err := k8sutils.WaitForPodsRunning(ctx, clientset, *podNamespace, podLabelSelector)
 			if err != nil {
 				t.Fatalf("Pods are not in running state due to %+v", err)
