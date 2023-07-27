@@ -34,8 +34,8 @@ steps:
         az extension update --name aks-preview
         mkdir -p ~/.kube/
         echo "Create AKS DualStack Overlay cluster"
-        make -C ./hack/aks azcfg AZCLI=az REGION=$(REGION_OVERLAY_CLUSTER_TEST)
-        make -C ./hack/aks dualstack-overlay-byocni-up AZCLI=az REGION=$(REGION_OVERLAY_CLUSTER_TEST) VM_SIZE=$(VM_SIZE) NODE_COUNT=$(NODE_COUNT) SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
+        make -C ./hack/aks azcfg AZCLI=az REGION=$(REGION_DUALSTACKOVERLAY_CLUSTER_TEST)
+        make -C ./hack/aks dualstack-overlay-byocni-up AZCLI=az REGION=$(REGION_DUALSTACKOVERLAY_CLUSTER_TEST) VM_SIZE=${{ parameters.vmSize }} SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
         echo "Dualstack Overlay Cluster is successfully created"
     displayName: Create DualStackOverlay cluster
     condition: succeeded()
@@ -72,7 +72,7 @@ steps:
       sleep 10
       echo "Dualstack Overlay Linux datapath IPv4 test"
       sudo go test -count=1 datapath_linux_test.go -timeout 1m -tags connection -run ^TestDatapathLinux$ -tags=connection,integration
-    name: "DualStack_Overlay_Linux_tests"
+    name: "DualStack_Overlay_Linux_Tests"
     displayName: "DualStack Overlay Linux Tests"
 
   - task: AzureCLI@2
