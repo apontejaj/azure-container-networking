@@ -9,6 +9,7 @@ import (
 	restserver "github.com/Azure/azure-container-networking/cns/restserver"
 	k8sutils "github.com/Azure/azure-container-networking/test/internal/k8sutils"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -18,16 +19,24 @@ const (
 	privilegedLabelSelector = "app=privileged-daemonset"
 	privilegedNamespace     = "kube-system"
 
-	cnsLabelSelector    = "k8s-app=azure-cns"
-	ciliumLabelSelector = "k8s-app=cilium"
+	cnsLabelSelector        = "k8s-app=azure-cns"
+	ciliumLabelSelector     = "k8s-app=cilium"
+	overlayClusterLabelName = "overlay"
 )
 
 var (
-	restartNetworkCmd  = []string{"bash", "-c", "chroot /host /bin/bash -c 'systemctl restart systemd-networkd'"}
-	cnsStateFileCmd    = []string{"bash", "-c", "cat /var/run/azure-cns/azure-endpoints.json"}
-	ciliumStateFileCmd = []string{"bash", "-c", "cilium endpoint list -o json"}
-	cnsLocalCacheCmd   = []string{"curl", "localhost:10090/debug/ipaddresses", "-d", "{\"IPConfigStateFilter\":[\"Assigned\"]}"}
+	restartNetworkCmd     = []string{"bash", "-c", "chroot /host /bin/bash -c 'systemctl restart systemd-networkd'"}
+	cnsStateFileCmd       = []string{"bash", "-c", "cat /var/run/azure-cns/azure-endpoints.json"}
+	azureVnetStateFileCmd = []string{"bash", "-c", "cat /var/run/azure-vnet.json"} // azure vnet statefile is located at /var/run/azure-vnet.json
+	ciliumStateFileCmd    = []string{"bash", "-c", "cilium endpoint list -o json"}
+	cnsLocalCacheCmd      = []string{"curl", "localhost:10090/debug/ipaddresses", "-d", "{\"IPConfigStateFilter\":[\"Assigned\"]}"}
 )
+
+// dualstack overlay Linux and windows nodes must have these labels
+var dualstackOverlayNodeLabels = map[string]string{
+	"kubernetes.azure.com/podnetwork-type":   "overlay",
+	"kubernetes.azure.com/podv6network-type": "overlay",
+}
 
 type stateFileIpsFunc func([]byte) (map[string]string, error)
 
@@ -60,6 +69,55 @@ type NetworkingAddressing struct {
 
 type Address struct {
 	Addr string `json:"ipv4"`
+}
+
+// parse azure-vnet.json
+// azure cni manages endpoint state
+type AzureCniState struct {
+	AzureCniState AzureVnetNetwork `json:"Network"`
+}
+
+type AzureVnetNetwork struct {
+	Version            string                   `json:"Version"`
+	TimeStamp          string                   `json:"TimeStamp"`
+	ExternalInterfaces map[string]InterfaceInfo `json:"ExternalInterfaces"` // key: interface name; value: Interface Info
+}
+
+type InterfaceInfo struct {
+	Name     string                          `json:"Name"`
+	Networks map[string]AzureVnetNetworkInfo `json:"Networks"` // key: networkName, value: AzureVnetNetworkInfo
+}
+
+type AzureVnetInfo struct {
+	Name     string
+	Networks map[string]AzureVnetNetworkInfo // key: network name, value: NetworkInfo
+}
+
+type AzureVnetNetworkInfo struct {
+	ID        string
+	Mode      string
+	Subnets   []Subnet
+	Endpoints map[string]AzureVnetEndpointInfo // key: azure endpoint name, value: AzureVnetEndpointInfo
+	PodName   string
+}
+
+type Subnet struct {
+	Family    int
+	Prefix    Prefix
+	Gateway   string
+	PrimaryIP string
+}
+
+type Prefix struct {
+	IP   string
+	Mask string
+}
+
+type AzureVnetEndpointInfo struct {
+	IfName      string
+	MacAddress  string
+	IPAddresses []Prefix
+	PodName     string
 }
 
 func (l *LinuxClient) CreateClient(ctx context.Context, clienset *kubernetes.Clientset, config *rest.Config, namespace, cni string, restartCase bool) IValidator {
@@ -101,6 +159,7 @@ func (v *LinuxValidator) ValidateStateFile() error {
 
 	checkSet["cniv2"] = []check{
 		{"cns cache", cnsCacheStateFileIps, cnsLabelSelector, privilegedNamespace, cnsLocalCacheCmd},
+		{"azure dualstackoverlay", azureDualStackStateFileIPs, privilegedLabelSelector, privilegedNamespace, azureVnetStateFileCmd},
 	}
 
 	for _, check := range checkSet[v.cni] {
@@ -156,6 +215,31 @@ func cnsStateFileIps(result []byte) (map[string]string, error) {
 		}
 	}
 	return cnsPodIps, nil
+}
+
+func azureDualStackStateFileIPs(result []byte) (map[string]string, error) {
+	var azureDualStackResult AzureCniState
+	err := json.Unmarshal(result, &azureDualStackResult)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal azure cni endpoint list")
+	}
+
+	azureCnsPodIps := make(map[string]string)
+	for _, v := range azureDualStackResult.AzureCniState.ExternalInterfaces {
+		for _, networks := range v.Networks {
+			for _, ip := range networks.Endpoints {
+				pod := ip.PodName
+				// dualstack node's and pod's first ip is ipv4 and second is ipv6
+				ipv4 := ip.IPAddresses[0].IP
+				azureCnsPodIps[ipv4] = pod
+				if len(ip.IPAddresses) > 1 {
+					ipv6 := ip.IPAddresses[1].IP
+					azureCnsPodIps[ipv6] = pod
+				}
+			}
+		}
+	}
+	return azureCnsPodIps, nil
 }
 
 func ciliumStateFileIps(result []byte) (map[string]string, error) {
@@ -228,5 +312,47 @@ func (v *LinuxValidator) validateIPs(stateFileIps stateFileIpsFunc, cmd []string
 		}
 	}
 	log.Printf("State file validation for %s passed", checkType)
+	return nil
+}
+
+func (v *LinuxValidator) ValidateDualStackNodeProperties() error {
+	log.Print("Validating Dualstack Overlay Linux Node properties")
+	nodes, err := k8sutils.GetNodeList(v.ctx, v.clientset)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get node list")
+	}
+
+	for index := range nodes.Items {
+		nodeName := nodes.Items[index].ObjectMeta.Name
+		// check nodes status;
+		// nodes status should be ready after cluster is created
+		nodeConditions := nodes.Items[index].Status.Conditions
+		if nodeConditions[len(nodeConditions)-1].Type != corev1.NodeReady {
+			return errors.Wrapf(err, "node %s status is not ready", nodeName)
+		}
+
+		// get node labels
+		nodeLabels := nodes.Items[index].ObjectMeta.GetLabels()
+		for key := range nodeLabels {
+			if value, ok := dualstackOverlayNodeLabels[key]; ok {
+				log.Printf("label %s is correctly shown on the node %+v", key, nodeName)
+				if value != overlayClusterLabelName {
+					return errors.Wrapf(err, "node %s overlay label name is wrong", nodeName)
+				}
+			}
+		}
+
+		// check if node has two internal IPs(one is IPv4 and another is IPv6)
+		internalIPCount := 0
+		for _, address := range nodes.Items[index].Status.Addresses {
+			if address.Type == "InternalIP" {
+				internalIPCount++
+			}
+		}
+		if internalIPCount != 2 { //nolint
+			return errors.Wrap(err, "node does have two internal IPs")
+		}
+	}
+
 	return nil
 }

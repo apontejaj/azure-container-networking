@@ -20,6 +20,7 @@ type Validator struct {
 type IValidator interface {
 	ValidateStateFile() error
 	ValidateRestartNetwork() error
+	ValidateDualStackNodeProperties() error
 	// ValidateDataPath() error
 }
 
