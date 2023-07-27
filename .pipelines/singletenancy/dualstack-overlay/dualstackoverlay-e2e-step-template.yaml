@@ -54,6 +54,7 @@ steps:
     retryCountOnTaskFailure: 3
     name: "installKubectl"
     displayName: "Install kubectl on AKS dualstack overlay cluster"
+    
   - script: |
       cd test/integration/load
       echo "DualStack Overlay Linux control plane Node properties test"
