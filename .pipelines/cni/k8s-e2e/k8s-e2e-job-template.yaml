@@ -102,7 +102,7 @@ jobs:
         - template: ../k8s-e2e/k8s-e2e-step-template.yaml
           parameters:
             testName: DualStack Test
-            name: DualStack Test
+            name: DualStack
             clusterName: ${{ parameters.clusterName }}
             ginkgoFocus: '\[Feature:IPv6DualStack\]'
             ginkgoSkip: 'SCTP|session affinity'
