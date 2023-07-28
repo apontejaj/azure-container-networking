@@ -60,6 +60,18 @@ stages:
           hostport: true
           dependsOn: ${{ parameters.name }}
 
+      - template: ../../cni/k8s-e2e/k8s-e2e-job-template.yaml
+        parameters:
+          sub: $(AZURE_TEST_AGENT_SERVICE_CONNECTION)
+          clusterName: ${{ parameters.clusterName }}
+          os: ${{ parameters.os }}
+          datapath: true
+          dns: true
+          portforward: true
+          service: true
+          dependsOn: ${{ parameters.name }}
+          dualstack: true
+          
       - job: cleanup
         displayName: "Cleanup"
         dependsOn:
