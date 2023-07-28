@@ -402,6 +402,7 @@ stages:
       - "cilium_overlay_cilium_e2e"
       - "aks_ubuntu_22_linux_e2e"
       - "aks_windows_22_e2e"
+      - "dualstackoverlay_e2e"
     jobs:
       - job: delete_remote_artifacts
         displayName: Delete remote artifacts
