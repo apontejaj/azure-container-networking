@@ -371,7 +371,6 @@ stages:
       name: "dualstackoverlay_e2e"
       displayName: AKS DualStack Overlay
       pipelineBuildImage: "$(BUILD_IMAGE)"
-      vmSize: Standard_B2s
       testDropgz: ""
       clusterName: "dualstackoverlaye2e"
       

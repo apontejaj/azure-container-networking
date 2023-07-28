@@ -35,7 +35,7 @@ steps:
         mkdir -p ~/.kube/
         echo "Create AKS DualStack Overlay cluster"
         make -C ./hack/aks azcfg AZCLI=az REGION=$(REGION_DUALSTACKOVERLAY_CLUSTER_TEST)
-        make -C ./hack/aks dualstack-overlay-byocni-up AZCLI=az REGION=$(REGION_DUALSTACKOVERLAY_CLUSTER_TEST) VM_SIZE=${{ parameters.vmSize }} SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
+        make -C ./hack/aks dualstack-overlay-byocni-up AZCLI=az REGION=$(REGION_DUALSTACKOVERLAY_CLUSTER_TEST) SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
         echo "Dualstack Overlay Cluster is successfully created"
     displayName: Create DualStackOverlay cluster
     condition: succeeded()
