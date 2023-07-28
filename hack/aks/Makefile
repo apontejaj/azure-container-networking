@@ -227,12 +227,6 @@ linux-cniv1-up: rg-up overlay-net-up
 		--yes
 
 	@$(MAKE) set-kubeconf
-
-# install azure Linux CNS and CNI dropgz images
-install-azure-images:
-	CNI_DROPGZ_VERSION=$(CNI_DROPGZ_VERSION) \
-	CNS_VERSION=$(CNS_VERSION) \
-	go test -mod=readonly -buildvcs=false -timeout 1h -coverpkg=./... -race -covermode atomic -coverprofile=coverage.out -tags=integration ./test/integration/setup_test.go
 	
 dualstack-overlay-up: rg-up overlay-net-up ## Brings up an dualstack Overlay cluster with Linux node only
 	$(AZCLI) aks create -n $(CLUSTER) -g $(GROUP) -l $(REGION) \
