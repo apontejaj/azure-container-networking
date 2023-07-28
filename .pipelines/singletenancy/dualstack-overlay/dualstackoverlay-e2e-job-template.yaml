@@ -42,7 +42,7 @@ stages:
         displayName: "Cleanup"
         dependsOn:
           - ${{ parameters.name }}
-          - "daulstack_k8se2e"
+          - "dualstackoverlay_e2e"
         pool:
           name: $(BUILD_POOL_NAME_DEFAULT)
         condition: always()
