@@ -61,6 +61,8 @@ steps:
       sudo go test -timeout 30m -tags load -run ^TestDualStackProperties$ -tags=load
       echo "DualStack Overlay Linux control plane Load test"
       sudo go test -timeout 30m -tags load -run ^TestLoad$ -tags=load
+      echo "Delete Linux load-test namespace"
+      kubectl delete ns load-test
       echo "DualStack Overlay Linux control plane CNS validation test"
       sudo go test -timeout 30m -tags load -cni cniv2 -run ^TestValidateState$ -tags=load
       sleep 10
