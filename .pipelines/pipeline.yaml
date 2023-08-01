@@ -2,6 +2,7 @@ pr:
   branches:
     include:
       - master
+      - release/*
   paths:
     exclude:
     - ".devcontainer"
@@ -143,9 +144,6 @@ stages:
                 az storage blob upload-batch -d acn-$(STORAGE_ID) -s ./output/bins/  --account-name $(STORAGE_ACCOUNT_NAME)
             displayName: Create artifact storage container
             condition: succeeded()
-
-          - publish: ./test/apimodels/
-            artifact: clusterdefinitions
 
   - stage: containerize
     displayName: Build Images
@@ -331,6 +329,14 @@ stages:
       pipelineBuildImage: "$(BUILD_IMAGE)"
       testDropgz: ""
       clusterName: "overlaye2e"
+
+  - template: singletenancy/azure-cni-overlay/azure-cni-overlay-e2e-job-template.yaml
+    parameters:
+      name: "azure_cni_overlay_e2e"
+      displayName: Azure CNI Overlay
+      pipelineBuildImage: "$(BUILD_IMAGE)"
+      testDropgz: ""
+      clusterName: "azurecnioverlaye2e"
 
   - template: singletenancy/aks-swift/e2e-job-template.yaml
     parameters:
