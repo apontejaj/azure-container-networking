@@ -183,6 +183,10 @@ cnm-binary:
 azure-vnet-binary:
 	cd $(CNI_NET_DIR) && CGO_ENABLED=0 go build -v -o $(CNI_BUILD_DIR)/azure-vnet$(EXE_EXT) -ldflags "-X main.version=$(CNI_VERSION)" -gcflags="-dwarflocationlists=true"
 
+# Build the Azure CNI stateless network binary
+azure-vnet-binary-stateless:
+	cd $(REPO_ROOT)/cni/network/stateless && CGO_ENABLED=0 go build -v -o $(CNI_BUILD_DIR)/azure-vnet-stateless$(EXE_EXT) -ldflags "-X main.version=$(CNI_VERSION)" -gcflags="-dwarflocationlists=true"
+
 # Build the Azure CNI IPAM binary.
 azure-vnet-ipam-binary:
 	cd $(CNI_IPAM_DIR) && CGO_ENABLED=0 go build -v -o $(CNI_BUILD_DIR)/azure-vnet-ipam$(EXE_EXT) -ldflags "-X main.version=$(CNI_VERSION)" -gcflags="-dwarflocationlists=true"

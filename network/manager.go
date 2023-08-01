@@ -62,6 +62,7 @@ type EndpointClient interface {
 // NetworkManager manages the set of container networking resources.
 type networkManager struct {
 	Version            string
+	Stateless          bool
 	TimeStamp          time.Time
 	ExternalInterfaces map[string]*externalInterface
 	store              store.KeyValueStore
@@ -113,6 +114,7 @@ func NewNetworkManager(nl netlink.NetlinkInterface, plc platform.ExecClient, net
 func (nm *networkManager) Initialize(config *common.PluginConfig, isRehydrationRequired bool) error {
 	nm.Version = config.Version
 	nm.store = config.Store
+	nm.Stateless = config.Stateless
 
 	// Restore persisted state.
 	err := nm.restore(isRehydrationRequired)
