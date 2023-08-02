@@ -152,7 +152,7 @@ func (plugin *ipamPlugin) Add(args *cniSkel.CmdArgs) error {
 	defer func() {
 		log.Logger.Info("ADD command completed",
 			zap.Any("result", result),
-			zap.Any("error:", err))
+			zap.Error(err))
 	}()
 
 	// Parse network configuration from stdin.
