@@ -69,7 +69,7 @@ func (client *OVSEndpointClient) AddSnatEndpoint() error {
 
 		err = client.netlink.AddLink(&vethLink)
 		if err != nil {
-			log.Logger.Error("Failed to create veth pair", zap.Error(err), zap.String("component", "net"))
+			log.Logger.Error("Failed to create veth pair", zap.Error(err))
 			return errors.Wrap(err, "failed to create veth pair")
 		}
 		nuc := networkutils.NewNetworkUtils(client.netlink, client.plClient)

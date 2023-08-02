@@ -122,7 +122,7 @@ func (nw *network) newEndpoint(
 
 	defer func() {
 		if err != nil {
-			log.Logger.Error("Failed to create endpoint with err", zap.String("id", epInfo.Id), zap.Error(err), zap.String("component", "net"))
+			log.Logger.Error("Failed to create endpoint with err", zap.String("id", epInfo.Id), zap.Error(err))
 		}
 	}()
 
@@ -134,7 +134,7 @@ func (nw *network) newEndpoint(
 	}
 
 	nw.Endpoints[epInfo.Id] = ep
-	log.Logger.Info("Created endpoint. Num of endpoints", zap.Any("ep", ep), zap.Any("numEndpoints", nw.Endpoints), zap.String("component", "net"))
+	log.Logger.Info("Created endpoint. Num of endpoints", zap.Any("ep", ep), zap.Any("numEndpoints", nw.Endpoints))
 	return ep, nil
 }
 
@@ -142,17 +142,17 @@ func (nw *network) newEndpoint(
 func (nw *network) deleteEndpoint(nl netlink.NetlinkInterface, plc platform.ExecClient, endpointID string) error {
 	var err error
 
-	log.Logger.Info("Deleting endpoint from network", zap.String("endpointID", endpointID), zap.String("id", nw.Id), zap.String("component", "net"))
+	log.Logger.Info("Deleting endpoint from network", zap.String("endpointID", endpointID), zap.String("id", nw.Id))
 	defer func() {
 		if err != nil {
-			log.Logger.Error("Failed to delete endpoint with", zap.String("endpointID", endpointID), zap.Error(err), zap.String("component", "net"))
+			log.Logger.Error("Failed to delete endpoint with", zap.String("endpointID", endpointID), zap.Error(err))
 		}
 	}()
 
 	// Look up the endpoint.
 	ep, err := nw.getEndpoint(endpointID)
 	if err != nil {
-		log.Logger.Error("Endpoint not found. Not Returning error", zap.String("endpointID", endpointID), zap.Error(err), zap.String("component", "net"))
+		log.Logger.Error("Endpoint not found. Not Returning error", zap.String("endpointID", endpointID), zap.Error(err))
 		return nil
 	}
 
@@ -165,7 +165,7 @@ func (nw *network) deleteEndpoint(nl netlink.NetlinkInterface, plc platform.Exec
 
 	// Remove the endpoint object.
 	delete(nw.Endpoints, endpointID)
-	log.Logger.Info("Deleted endpoint. Num of endpoints", zap.Any("ep", ep), zap.Any("numEndpoints", nw.Endpoints), zap.String("component", "net"))
+	log.Logger.Info("Deleted endpoint. Num of endpoints", zap.Any("ep", ep), zap.Any("numEndpoints", nw.Endpoints))
 	return nil
 }
 
@@ -259,7 +259,7 @@ func (ep *endpoint) attach(sandboxKey string) error {
 
 	ep.SandboxKey = sandboxKey
 
-	log.Logger.Info("Attached endpoint to sandbox", zap.String("id", ep.Id), zap.String("sandboxKey", sandboxKey), zap.String("component", "net"))
+	log.Logger.Info("Attached endpoint to sandbox", zap.String("id", ep.Id), zap.String("sandboxKey", sandboxKey))
 
 	return nil
 }
@@ -270,7 +270,7 @@ func (ep *endpoint) detach() error {
 		return errEndpointNotInUse
 	}
 
-	log.Logger.Info("Detached endpoint from sandbox", zap.String("id", ep.Id), zap.String("sandboxKey", ep.SandboxKey), zap.String("component", "net"))
+	log.Logger.Info("Detached endpoint from sandbox", zap.String("id", ep.Id), zap.String("sandboxKey", ep.SandboxKey))
 
 	ep.SandboxKey = ""
 
@@ -282,10 +282,10 @@ func (nm *networkManager) updateEndpoint(nw *network, exsitingEpInfo *EndpointIn
 	var err error
 
 	log.Logger.Info("Updating existing endpoint in network to target", zap.Any("exsitingEpInfo", exsitingEpInfo),
-		zap.String("id", nw.Id), zap.Any("targetEpInfo", targetEpInfo), zap.String("component", "net"))
+		zap.String("id", nw.Id), zap.Any("targetEpInfo", targetEpInfo))
 	defer func() {
 		if err != nil {
-			log.Logger.Error("Failed to update endpoint with err", zap.String("id", exsitingEpInfo.Id), zap.Error(err), zap.String("component", "net"))
+			log.Logger.Error("Failed to update endpoint with err", zap.String("id", exsitingEpInfo.Id), zap.Error(err))
 		}
 	}()
 
@@ -296,7 +296,7 @@ func (nm *networkManager) updateEndpoint(nw *network, exsitingEpInfo *EndpointIn
 		return errEndpointNotFound
 	}
 
-	log.Logger.Info("Retrieved endpoint to update", zap.Any("ep", ep), zap.String("component", "net"))
+	log.Logger.Info("Retrieved endpoint to update", zap.Any("ep", ep))
 
 	// Call the platform implementation.
 	ep, err = nm.updateEndpointImpl(nw, exsitingEpInfo, targetEpInfo)

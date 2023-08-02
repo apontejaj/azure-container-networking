@@ -123,8 +123,7 @@ func (nm *networkManager) newExternalInterface(ifName string, subnet string) err
 
 	nm.ExternalInterfaces[ifName] = &extIf
 
-	log.Logger.Info("Added ExternalInterface for subnet", zap.String("ifName", ifName), zap.Any("subnet", subnet),
-		zap.String("component", "net"))
+	log.Logger.Info("Added ExternalInterface for subnet", zap.String("ifName", ifName), zap.Any("subnet", subnet))
 
 	return nil
 }
@@ -133,7 +132,7 @@ func (nm *networkManager) newExternalInterface(ifName string, subnet string) err
 func (nm *networkManager) deleteExternalInterface(ifName string) error {
 	delete(nm.ExternalInterfaces, ifName)
 
-	log.Logger.Info("Deleted ExternalInterface", zap.String("ifName", ifName), zap.String("component", "net"))
+	log.Logger.Info("Deleted ExternalInterface", zap.String("ifName", ifName))
 
 	return nil
 }
@@ -166,11 +165,10 @@ func (nm *networkManager) newNetwork(nwInfo *NetworkInfo) (*network, error) {
 	var nw *network
 	var err error
 
-	log.Logger.Info("Creating network", zap.String("network", nwInfo.PrettyString()), zap.String("component", "net"))
+	log.Logger.Info("Creating network", zap.String("network", nwInfo.PrettyString()))
 	defer func() {
 		if err != nil {
-			log.Logger.Error("Failed to create network", zap.String("id", nwInfo.Id), zap.Error(err),
-				zap.String("component", "net"))
+			log.Logger.Error("Failed to create network", zap.String("id", nwInfo.Id), zap.Error(err))
 		}
 	}()
 
@@ -208,8 +206,7 @@ func (nm *networkManager) newNetwork(nwInfo *NetworkInfo) (*network, error) {
 	nw.Subnets = nwInfo.Subnets
 	extIf.Networks[nwInfo.Id] = nw
 
-	log.Logger.Info("Created network on interface", zap.String("id", nwInfo.Id), zap.String("Name", extIf.Name),
-		zap.String("component", "net"))
+	log.Logger.Info("Created network on interface", zap.String("id", nwInfo.Id), zap.String("Name", extIf.Name))
 	return nw, nil
 }
 
@@ -217,11 +214,10 @@ func (nm *networkManager) newNetwork(nwInfo *NetworkInfo) (*network, error) {
 func (nm *networkManager) deleteNetwork(networkID string) error {
 	var err error
 
-	log.Logger.Info("Deleting network", zap.String("networkID", networkID), zap.String("component", "net"))
+	log.Logger.Info("Deleting network", zap.String("networkID", networkID))
 	defer func() {
 		if err != nil {
-			log.Logger.Error("Failed to delete network", zap.String("networkID", networkID), zap.Error(err),
-				zap.String("component", "net"))
+			log.Logger.Error("Failed to delete network", zap.String("networkID", networkID), zap.Error(err))
 		}
 	}()
 
@@ -242,7 +238,7 @@ func (nm *networkManager) deleteNetwork(networkID string) error {
 		delete(nw.extIf.Networks, networkID)
 	}
 
-	log.Logger.Info("Deleted network", zap.Any("nw", nw), zap.String("component", "net"))
+	log.Logger.Info("Deleted network", zap.Any("nw", nw))
 	return nil
 }
 

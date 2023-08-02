@@ -128,7 +128,7 @@ func (nm *networkManager) Uninitialize() {
 func (nm *networkManager) restore(isRehydrationRequired bool) error {
 	// Skip if a store is not provided.
 	if nm.store == nil {
-		log.Logger.Info("network store is nil", zap.String("component", "net"))
+		log.Logger.Info("network store is nil")
 		return nil
 	}
 
@@ -140,14 +140,14 @@ func (nm *networkManager) restore(isRehydrationRequired bool) error {
 	err := nm.store.Read(storeKey, nm)
 	if err != nil {
 		if err == store.ErrKeyNotFound {
-			log.Logger.Info("network store key not found", zap.String("component", "net"))
+			log.Logger.Info("network store key not found")
 			// Considered successful.
 			return nil
 		} else if err == store.ErrStoreEmpty {
-			log.Logger.Info("network store empty", zap.String("component", "net"))
+			log.Logger.Info("network store empty")
 			return nil
 		} else {
-			log.Logger.Error("Failed to restore state", zap.Error(err), zap.String("component", "net"))
+			log.Logger.Error("Failed to restore state", zap.Error(err))
 			return err
 		}
 	}
@@ -156,13 +156,13 @@ func (nm *networkManager) restore(isRehydrationRequired bool) error {
 		modTime, err := nm.store.GetModificationTime()
 		if err == nil {
 			rebootTime, err := platform.GetLastRebootTime()
-			log.Logger.Info("reboot time, store mod time", zap.Any("rebootTime", rebootTime), zap.Any("modTime", modTime), zap.String("component", "net"))
+			log.Logger.Info("reboot time, store mod time", zap.Any("rebootTime", rebootTime), zap.Any("modTime", modTime))
 			if err == nil && rebootTime.After(modTime) {
-				log.Logger.Info("Detected Reboot", zap.String("component", "net"))
+				log.Logger.Info("Detected Reboot")
 				rebooted = true
 				if clearNwConfig, err := platform.ClearNetworkConfiguration(); clearNwConfig {
 					if err != nil {
-						log.Logger.Error("Failed to clear network configuration", zap.Error(err), zap.String("component", "net"))
+						log.Logger.Error("Failed to clear network configuration", zap.Error(err))
 						return err
 					}
 
@@ -194,13 +194,13 @@ func (nm *networkManager) restore(isRehydrationRequired bool) error {
 
 	// if rebooted recreate the network that existed before reboot.
 	if rebooted {
-		log.Logger.Info("Rehydrating network state from persistent store", zap.String("component", "net"))
+		log.Logger.Info("Rehydrating network state from persistent store")
 		for _, extIf := range nm.ExternalInterfaces {
 			for _, nw := range extIf.Networks {
 				nwInfo, err := nm.GetNetworkInfo(nw.Id)
 				if err != nil {
 					log.Logger.Error("Failed to fetch network info for network extif err. This should not happen",
-						zap.Any("nw", nw), zap.Any("extIf", extIf), zap.Error(err), zap.String("component", "net"))
+						zap.Any("nw", nw), zap.Any("extIf", extIf), zap.Error(err))
 					return err
 				}
 
@@ -209,14 +209,14 @@ func (nm *networkManager) restore(isRehydrationRequired bool) error {
 				_, err = nm.newNetworkImpl(&nwInfo, extIf)
 				if err != nil {
 					log.Logger.Error("Restoring network failed for nwInfo extif. This should not happen",
-						zap.Any("nwInfo", nwInfo), zap.Any("extIf", extIf), zap.Error(err), zap.String("component", "net"))
+						zap.Any("nwInfo", nwInfo), zap.Any("extIf", extIf), zap.Error(err))
 					return err
 				}
 			}
 		}
 	}
 
-	log.Logger.Info("Restored state", zap.String("component", "net"))
+	log.Logger.Info("Restored state")
 	return nil
 }
 
@@ -232,9 +232,9 @@ func (nm *networkManager) save() error {
 
 	err := nm.store.Write(storeKey, nm)
 	if err == nil {
-		log.Logger.Info("Save succeeded", zap.String("component", "net"))
+		log.Logger.Info("Save succeeded")
 	} else {
-		log.Logger.Error("Save failed", zap.Error(err), zap.String("component", "net"))
+		log.Logger.Error("Save failed", zap.Error(err))
 	}
 	return err
 }

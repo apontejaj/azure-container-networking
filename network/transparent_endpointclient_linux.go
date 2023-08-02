@@ -81,8 +81,7 @@ func (client *TransparentEndpointClient) AddEndpoints(epInfo *EndpointInfo) erro
 	if _, err := client.netioshim.GetNetworkInterfaceByName(client.hostVethName); err == nil {
 		log.Logger.Info("Deleting old host veth", zap.String("hostVethName", client.hostVethName))
 		if err = client.netlink.DeleteLink(client.hostVethName); err != nil {
-			log.Logger.Error("Failed to delete old", zap.String("hostVethName", client.hostVethName), zap.Error(err),
-				zap.String("component", "net"))
+			log.Logger.Error("Failed to delete old", zap.String("hostVethName", client.hostVethName), zap.Error(err))
 			return newErrorTransparentEndpointClient(err.Error())
 		}
 	}
@@ -94,8 +93,7 @@ func (client *TransparentEndpointClient) AddEndpoints(epInfo *EndpointInfo) erro
 
 	mac, err := net.ParseMAC(defaultHostVethHwAddr)
 	if err != nil {
-		log.Logger.Error("Failed to parse the mac addrress", zap.String("defaultHostVethHwAddr", defaultHostVethHwAddr),
-			zap.String("component", "net"))
+		log.Logger.Error("Failed to parse the mac addrress", zap.String("defaultHostVethHwAddr", defaultHostVethHwAddr))
 	}
 
 	if err = client.netUtilsClient.CreateEndpoint(client.hostVethName, client.containerVethName, mac); err != nil {
@@ -154,7 +152,7 @@ func (client *TransparentEndpointClient) AddEndpointRules(epInfo *EndpointInfo) 
 		} else {
 			ipNet = net.IPNet{IP: ipAddr.IP, Mask: net.CIDRMask(ipv6FullMask, ipv6Bits)}
 		}
-		log.Logger.Info("Adding route for the", zap.String("ip", ipNet.String()), zap.String("component", "net"))
+		log.Logger.Info("Adding route for the", zap.String("ip", ipNet.String()))
 		routeInfo.Dst = ipNet
 		routeInfoList = append(routeInfoList, routeInfo)
 		if err := addRoutes(client.netlink, client.netioshim, client.hostVethName, routeInfoList); err != nil {
@@ -186,7 +184,7 @@ func (client *TransparentEndpointClient) DeleteEndpointRules(ep *endpoint) {
 			ipNet = net.IPNet{IP: ipAddr.IP, Mask: net.CIDRMask(ipv6FullMask, ipv6Bits)}
 		}
 
-		log.Logger.Info("Deleting route for the", zap.String("ip", ipNet.String()), zap.String("component", "net"))
+		log.Logger.Info("Deleting route for the", zap.String("ip", ipNet.String()))
 		routeInfo.Dst = ipNet
 		if err := deleteRoutes(client.netlink, client.netioshim, client.hostVethName, []RouteInfo{routeInfo}); err != nil {
 			log.Logger.Error("Failed to delete route on VM for the", zap.String("ip", ipNet.String()), zap.Error(err))
@@ -196,8 +194,7 @@ func (client *TransparentEndpointClient) DeleteEndpointRules(ep *endpoint) {
 
 func (client *TransparentEndpointClient) MoveEndpointsToContainerNS(epInfo *EndpointInfo, nsID uintptr) error {
 	// Move the container interface to container's network namespace.
-	log.Logger.Info("Setting link netns", zap.String("containerVethName", client.containerVethName), zap.String("NetNsPath", epInfo.NetNsPath),
-		zap.String("component", "net"))
+	log.Logger.Info("Setting link netns", zap.String("containerVethName", client.containerVethName), zap.String("NetNsPath", epInfo.NetNsPath))
 	if err := client.netlink.SetLinkNetNs(client.containerVethName, nsID); err != nil {
 		return newErrorTransparentEndpointClient(err.Error())
 	}
@@ -257,7 +254,7 @@ func (client *TransparentEndpointClient) ConfigureContainerInterfacesAndRoutes(e
 
 	// arp -s 169.254.1.1 e3:45:f4:ac:34:12 - add static arp entry for virtualgwip to hostveth interface mac
 	log.Logger.Info("Adding static arp for IP address and MAC in Container namespace",
-		zap.String("address", virtualGwNet.String()), zap.Any("hostVethMac", client.hostVethMac), zap.String("component", "net"))
+		zap.String("address", virtualGwNet.String()), zap.Any("hostVethMac", client.hostVethMac))
 	linkInfo := netlink.LinkInfo{
 		Name:       client.containerVethName,
 		IPAddr:     virtualGwNet.IP,
@@ -306,7 +303,7 @@ func (client *TransparentEndpointClient) setupIPV6Routes() error {
 }
 
 func (client *TransparentEndpointClient) setIPV6NeighEntry() error {
-	log.Logger.Info("Add v6 neigh entry for default gw ip", zap.String("component", "net"))
+	log.Logger.Info("Add v6 neigh entry for default gw ip")
 	hostGwIP, _, _ := net.ParseCIDR(virtualv6GwString)
 	linkInfo := netlink.LinkInfo{
 		Name:       client.containerVethName,

@@ -57,8 +57,7 @@ func NewNetworkUtils(nl netlink.NetlinkInterface, plClient platform.ExecClient) 
 }
 
 func (nu NetworkUtils) CreateEndpoint(hostVethName, containerVethName string, macAddress net.HardwareAddr) error {
-	log.Logger.Info("Creating veth pair", zap.String("hostVethName", hostVethName), zap.String("containerVethName", containerVethName),
-		zap.String("component", "net"))
+	log.Logger.Info("Creating veth pair", zap.String("hostVethName", hostVethName), zap.String("containerVethName", containerVethName))
 
 	link := netlink.VEthLink{
 		LinkInfo: netlink.LinkInfo{
@@ -71,11 +70,11 @@ func (nu NetworkUtils) CreateEndpoint(hostVethName, containerVethName string, ma
 
 	err := nu.netlink.AddLink(&link)
 	if err != nil {
-		log.Logger.Error("[net] Failed to create veth pair with", zap.Error(err), zap.String("component", "net"))
+		log.Logger.Error("[net] Failed to create veth pair with", zap.Error(err))
 		return newErrorNetworkUtils(err.Error())
 	}
 
-	log.Logger.Info("Setting link state up", zap.String("hostVethName", hostVethName), zap.String("component", "net"))
+	log.Logger.Info("Setting link state up", zap.String("hostVethName", hostVethName))
 	err = nu.netlink.SetLinkState(hostVethName, true)
 	if err != nil {
 		return newErrorNetworkUtils(err.Error())
@@ -90,14 +89,13 @@ func (nu NetworkUtils) CreateEndpoint(hostVethName, containerVethName string, ma
 
 func (nu NetworkUtils) SetupContainerInterface(containerVethName, targetIfName string) error {
 	// Interface needs to be down before renaming.
-	log.Logger.Info("Setting link state down", zap.String("containerVethName", containerVethName), zap.String("component", "net"))
+	log.Logger.Info("Setting link state down", zap.String("containerVethName", containerVethName))
 	if err := nu.netlink.SetLinkState(containerVethName, false); err != nil {
 		return newErrorNetworkUtils(err.Error())
 	}
 
 	// Rename the container interface.
-	log.Logger.Info("Setting link", zap.String("containerVethName", containerVethName), zap.String("targetIfName", targetIfName),
-		zap.String("component", "net"))
+	log.Logger.Info("Setting link", zap.String("containerVethName", containerVethName), zap.String("targetIfName", targetIfName))
 	if err := nu.netlink.SetLinkName(containerVethName, targetIfName); err != nil {
 		return newErrorNetworkUtils(err.Error())
 	}
@@ -107,7 +105,7 @@ func (nu NetworkUtils) SetupContainerInterface(containerVethName, targetIfName s
 	}
 
 	// Bring the interface back up.
-	log.Logger.Info("Setting link state up.", zap.String("targetIfName", targetIfName), zap.String("component", "net"))
+	log.Logger.Info("Setting link state up.", zap.String("targetIfName", targetIfName))
 	err := nu.netlink.SetLinkState(targetIfName, true)
 	if err != nil {
 		return newErrorNetworkUtils(err.Error())
@@ -119,8 +117,7 @@ func (nu NetworkUtils) AssignIPToInterface(interfaceName string, ipAddresses []n
 	var err error
 	// Assign IP address to container network interface.
 	for i, ipAddr := range ipAddresses {
-		log.Logger.Info("Adding IP", zap.String("address", ipAddr.String()), zap.String("interfaceName", interfaceName),
-			zap.String("component", "net"))
+		log.Logger.Info("Adding IP", zap.String("address", ipAddr.String()), zap.String("interfaceName", interfaceName))
 		err = nu.netlink.AddIPAddress(interfaceName, ipAddr.IP, &ipAddresses[i])
 		if err != nil {
 			return newErrorNetworkUtils(err.Error())
@@ -156,7 +153,7 @@ func AllowIPAddresses(bridgeName string, skipAddresses []string, action string) 
 	chains := getFilterChains()
 	target := getFilterchainTarget()
 
-	log.Logger.Info("Addresses to allow", zap.Any("skipAddresses", skipAddresses), zap.String("component", "net"))
+	log.Logger.Info("Addresses to allow", zap.Any("skipAddresses", skipAddresses))
 
 	for _, address := range skipAddresses {
 		if err := addOrDeleteFilterRule(bridgeName, action, address, chains[0], target[0]); err != nil {
@@ -181,7 +178,7 @@ func BlockIPAddresses(bridgeName, action string) error {
 	chains := getFilterChains()
 	target := getFilterchainTarget()
 
-	log.Logger.Info("Addresses to block", zap.Any("privateIPAddresses", privateIPAddresses), zap.String("component", "net"))
+	log.Logger.Info("Addresses to block", zap.Any("privateIPAddresses", privateIPAddresses))
 
 	for _, ipAddress := range privateIPAddresses {
 		if err := addOrDeleteFilterRule(bridgeName, action, ipAddress, chains[0], target[1]); err != nil {
@@ -207,14 +204,14 @@ func (nu NetworkUtils) EnableIPForwarding(ifName string) error {
 	cmd := fmt.Sprint(enableIPForwardCmd)
 	_, err := nu.plClient.ExecuteCommand(cmd)
 	if err != nil {
-		log.Logger.Error("Enable ipforwarding failed with", zap.Error(err), zap.String("component", "net"))
+		log.Logger.Error("Enable ipforwarding failed with", zap.Error(err))
 		return err
 	}
 
 	// Append a rule in forward chain to allow forwarding from bridge
 	if err := iptables.AppendIptableRule(iptables.V4, iptables.Filter, iptables.Forward, "", iptables.Accept); err != nil {
 		log.Logger.Error("Appending forward chain rule: allow traffic coming from snatbridge failed with",
-			zap.Error(err), zap.String("component", "net"))
+			zap.Error(err))
 		return err
 	}
 
@@ -225,7 +222,7 @@ func (nu NetworkUtils) EnableIPV6Forwarding() error {
 	cmd := fmt.Sprint(enableIPV6ForwardCmd)
 	_, err := nu.plClient.ExecuteCommand(cmd)
 	if err != nil {
-		log.Logger.Error("Enable ipv6 forwarding failed with", zap.Error(err), zap.String("component", "net"))
+		log.Logger.Error("Enable ipv6 forwarding failed with", zap.Error(err))
 		return err
 	}
 
@@ -238,7 +235,7 @@ func (nu NetworkUtils) UpdateIPV6Setting(disable int) error {
 	cmd := fmt.Sprintf(toggleIPV6Cmd, disable)
 	_, err := nu.plClient.ExecuteCommand(cmd)
 	if err != nil {
-		log.Logger.Error("Update IPV6 Setting failed with", zap.Error(err), zap.String("component", "net"))
+		log.Logger.Error("Update IPV6 Setting failed with", zap.Error(err))
 	}
 
 	return err
@@ -259,14 +256,14 @@ func (nu NetworkUtils) DisableRAForInterface(ifName string) error {
 	raFilePath := fmt.Sprintf(acceptRAV6File, ifName)
 	exist, err := platform.CheckIfFileExists(raFilePath)
 	if !exist {
-		log.Logger.Error("accept_ra file doesn't exist with", zap.Error(err), zap.String("component", "net"))
+		log.Logger.Error("accept_ra file doesn't exist with", zap.Error(err))
 		return nil
 	}
 
 	cmd := fmt.Sprintf(disableRACmd, ifName)
 	out, err := nu.plClient.ExecuteCommand(cmd)
 	if err != nil {
-		log.Logger.Error("Diabling ra failed with", zap.Error(err), zap.Any("out", out), zap.String("component", "net"))
+		log.Logger.Error("Diabling ra failed with", zap.Error(err), zap.Any("out", out))
 	}
 
 	return err

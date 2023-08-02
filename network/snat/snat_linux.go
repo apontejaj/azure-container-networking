@@ -140,7 +140,7 @@ func (client *Client) BlockIPAddressesOnSnatBridge() error {
 // Move container veth inside container network namespace
 func (client *Client) MoveSnatEndpointToContainerNS(netnsPath string, nsID uintptr) error {
 	log.Logger.Info("Setting link netns", zap.String("containerSnatVethName", client.containerSnatVethName),
-		zap.Any("netnsPath", netnsPath), zap.String("component", "snat"))
+		zap.Any("netnsPath", netnsPath))
 	err := client.netlink.SetLinkNetNs(client.containerSnatVethName, nsID)
 	if err != nil {
 		return newErrorSnatClient(err.Error())
@@ -355,7 +355,7 @@ func (client *Client) DeleteInboundFromNCToHost() error {
 // Configures Local IP Address for container Veth
 func (client *Client) ConfigureSnatContainerInterface() error {
 	log.Logger.Info("Adding IP address", zap.String("localIP", client.localIP),
-		zap.String("containerSnatVethName", client.containerSnatVethName), zap.String("component", "snat"))
+		zap.String("containerSnatVethName", client.containerSnatVethName))
 	ip, intIpAddr, _ := net.ParseCIDR(client.localIP)
 	err := client.netlink.AddIPAddress(client.containerSnatVethName, ip, intIpAddr)
 	if err != nil {
@@ -365,12 +365,11 @@ func (client *Client) ConfigureSnatContainerInterface() error {
 }
 
 func (client *Client) DeleteSnatEndpoint() error {
-	log.Logger.Info("Deleting snat veth pair", zap.String("hostSnatVethName", client.hostSnatVethName),
-		zap.String("component", "snat"))
+	log.Logger.Info("Deleting snat veth pair", zap.String("hostSnatVethName", client.hostSnatVethName))
 	err := client.netlink.DeleteLink(client.hostSnatVethName)
 	if err != nil {
 		log.Logger.Error("Failed to delete veth pair", zap.String("hostSnatVethName", client.hostSnatVethName),
-			zap.Error(err), zap.String("component", "snat"))
+			zap.Error(err))
 		return newErrorSnatClient(err.Error())
 	}
 
@@ -408,7 +407,7 @@ func (client *Client) createSnatBridge(snatBridgeIP, hostPrimaryMac string) erro
 	if err == nil {
 		log.Logger.Info("Snat Bridge already exists")
 	} else {
-		log.Logger.Info("Creating Snat bridge", zap.String("SnatBridgeName", SnatBridgeName), zap.String("component", "net"))
+		log.Logger.Info("Creating Snat bridge", zap.String("SnatBridgeName", SnatBridgeName))
 
 		link := netlink.BridgeLink{
 			LinkInfo: netlink.LinkInfo{
@@ -438,7 +437,7 @@ func (client *Client) createSnatBridge(snatBridgeIP, hostPrimaryMac string) erro
 	ip, addr, _ := net.ParseCIDR(snatBridgeIP)
 	err = client.netlink.AddIPAddress(SnatBridgeName, ip, addr)
 	if err != nil && !strings.Contains(strings.ToLower(err.Error()), "file exists") {
-		log.Logger.Error("Failed to add IP address", zap.Any("addr", addr), zap.Error(err), zap.String("component", "net"))
+		log.Logger.Error("Failed to add IP address", zap.Any("addr", addr), zap.Error(err))
 		return newErrorSnatClient(err.Error())
 	}
 
@@ -460,7 +459,7 @@ func (client *Client) addMasqueradeRule(snatBridgeIPWithPrefix string) error {
 func (client *Client) addVlanDropRule() error {
 	out, err := client.plClient.ExecuteCommand(l2PreroutingEntries)
 	if err != nil {
-		log.Logger.Error("Error while listing ebtable rules", zap.String("component", "net"))
+		log.Logger.Error("Error while listing ebtable rules")
 		return err
 	}
 

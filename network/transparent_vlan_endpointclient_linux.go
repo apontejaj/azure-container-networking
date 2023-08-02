@@ -160,14 +160,14 @@ func (client *TransparentVlanEndpointClient) PopulateVM(epInfo *EndpointInfo) er
 		return errors.Wrap(err, "failed to get vm ns handle")
 	}
 
-	log.Logger.Info("Checking if NS exists...", zap.String("component", "transparent vlan"))
+	log.Logger.Info("Checking if NS exists...")
 	var existingErr error
 	client.vnetNSFileDescriptor, existingErr = client.netnsClient.GetFromName(client.vnetNSName)
 	// If the ns does not exist, the below code will trigger to create it
 	// This will also (we assume) mean the vlan veth does not exist
 	if existingErr != nil {
 		// We assume the only possible error is that the namespace doesn't exist
-		log.Logger.Info("No existing NS detected. Creating the vnet namespace and switching to it", zap.String("component", "transparent vlan"))
+		log.Logger.Info("No existing NS detected. Creating the vnet namespace and switching to it")
 
 		if err = client.createNetworkNamespace(vmNS, numRetries); err != nil {
 			return errors.Wrap(err, "")
@@ -177,10 +177,10 @@ func (client *TransparentVlanEndpointClient) PopulateVM(epInfo *EndpointInfo) er
 		// Any failure will trigger removing the namespace created
 		defer func() {
 			if deleteNSIfNotNilErr != nil {
-				log.Logger.Info("[transparent vlan] removing vnet ns due to failure...", zap.String("component", "transparent vlan"))
+				log.Logger.Info("[transparent vlan] removing vnet ns due to failure...")
 				err = client.netnsClient.DeleteNamed(client.vnetNSName)
 				if err != nil {
-					log.Logger.Error("failed to cleanup/delete ns after failing to create vlan veth", zap.String("component", "transparent vlan"))
+					log.Logger.Error("failed to cleanup/delete ns after failing to create vlan veth")
 				}
 			}
 		}()
@@ -189,7 +189,7 @@ func (client *TransparentVlanEndpointClient) PopulateVM(epInfo *EndpointInfo) er
 		}
 
 		// Now create vlan veth
-		log.Logger.Info("Create the host vlan link after getting eth0", zap.String("primaryHostIfName", client.primaryHostIfName), zap.String("component", "transparent vlan"))
+		log.Logger.Info("Create the host vlan link after getting eth0", zap.String("primaryHostIfName", client.primaryHostIfName))
 		// Get parent interface index. Index is consistent across libraries.
 		eth0, deleteNSIfNotNilErr := client.netioshim.GetNetworkInterfaceByName(client.primaryHostIfName)
 		if deleteNSIfNotNilErr != nil {
@@ -203,7 +203,7 @@ func (client *TransparentVlanEndpointClient) PopulateVM(epInfo *EndpointInfo) er
 			LinkAttrs: linkAttrs,
 			VlanId:    client.vlanID,
 		}
-		log.Logger.Info("Attempting to create link in VM NS", zap.String("vlanIfName", client.vlanIfName), zap.String("component", "transparent vlan"))
+		log.Logger.Info("Attempting to create link in VM NS", zap.String("vlanIfName", client.vlanIfName))
 		// Create vlan veth
 		deleteNSIfNotNilErr = vishnetlink.LinkAdd(link)
 		if deleteNSIfNotNilErr != nil {
@@ -215,7 +215,7 @@ func (client *TransparentVlanEndpointClient) PopulateVM(epInfo *EndpointInfo) er
 		}
 		defer func() {
 			if deleteNSIfNotNilErr != nil {
-				log.Logger.Info("removing vlan veth due to failure...", zap.String("component", "transparent vlan"))
+				log.Logger.Info("removing vlan veth due to failure...")
 				if delErr := client.netlink.DeleteLink(client.vlanIfName); delErr != nil {
 					log.Logger.Error("deleting vlan veth failed on addendpoint failure with", zap.Any("error:", delErr.Error()))
 				}
@@ -239,21 +239,19 @@ func (client *TransparentVlanEndpointClient) PopulateVM(epInfo *EndpointInfo) er
 			return errors.Wrap(deleteNSIfNotNilErr, "failed to disable router advertisements for vlan vnet link")
 		}
 		// vlan veth was created successfully, so move the vlan veth you created
-		log.Logger.Info("Move vlan link to vnet NS", zap.String("vlanIfName", client.vlanIfName), zap.Any("vnetNSFileDescriptor", uintptr(client.vnetNSFileDescriptor)),
-			zap.String("component", "transparent vlan"))
+		log.Logger.Info("Move vlan link to vnet NS", zap.String("vlanIfName", client.vlanIfName), zap.Any("vnetNSFileDescriptor", uintptr(client.vnetNSFileDescriptor)))
 		deleteNSIfNotNilErr = client.netlink.SetLinkNetNs(client.vlanIfName, uintptr(client.vnetNSFileDescriptor))
 		if deleteNSIfNotNilErr != nil {
 			return errors.Wrap(deleteNSIfNotNilErr, "deleting vlan veth in vm ns due to addendpoint failure")
 		}
 	} else {
-		log.Logger.Info("Existing NS detected. Assuming exists too", zap.String("vnetNSName", client.vnetNSName), zap.String("vlanIfName", client.vlanIfName),
-			zap.String("component", "transparent vlan"))
+		log.Logger.Info("Existing NS detected. Assuming exists too", zap.String("vnetNSName", client.vnetNSName), zap.String("vlanIfName", client.vlanIfName))
 	}
 
 	// Get the default constant host veth mac
 	mac, err := net.ParseMAC(defaultHostVethHwAddr)
 	if err != nil {
-		log.Logger.Info("Failed to parse the mac addrress", zap.String("defaultHostVethHwAddr", defaultHostVethHwAddr), zap.String("component", "net"))
+		log.Logger.Info("Failed to parse the mac addrress", zap.String("defaultHostVethHwAddr", defaultHostVethHwAddr))
 	}
 
 	// Create veth pair
@@ -317,7 +315,7 @@ func (client *TransparentVlanEndpointClient) AddEndpointRules(epInfo *EndpointIn
 	if err := client.AddSnatEndpointRules(); err != nil {
 		return errors.Wrap(err, "failed to add snat endpoint rules")
 	}
-	log.Logger.Info("Adding tunneling rules in vnet namespace", zap.String("component", "transparent vlan"))
+	log.Logger.Info("Adding tunneling rules in vnet namespace")
 	err := ExecuteInNS(client.vnetNSName, func() error {
 		return client.AddVnetRules(epInfo)
 	})
@@ -454,7 +452,7 @@ func (client *TransparentVlanEndpointClient) ConfigureVnetInterfacesAndRoutesImp
 
 	// Delete old route if any for this IP
 	err = deleteRoutes(client.netlink, client.netioshim, "", routeInfoList)
-	log.Logger.Info("Deleting old routes returned", zap.Error(err), zap.String("component", "transparent vlan"))
+	log.Logger.Info("Deleting old routes returned", zap.Error(err))
 
 	if err = addRoutes(client.netlink, client.netioshim, client.vnetVethName, routeInfoList); err != nil {
 		return errors.Wrap(err, "failed adding routes to vnet specific to this container")
@@ -482,7 +480,7 @@ func (client *TransparentVlanEndpointClient) GetVnetRoutes(ipAddresses []net.IPN
 		} else {
 			ipNet = net.IPNet{IP: ipAddr.IP, Mask: net.CIDRMask(ipv6FullMask, ipv6Bits)}
 		}
-		log.Logger.Info("Getting route for this", zap.String("ip", ipNet.String()), zap.String("component", "net"))
+		log.Logger.Info("Getting route for this", zap.String("ip", ipNet.String()))
 		routeInfo.Dst = ipNet
 		routeInfoList = append(routeInfoList, routeInfo)
 
@@ -528,7 +526,7 @@ func (client *TransparentVlanEndpointClient) addDefaultRoutes(linkToName string,
 func (client *TransparentVlanEndpointClient) AddDefaultArp(interfaceName, destMac string) error {
 	_, virtualGwNet, _ := net.ParseCIDR(virtualGwIPVlanString)
 	log.Logger.Info("Adding static arp for",
-		zap.String("IP", virtualGwNet.String()), zap.String("MAC", destMac), zap.String("component", "net"))
+		zap.String("IP", virtualGwNet.String()), zap.String("MAC", destMac))
 	hardwareAddr, err := net.ParseMAC(destMac)
 	if err != nil {
 		return errors.Wrap(err, "unable to parse mac")
@@ -604,35 +602,35 @@ func ExecuteInNS(nsName string, f func() error) error {
 	// Current namespace
 	returnedTo, err := GetCurrentThreadNamespace()
 	if err != nil {
-		log.Logger.Error("Could not get NS we are in", zap.Error(err), zap.String("component", "ExecuteInNS"))
+		log.Logger.Error("Could not get NS we are in", zap.Error(err))
 	} else {
-		log.Logger.Info("In NS before switch", zap.String("fileName", returnedTo.file.Name()), zap.String("component", "ExecuteInNS"))
+		log.Logger.Info("In NS before switch", zap.String("fileName", returnedTo.file.Name()))
 	}
 
 	// Open the network namespace
-	log.Logger.Info("Opening ns", zap.String("nsName", fmt.Sprintf("/var/run/netns/%s", nsName)), zap.String("component", "ExecuteInNS"))
+	log.Logger.Info("Opening ns", zap.String("nsName", fmt.Sprintf("/var/run/netns/%s", nsName)))
 	ns, err := OpenNamespace(fmt.Sprintf("/var/run/netns/%s", nsName))
 	if err != nil {
 		return err
 	}
 	defer ns.Close()
 	// Enter the network namespace
-	log.Logger.Info("Entering ns", zap.String("nsFileName", ns.file.Name()), zap.String("component", "ExecuteInNS"))
+	log.Logger.Info("Entering ns", zap.String("nsFileName", ns.file.Name()))
 	if err := ns.Enter(); err != nil {
 		return err
 	}
 
 	// Exit network namespace
 	defer func() {
-		log.Logger.Info("Exiting ns", zap.String("nsFileName", ns.file.Name()), zap.String("component", "ExecuteInNS"))
+		log.Logger.Info("Exiting ns", zap.String("nsFileName", ns.file.Name()))
 		if err := ns.Exit(); err != nil {
-			log.Logger.Error("Could not exit ns", zap.Error(err), zap.String("component", "ExecuteInNS"))
+			log.Logger.Error("Could not exit ns", zap.Error(err))
 		}
 		returnedTo, err := GetCurrentThreadNamespace()
 		if err != nil {
-			log.Logger.Error("Could not get NS we returned to", zap.Error(err), zap.String("component", "ExecuteInNS"))
+			log.Logger.Error("Could not get NS we returned to", zap.Error(err))
 		} else {
-			log.Logger.Info("Returned to NS", zap.String("fileName", returnedTo.file.Name()), zap.String("component", "ExecuteInNS"))
+			log.Logger.Info("Returned to NS", zap.String("fileName", returnedTo.file.Name()))
 		}
 	}()
 	return f()

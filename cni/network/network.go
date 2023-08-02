@@ -162,7 +162,7 @@ func (plugin *NetPlugin) Start(config *common.PluginConfig) error {
 		return err
 	}
 
-	log.Logger.Info("Plugin started", zap.String("component", "cni-net"))
+	log.Logger.Info("Plugin started")
 
 	return nil
 }
@@ -206,7 +206,7 @@ func (plugin *NetPlugin) GetAllEndpointState(networkid string) (*api.AzureCNISta
 func (plugin *NetPlugin) Stop() {
 	plugin.nm.Uninitialize()
 	plugin.Uninitialize()
-	log.Logger.Info("Plugin stopped", zap.String("component", "cni-net"))
+	log.Logger.Info("Plugin stopped")
 }
 
 // FindMasterInterface returns the name of the master interface.
@@ -313,7 +313,7 @@ func addNatIPV6SubnetInfo(nwCfg *cni.NetworkConfig,
 			Gateway: resultV6.IPs[0].Gateway,
 		}
 		log.Logger.Info("ipv6 subnet info",
-			zap.Any("ipv6SubnetInfo", ipv6SubnetInfo), zap.String("component", "net"))
+			zap.Any("ipv6SubnetInfo", ipv6SubnetInfo))
 		nwInfo.Subnets = append(nwInfo.Subnets, ipv6SubnetInfo)
 	}
 }
