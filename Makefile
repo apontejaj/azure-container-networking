@@ -247,7 +247,6 @@ endif
 
 ## Image name definitions.
 ACNCLI_IMAGE     	  = acncli
-CNI_PLUGIN_IMAGE 	  = azure-cni-plugin
 CNI_DROPGZ_IMAGE 	  = cni-dropgz
 CNI_DROPGZ_TEST_IMAGE = cni-dropgz-test
 CNS_IMAGE        	  = azure-cns
@@ -255,7 +254,6 @@ NPM_IMAGE        	  = azure-npm
 
 ## Image platform tags.
 ACNCLI_PLATFORM_TAG    		 ?= $(subst /,-,$(PLATFORM))$(if $(OS_VERSION),-$(OS_VERSION),)-$(ACN_VERSION)
-CNI_PLUGIN_PLATFORM_TAG 	 ?= $(subst /,-,$(PLATFORM))$(if $(OS_VERSION),-$(OS_VERSION),)-$(CNI_VERSION)
 CNI_DROPGZ_PLATFORM_TAG 	 ?= $(subst /,-,$(PLATFORM))$(if $(OS_VERSION),-$(OS_VERSION),)-$(CNI_DROPGZ_VERSION)
 CNI_DROPGZ_TEST_PLATFORM_TAG ?= $(subst /,-,$(PLATFORM))$(if $(OS_VERSION),-$(OS_VERSION),)-$(CNI_DROPGZ_TEST_VERSION)
 CNS_PLATFORM_TAG        	 ?= $(subst /,-,$(PLATFORM))$(if $(OS_VERSION),-$(OS_VERSION),)-$(CNS_VERSION)
@@ -343,7 +341,7 @@ cni-dropgz-image-name-and-tag: # util target to print the CNI dropgz image name 
 cni-dropgz-image: ## build cni-dropgz container image.
 	$(MAKE) container \
 		DOCKERFILE=dropgz/build/$(OS).Dockerfile \
-		EXTRA_BUILD_ARGS='--build-arg OS=$(OS) --build-arg ARCH=$(ARCH)' \
+		EXTRA_BUILD_ARGS='--build-arg OS=$(OS) --build-arg ARCH=$(ARCH) --build-arg OS_VERSION=$(OS_VERSION)' \
 		IMAGE=$(CNI_DROPGZ_IMAGE) \
 		TAG=$(CNI_DROPGZ_PLATFORM_TAG)
 
@@ -367,8 +365,8 @@ cni-dropgz-test-image-name-and-tag: # util target to print the CNI dropgz test i
 
 cni-dropgz-test-image: ## build cni-dropgz-test container image.
 	$(MAKE) container \
-		DOCKERFILE=dropgz/build/cniTest.Dockerfile \
-		EXTRA_BUILD_ARGS='--build-arg OS=$(OS)' \
+		DOCKERFILE=dropgz/build/cniTest_$(OS).Dockerfile \
+		EXTRA_BUILD_ARGS='--build-arg OS=$(OS)  --build-arg ARCH=$(ARCH) --build-arg OS_VERSION=$(OS_VERSION)' \
 		IMAGE=$(CNI_DROPGZ_TEST_IMAGE) \
 		TAG=$(CNI_DROPGZ_TEST_PLATFORM_TAG)
 
@@ -439,21 +437,6 @@ npm-image-pull: ## pull cns container image.
 	$(MAKE) container-pull \
 		IMAGE=$(NPM_IMAGE) \
 		TAG=$(NPM_PLATFORM_TAG)
-
-# cni-plugin - Specifically used for windows clusters, will be removed once we have Dropgz for windows
-cni-plugin-image-name-and-tag: # util target to print the CNI plugin image name and tag.
-	@echo $(IMAGE_REGISTRY)/$(CNI_PLUGIN_IMAGE):$(CNI_PLUGIN_PLATFORM_TAG)
-
-cni-plugin-image: ## build cni plugin container image.
-	$(MAKE) container \
-		DOCKERFILE=cni/build/$(OS).Dockerfile \
-		IMAGE=$(CNI_PLUGIN_IMAGE) \
-		EXTRA_BUILD_ARGS='--build-arg  CNI_AI_PATH=$(CNI_AI_PATH) --build-arg CNI_AI_ID=$(CNI_AI_ID) --build-arg OS_VERSION=$(OS_VERSION)' \
-		PLATFORM=$(PLATFORM) \
-		TAG=$(CNI_PLUGIN_PLATFORM_TAG) \
-		OS=$(OS) \
-		ARCH=$(ARCH) \
-		OS_VERSION=$(OS_VERSION)
 
 
 ## Legacy
@@ -741,7 +724,7 @@ test-integration: ## run all integration tests.
 		go test -mod=readonly -buildvcs=false -timeout 1h -coverpkg=./... -race -covermode atomic -coverprofile=coverage.out -tags=integration ./test/integration...
 
 test-validate-state:
-	cd test/integration/load && go test -count 1 -timeout 30m -tags load -run ^TestValidateState -tags=load -restart-case=$(RESTART_CASE) -os=$(OS)
+	cd test/integration/load && go test -mod=readonly -count=1 -timeout 30m -tags load -run ^TestValidateState -tags=load -restart-case=$(RESTART_CASE) -os=$(OS)
 	cd ../../..
 
 test-cyclonus: ## run the cyclonus test for npm.
