@@ -915,7 +915,7 @@ func (service *HTTPRestService) EndpointHandlerAPI(w http.ResponseWriter, r *htt
 func (service *HTTPRestService) GetEndpointHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Printf("[Azure CNS] GetEndpoint")
 
-	var req cns.GetEndpoint
+	var req cns.EndpointRequest
 	err := service.Listener.Decode(w, r, &req)
 
 	logger.Request(service.Name, &req, err)
@@ -1005,7 +1005,7 @@ func (service *HTTPRestService) GetEndpointHelper(endpointID string) (*EndpointI
 func (service *HTTPRestService) UpdateEndpointHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Printf("[Azure CNS] updateEndpoint")
 
-	var req cns.UpdateEndpoint
+	var req cns.EndpointRequest
 	err := service.Listener.Decode(w, r, &req)
 
 	logger.Request(service.Name, &req, err)
