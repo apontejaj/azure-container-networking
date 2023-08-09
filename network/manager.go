@@ -9,12 +9,14 @@ import (
 	"time"
 
 	cnms "github.com/Azure/azure-container-networking/cnms/cnmspackage"
+	cnsclient "github.com/Azure/azure-container-networking/cns/client"
 	"github.com/Azure/azure-container-networking/common"
 	"github.com/Azure/azure-container-networking/log"
 	"github.com/Azure/azure-container-networking/netio"
 	"github.com/Azure/azure-container-networking/netlink"
 	"github.com/Azure/azure-container-networking/platform"
 	"github.com/Azure/azure-container-networking/store"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -27,6 +29,8 @@ const (
 	IPTablesKey     = "IPTablesKey"
 	genericData     = "com.docker.network.generic"
 	ipv6AddressMask = 128
+	cnsBaseURL      = "" // fallback to default http://localhost:10090
+	cnsReqTimeout   = 15 * time.Second
 )
 
 var Ipv4DefaultRouteDstPrefix = net.IPNet{
@@ -61,6 +65,8 @@ type EndpointClient interface {
 
 // NetworkManager manages the set of container networking resources.
 type networkManager struct {
+	StetlessCniMode    bool
+	CnsClient          *cnsclient.Client
 	Version            string
 	TimeStamp          time.Time
 	ExternalInterfaces map[string]*externalInterface
@@ -113,6 +119,10 @@ func NewNetworkManager(nl netlink.NetlinkInterface, plc platform.ExecClient, net
 func (nm *networkManager) Initialize(config *common.PluginConfig, isRehydrationRequired bool) error {
 	nm.Version = config.Version
 	nm.store = config.Store
+	if config.Stateless == true {
+		nm.SetStatelessCNIMode()
+		return nil
+	}
 
 	// Restore persisted state.
 	err := nm.restore(isRehydrationRequired)
@@ -121,6 +131,24 @@ func (nm *networkManager) Initialize(config *common.PluginConfig, isRehydrationR
 
 // Uninitialize cleans up network manager.
 func (nm *networkManager) Uninitialize() {
+}
+
+// SetStatelessCNIMode enable the statelessCNI falg and inititlizes a CNSClient
+func (nm *networkManager) SetStatelessCNIMode() error {
+	nm.StetlessCniMode = true
+	// Create CNS client
+	client, err := cnsclient.New(cnsBaseURL, cnsReqTimeout)
+	if err != nil {
+		return errors.Wrapf(err, "failed to initialize CNS client")
+	}
+	nm.CnsClient = client
+	return nil
+}
+func (nm *networkManager) IsStatelessCNIMode() bool {
+	if nm.StetlessCniMode == true {
+		return true
+	}
+	return false
 }
 
 // Restore reads network manager state from persistent store.
