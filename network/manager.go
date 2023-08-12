@@ -4,6 +4,7 @@
 package network
 
 import (
+	"context"
 	"net"
 	"sync"
 	"time"
@@ -21,16 +22,17 @@ import (
 
 const (
 	// Network store key.
-	storeKey        = "Network"
-	VlanIDKey       = "VlanID"
-	AzureCNS        = "azure-cns"
-	SNATIPKey       = "NCPrimaryIPKey"
-	RoutesKey       = "RoutesKey"
-	IPTablesKey     = "IPTablesKey"
-	genericData     = "com.docker.network.generic"
-	ipv6AddressMask = 128
-	cnsBaseURL      = "" // fallback to default http://localhost:10090
-	cnsReqTimeout   = 15 * time.Second
+	storeKey             = "Network"
+	VlanIDKey            = "VlanID"
+	AzureCNS             = "azure-cns"
+	SNATIPKey            = "NCPrimaryIPKey"
+	RoutesKey            = "RoutesKey"
+	IPTablesKey          = "IPTablesKey"
+	genericData          = "com.docker.network.generic"
+	ipv6AddressMask      = 128
+	cnsBaseURL           = "" // fallback to default http://localhost:10090
+	cnsReqTimeout        = 15 * time.Second
+	StateLessCNIIsNotSet = "StateLess CNI mode is not enabled"
 )
 
 var Ipv4DefaultRouteDstPrefix = net.IPNet{
@@ -144,6 +146,8 @@ func (nm *networkManager) SetStatelessCNIMode() error {
 	nm.CnsClient = client
 	return nil
 }
+
+// IsStatelessCNIMode checks if the Stateless CNI mode has been enabled or not
 func (nm *networkManager) IsStatelessCNIMode() bool {
 	if nm.StetlessCniMode == true {
 		return true
@@ -407,6 +411,30 @@ func (nm *networkManager) DeleteEndpoint(networkID, endpointID string) error {
 
 // GetEndpointInfo returns information about the given endpoint.
 func (nm *networkManager) GetEndpointInfo(networkId string, endpointId string) (*EndpointInfo, error) {
+
+	if nm.IsStatelessCNIMode() {
+		log.Printf("calling cns getEndpoint API")
+		endpointResponse, err := nm.CnsClient.GetEndpoint(context.TODO(), endpointId)
+		if err != nil {
+			log.Errorf("Get endpoint API returend with error", err)
+			return nil, errors.Wrapf(err, "Get endpoint API returend with error")
+		}
+		log.Printf("Get endpoint API returend with podname: ", endpointResponse.EndpointInfo.PodName)
+		epInfo := &EndpointInfo{
+			Id:                 endpointId,
+			IPAddresses:        endpointResponse.EndpointInfo.IfnameToIPMap[endpointResponse.EndpointInfo.HostVethName].IPv4,
+			Data:               make(map[string]interface{}),
+			IfIndex:            0, // Azure CNI supports only one interface
+			IfName:             endpointResponse.EndpointInfo.HostVethName,
+			ContainerID:        endpointId,
+			PODName:            endpointResponse.EndpointInfo.PodName,
+			PODNameSpace:       endpointResponse.EndpointInfo.PodNamespace,
+			NetworkContainerID: endpointId,
+		}
+		epInfo.IPAddresses = append(endpointResponse.EndpointInfo.IfnameToIPMap[epInfo.IfName].IPv6)
+
+		return epInfo, nil
+	}
 	nm.Lock()
 	defer nm.Unlock()
 
