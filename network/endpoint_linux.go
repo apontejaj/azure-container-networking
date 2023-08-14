@@ -256,7 +256,7 @@ func (nw *network) newEndpointImpl(
 }
 
 // deleteEndpointImpl deletes an existing endpoint from the network.
-func (nw *network) deleteEndpointImpl(nl netlink.NetlinkInterface, plc platform.ExecClient, epClient EndpointClient, ep *endpoint) error {
+func (nw *network) deleteEndpointImpl(nl netlink.NetlinkInterface, plc platform.ExecClient, epClient EndpointClient, ep *endpoint, epInfo *EndpointInfo) error {
 	// Delete the veth pair by deleting one of the peer interfaces.
 	// Deleting the host interface is more convenient since it does not require
 	// entering the container netns and hence works both for CNI and CNM.
@@ -265,7 +265,6 @@ func (nw *network) deleteEndpointImpl(nl netlink.NetlinkInterface, plc platform.
 	if epClient == nil {
 		//nolint:gocritic
 		if ep.VlanID != 0 {
-			epInfo := ep.getInfo()
 			if nw.Mode == opModeTransparentVlan {
 				log.Printf("Transparent vlan client")
 				epClient = NewTransparentVlanEndpointClient(nw, epInfo, ep.HostIfName, "", ep.VlanID, ep.LocalIP, nl, plc)

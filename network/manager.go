@@ -94,7 +94,7 @@ type NetworkManager interface {
 	GetNumEndpointsByContainerID(containerID string) int
 
 	CreateEndpoint(client apipaClient, networkID string, epInfo *EndpointInfo) error
-	DeleteEndpoint(networkID string, endpointID string) error
+	DeleteEndpoint(networkID string, endpointID string, epInfo *EndpointInfo) error
 	GetEndpointInfo(networkID string, endpointID string) (*EndpointInfo, error)
 	GetAllEndpoints(networkID string) (map[string]*EndpointInfo, error)
 	GetEndpointInfoBasedOnPODDetails(networkID string, podName string, podNameSpace string, doExactMatchForPodName bool) (*EndpointInfo, error)
@@ -103,6 +103,7 @@ type NetworkManager interface {
 	UpdateEndpoint(networkID string, existingEpInfo *EndpointInfo, targetEpInfo *EndpointInfo) error
 	GetNumberOfEndpoints(ifName string, networkID string) int
 	SetupNetworkUsingState(networkMonitor *cnms.NetworkMonitor) error
+	GetEndpointID(containerID, ifName string) string
 }
 
 // Creates a new network manager.
@@ -387,7 +388,38 @@ func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epIn
 }
 
 // DeleteEndpoint deletes an existing container endpoint.
-func (nm *networkManager) DeleteEndpoint(networkID, endpointID string) error {
+func (nm *networkManager) DeleteEndpoint(networkID, endpointID string, epInfo *EndpointInfo) error {
+
+	if nm.IsStatelessCNIMode() {
+		nw := &network{
+			Id:           "azure",
+			Mode:         opModeTransparentVlan,
+			SnatBridgeIP: "",
+			extIf: &externalInterface{
+				Name:       "eth0",
+				MacAddress: nil,
+			},
+		}
+
+		ep := &endpoint{
+			Id:                       epInfo.Id,
+			HnsId:                    epInfo.HNSEndpointID,
+			HostIfName:               epInfo.IfName,
+			LocalIP:                  "",
+			VlanID:                   0,
+			AllowInboundFromHostToNC: false,
+			AllowInboundFromNCToHost: false,
+			EnableSnatOnHost:         false,
+			EnableMultitenancy:       false,
+			NetworkContainerID:       "",
+		}
+		netlink.NewNetlink()
+		err := nw.deleteEndpointImpl(netlink.NewNetlink(), platform.NewExecClient(), nil, ep, epInfo)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 	nm.Lock()
 	defer nm.Unlock()
 
@@ -430,6 +462,7 @@ func (nm *networkManager) GetEndpointInfo(networkId string, endpointId string) (
 			PODName:            endpointResponse.EndpointInfo.PodName,
 			PODNameSpace:       endpointResponse.EndpointInfo.PodNamespace,
 			NetworkContainerID: endpointId,
+			HNSEndpointID:      endpointResponse.EndpointInfo.HnsEndpointID,
 		}
 		epInfo.IPAddresses = append(endpointResponse.EndpointInfo.IfnameToIPMap[epInfo.IfName].IPv6)
 
@@ -596,4 +629,18 @@ func (nm *networkManager) GetNumberOfEndpoints(ifName string, networkId string) 
 
 func (nm *networkManager) SetupNetworkUsingState(networkMonitor *cnms.NetworkMonitor) error {
 	return nm.monitorNetworkState(networkMonitor)
+}
+
+// GetEndpointID returns a unique endpoint ID based on the CNI mode.
+func (nm *networkManager) GetEndpointID(containerID, ifName string) string {
+	if nm.IsStatelessCNIMode() {
+		return containerID
+	}
+	if len(containerID) > 8 {
+		containerID = containerID[:8]
+	} else {
+		log.Printf("Container ID is not greater than 8 ID: %v", containerID)
+		return ""
+	}
+	return containerID + "-" + ifName
 }

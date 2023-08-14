@@ -1060,7 +1060,7 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 			}
 		}
 
-		endpointID := GetEndpointID(args)
+		endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
 		// Query the endpoint.
 		if epInfo, err = plugin.nm.GetEndpointInfo(networkID, endpointID); err != nil {
 			log.Logger.Info("[cni-net] GetEndpoint",
@@ -1091,7 +1091,7 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 			zap.String("endpointID", endpointID))
 		sendEvent(plugin, fmt.Sprintf("Deleting endpoint:%v", endpointID))
 		// Delete the endpoint.
-		if err = plugin.nm.DeleteEndpoint(networkID, endpointID); err != nil {
+		if err = plugin.nm.DeleteEndpoint(networkID, endpointID, epInfo); err != nil {
 			// return a retriable error so the container runtime will retry this DEL later
 			// the implementation of this function returns nil if the endpoint doens't exist, so
 			// we don't have to check that here

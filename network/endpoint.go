@@ -83,6 +83,7 @@ type EndpointInfo struct {
 	VnetCidrs                string
 	ServiceCidrs             string
 	NATInfo                  []policy.NATInfo
+	HNSEndpointID            string
 }
 
 // RouteInfo contains information about an IP route.
@@ -157,7 +158,8 @@ func (nw *network) deleteEndpoint(nl netlink.NetlinkInterface, plc platform.Exec
 
 	// Call the platform implementation.
 	// Pass nil for epClient and will be initialized in deleteEndpointImpl
-	err = nw.deleteEndpointImpl(nl, plc, nil, ep)
+	epInfo := ep.getInfo()
+	err = nw.deleteEndpointImpl(nl, plc, nil, ep, epInfo)
 	if err != nil {
 		return err
 	}
