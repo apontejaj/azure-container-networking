@@ -29,7 +29,7 @@ steps:
         mkdir -p ~/.kube/
         echo "Create AKS DualStack Overlay cluster"
         make -C ./hack/aks azcfg AZCLI=az REGION=$(REGION_DUALSTACKOVERLAY_CLUSTER_TEST)
-        make -C ./hack/aks dualstack-overlay-byocni-up AZCLI=az REGION=$(REGION_DUALSTACKOVERLAY_CLUSTER_TEST) SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
+        make -C ./hack/aks dualstack-overlay-byocni-up AZCLI=az VM_SIZE=$(DUALSTACK_VM_SIZE) REGION=$(REGION_DUALSTACKOVERLAY_CLUSTER_TEST) SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
         echo "Dualstack Overlay Cluster is successfully created"
     displayName: Create DualStackOverlay cluster
     condition: succeeded()
@@ -86,7 +86,7 @@ steps:
       scriptType: "bash"
       addSpnToEnvironment: true
       inlineScript: |
-        make -C ./hack/aks windows-nodepool-up AZCLI=az SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
+        make -C ./hack/aks windows-nodepool-up AZCLI=az VM_SIZE=$(DUALSTACK_VM_SIZE) SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
         echo "Windows node are successfully added to Dualstack Overlay Cluster"
         kubectl cluster-info
         kubectl get node
@@ -111,7 +111,7 @@ steps:
       echo "DualStack Overlay Windows control plane Node properties test"
       sudo go test -timeout 30m -tags load -cni dualstack -run ^TestValidateState$ -tags=load -os=windows
       echo "DualStack Overlay Windows datapath test"
-    # cd ../datapath
-      # sudo go test -count=1 datapath_windows_test.go -timeout 3m -tags connection -run ^TestDatapathWin$ -tags=connection
+      cd ../datapath
+      sudo go test -count=1 datapath_windows_test.go -timeout 3m -tags connection -run ^TestDatapathWin$ -tags=connection
     name: "DualStack_Overlay_Windows_tests"
     displayName: "DualStack Overlay Windows Tests"
