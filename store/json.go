@@ -12,10 +12,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Azure/azure-container-networking/log"
+	"github.com/Azure/azure-container-networking/cni/log"
 	"github.com/Azure/azure-container-networking/platform"
 	"github.com/Azure/azure-container-networking/processlock"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 const (
@@ -83,7 +84,7 @@ func (kvs *jsonFileStore) Read(key string, value interface{}) error {
 		}
 
 		if len(b) == 0 {
-			log.Printf("Unable to read file %s, was empty", kvs.fileName)
+			log.Logger.Info("Unable to read was empty", zap.String("file", kvs.fileName))
 			return ErrStoreEmpty
 		}
 
@@ -184,7 +185,7 @@ func (kvs *jsonFileStore) Lock(timeout time.Duration) error {
 	afterTime := time.After(timeout)
 	status := make(chan error)
 
-	log.Printf("Acquiring process lock")
+	log.Logger.Info("Acquiring process lock")
 	go kvs.lockUtil(status)
 
 	var err error
@@ -198,7 +199,7 @@ func (kvs *jsonFileStore) Lock(timeout time.Duration) error {
 		return errors.Wrap(err, "processLock acquire error")
 	}
 
-	log.Printf("Acquired process lock with timeout value of %v ", timeout)
+	log.Logger.Info("Acquired process lock with timeout value of ", zap.Duration("timeout", timeout))
 	return nil
 }
 
@@ -212,7 +213,7 @@ func (kvs *jsonFileStore) Unlock() error {
 		return errors.Wrap(err, "unlock error")
 	}
 
-	log.Printf("Released process lock")
+	log.Logger.Info("Released process lock")
 	return nil
 }
 
@@ -223,7 +224,7 @@ func (kvs *jsonFileStore) GetModificationTime() (time.Time, error) {
 
 	info, err := os.Stat(kvs.fileName)
 	if err != nil {
-		log.Printf("os.stat() for file %v failed: %v", kvs.fileName, err)
+		log.Logger.Error("os.stat() for", zap.String("file", kvs.fileName), zap.Error(err))
 		return time.Time{}.UTC(), err
 	}
 
@@ -233,7 +234,7 @@ func (kvs *jsonFileStore) GetModificationTime() (time.Time, error) {
 func (kvs *jsonFileStore) Remove() {
 	kvs.Mutex.Lock()
 	if err := os.Remove(kvs.fileName); err != nil {
-		log.Errorf("could not remove file %s. Error: %v", kvs.fileName, err)
+		log.Logger.Error("could not remove", zap.String("file", kvs.fileName), zap.Error(err))
 	}
 	kvs.Mutex.Unlock()
 }
