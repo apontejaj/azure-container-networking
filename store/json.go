@@ -199,7 +199,7 @@ func (kvs *jsonFileStore) Lock(timeout time.Duration) error {
 		return errors.Wrap(err, "processLock acquire error")
 	}
 
-	log.Logger.Info("Acquired process lock with timeout value of ", zap.Duration("timeout", timeout))
+	log.Logger.Info("Acquired process lock with value of ", zap.Duration("timeout", timeout))
 	return nil
 }
 
