@@ -74,7 +74,7 @@ steps:
       scriptType: "bash"
       addSpnToEnvironment: true
       inlineScript: |
-        make -C ./hack/aks windows-nodepool-up AZCLI=az SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}-$(make revision)
+        make -C ./hack/aks windows-nodepool-up AZCLI=az SUB=$(SUB_AZURE_NETWORK_AGENT_TEST) CLUSTER=${{ parameters.clusterName }}
         echo "Windows node are successfully added to Dualstack Overlay Cluster"
         kubectl cluster-info
         kubectl get node
