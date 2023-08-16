@@ -258,7 +258,7 @@ dualstack-overlay-byocni-up: rg-up overlay-net-up ## Brings up an dualstack Over
 	@$(MAKE) set-kubeconf
 
 windows-nodepool-up: ## Add windows node pool
-	$(AZCLI) aks nodepool add -g $(GROUP) -n npwin \
+	$(AZCLI) aks nodepool add -g $(GROUP) -n npwin --cluster-name $(CLUSTER) \
 		--node-count $(NODE_COUNT) \
 		--node-vm-size $(VM_SIZE) \
 		--os-type Windows \
