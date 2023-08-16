@@ -85,7 +85,7 @@ steps:
         echo "Waiting for CNS pods to be running"
         sleep 30
         echo "Upload CNI"
-        dropgz_version=$(make cni-dropgz-version)
+        dropgz_version=$(make cni-dropgz-version-test)
         export DROP_GZ_URL=$( make cni-dropgz-test-image-name-and-tag OS='windows' ARCH='amd64' OS_VERSION='ltsc2022' CNI_DROPGZ_VERSION=${dropgz_version})
         envsubst < ./test/integration/manifests/cni/cni-installer-v1-windows.yaml | kubectl apply -f -
     name: "Add_Windows_Node"
@@ -93,12 +93,23 @@ steps:
 
   - script: |
       cd test/integration/load
-      sudo go test -timeout 30m -tags load -run ^TestLoad$ -tags=load -os=windows
       echo "DualStack Overlay Windows control plane CNS validation test"
-      sudo go test -timeout 30m -tags load -cni dualstack -run ^TestDualStackProperties$ -tags=load -os=windows 
+      sudo go test -timeout 30m -tags load -run ^TestLoad$ -tags=load -os=windows
+      echo "restart kubeproxy for windows pod internet connectivity"
+      priviledgedPodList=`kubectl get pods -n kube-system | grep privileged | awk '{print $1}'`
+      for priviledgedPod in $priviledgedPodList; do
+          kubectl -n kube-system exec priviledgedPod -- powershell Restart-service kubeproxy
+          kubectl -n kube-system exec priviledgedPod -- powershell Get-service kubeproxy
+      done
+      name: "Restart_Windows_KubeProxy"
+      displayName: "Restart Windows KubeProxy"
+
+  - script: |
+      cd test/integration/load
       echo "DualStack Overlay Windows control plane Node properties test"
-      sudo go test -timeout 30m -tags load -cni dualstack -run ^TestValidateState$ -tags=load -os=windows
+      sudo go test -timeout 30m -tags load -cni dualstack -run ^TestDualStackProperties$ -tags=load -os=windows 
       echo "DualStack Overlay Windows datapath test"
+      sudo go test -timeout 30m -tags load -cni dualstack -run ^TestValidateState$ -tags=load -os=windows
       cd ../datapath
       sudo go test -count=1 datapath_windows_test.go -timeout 3m -tags connection -run ^TestDatapathWin$ -tags=connection
     name: "DualStack_Overlay_Windows_tests"
