@@ -158,8 +158,7 @@ func (nw *network) deleteEndpoint(nl netlink.NetlinkInterface, plc platform.Exec
 
 	// Call the platform implementation.
 	// Pass nil for epClient and will be initialized in deleteEndpointImpl
-	epInfo := ep.getInfo()
-	err = nw.deleteEndpointImpl(nl, plc, nil, ep, epInfo)
+	err = nw.deleteEndpointImpl(nl, plc, nil, ep)
 	if err != nil {
 		return err
 	}

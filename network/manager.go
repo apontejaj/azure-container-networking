@@ -18,6 +18,7 @@ import (
 	"github.com/Azure/azure-container-networking/platform"
 	"github.com/Azure/azure-container-networking/store"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 const (
@@ -104,6 +105,7 @@ type NetworkManager interface {
 	GetNumberOfEndpoints(ifName string, networkID string) int
 	SetupNetworkUsingState(networkMonitor *cnms.NetworkMonitor) error
 	GetEndpointID(containerID, ifName string) string
+	IsStatelessCNIMode() bool
 }
 
 // Creates a new network manager.
@@ -277,6 +279,9 @@ func (nm *networkManager) save() error {
 
 // AddExternalInterface adds a host interface to the list of available external interfaces.
 func (nm *networkManager) AddExternalInterface(ifName string, subnet string) error {
+	if nm.IsStatelessCNIMode() {
+		return nil
+	}
 	nm.Lock()
 	defer nm.Unlock()
 
@@ -295,6 +300,12 @@ func (nm *networkManager) AddExternalInterface(ifName string, subnet string) err
 
 // CreateNetwork creates a new container network.
 func (nm *networkManager) CreateNetwork(nwInfo *NetworkInfo) error {
+	if nm.IsStatelessCNIMode() {
+		_, err := nm.newNetwork(nwInfo)
+		if err != nil {
+			return err
+		}
+	}
 	nm.Lock()
 	defer nm.Unlock()
 
@@ -331,6 +342,10 @@ func (nm *networkManager) DeleteNetwork(networkID string) error {
 
 // GetNetworkInfo returns information about the given network.
 func (nm *networkManager) GetNetworkInfo(networkId string) (NetworkInfo, error) {
+	if nm.IsStatelessCNIMode() {
+		return NetworkInfo{}, nil
+	}
+
 	nm.Lock()
 	defer nm.Unlock()
 
@@ -359,6 +374,30 @@ func (nm *networkManager) GetNetworkInfo(networkId string) (NetworkInfo, error) 
 
 // CreateEndpoint creates a new container endpoint.
 func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epInfo *EndpointInfo) error {
+	if nm.IsStatelessCNIMode() {
+		nw := &network{
+			Id:           "azure",
+			Mode:         opModeTransparentVlan,
+			SnatBridgeIP: "",
+			extIf: &externalInterface{
+				Name:       "eth0",
+				MacAddress: nil,
+			},
+		}
+		ep, err := nw.newEndpoint(cli, netlink.NewNetlink(), platform.NewExecClient(), &netio.NetIO{}, epInfo)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("calling cns updateEndpoint API")
+		endpointResponse, err := nm.CnsClient.UpdateEndpoint(context.TODO(), ep.ContainerID, ep.HnsId, ep.HostIfName)
+		if err != nil {
+			log.Errorf("Update endpoint API returend with error", err)
+			return errors.Wrapf(err, "Get endpoint API returend with error")
+		}
+		log.Printf("Update endpoint API returend ", zap.String("podname: ", endpointResponse.Response.ReturnCode.String()))
+		return nil
+	}
 	nm.Lock()
 	defer nm.Unlock()
 
@@ -414,7 +453,7 @@ func (nm *networkManager) DeleteEndpoint(networkID, endpointID string, epInfo *E
 			NetworkContainerID:       "",
 		}
 		netlink.NewNetlink()
-		err := nw.deleteEndpointImpl(netlink.NewNetlink(), platform.NewExecClient(), nil, ep, epInfo)
+		err := nw.deleteEndpointImpl(netlink.NewNetlink(), platform.NewExecClient(), nil, ep)
 		if err != nil {
 			return err
 		}

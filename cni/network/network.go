@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -491,7 +492,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		options := make(map[string]any)
 		networkID, err = plugin.getNetworkName(args.Netns, &ipamAddResult, nwCfg)
 
-		endpointID := GetEndpointID(args)
+		endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
 		policies := cni.GetPoliciesFromNwCfg(nwCfg.AdditionalArgs)
 
 		// Check whether the network already exists.
@@ -501,7 +502,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		// We can delete this if statement once they fix it.
 		// Issue link: https://github.com/kubernetes/kubernetes/issues/57253
 
-		if nwInfoErr == nil {
+		if nwInfoErr == nil && !plugin.nm.IsStatelessCNIMode() {
 			log.Logger.Info("[cni-net] Found network with subnet",
 				zap.String("network", networkID),
 				zap.String("subnet", nwInfo.Subnets[0].Prefix.String()))
@@ -548,7 +549,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		}()
 
 		// Create network
-		if nwInfoErr != nil {
+		if nwInfoErr != nil || (plugin.nm.IsStatelessCNIMode() && runtime.GOOS == "windows") {
 			// Network does not exist.
 			log.Logger.Info("[cni-net] Creating network", zap.String("networkID", networkID))
 			sendEvent(plugin, fmt.Sprintf("[cni-net] Creating network %v.", networkID))
