@@ -263,7 +263,6 @@ windows-nodepool-up: ## Add windows node pool
 		--node-vm-size $(VM_SIZE) \
 		--cluster-name  $(CLUSTER) \
 		--os-type Windows \
-		--os-sku Windows2022 \
 		--subscription $(SUB)
 	@$(MAKE) set-kubeconf 
 	
