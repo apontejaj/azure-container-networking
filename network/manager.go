@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	cnilogger "github.com/Azure/azure-container-networking/cni/log"
 	cnms "github.com/Azure/azure-container-networking/cnms/cnmspackage"
 	cnsclient "github.com/Azure/azure-container-networking/cns/client"
 	"github.com/Azure/azure-container-networking/common"
@@ -279,9 +280,6 @@ func (nm *networkManager) save() error {
 
 // AddExternalInterface adds a host interface to the list of available external interfaces.
 func (nm *networkManager) AddExternalInterface(ifName string, subnet string) error {
-	if nm.IsStatelessCNIMode() {
-		return nil
-	}
 	nm.Lock()
 	defer nm.Unlock()
 
@@ -289,7 +287,9 @@ func (nm *networkManager) AddExternalInterface(ifName string, subnet string) err
 	if err != nil {
 		return err
 	}
-
+	if nm.IsStatelessCNIMode() {
+		return nil
+	}
 	err = nm.save()
 	if err != nil {
 		return err
@@ -313,7 +313,9 @@ func (nm *networkManager) CreateNetwork(nwInfo *NetworkInfo) error {
 	if err != nil {
 		return err
 	}
-
+	if nm.IsStatelessCNIMode() {
+		return nil
+	}
 	err = nm.save()
 	if err != nil {
 		return err
@@ -331,7 +333,9 @@ func (nm *networkManager) DeleteNetwork(networkID string) error {
 	if err != nil {
 		return err
 	}
-
+	if nm.IsStatelessCNIMode() {
+		return nil
+	}
 	err = nm.save()
 	if err != nil {
 		return err
@@ -342,9 +346,6 @@ func (nm *networkManager) DeleteNetwork(networkID string) error {
 
 // GetNetworkInfo returns information about the given network.
 func (nm *networkManager) GetNetworkInfo(networkId string) (NetworkInfo, error) {
-	if nm.IsStatelessCNIMode() {
-		return NetworkInfo{}, nil
-	}
 
 	nm.Lock()
 	defer nm.Unlock()
@@ -374,30 +375,7 @@ func (nm *networkManager) GetNetworkInfo(networkId string) (NetworkInfo, error) 
 
 // CreateEndpoint creates a new container endpoint.
 func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epInfo *EndpointInfo) error {
-	if nm.IsStatelessCNIMode() {
-		nw := &network{
-			Id:           "azure",
-			Mode:         opModeTransparentVlan,
-			SnatBridgeIP: "",
-			extIf: &externalInterface{
-				Name:       "eth0",
-				MacAddress: nil,
-			},
-		}
-		ep, err := nw.newEndpoint(cli, netlink.NewNetlink(), platform.NewExecClient(), &netio.NetIO{}, epInfo)
-		if err != nil {
-			return err
-		}
 
-		log.Printf("calling cns updateEndpoint API")
-		endpointResponse, err := nm.CnsClient.UpdateEndpoint(context.TODO(), ep.ContainerID, ep.HnsId, ep.HostIfName)
-		if err != nil {
-			log.Errorf("Update endpoint API returend with error", err)
-			return errors.Wrapf(err, "Get endpoint API returend with error")
-		}
-		log.Printf("Update endpoint API returend ", zap.String("podname: ", endpointResponse.Response.ReturnCode.String()))
-		return nil
-	}
 	nm.Lock()
 	defer nm.Unlock()
 
@@ -408,14 +386,19 @@ func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epIn
 
 	if nw.VlanId != 0 {
 		if epInfo.Data[VlanIDKey] == nil {
+			cnilogger.Logger.Info("overriding endpoint vlanid with network vlanid")
 			log.Printf("overriding endpoint vlanid with network vlanid")
 			epInfo.Data[VlanIDKey] = nw.VlanId
 		}
 	}
 
-	_, err = nw.newEndpoint(cli, nm.netlink, nm.plClient, nm.netio, epInfo)
+	ep, err := nw.newEndpoint(cli, nm.netlink, nm.plClient, nm.netio, epInfo)
 	if err != nil {
 		return err
+	}
+
+	if nm.IsStatelessCNIMode() {
+		nm.UpdateEndpointState(ep)
 	}
 
 	err = nm.save()
@@ -423,6 +406,19 @@ func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epIn
 		return err
 	}
 
+	return nil
+}
+
+// updateEndpointState will make a call to CNS updatEndpointState API in the stateless CNI mode
+// It will add HNSEndpointID or HostVeth name to the endpoint state
+func (nm *networkManager) UpdateEndpointState(ep *endpoint) error {
+	cnilogger.Logger.Info("calling cns updateEndpoint API")
+	endpointResponse, err := nm.CnsClient.UpdateEndpoint(context.TODO(), ep.ContainerID, ep.HnsId, ep.HostIfName)
+	if err != nil {
+		cnilogger.Logger.Error("Update endpoint API returend with error", zap.Error(err))
+		return errors.Wrapf(err, "Get endpoint API returend with error")
+	}
+	cnilogger.Logger.Info("Update endpoint API returend ", zap.String("podname: ", endpointResponse.Response.ReturnCode.String()))
 	return nil
 }
 
@@ -484,13 +480,13 @@ func (nm *networkManager) DeleteEndpoint(networkID, endpointID string, epInfo *E
 func (nm *networkManager) GetEndpointInfo(networkId string, endpointId string) (*EndpointInfo, error) {
 
 	if nm.IsStatelessCNIMode() {
-		log.Printf("calling cns getEndpoint API")
+		cnilogger.Logger.Info("calling cns getEndpoint API")
 		endpointResponse, err := nm.CnsClient.GetEndpoint(context.TODO(), endpointId)
 		if err != nil {
-			log.Errorf("Get endpoint API returend with error", err)
+			cnilogger.Logger.Error("Get endpoint API returend with error", zap.Error(err))
 			return nil, errors.Wrapf(err, "Get endpoint API returend with error")
 		}
-		log.Printf("Get endpoint API returend with podname: ", endpointResponse.EndpointInfo.PodName)
+		cnilogger.Logger.Info("Get endpoint API returend with podname: ", zap.String("podname: ", endpointResponse.EndpointInfo.PodName))
 		epInfo := &EndpointInfo{
 			Id:                 endpointId,
 			IPAddresses:        endpointResponse.EndpointInfo.IfnameToIPMap[endpointResponse.EndpointInfo.HostVethName].IPv4,
@@ -586,6 +582,9 @@ func (nm *networkManager) AttachEndpoint(networkId string, endpointId string, sa
 		return nil, err
 	}
 
+	if nm.IsStatelessCNIMode() {
+		return nil, nil
+	}
 	err = nm.save()
 	if err != nil {
 		return nil, err
@@ -613,7 +612,9 @@ func (nm *networkManager) DetachEndpoint(networkId string, endpointId string) er
 	if err != nil {
 		return err
 	}
-
+	if nm.IsStatelessCNIMode() {
+		return nil
+	}
 	err = nm.save()
 	if err != nil {
 		return err
@@ -636,7 +637,9 @@ func (nm *networkManager) UpdateEndpoint(networkID string, existingEpInfo *Endpo
 	if err != nil {
 		return err
 	}
-
+	if nm.IsStatelessCNIMode() {
+		return nil
+	}
 	err = nm.save()
 	if err != nil {
 		return err
