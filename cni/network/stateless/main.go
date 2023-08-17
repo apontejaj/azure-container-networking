@@ -132,6 +132,9 @@ func rootExecute() error {
 		return errors.Wrap(err, "Execute netplugin failure")
 	}
 
+	if err = netPlugin.Execute(cni.PluginApi(netPlugin)); err != nil {
+		return errors.Wrap(err, "Failed to execute network plugin")
+	}
 	netPlugin.Stop()
 
 	if err != nil {
