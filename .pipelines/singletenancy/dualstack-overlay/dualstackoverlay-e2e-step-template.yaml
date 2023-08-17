@@ -81,6 +81,8 @@ steps:
         kubectl get po -owide -A
         echo "Deploying windows CNS"
         kubectl apply -f test/integration/manifests/cns/daemonset-windows.yaml
+        echo "wait for CNS pods deployment ready"
+        kubectl rollout status deployment azure-cns-win --timeout=30s
         kubectl get po -owide -A
         echo "Waiting for CNS pods to be running"
         sleep 30
@@ -101,8 +103,8 @@ steps:
           kubectl -n kube-system exec priviledgedPod -- powershell Restart-service kubeproxy
           kubectl -n kube-system exec priviledgedPod -- powershell Get-service kubeproxy
       done
-      name: "Restart_Windows_KubeProxy"
-      displayName: "Restart Windows KubeProxy"
+    name: "Restart_Windows_KubeProxy"
+    displayName: "Restart Windows KubeProxy"
 
   - script: |
       cd test/integration/load
