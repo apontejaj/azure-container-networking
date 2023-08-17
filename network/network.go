@@ -176,14 +176,6 @@ func (nm *networkManager) newNetwork(nwInfo *NetworkInfo) (*network, error) {
 		nwInfo.Mode = opModeDefault
 	}
 
-	if nm.IsStatelessCNIMode() {
-		// Call the OS-specific implementation.
-		var extIf *externalInterface
-		nw, err = nm.newNetworkImpl(nwInfo, extIf)
-		if err != nil {
-			return nil, err
-		}
-	}
 	// If the master interface name is provided, find the external interface by name
 	// else use subnet to to find the interface
 	var extIf *externalInterface

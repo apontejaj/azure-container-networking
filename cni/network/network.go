@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"runtime"
 	"strconv"
 	"time"
 
@@ -502,7 +501,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		// We can delete this if statement once they fix it.
 		// Issue link: https://github.com/kubernetes/kubernetes/issues/57253
 
-		if nwInfoErr == nil && !plugin.nm.IsStatelessCNIMode() {
+		if nwInfoErr == nil {
 			log.Logger.Info("[cni-net] Found network with subnet",
 				zap.String("network", networkID),
 				zap.String("subnet", nwInfo.Subnets[0].Prefix.String()))
@@ -549,7 +548,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		}()
 
 		// Create network
-		if nwInfoErr != nil || (plugin.nm.IsStatelessCNIMode() && runtime.GOOS == "windows") {
+		if nwInfoErr != nil {
 			// Network does not exist.
 			log.Logger.Info("[cni-net] Creating network", zap.String("networkID", networkID))
 			sendEvent(plugin, fmt.Sprintf("[cni-net] Creating network %v.", networkID))
@@ -1057,7 +1056,9 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 				// if cni hits this, mostly state file would be missing and it can be reboot scenario where
 				// container runtime tries to delete and create pods which existed before reboot.
 				err = nil
-				return err
+				if plugin.nm.IsStatelessCNIMode() {
+					return err
+				}
 			}
 		}
 
