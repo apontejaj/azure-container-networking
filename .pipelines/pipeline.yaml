@@ -281,7 +281,7 @@ stages:
               echo $TAG
               echo $CURRENT_VERSION
               echo "Checking if branch up to date with master"
-  
+
   - stage: publish
     displayName: Publish Multiarch Manifests
     dependsOn:
@@ -393,7 +393,7 @@ stages:
               echo $TAG
               echo $CURRENT_VERSION
               echo "Checking if branch is up to date with master"
-  
+
   - stage: cleanup
     displayName: Cleanup
     dependsOn:
