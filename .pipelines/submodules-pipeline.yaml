@@ -2,11 +2,13 @@ pr:
   branches:
     include:
       - master
+      - release/*
   paths:
     include:
     - "zapai/*"
     - "azure-ipam/*"
     - "dropgz/*"
+    - ".pipelines/submodules-pipeline.yaml"
     exclude:
     - "*"
 
@@ -83,7 +85,7 @@ stages:
           name: "$(BUILD_POOL_NAME_DEFAULT)"
         steps:
           - script: |
-              make all-binaries-platforms 
+              make all-binaries-platforms
             name: "BuildAllPlatformBinaries"
             displayName: "Build all platform binaries"
 
@@ -221,7 +223,7 @@ stages:
         strategy:
           matrix:
             acncli:
-              name: acncli 
+              name: acncli
               platforms: linux/amd64 linux/arm64
             cni_dropgz_test:
               name: cni-dropgz-test
@@ -245,7 +247,7 @@ stages:
       pipelineBuildImage: "$(BUILD_IMAGE)"
       testDropgz: true
       clusterName: "submodules-ciliume2e"
-    
+
   - template: singletenancy/overlay/overlay-e2e-job-template.yaml
     parameters:
       name: "overlay_e2e"
