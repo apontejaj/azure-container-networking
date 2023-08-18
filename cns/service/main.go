@@ -643,13 +643,17 @@ func main() {
 		}
 		defer endpointStoreLock.Unlock() // nolint
 
-		err = platform.CreateDirectory(endpointStoreLocation)
+		endpointStorePath := endpointStoreLocation
+		if runtime.GOOS == "windows" {
+			endpointStorePath = os.Getenv("CNSStoreFilePath")
+		}
+		err = platform.CreateDirectory(endpointStorePath)
 		if err != nil {
 			logger.Errorf("Failed to create File Store directory %s, due to Error:%v", storeFileLocation, err.Error())
 			return
 		}
 		// Create the key value store.
-		storeFileName := endpointStoreLocation + endpointStoreName + ".json"
+		storeFileName := endpointStorePath + endpointStoreName + ".json"
 		endpointStateStore, err = store.NewJsonFileStore(storeFileName, endpointStoreLock)
 		if err != nil {
 			logger.Errorf("Failed to create endpoint state store file: %s, due to error %v\n", storeFileName, err)

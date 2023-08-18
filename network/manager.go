@@ -300,12 +300,6 @@ func (nm *networkManager) AddExternalInterface(ifName string, subnet string) err
 
 // CreateNetwork creates a new container network.
 func (nm *networkManager) CreateNetwork(nwInfo *NetworkInfo) error {
-	if nm.IsStatelessCNIMode() {
-		_, err := nm.newNetwork(nwInfo)
-		if err != nil {
-			return err
-		}
-	}
 	nm.Lock()
 	defer nm.Unlock()
 
@@ -412,7 +406,7 @@ func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epIn
 // updateEndpointState will make a call to CNS updatEndpointState API in the stateless CNI mode
 // It will add HNSEndpointID or HostVeth name to the endpoint state
 func (nm *networkManager) UpdateEndpointState(ep *endpoint) error {
-	cnilogger.Logger.Info("calling cns updateEndpoint API")
+	cnilogger.Logger.Info("calling cns updateEndpoint API with ", zap.String("containerID: ", ep.ContainerID), zap.String("HnsId: ", ep.HnsId), zap.String("HostIfName: ", ep.HostIfName))
 	endpointResponse, err := nm.CnsClient.UpdateEndpoint(context.TODO(), ep.ContainerID, ep.HnsId, ep.HostIfName)
 	if err != nil {
 		cnilogger.Logger.Error("Update endpoint API returend with error", zap.Error(err))
@@ -446,9 +440,10 @@ func (nm *networkManager) DeleteEndpoint(networkID, endpointID string, epInfo *E
 			AllowInboundFromNCToHost: false,
 			EnableSnatOnHost:         false,
 			EnableMultitenancy:       false,
-			NetworkContainerID:       "",
+			NetworkContainerID:       epInfo.Id,
 		}
 		netlink.NewNetlink()
+		cnilogger.Logger.Info("deleting endpoint with", zap.String("Endpoint Info: ", epInfo.PrettyString()), zap.String("HNISID : ", ep.HnsId))
 		err := nw.deleteEndpointImpl(netlink.NewNetlink(), platform.NewExecClient(), nil, ep)
 		if err != nil {
 			return err
@@ -486,11 +481,8 @@ func (nm *networkManager) GetEndpointInfo(networkId string, endpointId string) (
 			cnilogger.Logger.Error("Get endpoint API returend with error", zap.Error(err))
 			return nil, errors.Wrapf(err, "Get endpoint API returend with error")
 		}
-		cnilogger.Logger.Info("Get endpoint API returend with podname: ", zap.String("podname: ", endpointResponse.EndpointInfo.PodName))
 		epInfo := &EndpointInfo{
 			Id:                 endpointId,
-			IPAddresses:        endpointResponse.EndpointInfo.IfnameToIPMap[endpointResponse.EndpointInfo.HostVethName].IPv4,
-			Data:               make(map[string]interface{}),
 			IfIndex:            0, // Azure CNI supports only one interface
 			IfName:             endpointResponse.EndpointInfo.HostVethName,
 			ContainerID:        endpointId,
@@ -499,8 +491,11 @@ func (nm *networkManager) GetEndpointInfo(networkId string, endpointId string) (
 			NetworkContainerID: endpointId,
 			HNSEndpointID:      endpointResponse.EndpointInfo.HnsEndpointID,
 		}
-		epInfo.IPAddresses = append(endpointResponse.EndpointInfo.IfnameToIPMap[epInfo.IfName].IPv6)
 
+		for _, ip := range endpointResponse.EndpointInfo.IfnameToIPMap {
+			epInfo.IPAddresses = append(ip.IPv4, ip.IPv6...)
+		}
+		cnilogger.Logger.Info("returning getEndpoint API with", zap.String("Endpoint Info: ", epInfo.PrettyString()), zap.String("HNISID : ", epInfo.HNSEndpointID))
 		return epInfo, nil
 	}
 	nm.Lock()

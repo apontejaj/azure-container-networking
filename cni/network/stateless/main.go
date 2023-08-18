@@ -112,7 +112,7 @@ func rootExecute() error {
 		err = tb.ConnectToTelemetry()
 		if err != nil {
 			network.PrintCNIError(fmt.Sprintf("Failed to connect to telemetry, err:%v.\n", err))
-			return errors.Wrap(err, "Connect to telemetry error")
+			//return errors.Wrap(err, "Connect to telemetry error")
 		}
 		defer tb.Close()
 

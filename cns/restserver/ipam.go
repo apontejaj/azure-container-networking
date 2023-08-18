@@ -1035,25 +1035,23 @@ func (service *HTTPRestService) UpdateEndpointHelper(req cns.EndpointRequest) er
 	if service.Options[common.OptManageEndpointState] == true {
 		if endpointInfo, ok := service.EndpointState[req.EndpointID]; ok {
 			logger.Printf("[UpdateEndpointState] Found existing endpoint state for infra container %s", req.EndpointID)
-			if req.HostVethName == "" && req.HnsEndpointID != "" {
+			if req.HostVethName == "" && req.HnsEndpointID == "" {
 				logger.Warnf("[UpdateEndpointState] No HnsEndpointID or HostVethName has been provided")
-				return nil
 			}
 			if req.HnsEndpointID != "" {
 				service.EndpointState[req.EndpointID].HnsEndpointID = req.HnsEndpointID
 				logger.Errorf("[UpdateEndpointState] update the endpoint %s with HNSID  %s", req.EndpointID, req.HnsEndpointID)
-				return nil
 			}
 			if req.HostVethName != "" {
 				service.EndpointState[req.EndpointID].HostVethName = req.HostVethName
 				logger.Errorf("[UpdateEndpointState] update the endpoint %s with vethName  %s", req.EndpointID, req.HostVethName)
-				return nil
 			}
 
 			err := service.EndpointStateStore.Write(EndpointStoreKey, service.EndpointState)
 			if err != nil {
 				return fmt.Errorf("failed to write endpoint state to store for pod %s :  %w", endpointInfo.PodName, err)
 			}
+			return nil
 
 		}
 		return errors.New("endpoint could not be found in the statefile")
