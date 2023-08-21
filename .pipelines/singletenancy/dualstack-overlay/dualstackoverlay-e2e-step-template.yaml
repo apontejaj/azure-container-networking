@@ -87,8 +87,6 @@ steps:
         echo "wait for CNS pods deployment ready"
         kubectl rollout status deployment azure-cns-win --timeout=30s
         kubectl get po -owide -A
-        echo "Waiting for CNS pods to be running"
-        sleep 30
         echo "Upload CNI"
         dropgz_version=$(make cni-dropgz-version-test)
         export DROP_GZ_URL=$( make cni-dropgz-test-image-name-and-tag OS='windows' ARCH='amd64' OS_VERSION='ltsc2022' CNI_DROPGZ_VERSION=${dropgz_version})
