@@ -145,7 +145,7 @@ steps:
   - script: |
       cd test/integration/load
       echo "DualStack Overlay Windows control plane CNS validation test"
-      sudo go test -timeout 30m -tags load -run ^TestLoad$ -tags=load -os=windows
+      sudo go test -timeout 30m -tags load -run ^TestLoad$ -os=windows
       echo "restart kubeproxy for windows pod internet connectivity"
       priviledgedPodList=`kubectl get pods -n kube-system | grep privileged | awk '{print $1}'`
       for priviledgedPod in $priviledgedPodList; do

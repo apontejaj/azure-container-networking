@@ -261,6 +261,7 @@ windows-nodepool-up: ## Add windows node pool
 	$(AZCLI) aks nodepool add -g $(GROUP) -n npwin \
 		--node-count $(NODE_COUNT) \
 		--node-vm-size $(VM_SIZE) \
+		--load-balancer-sku standard \
 		--cluster-name  $(CLUSTER) \
 		--os-type Windows \
 		--subscription $(SUB)
