@@ -30,7 +30,7 @@ jobs:
               mkdir -p ~/.kube/
               make -C ./hack/aks azcfg AZCLI=az REGION=${{ parameters.region }}
               make -C ./hack/aks ${{ parameters.clusterType }} AZCLI=az REGION=${{ parameters.region }} SUB=$(DUALSTCK_OVERLAY_SUB) CLUSTER=${{ parameters.clusterName }} K8S_VER=${{ parameters.k8sVersion }} VM_SIZE=${{ parameters.vmSize }} WINDOWS_OS_SKU=${{ parameters.windowsOsSku }} WINDOWS_VM_SKU=${{ parameters.vmSize }} WINDOWS_USERNAME=${WINDOWS_USERNAME} WINDOWS_PASSWORD=${WINDOWS_PASSWORD}
-              echo "Dualstack overlay Cluster successfully created"
+              echo "Dualstack Overlay Cluster successfully created"
           displayName: Cluster - ${{ parameters.clusterType }}
       - ${{ if not(contains(parameters.clusterType, 'dualstack')) }}:
         - task: AzureCLI@1
