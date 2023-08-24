@@ -130,6 +130,16 @@ steps:
         kubectl cluster-info
         kubectl get node
         kubectl get po -owide -A
+    name: "Add_Windows_Node"
+    displayName: "Add windows node on DualStackOverlay cluster"
+
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: $(AZURE_TEST_AGENT_SERVICE_CONNECTION)
+      scriptLocation: "inlineScript"
+      scriptType: "bash"
+      addSpnToEnvironment: true
+      inlineScript: |
         echo "Deploying windows CNS"
         kubectl apply -f test/integration/manifests/cns/daemonset-windows.yaml
         echo "wait for CNS pods deployment ready"
@@ -139,8 +149,8 @@ steps:
         dropgz_version=$(make cni-dropgz-version-test)
         export DROP_GZ_URL=$( make cni-dropgz-test-image-name-and-tag OS='windows' ARCH='amd64' OS_VERSION='ltsc2022' CNI_DROPGZ_VERSION=${dropgz_version})
         envsubst < ./test/integration/manifests/cni/cni-installer-v1-windows.yaml | kubectl apply -f -
-    name: "Add_Windows_Node"
-    displayName: "Add windows node on DualStackOverlay cluster"
+    name: "Deploy_CNS_CNI"
+    displayName: "Deploy CNS and upload CNI on DualStackOverlay cluster"
 
   - script: |
       cd test/integration/load
@@ -156,7 +166,6 @@ steps:
     displayName: "Restart Windows KubeProxy"
 
   - script: |
-      cd test/integration/load
       echo "DualStack Overlay Windows control plane Node properties test"
       sudo go test -timeout 30m -tags load -cni dualstack -run ^TestDualStackProperties$ -tags=load -os=windows 
       echo "DualStack Overlay Windows datapath test"
