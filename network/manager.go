@@ -403,21 +403,23 @@ func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epIn
 	return nil
 }
 
-// updateEndpointState will make a call to CNS updatEndpointState API in the stateless CNI mode
+// UpdateEndpointState will make a call to CNS updatEndpointState API in the stateless CNI mode
 // It will add HNSEndpointID or HostVeth name to the endpoint state
 func (nm *networkManager) UpdateEndpointState(ep *endpoint) error {
-	cnilogger.Logger.Info("calling cns updateEndpoint API with ", zap.String("containerID: ", ep.ContainerID), zap.String("HnsId: ", ep.HnsId), zap.String("HostIfName: ", ep.HostIfName))
-	endpointResponse, err := nm.CnsClient.UpdateEndpoint(context.TODO(), ep.ContainerID, ep.HnsId, ep.HostIfName)
+	cnilogger.Logger.Info("Calling cns updateEndpoint API with ", zap.String("containerID: ", ep.ContainerID), zap.String("HnsId: ", ep.HnsId), zap.String("HostIfName: ", ep.HostIfName))
+	response, err := nm.CnsClient.UpdateEndpoint(context.TODO(), ep.ContainerID, ep.HnsId, ep.HostIfName)
 	if err != nil {
 		cnilogger.Logger.Error("Update endpoint API returend with error", zap.Error(err))
 		return errors.Wrapf(err, "Get endpoint API returend with error")
 	}
-	cnilogger.Logger.Info("Update endpoint API returend ", zap.String("podname: ", endpointResponse.Response.ReturnCode.String()))
+	cnilogger.Logger.Info("Update endpoint API returend ", zap.String("podname: ", response.ReturnCode.String()))
 	return nil
 }
 
 // DeleteEndpoint deletes an existing container endpoint.
 func (nm *networkManager) DeleteEndpoint(networkID, endpointID string, epInfo *EndpointInfo) error {
+	nm.Lock()
+	defer nm.Unlock()
 
 	if nm.IsStatelessCNIMode() {
 		nw := &network{
@@ -443,15 +445,13 @@ func (nm *networkManager) DeleteEndpoint(networkID, endpointID string, epInfo *E
 			NetworkContainerID:       epInfo.Id,
 		}
 		netlink.NewNetlink()
-		cnilogger.Logger.Info("deleting endpoint with", zap.String("Endpoint Info: ", epInfo.PrettyString()), zap.String("HNISID : ", ep.HnsId))
+		cnilogger.Logger.Info("Deleting endpoint with", zap.String("Endpoint Info: ", epInfo.PrettyString()), zap.String("HNISID : ", ep.HnsId))
 		err := nw.deleteEndpointImpl(netlink.NewNetlink(), platform.NewExecClient(), nil, ep)
 		if err != nil {
 			return err
 		}
 		return nil
 	}
-	nm.Lock()
-	defer nm.Unlock()
 
 	nw, err := nm.getNetwork(networkID)
 	if err != nil {
@@ -473,6 +473,8 @@ func (nm *networkManager) DeleteEndpoint(networkID, endpointID string, epInfo *E
 
 // GetEndpointInfo returns information about the given endpoint.
 func (nm *networkManager) GetEndpointInfo(networkId string, endpointId string) (*EndpointInfo, error) {
+	nm.Lock()
+	defer nm.Unlock()
 
 	if nm.IsStatelessCNIMode() {
 		cnilogger.Logger.Info("calling cns getEndpoint API")
@@ -498,8 +500,6 @@ func (nm *networkManager) GetEndpointInfo(networkId string, endpointId string) (
 		cnilogger.Logger.Info("returning getEndpoint API with", zap.String("Endpoint Info: ", epInfo.PrettyString()), zap.String("HNISID : ", epInfo.HNSEndpointID))
 		return epInfo, nil
 	}
-	nm.Lock()
-	defer nm.Unlock()
 
 	nw, err := nm.getNetwork(networkId)
 	if err != nil {
