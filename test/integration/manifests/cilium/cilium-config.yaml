@@ -27,7 +27,7 @@ data:
   enable-hubble: "false"
   enable-ipv4: "true"
   enable-ipv4-masquerade: "false"
-  enable-ipv6: "false"
+  enable-ipv6: "true"
   enable-ipv6-masquerade: "false"
   enable-k8s-terminating-endpoint: "true"
   enable-l2-neigh-discovery: "true"
@@ -49,6 +49,7 @@ data:
   kube-proxy-replacement: strict
   kube-proxy-replacement-healthz-bind-address: "0.0.0.0:10256"
   local-router-ipv4: 169.254.23.0
+  local-router-ipv6: "fe80::"
   metrics: +cilium_bpf_map_pressure
   monitor-aggregation: medium
   monitor-aggregation-flags: all
