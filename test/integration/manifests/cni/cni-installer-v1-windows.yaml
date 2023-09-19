@@ -65,9 +65,14 @@ spec:
             - azure-vnet-telemetry.config
             - -o
             - /k/azurecni/bin/azure-vnet-telemetry.config
+            - azure-swift-overlay.conflist
+            - -o
+            - /k/azurecni/netconf/10-azure.conflist
           volumeMounts:
             - name: cni-bin
               mountPath: /k/azurecni/bin/
+            - name: cni-conflist
+              mountPath: /k/azurecni/netconf
       containers:
         - name: pause
           image: mcr.microsoft.com/oss/kubernetes/pause:3.6
@@ -76,6 +81,10 @@ spec:
         - name: cni-bin
           hostPath:
             path: /k/azurecni/bin
+            type: DirectoryOrCreate
+        - name: cni-conflist
+          hostPath:
+            path: /k/azurecni/netconf
             type: DirectoryOrCreate
 ---
 apiVersion: v1
