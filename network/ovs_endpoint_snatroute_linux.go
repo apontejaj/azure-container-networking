@@ -4,6 +4,7 @@ import (
 	"net"
 
 	"github.com/Azure/azure-container-networking/netlink"
+	"github.com/Azure/azure-container-networking/network/log"
 	"github.com/Azure/azure-container-networking/network/networkutils"
 	"github.com/Azure/azure-container-networking/network/snat"
 	"github.com/pkg/errors"
@@ -45,7 +46,7 @@ func (client *OVSEndpointClient) AddSnatEndpoint() error {
 
 		snatClient := client.snatClient
 
-		logger.Info("Drop ARP for snat bridge ip", zap.String("SnatBridgeIP", snatClient.SnatBridgeIP))
+		log.NetLogger.Info("Drop ARP for snat bridge ip", zap.String("SnatBridgeIP", snatClient.SnatBridgeIP))
 		if err := client.snatClient.DropArpForSnatBridgeApipaRange(snatClient.SnatBridgeIP, azureSnatVeth0); err != nil {
 			return err
 		}
@@ -54,7 +55,7 @@ func (client *OVSEndpointClient) AddSnatEndpoint() error {
 		// of veth will be attached to linux bridge
 		_, err := net.InterfaceByName(azureSnatVeth0)
 		if err == nil {
-			logger.Error("Azure snat veth already exists")
+			log.NetLogger.Error("Azure snat veth already exists")
 			return nil
 		}
 
@@ -68,7 +69,7 @@ func (client *OVSEndpointClient) AddSnatEndpoint() error {
 
 		err = client.netlink.AddLink(&vethLink)
 		if err != nil {
-			logger.Error("Failed to create veth pair", zap.Error(err))
+			log.NetLogger.Error("Failed to create veth pair", zap.Error(err))
 			return errors.Wrap(err, "failed to create veth pair")
 		}
 		nuc := networkutils.NewNetworkUtils(client.netlink, client.plClient)

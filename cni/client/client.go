@@ -16,11 +16,6 @@ import (
 	utilexec "k8s.io/utils/exec"
 )
 
-var (
-	loggerName = "azure-vnet-client"
-	logger     = log.InitZapLogCNI(loggerName, "azure-vnet.log")
-)
-
 type client struct {
 	exec utilexec.Interface
 }
@@ -36,7 +31,7 @@ func (c *client) GetEndpointState() (*api.AzureCNIState, error) {
 	cmd.SetDir(CNIExecDir)
 	envs := os.Environ()
 	cmdenv := fmt.Sprintf("%s=%s", cni.Cmd, cni.CmdGetEndpointsState)
-	logger.Info("Setting cmd to", zap.String("cmdenv", cmdenv))
+	log.CNILogger.Info("Setting cmd to", zap.String("cmdenv", cmdenv))
 	envs = append(envs, cmdenv)
 	cmd.SetEnv(envs)
 

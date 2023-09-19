@@ -7,6 +7,7 @@ import (
 
 	"github.com/Azure/azure-container-networking/netio"
 	"github.com/Azure/azure-container-networking/netlink"
+	"github.com/Azure/azure-container-networking/network/log"
 	"github.com/Azure/azure-container-networking/network/networkutils"
 	"github.com/Azure/azure-container-networking/platform"
 	"go.uber.org/zap"
@@ -78,9 +79,9 @@ func (client *TransparentEndpointClient) setArpProxy(ifName string) error {
 
 func (client *TransparentEndpointClient) AddEndpoints(epInfo *EndpointInfo) error {
 	if _, err := client.netioshim.GetNetworkInterfaceByName(client.hostVethName); err == nil {
-		logger.Info("Deleting old host veth", zap.String("hostVethName", client.hostVethName))
+		log.NetLogger.Info("Deleting old host veth", zap.String("hostVethName", client.hostVethName))
 		if err = client.netlink.DeleteLink(client.hostVethName); err != nil {
-			logger.Error("Failed to delete old", zap.String("hostVethName", client.hostVethName), zap.Error(err))
+			log.NetLogger.Error("Failed to delete old", zap.String("hostVethName", client.hostVethName), zap.Error(err))
 			return newErrorTransparentEndpointClient(err.Error())
 		}
 	}
@@ -92,7 +93,7 @@ func (client *TransparentEndpointClient) AddEndpoints(epInfo *EndpointInfo) erro
 
 	mac, err := net.ParseMAC(defaultHostVethHwAddr)
 	if err != nil {
-		logger.Error("Failed to parse the mac addrress", zap.String("defaultHostVethHwAddr", defaultHostVethHwAddr))
+		log.NetLogger.Error("Failed to parse the mac addrress", zap.String("defaultHostVethHwAddr", defaultHostVethHwAddr))
 	}
 
 	if err = client.netUtilsClient.CreateEndpoint(client.hostVethName, client.containerVethName, mac); err != nil {
@@ -102,7 +103,7 @@ func (client *TransparentEndpointClient) AddEndpoints(epInfo *EndpointInfo) erro
 	defer func() {
 		if err != nil {
 			if delErr := client.netlink.DeleteLink(client.hostVethName); delErr != nil {
-				logger.Error("Deleting veth failed on addendpoint failure", zap.Error(delErr))
+				log.NetLogger.Error("Deleting veth failed on addendpoint failure", zap.Error(delErr))
 			}
 		}
 	}()
@@ -121,14 +122,14 @@ func (client *TransparentEndpointClient) AddEndpoints(epInfo *EndpointInfo) erro
 
 	client.hostVethMac = hostVethIf.HardwareAddr
 
-	logger.Info("Setting mtu on veth interface", zap.Int("MTU", primaryIf.MTU), zap.String("hostVethName", client.hostVethName))
+	log.NetLogger.Info("Setting mtu on veth interface", zap.Int("MTU", primaryIf.MTU), zap.String("hostVethName", client.hostVethName))
 	if err := client.netlink.SetLinkMTU(client.hostVethName, primaryIf.MTU); err != nil {
-		logger.Error("Setting mtu failed for hostveth", zap.String("hostVethName", client.hostVethName),
+		log.NetLogger.Error("Setting mtu failed for hostveth", zap.String("hostVethName", client.hostVethName),
 			zap.Error(err))
 	}
 
 	if err := client.netlink.SetLinkMTU(client.containerVethName, primaryIf.MTU); err != nil {
-		logger.Error("Setting mtu failed for containerveth", zap.String("containerVethName", client.containerVethName),
+		log.NetLogger.Error("Setting mtu failed for containerveth", zap.String("containerVethName", client.containerVethName),
 			zap.Error(err))
 	}
 
@@ -151,7 +152,7 @@ func (client *TransparentEndpointClient) AddEndpointRules(epInfo *EndpointInfo) 
 		} else {
 			ipNet = net.IPNet{IP: ipAddr.IP, Mask: net.CIDRMask(ipv6FullMask, ipv6Bits)}
 		}
-		logger.Info("Adding route for the", zap.String("ip", ipNet.String()))
+		log.NetLogger.Info("Adding route for the", zap.String("ip", ipNet.String()))
 		routeInfo.Dst = ipNet
 		routeInfoList = append(routeInfoList, routeInfo)
 	}
@@ -160,9 +161,9 @@ func (client *TransparentEndpointClient) AddEndpointRules(epInfo *EndpointInfo) 
 		return newErrorTransparentEndpointClient(err.Error())
 	}
 
-	logger.Info("calling setArpProxy for", zap.String("hostVethName", client.hostVethName))
+	log.NetLogger.Info("calling setArpProxy for", zap.String("hostVethName", client.hostVethName))
 	if err := client.setArpProxy(client.hostVethName); err != nil {
-		logger.Error("setArpProxy failed with", zap.Error(err))
+		log.NetLogger.Error("setArpProxy failed with", zap.Error(err))
 		return err
 	}
 
@@ -184,17 +185,17 @@ func (client *TransparentEndpointClient) DeleteEndpointRules(ep *endpoint) {
 			ipNet = net.IPNet{IP: ipAddr.IP, Mask: net.CIDRMask(ipv6FullMask, ipv6Bits)}
 		}
 
-		logger.Info("Deleting route for the", zap.String("ip", ipNet.String()))
+		log.NetLogger.Info("Deleting route for the", zap.String("ip", ipNet.String()))
 		routeInfo.Dst = ipNet
 		if err := deleteRoutes(client.netlink, client.netioshim, client.hostVethName, []RouteInfo{routeInfo}); err != nil {
-			logger.Error("Failed to delete route on VM for the", zap.String("ip", ipNet.String()), zap.Error(err))
+			log.NetLogger.Error("Failed to delete route on VM for the", zap.String("ip", ipNet.String()), zap.Error(err))
 		}
 	}
 }
 
 func (client *TransparentEndpointClient) MoveEndpointsToContainerNS(epInfo *EndpointInfo, nsID uintptr) error {
 	// Move the container interface to container's network namespace.
-	logger.Info("Setting link netns", zap.String("containerVethName", client.containerVethName), zap.String("NetNsPath", epInfo.NetNsPath))
+	log.NetLogger.Info("Setting link netns", zap.String("containerVethName", client.containerVethName), zap.String("NetNsPath", epInfo.NetNsPath))
 	if err := client.netlink.SetLinkNetNs(client.containerVethName, nsID); err != nil {
 		return newErrorTransparentEndpointClient(err.Error())
 	}
@@ -253,7 +254,7 @@ func (client *TransparentEndpointClient) ConfigureContainerInterfacesAndRoutes(e
 	}
 
 	// arp -s 169.254.1.1 e3:45:f4:ac:34:12 - add static arp entry for virtualgwip to hostveth interface mac
-	logger.Info("Adding static arp for IP address and MAC in Container namespace",
+	log.NetLogger.Info("Adding static arp for IP address and MAC in Container namespace",
 		zap.String("address", virtualGwNet.String()), zap.Any("hostVethMac", client.hostVethMac))
 	linkInfo := netlink.LinkInfo{
 		Name:       client.containerVethName,
@@ -281,7 +282,7 @@ func (client *TransparentEndpointClient) ConfigureContainerInterfacesAndRoutes(e
 }
 
 func (client *TransparentEndpointClient) setupIPV6Routes() error {
-	logger.Info("Setting up ipv6 routes in container")
+	log.NetLogger.Info("Setting up ipv6 routes in container")
 
 	// add route for virtualgwip
 	// ip -6 route add fe80::1234:5678:9abc/128 dev eth0
@@ -293,7 +294,7 @@ func (client *TransparentEndpointClient) setupIPV6Routes() error {
 
 	// ip -6 route add default via fe80::1234:5678:9abc dev eth0
 	_, defaultIPNet, _ := net.ParseCIDR(defaultv6Cidr)
-	logger.Info("defaultv6ipnet", zap.Any("defaultIPNet", defaultIPNet))
+	log.NetLogger.Info("defaultv6ipnet", zap.Any("defaultIPNet", defaultIPNet))
 	defaultRoute := RouteInfo{
 		Dst: *defaultIPNet,
 		Gw:  virtualGwIP,
@@ -303,7 +304,7 @@ func (client *TransparentEndpointClient) setupIPV6Routes() error {
 }
 
 func (client *TransparentEndpointClient) setIPV6NeighEntry() error {
-	logger.Info("Add v6 neigh entry for default gw ip")
+	log.NetLogger.Info("Add v6 neigh entry for default gw ip")
 	hostGwIP, _, _ := net.ParseCIDR(virtualv6GwString)
 	linkInfo := netlink.LinkInfo{
 		Name:       client.containerVethName,
@@ -312,7 +313,7 @@ func (client *TransparentEndpointClient) setIPV6NeighEntry() error {
 	}
 
 	if err := client.netlink.SetOrRemoveLinkAddress(linkInfo, netlink.ADD, netlink.NUD_PERMANENT); err != nil {
-		logger.Error("Failed setting neigh entry in container", zap.Error(err))
+		log.NetLogger.Error("Failed setting neigh entry in container", zap.Error(err))
 		return fmt.Errorf("Failed setting neigh entry in container: %w", err)
 	}
 

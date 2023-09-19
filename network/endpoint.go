@@ -21,11 +21,6 @@ const (
 	InfraVnet = 0
 )
 
-var (
-	loggerName = "net"
-	logger     = log.InitZapLogNet(loggerName)
-)
-
 type AzureHNSEndpoint struct{}
 
 // Endpoint represents a container network interface.
@@ -127,7 +122,7 @@ func (nw *network) newEndpoint(
 
 	defer func() {
 		if err != nil {
-			logger.Error("Failed to create endpoint with err", zap.String("id", epInfo.Id), zap.Error(err))
+			log.NetLogger.Error("Failed to create endpoint with err", zap.String("id", epInfo.Id), zap.Error(err))
 		}
 	}()
 
@@ -139,7 +134,7 @@ func (nw *network) newEndpoint(
 	}
 
 	nw.Endpoints[epInfo.Id] = ep
-	logger.Info("Created endpoint. Num of endpoints", zap.Any("ep", ep), zap.Int("numEndpoints", len(nw.Endpoints)))
+	log.NetLogger.Info("Created endpoint. Num of endpoints", zap.Any("ep", ep), zap.Int("numEndpoints", len(nw.Endpoints)))
 	return ep, nil
 }
 
@@ -147,17 +142,17 @@ func (nw *network) newEndpoint(
 func (nw *network) deleteEndpoint(nl netlink.NetlinkInterface, plc platform.ExecClient, endpointID string) error {
 	var err error
 
-	logger.Info("Deleting endpoint from network", zap.String("endpointID", endpointID), zap.String("id", nw.Id))
+	log.NetLogger.Info("Deleting endpoint from network", zap.String("endpointID", endpointID), zap.String("id", nw.Id))
 	defer func() {
 		if err != nil {
-			logger.Error("Failed to delete endpoint with", zap.String("endpointID", endpointID), zap.Error(err))
+			log.NetLogger.Error("Failed to delete endpoint with", zap.String("endpointID", endpointID), zap.Error(err))
 		}
 	}()
 
 	// Look up the endpoint.
 	ep, err := nw.getEndpoint(endpointID)
 	if err != nil {
-		logger.Error("Endpoint not found. Not Returning error", zap.String("endpointID", endpointID), zap.Error(err))
+		log.NetLogger.Error("Endpoint not found. Not Returning error", zap.String("endpointID", endpointID), zap.Error(err))
 		return nil
 	}
 
@@ -170,7 +165,7 @@ func (nw *network) deleteEndpoint(nl netlink.NetlinkInterface, plc platform.Exec
 
 	// Remove the endpoint object.
 	delete(nw.Endpoints, endpointID)
-	logger.Info("Deleted endpoint. Num of endpoints", zap.Any("ep", ep), zap.Int("numEndpoints", len(nw.Endpoints)))
+	log.NetLogger.Info("Deleted endpoint. Num of endpoints", zap.Any("ep", ep), zap.Int("numEndpoints", len(nw.Endpoints)))
 	return nil
 }
 
@@ -187,7 +182,7 @@ func (nw *network) getEndpoint(endpointId string) (*endpoint, error) {
 
 // GetEndpointByPOD returns the endpoint with the given ID.
 func (nw *network) getEndpointByPOD(podName string, podNameSpace string, doExactMatchForPodName bool) (*endpoint, error) {
-	logger.Info("Trying to retrieve endpoint for pod name in namespace", zap.String("podName", podName), zap.String("podNameSpace", podNameSpace))
+	log.NetLogger.Info("Trying to retrieve endpoint for pod name in namespace", zap.String("podName", podName), zap.String("podNameSpace", podNameSpace))
 
 	var ep *endpoint
 
@@ -264,7 +259,7 @@ func (ep *endpoint) attach(sandboxKey string) error {
 
 	ep.SandboxKey = sandboxKey
 
-	logger.Info("Attached endpoint to sandbox", zap.String("id", ep.Id), zap.String("sandboxKey", sandboxKey))
+	log.NetLogger.Info("Attached endpoint to sandbox", zap.String("id", ep.Id), zap.String("sandboxKey", sandboxKey))
 
 	return nil
 }
@@ -275,7 +270,7 @@ func (ep *endpoint) detach() error {
 		return errEndpointNotInUse
 	}
 
-	logger.Info("Detached endpoint from sandbox", zap.String("id", ep.Id), zap.String("sandboxKey", ep.SandboxKey))
+	log.NetLogger.Info("Detached endpoint from sandbox", zap.String("id", ep.Id), zap.String("sandboxKey", ep.SandboxKey))
 
 	ep.SandboxKey = ""
 
@@ -286,22 +281,22 @@ func (ep *endpoint) detach() error {
 func (nm *networkManager) updateEndpoint(nw *network, exsitingEpInfo *EndpointInfo, targetEpInfo *EndpointInfo) error {
 	var err error
 
-	logger.Info("Updating existing endpoint in network to target", zap.Any("exsitingEpInfo", exsitingEpInfo),
+	log.NetLogger.Info("Updating existing endpoint in network to target", zap.Any("exsitingEpInfo", exsitingEpInfo),
 		zap.String("id", nw.Id), zap.Any("targetEpInfo", targetEpInfo))
 	defer func() {
 		if err != nil {
-			logger.Error("Failed to update endpoint with err", zap.String("id", exsitingEpInfo.Id), zap.Error(err))
+			log.NetLogger.Error("Failed to update endpoint with err", zap.String("id", exsitingEpInfo.Id), zap.Error(err))
 		}
 	}()
 
-	logger.Info("Trying to retrieve endpoint id", zap.String("id", exsitingEpInfo.Id))
+	log.NetLogger.Info("Trying to retrieve endpoint id", zap.String("id", exsitingEpInfo.Id))
 
 	ep := nw.Endpoints[exsitingEpInfo.Id]
 	if ep == nil {
 		return errEndpointNotFound
 	}
 
-	logger.Info("Retrieved endpoint to update", zap.Any("ep", ep))
+	log.NetLogger.Info("Retrieved endpoint to update", zap.Any("ep", ep))
 
 	// Call the platform implementation.
 	ep, err = nm.updateEndpointImpl(nw, exsitingEpInfo, targetEpInfo)
@@ -317,13 +312,13 @@ func (nm *networkManager) updateEndpoint(nw *network, exsitingEpInfo *EndpointIn
 
 func GetPodNameWithoutSuffix(podName string) string {
 	nameSplit := strings.Split(podName, "-")
-	logger.Info("namesplit", zap.Any("nameSplit", nameSplit))
+	log.NetLogger.Info("namesplit", zap.Any("nameSplit", nameSplit))
 	if len(nameSplit) > 2 {
 		nameSplit = nameSplit[:len(nameSplit)-2]
 	} else {
 		return podName
 	}
 
-	logger.Info("Pod name after splitting based on", zap.Any("nameSplit", nameSplit))
+	log.NetLogger.Info("Pod name after splitting based on", zap.Any("nameSplit", nameSplit))
 	return strings.Join(nameSplit, "-")
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/Azure/azure-container-networking/iptables"
 	"github.com/Azure/azure-container-networking/netio"
 	"github.com/Azure/azure-container-networking/netlink"
+	"github.com/Azure/azure-container-networking/network/log"
 	"github.com/Azure/azure-container-networking/network/networkutils"
 	"github.com/Azure/azure-container-networking/ovsctl"
 	"github.com/Azure/azure-container-networking/platform"
@@ -64,13 +65,13 @@ func (nm *networkManager) newNetworkImpl(nwInfo *NetworkInfo, extIf *externalInt
 		ifName string
 	)
 	opt, _ := nwInfo.Options[genericData].(map[string]interface{})
-	logger.Info("opt options", zap.Any("opt", opt), zap.Any("options", nwInfo.Options))
+	log.NetLogger.Info("opt options", zap.Any("opt", opt), zap.Any("options", nwInfo.Options))
 
 	switch nwInfo.Mode {
 	case opModeTunnel:
 		fallthrough
 	case opModeBridge:
-		logger.Info("create bridge")
+		log.NetLogger.Info("create bridge")
 		ifName = extIf.BridgeName
 		if err := nm.connectExternalInterface(extIf, nwInfo); err != nil {
 			return nil, err
@@ -80,7 +81,7 @@ func (nm *networkManager) newNetworkImpl(nwInfo *NetworkInfo, extIf *externalInt
 			vlanid, _ = strconv.Atoi(opt[VlanIDKey].(string))
 		}
 	case opModeTransparent:
-		logger.Info("Transparent mode")
+		log.NetLogger.Info("Transparent mode")
 		ifName = extIf.Name
 		if nwInfo.IPV6Mode != "" {
 			nu := networkutils.NewNetworkUtils(nm.netlink, nm.plClient)
@@ -89,7 +90,7 @@ func (nm *networkManager) newNetworkImpl(nwInfo *NetworkInfo, extIf *externalInt
 			}
 		}
 	case opModeTransparentVlan:
-		logger.Info("Transparent vlan mode")
+		log.NetLogger.Info("Transparent vlan mode")
 		ifName = extIf.Name
 	default:
 		return nil, errNetworkModeInvalid
@@ -97,7 +98,7 @@ func (nm *networkManager) newNetworkImpl(nwInfo *NetworkInfo, extIf *externalInt
 
 	err := nm.handleCommonOptions(ifName, nwInfo)
 	if err != nil {
-		logger.Error("handleCommonOptions failed with", zap.Error(err))
+		log.NetLogger.Error("handleCommonOptions failed with", zap.Error(err))
 		return nil, err
 	}
 
@@ -157,7 +158,7 @@ func (nm *networkManager) saveIPConfig(hostIf *net.Interface, extIf *externalInt
 	// Save the default routes on the interface.
 	routes, err := nm.netlink.GetIPRoute(&netlink.Route{Dst: &net.IPNet{}, LinkIndex: hostIf.Index})
 	if err != nil {
-		logger.Error("Failed to query routes", zap.Error(err))
+		log.NetLogger.Error("Failed to query routes", zap.Error(err))
 		return err
 	}
 
@@ -188,7 +189,7 @@ func (nm *networkManager) saveIPConfig(hostIf *net.Interface, extIf *externalInt
 
 		extIf.IPAddresses = append(extIf.IPAddresses, ipNet)
 
-		logger.Info("Deleting IP address from interface", zap.Any("ipNet", ipNet), zap.String("hostInfName", hostIf.Name))
+		log.NetLogger.Info("Deleting IP address from interface", zap.Any("ipNet", ipNet), zap.String("hostInfName", hostIf.Name))
 
 		err = nm.netlink.DeleteIPAddress(hostIf.Name, ipAddr, ipNet)
 		if err != nil {
@@ -196,7 +197,7 @@ func (nm *networkManager) saveIPConfig(hostIf *net.Interface, extIf *externalInt
 		}
 	}
 
-	logger.Info("Saved interface IP configuration", zap.Any("extIf", extIf))
+	log.NetLogger.Info("Saved interface IP configuration", zap.Any("extIf", extIf))
 
 	return err
 }
@@ -218,11 +219,11 @@ func getMajorVersion(version string) (int, error) {
 func isGreaterOrEqaulUbuntuVersion(versionToMatch int) bool {
 	osInfo, err := platform.GetOSDetails()
 	if err != nil {
-		logger.Error("Unable to get OS Details", zap.Error(err))
+		log.NetLogger.Error("Unable to get OS Details", zap.Error(err))
 		return false
 	}
 
-	logger.Info("OSInfo", zap.Any("osInfo", osInfo))
+	log.NetLogger.Info("OSInfo", zap.Any("osInfo", osInfo))
 
 	version := osInfo[versionID]
 	distro := osInfo[distroID]
@@ -231,7 +232,7 @@ func isGreaterOrEqaulUbuntuVersion(versionToMatch int) bool {
 		version = strings.Trim(version, "\"")
 		retrieved_version, err := getMajorVersion(version)
 		if err != nil {
-			logger.Error("Not setting dns. Unable to retrieve major version", zap.Error(err))
+			log.NetLogger.Error("Not setting dns. Unable to retrieve major version", zap.Error(err))
 			return false
 		}
 
@@ -253,7 +254,7 @@ func readDnsInfo(ifName string) (DNSInfo, error) {
 		return dnsInfo, err
 	}
 
-	logger.Info("console output for above cmd", zap.Any("out", out))
+	log.NetLogger.Info("console output for above cmd", zap.Any("out", out))
 
 	lineArr := strings.Split(out, lineDelimiter)
 	if len(lineArr) <= 0 {
@@ -292,13 +293,13 @@ func readDnsInfo(ifName string) (DNSInfo, error) {
 func saveDnsConfig(extIf *externalInterface) error {
 	dnsInfo, err := readDnsInfo(extIf.Name)
 	if err != nil || len(dnsInfo.Servers) == 0 || dnsInfo.Suffix == "" {
-		logger.Info("Failed to read dns info from interface", zap.Any("dnsInfo", dnsInfo), zap.String("extIfName", extIf.Name),
+		log.NetLogger.Info("Failed to read dns info from interface", zap.Any("dnsInfo", dnsInfo), zap.String("extIfName", extIf.Name),
 			zap.Error(err))
 		return err
 	}
 
 	extIf.DNSInfo = dnsInfo
-	logger.Info("Saved DNS Info", zap.Any("DNSInfo", extIf.DNSInfo), zap.String("extIfName", extIf.Name))
+	log.NetLogger.Info("Saved DNS Info", zap.Any("DNSInfo", extIf.DNSInfo), zap.String("extIfName", extIf.Name))
 
 	return nil
 }
@@ -307,11 +308,11 @@ func saveDnsConfig(extIf *externalInterface) error {
 func (nm *networkManager) applyIPConfig(extIf *externalInterface, targetIf *net.Interface) error {
 	// Add IP addresses.
 	for _, addr := range extIf.IPAddresses {
-		logger.Info("Adding IP address to interface", zap.Any("addr", addr), zap.String("Name", targetIf.Name))
+		log.NetLogger.Info("Adding IP address to interface", zap.Any("addr", addr), zap.String("Name", targetIf.Name))
 
 		err := nm.netlink.AddIPAddress(targetIf.Name, addr.IP, addr)
 		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "file exists") {
-			logger.Info("Failed to add IP address", zap.Any("addr", addr), zap.Error(err))
+			log.NetLogger.Info("Failed to add IP address", zap.Any("addr", addr), zap.Error(err))
 			return err
 		}
 	}
@@ -320,11 +321,11 @@ func (nm *networkManager) applyIPConfig(extIf *externalInterface, targetIf *net.
 	for _, route := range extIf.Routes {
 		route.LinkIndex = targetIf.Index
 
-		logger.Info("Adding IP route", zap.Any("route", route))
+		log.NetLogger.Info("Adding IP route", zap.Any("route", route))
 
 		err := nm.netlink.AddIPRoute((*netlink.Route)(route))
 		if err != nil {
-			logger.Error("Failed to add IP route", zap.Any("route", route), zap.Error(err))
+			log.NetLogger.Error("Failed to add IP route", zap.Any("route", route), zap.Error(err))
 			return err
 		}
 	}
@@ -342,7 +343,7 @@ func applyDnsConfig(extIf *externalInterface, ifName string) error {
 	if extIf != nil {
 		for _, server := range extIf.DNSInfo.Servers {
 			if net.ParseIP(server).To4() == nil {
-				logger.Error("Invalid dns ip", zap.String("server", server))
+				log.NetLogger.Error("Invalid dns ip", zap.String("server", server))
 				continue
 			}
 
@@ -375,13 +376,13 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 		networkClient NetworkClient
 	)
 
-	logger.Info("Connecting interface", zap.String("Name", extIf.Name))
+	log.NetLogger.Info("Connecting interface", zap.String("Name", extIf.Name))
 	defer func() {
-		logger.Info("Connecting interface completed", zap.String("Name", extIf.Name), zap.Error(err))
+		log.NetLogger.Info("Connecting interface completed", zap.String("Name", extIf.Name), zap.Error(err))
 	}()
 	// Check whether this interface is already connected.
 	if extIf.BridgeName != "" {
-		logger.Info("Interface is already connected to bridge", zap.String("BridgeName", extIf.BridgeName))
+		log.NetLogger.Info("Interface is already connected to bridge", zap.String("BridgeName", extIf.BridgeName))
 		return nil
 	}
 
@@ -410,7 +411,7 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 	if err != nil {
 		// Create the bridge.
 		if err = networkClient.CreateBridge(); err != nil {
-			logger.Error("Error while creating bridge", zap.Error(err))
+			log.NetLogger.Error("Error while creating bridge", zap.Error(err))
 			return err
 		}
 
@@ -420,12 +421,12 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 		}
 	} else {
 		// Use the existing bridge.
-		logger.Info("Found existing bridge", zap.String("bridgeName", bridgeName))
+		log.NetLogger.Info("Found existing bridge", zap.String("bridgeName", bridgeName))
 	}
 
 	defer func() {
 		if err != nil {
-			logger.Info("cleanup network")
+			log.NetLogger.Info("cleanup network")
 			nm.disconnectExternalInterface(extIf, networkClient)
 		}
 	}()
@@ -433,7 +434,7 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 	// Save host IP configuration.
 	err = nm.saveIPConfig(hostIf, extIf)
 	if err != nil {
-		logger.Error("Failed to save IP configuration for interface",
+		log.NetLogger.Error("Failed to save IP configuration for interface",
 			zap.String("Name", hostIf.Name), zap.Error(err))
 	}
 
@@ -447,36 +448,36 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 		// Don't copy dns servers if systemd-resolved isn't available
 		if _, cmderr := p.ExecuteCommand("systemctl status systemd-resolved"); cmderr == nil {
 			isSystemdResolvedActive = true
-			logger.Info("Saving dns config from", zap.String("Name", hostIf.Name))
+			log.NetLogger.Info("Saving dns config from", zap.String("Name", hostIf.Name))
 			if err = saveDnsConfig(extIf); err != nil {
-				logger.Error("Failed to save dns config", zap.Error(err))
+				log.NetLogger.Error("Failed to save dns config", zap.Error(err))
 				return err
 			}
 		}
 	}
 
 	// External interface down.
-	logger.Info("Setting link state down", zap.String("Name", hostIf.Name))
+	log.NetLogger.Info("Setting link state down", zap.String("Name", hostIf.Name))
 	err = nm.netlink.SetLinkState(hostIf.Name, false)
 	if err != nil {
 		return err
 	}
 
 	// Connect the external interface to the bridge.
-	logger.Info("Setting link master", zap.String("Name", hostIf.Name), zap.String("bridgeName", bridgeName))
+	log.NetLogger.Info("Setting link master", zap.String("Name", hostIf.Name), zap.String("bridgeName", bridgeName))
 	if err = networkClient.SetBridgeMasterToHostInterface(); err != nil {
 		return err
 	}
 
 	// External interface up.
-	logger.Info("Setting link state up", zap.String("Name", hostIf.Name))
+	log.NetLogger.Info("Setting link state up", zap.String("Name", hostIf.Name))
 	err = nm.netlink.SetLinkState(hostIf.Name, true)
 	if err != nil {
 		return err
 	}
 
 	// Bridge up.
-	logger.Info("Setting link state up", zap.String("bridgeName", bridgeName))
+	log.NetLogger.Info("Setting link state up", zap.String("bridgeName", bridgeName))
 	err = nm.netlink.SetLinkState(bridgeName, true)
 	if err != nil {
 		return err
@@ -490,7 +491,7 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 
 	// External interface hairpin on.
 	if !nwInfo.DisableHairpinOnHostInterface {
-		logger.Info("Setting link hairpin on", zap.String("Name", hostIf.Name))
+		log.NetLogger.Info("Setting link hairpin on", zap.String("Name", hostIf.Name))
 		if err = networkClient.SetHairpinOnHostInterface(true); err != nil {
 			return err
 		}
@@ -499,90 +500,90 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 	// Apply IP configuration to the bridge for host traffic.
 	err = nm.applyIPConfig(extIf, bridge)
 	if err != nil {
-		logger.Error("Failed to apply interface IP configuration", zap.Error(err))
+		log.NetLogger.Error("Failed to apply interface IP configuration", zap.Error(err))
 		return err
 	}
 
 	if isGreaterOrEqualUbuntu17 && isSystemdResolvedActive {
-		logger.Info("Applying dns config on", zap.String("bridgeName", bridgeName))
+		log.NetLogger.Info("Applying dns config on", zap.String("bridgeName", bridgeName))
 
 		if err = applyDnsConfig(extIf, bridgeName); err != nil {
-			logger.Error("Failed to apply DNS configuration with", zap.Error(err))
+			log.NetLogger.Error("Failed to apply DNS configuration with", zap.Error(err))
 			return err
 		}
 
-		logger.Info("Applied dns config on", zap.Any("DNSInfo", extIf.DNSInfo), zap.String("bridgeName", bridgeName))
+		log.NetLogger.Info("Applied dns config on", zap.Any("DNSInfo", extIf.DNSInfo), zap.String("bridgeName", bridgeName))
 	}
 
 	if nwInfo.IPV6Mode == IPV6Nat {
 		// adds pod cidr gateway ip to bridge
 		if err = nm.addIpv6NatGateway(nwInfo); err != nil {
-			logger.Error("Adding IPv6 Nat Gateway failed with", zap.Error(err))
+			log.NetLogger.Error("Adding IPv6 Nat Gateway failed with", zap.Error(err))
 			return err
 		}
 
 		if err = nm.addIpv6SnatRule(extIf, nwInfo); err != nil {
-			logger.Error("Adding IPv6 Snat Rule failed with", zap.Error(err))
+			log.NetLogger.Error("Adding IPv6 Snat Rule failed with", zap.Error(err))
 			return err
 		}
 
 		// unmark packet if set by kube-proxy to skip kube-postrouting rule and processed
 		// by cni snat rule
 		if err = iptables.InsertIptableRule(iptables.V6, iptables.Mangle, iptables.Postrouting, "", "MARK --set-mark 0x0"); err != nil {
-			logger.Error("Adding Iptable mangle rule failed", zap.Error(err))
+			log.NetLogger.Error("Adding Iptable mangle rule failed", zap.Error(err))
 			return err
 		}
 	}
 
 	extIf.BridgeName = bridgeName
-	logger.Info("Connected interface to bridge", zap.String("Name", extIf.Name), zap.String("BridgeName", extIf.BridgeName))
+	log.NetLogger.Info("Connected interface to bridge", zap.String("Name", extIf.Name), zap.String("BridgeName", extIf.BridgeName))
 
 	return nil
 }
 
 // DisconnectExternalInterface disconnects a host interface from its bridge.
 func (nm *networkManager) disconnectExternalInterface(extIf *externalInterface, networkClient NetworkClient) {
-	logger.Info("Disconnecting interface", zap.String("Name", extIf.Name))
+	log.NetLogger.Info("Disconnecting interface", zap.String("Name", extIf.Name))
 
-	logger.Info("Deleting bridge rules")
+	log.NetLogger.Info("Deleting bridge rules")
 	// Delete bridge rules set on the external interface.
 	networkClient.DeleteL2Rules(extIf)
 
-	logger.Info("Deleting bridge")
+	log.NetLogger.Info("Deleting bridge")
 	// Delete Bridge
 	networkClient.DeleteBridge()
 
 	extIf.BridgeName = ""
-	logger.Info("Restoring ipconfig with primary interface", zap.String("Name", extIf.Name))
+	log.NetLogger.Info("Restoring ipconfig with primary interface", zap.String("Name", extIf.Name))
 
 	// Restore IP configuration.
 	hostIf, _ := net.InterfaceByName(extIf.Name)
 	err := nm.applyIPConfig(extIf, hostIf)
 	if err != nil {
-		logger.Error("Failed to apply IP configuration", zap.Error(err))
+		log.NetLogger.Error("Failed to apply IP configuration", zap.Error(err))
 	}
 
 	extIf.IPAddresses = nil
 	extIf.Routes = nil
 
-	logger.Info("Disconnected interface", zap.String("Name", extIf.Name))
+	log.NetLogger.Info("Disconnected interface", zap.String("Name", extIf.Name))
 }
 
 func (*networkManager) addToIptables(cmds []iptables.IPTableEntry) error {
-	logger.Info("Adding additional iptable rules...")
+	log.NetLogger.Info("Adding additional iptable rules...")
 	for _, cmd := range cmds {
 		err := iptables.RunCmd(cmd.Version, cmd.Params)
 		if err != nil {
 			return err
 		}
-		logger.Info("Successfully run iptables rule", zap.Any("cmd", cmd))
+		log.NetLogger.Info("Successfully run iptables rule", zap.Any("cmd", cmd))
 	}
 	return nil
 }
 
 // Add ipv6 nat gateway IP on bridge
 func (nm *networkManager) addIpv6NatGateway(nwInfo *NetworkInfo) error {
-	logger.Info("Adding ipv6 nat gateway on azure bridge")
+	log.NetLogger.Info("Adding ipv6 nat gateway on azure bridge")
 	for _, subnetInfo := range nwInfo.Subnets {
 		if subnetInfo.Family == platform.AfINET6 {
 			ipAddr := []net.IPNet{{
@@ -620,7 +621,7 @@ func (*networkManager) addIpv6SnatRule(extIf *externalInterface, nwInfo *Network
 
 	for _, ipAddr := range extIf.IPAddresses {
 		if ipAddr.IP.To4() == nil {
-			logger.Info("Adding ipv6 snat rule")
+			log.NetLogger.Info("Adding ipv6 snat rule")
 			matchSrcPrefix := fmt.Sprintf("-s %s", ipv6SubnetPrefix.String())
 			if err := networkutils.AddSnatRule(matchSrcPrefix, ipAddr.IP); err != nil {
 				return fmt.Errorf("Adding iptable snat rule failed:%w", err)
@@ -646,7 +647,7 @@ func getNetworkInfoImpl(nwInfo *NetworkInfo, nw *network) {
 
 // AddStaticRoute adds a static route to the interface.
 func AddStaticRoute(nl netlink.NetlinkInterface, netioshim netio.NetIOInterface, ip, interfaceName string) error {
-	logger.Info("Adding static route", zap.String("ip", ip))
+	log.NetLogger.Info("Adding static route", zap.String("ip", ip))
 	var routes []RouteInfo
 	_, ipNet, _ := net.ParseCIDR(ip)
 	gwIP := net.ParseIP("0.0.0.0")
@@ -654,7 +655,7 @@ func AddStaticRoute(nl netlink.NetlinkInterface, netioshim netio.NetIOInterface,
 	routes = append(routes, route)
 	if err := addRoutes(nl, netioshim, interfaceName, routes); err != nil {
 		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "file exists") {
-			logger.Error("addroutes failed with error", zap.Error(err))
+			log.NetLogger.Error("addroutes failed with error", zap.Error(err))
 			return err
 		}
 	}

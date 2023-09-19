@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"github.com/Azure/azure-container-networking/cni"
+	"github.com/Azure/azure-container-networking/cni/log"
 	"github.com/Azure/azure-container-networking/cni/util"
 	"github.com/Azure/azure-container-networking/cns"
 	cnscli "github.com/Azure/azure-container-networking/cns/client"
@@ -62,7 +63,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 		PodNamespace: invoker.podNamespace,
 	}
 
-	logger.Info(podInfo.PodName)
+	log.CNILogger.Info(podInfo.PodName)
 	orchestratorContext, err := json.Marshal(podInfo)
 	if err != nil {
 		return IPAMAddResult{}, errors.Wrap(err, "Failed to unmarshal orchestrator context during add: %w")
@@ -78,14 +79,14 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 		InfraContainerID:    addConfig.args.ContainerID,
 	}
 
-	logger.Info("Requesting IP for pod using ipconfig",
+	log.CNILogger.Info("Requesting IP for pod using ipconfig",
 		zap.Any("pod", podInfo),
 		zap.Any("ipconfig", ipconfigs))
 	response, err := invoker.cnsClient.RequestIPs(context.TODO(), ipconfigs)
 	if err != nil {
 		if cnscli.IsUnsupportedAPI(err) {
 			// If RequestIPs is not supported by CNS, use RequestIPAddress API
-			logger.Error("RequestIPs not supported by CNS. Invoking RequestIPAddress API",
+			log.CNILogger.Error("RequestIPs not supported by CNS. Invoking RequestIPAddress API",
 				zap.Any("infracontainerid", ipconfigs.InfraContainerID))
 			ipconfig := cns.IPConfigRequest{
 				OrchestratorContext: orchestratorContext,
@@ -96,7 +97,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 			res, errRequestIP := invoker.cnsClient.RequestIPAddress(context.TODO(), ipconfig)
 			if errRequestIP != nil {
 				// if the old API fails as well then we just return the error
-				logger.Error("Failed to request IP address from CNS using RequestIPAddress",
+				log.CNILogger.Error("Failed to request IP address from CNS using RequestIPAddress",
 					zap.Any("infracontainerid", ipconfig.InfraContainerID),
 					zap.Error(errRequestIP))
 				return IPAMAddResult{}, errors.Wrap(errRequestIP, "Failed to get IP address from CNS")
@@ -108,7 +109,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 				},
 			}
 		} else {
-			logger.Info("Failed to get IP address from CNS",
+			log.CNILogger.Info("Failed to get IP address from CNS",
 				zap.Error(err),
 				zap.Any("response", response))
 			return IPAMAddResult{}, errors.Wrap(err, "Failed to get IP address from CNS")
@@ -134,7 +135,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 			addConfig.options[network.SNATIPKey] = info.ncPrimaryIP
 		}
 
-		logger.Info("Received info for pod",
+		log.CNILogger.Info("Received info for pod",
 			zap.Any("ipv4info", info),
 			zap.Any("podInfo", podInfo))
 		ip, ncIPNet, err := net.ParseCIDR(info.podIPAddress + "/" + fmt.Sprint(info.ncSubnetPrefix))
@@ -301,13 +302,13 @@ func (invoker *CNSIPAMInvoker) Delete(address *net.IPNet, nwCfg *cni.NetworkConf
 	if address != nil {
 		ipConfigs.DesiredIPAddresses = append(ipConfigs.DesiredIPAddresses, address.IP.String())
 	} else {
-		logger.Info("CNS invoker called with empty IP address")
+		log.CNILogger.Info("CNS invoker called with empty IP address")
 	}
 
 	if err := invoker.cnsClient.ReleaseIPs(context.TODO(), ipConfigs); err != nil {
 		if cnscli.IsUnsupportedAPI(err) {
 			// If ReleaseIPs is not supported by CNS, use ReleaseIPAddress API
-			logger.Error("ReleaseIPs not supported by CNS. Invoking ReleaseIPAddress API",
+			log.CNILogger.Error("ReleaseIPs not supported by CNS. Invoking ReleaseIPAddress API",
 				zap.Any("ipconfigs", ipConfigs))
 
 			ipConfig := cns.IPConfigRequest{
@@ -318,13 +319,13 @@ func (invoker *CNSIPAMInvoker) Delete(address *net.IPNet, nwCfg *cni.NetworkConf
 
 			if err = invoker.cnsClient.ReleaseIPAddress(context.TODO(), ipConfig); err != nil {
 				// if the old API fails as well then we just return the error
-				logger.Error("Failed to release IP address from CNS using ReleaseIPAddress ",
+				log.CNILogger.Error("Failed to release IP address from CNS using ReleaseIPAddress ",
 					zap.String("infracontainerid", ipConfigs.InfraContainerID),
 					zap.Error(err))
 				return errors.Wrap(err, fmt.Sprintf("failed to release IP %v using ReleaseIPAddress with err ", ipConfig.DesiredIPAddress)+"%w")
 			}
 		} else {
-			logger.Error("Failed to release IP address",
+			log.CNILogger.Error("Failed to release IP address",
 				zap.String("infracontainerid", ipConfigs.InfraContainerID),
 				zap.Error(err))
 			return errors.Wrap(err, fmt.Sprintf("failed to release IP %v using ReleaseIPs with err ", ipConfigs.DesiredIPAddresses)+"%w")

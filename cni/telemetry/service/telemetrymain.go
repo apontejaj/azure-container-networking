@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/Azure/azure-container-networking/aitelemetry"
-	"github.com/Azure/azure-container-networking/cni/log"
 	acn "github.com/Azure/azure-container-networking/common"
 	"github.com/Azure/azure-container-networking/telemetry"
 	"github.com/Azure/azure-container-networking/zaplog"
@@ -108,7 +107,6 @@ func main() {
 	var err error
 
 	acn.ParseArgs(&args, printVersion)
-	logLevel := acn.GetArg(acn.OptLogLevel).(zapcore.Level)
 	configDirectory := acn.GetArg(acn.OptTelemetryConfigDir).(string)
 	vers := acn.GetArg(acn.OptVersion).(bool)
 
@@ -117,8 +115,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	zaplog.LoggerCfg.Level = logLevel
-	logger := log.InitZapLogCNI(azureVnetTelemetry, azureVnetTelemetry+".log")
+	var logger = zaplog.InitializeTelemetryLogger().With(zap.Int("pid", os.Getpid())).With(zap.String("component", "telemetry"))
 
 	logger.Info("Telemetry invocation info", zap.Any("arguments", os.Args))
 

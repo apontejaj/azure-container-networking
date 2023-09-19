@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-container-networking/network/hnswrapper"
+	"github.com/Azure/azure-container-networking/network/log"
 	"github.com/Azure/azure-container-networking/network/policy"
 	"github.com/Microsoft/hcsshim"
 	"github.com/Microsoft/hcsshim/hcn"
@@ -53,7 +54,7 @@ func UseHnsV2(netNs string) (bool, error) {
 	if _, err = uuid.Parse(netNs); err == nil {
 		useHnsV2 = true
 		if err = hcn.V2ApiSupported(); err != nil {
-			logger.Info("HNSV2 is not supported on this windows platform")
+			log.NetLogger.Info("HNSV2 is not supported on this windows platform")
 		}
 	}
 
@@ -98,11 +99,11 @@ func (nm *networkManager) newNetworkImplHnsV1(nwInfo *NetworkInfo, extIf *extern
 	// FixMe: Find a better way to check if a nic that is selected is not part of a vSwitch
 	// per hns team, the hns calls fails if passed a vSwitch interface
 	if strings.HasPrefix(networkAdapterName, vEthernetAdapterPrefix) {
-		logger.Info("vSwitch detected, setting adapter name to empty")
+		log.NetLogger.Info("vSwitch detected, setting adapter name to empty")
 		networkAdapterName = ""
 	}
 
-	logger.Info("Adapter name used with HNS is", zap.String("networkAdapterName", networkAdapterName))
+	log.NetLogger.Info("Adapter name used with HNS is", zap.String("networkAdapterName", networkAdapterName))
 
 	// Initialize HNS network.
 	hnsNetwork := &hcsshim.HNSNetwork{
@@ -154,9 +155,9 @@ func (nm *networkManager) newNetworkImplHnsV1(nwInfo *NetworkInfo, extIf *extern
 
 	defer func() {
 		if err != nil {
-			logger.Info("HNSNetworkRequest DELETE", zap.String("id", hnsResponse.Id))
+			log.NetLogger.Info("HNSNetworkRequest DELETE", zap.String("id", hnsResponse.Id))
 			hnsResponse, err := Hnsv1.DeleteNetwork(hnsResponse.Id)
-			logger.Info("HNSNetworkRequest DELETE response", zap.Any("hnsResponse", hnsResponse), zap.Error(err))
+			log.NetLogger.Info("HNSNetworkRequest DELETE response", zap.Any("hnsResponse", hnsResponse), zap.Error(err))
 		}
 	}()
 
@@ -208,13 +209,13 @@ func (nm *networkManager) appIPV6RouteEntry(nwInfo *NetworkInfo) error {
 		cmd := fmt.Sprintf(routeCmd, "delete", nwInfo.Subnets[1].Prefix.String(),
 			ifName, ipv6DefaultHop)
 		if out, err = nm.plClient.ExecuteCommand(cmd); err != nil {
-			logger.Error("Deleting ipv6 route failed", zap.Any("out", out), zap.Error(err))
+			log.NetLogger.Error("Deleting ipv6 route failed", zap.Any("out", out), zap.Error(err))
 		}
 
 		cmd = fmt.Sprintf(routeCmd, "add", nwInfo.Subnets[1].Prefix.String(),
 			ifName, ipv6DefaultHop)
 		if out, err = nm.plClient.ExecuteCommand(cmd); err != nil {
-			logger.Error("Adding ipv6 route failed", zap.Any("out", out), zap.Error(err))
+			log.NetLogger.Error("Adding ipv6 route failed", zap.Any("out", out), zap.Error(err))
 		}
 	}
 
@@ -254,11 +255,11 @@ func (nm *networkManager) configureHcnNetwork(nwInfo *NetworkInfo, extIf *extern
 			adapterName = extIf.Name
 		}
 
-		logger.Info("Adapter name used with HNS is", zap.String("adapterName", adapterName))
+		log.NetLogger.Info("Adapter name used with HNS is", zap.String("adapterName", adapterName))
 
 		netAdapterNamePolicy, err := policy.GetHcnNetAdapterPolicy(adapterName)
 		if err != nil {
-			logger.Error("Failed to serialize network adapter policy due to", zap.Error(err))
+			log.NetLogger.Error("Failed to serialize network adapter policy due to", zap.Error(err))
 			return nil, err
 		}
 
@@ -277,7 +278,7 @@ func (nm *networkManager) configureHcnNetwork(nwInfo *NetworkInfo, extIf *extern
 		vlanID, _ := strconv.ParseUint(opt[VlanIDKey].(string), baseDecimal, bitSize)
 		subnetPolicy, err = policy.SerializeHcnSubnetVlanPolicy((uint32)(vlanID))
 		if err != nil {
-			logger.Error("Failed to serialize subnet vlan policy due to", zap.Error(err))
+			log.NetLogger.Error("Failed to serialize subnet vlan policy due to", zap.Error(err))
 			return nil, err
 		}
 
@@ -322,7 +323,7 @@ func (nm *networkManager) configureHcnNetwork(nwInfo *NetworkInfo, extIf *extern
 func (nm *networkManager) newNetworkImplHnsV2(nwInfo *NetworkInfo, extIf *externalInterface) (*network, error) {
 	hcnNetwork, err := nm.configureHcnNetwork(nwInfo, extIf)
 	if err != nil {
-		logger.Error("Failed to configure hcn network due to", zap.Error(err))
+		log.NetLogger.Error("Failed to configure hcn network due to", zap.Error(err))
 		return nil, err
 	}
 
@@ -332,19 +333,19 @@ func (nm *networkManager) newNetworkImplHnsV2(nwInfo *NetworkInfo, extIf *extern
 	if err != nil {
 		// if network not found, create the HNS network.
 		if errors.As(err, &hcn.NetworkNotFoundError{}) {
-			logger.Info("Creating hcn network", zap.Any("hcnNetwork", hcnNetwork))
+			log.NetLogger.Info("Creating hcn network", zap.Any("hcnNetwork", hcnNetwork))
 			hnsResponse, err = Hnsv2.CreateNetwork(hcnNetwork)
 			if err != nil {
 				return nil, fmt.Errorf("Failed to create hcn network: %s due to error: %v", hcnNetwork.Name, err)
 			}
 
-			logger.Info("Successfully created hcn network with response", zap.Any("hnsResponse", hnsResponse))
+			log.NetLogger.Info("Successfully created hcn network with response", zap.Any("hnsResponse", hnsResponse))
 		} else {
 			// we can't validate if the network already exists, don't continue
 			return nil, fmt.Errorf("Failed to create hcn network: %s, failed to query for existing network with error: %v", hcnNetwork.Name, err)
 		}
 	} else {
-		logger.Info("Network with name already exists", zap.String("name", hcnNetwork.Name))
+		log.NetLogger.Info("Network with name already exists", zap.String("name", hcnNetwork.Name))
 	}
 
 	var vlanid int
@@ -393,9 +394,9 @@ func (nm *networkManager) deleteNetworkImpl(nw *network) error {
 
 // DeleteNetworkImplHnsV1 deletes an existing container network using HnsV1.
 func (nm *networkManager) deleteNetworkImplHnsV1(nw *network) error {
-	logger.Info("HNSNetworkRequest DELETE id", zap.String("id", nw.HnsId))
+	log.NetLogger.Info("HNSNetworkRequest DELETE id", zap.String("id", nw.HnsId))
 	hnsResponse, err := Hnsv1.DeleteNetwork(nw.HnsId)
-	logger.Info("HNSNetworkRequest DELETE response", zap.Any("hnsResponse", hnsResponse), zap.Error(err))
+	log.NetLogger.Info("HNSNetworkRequest DELETE response", zap.Any("hnsResponse", hnsResponse), zap.Error(err))
 
 	return err
 }
@@ -404,7 +405,7 @@ func (nm *networkManager) deleteNetworkImplHnsV1(nw *network) error {
 func (nm *networkManager) deleteNetworkImplHnsV2(nw *network) error {
 	var hcnNetwork *hcn.HostComputeNetwork
 	var err error
-	logger.Info("Deleting hcn network with id", zap.String("id", nw.HnsId))
+	log.NetLogger.Info("Deleting hcn network with id", zap.String("id", nw.HnsId))
 
 	if hcnNetwork, err = Hnsv2.GetNetworkByID(nw.HnsId); err != nil {
 		return fmt.Errorf("Failed to get hcn network with id: %s due to err: %v", nw.HnsId, err)
@@ -414,7 +415,7 @@ func (nm *networkManager) deleteNetworkImplHnsV2(nw *network) error {
 		return fmt.Errorf("Failed to delete hcn network: %s due to error: %v", nw.HnsId, err)
 	}
 
-	logger.Info("Successfully deleted hcn network with id", zap.String("id", nw.HnsId))
+	log.NetLogger.Info("Successfully deleted hcn network with id", zap.String("id", nw.HnsId))
 
 	return err
 }

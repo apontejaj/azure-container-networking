@@ -6,45 +6,79 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-type Config struct {
-	Level       zapcore.Level
-	LogPath     string
-	MaxSizeInMB int
-	MaxBackups  int
-	Name        string
-}
+var (
+	cniLogFile       = LogPath + "azure-vnet.log"
+	ipamLogFile      = LogPath + "azure-vnet-ipam.log"
+	telemetryLogFile = LogPath + "azure-vnet-telemetry"
+)
 
 const (
 	maxLogFileSizeInMb = 5
 	maxLogFileCount    = 8
 )
 
-var (
-	loggerName string
-	loggerFile string
-)
+var logFileCNIWriter = zapcore.AddSync(&lumberjack.Logger{
+	Filename:   LogPath + cniLogFile,
+	MaxSize:    maxLogFileSizeInMb,
+	MaxBackups: maxLogFileCount,
+})
 
-var LoggerCfg = Config{
-	Level:       zapcore.DebugLevel,
-	LogPath:     loggerFile,
-	MaxSizeInMB: maxLogFileSizeInMb,
-	MaxBackups:  maxLogFileCount,
-	Name:        loggerName,
-}
+var logFileIpamWriter = zapcore.AddSync(&lumberjack.Logger{
+	Filename:   LogPath + ipamLogFile,
+	MaxSize:    maxLogFileSizeInMb,
+	MaxBackups: maxLogFileCount,
+})
 
-func InitZapLog(cfg *Config) *zap.Logger {
-	logFileWriter := zapcore.AddSync(&lumberjack.Logger{
-		Filename:   cfg.LogPath,
-		MaxSize:    cfg.MaxSizeInMB,
-		MaxBackups: cfg.MaxBackups,
-	})
+var logFileTelemetryWriter = zapcore.AddSync(&lumberjack.Logger{
+	Filename:   LogPath + telemetryLogFile,
+	MaxSize:    maxLogFileSizeInMb,
+	MaxBackups: maxLogFileCount,
+})
 
+func initZapCNILog() *zap.Logger {
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	jsonEncoder := zapcore.NewJSONEncoder(encoderConfig)
-	logLevel := cfg.Level
+	logLevel := zapcore.DebugLevel
 
-	core := zapcore.NewCore(jsonEncoder, logFileWriter, logLevel)
+	core := zapcore.NewCore(jsonEncoder, logFileCNIWriter, logLevel)
 	Logger := zap.New(core)
 	return Logger
+}
+
+func initIpamLog() *zap.Logger {
+	encoderConfig := zap.NewProductionEncoderConfig()
+	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	jsonEncoder := zapcore.NewJSONEncoder(encoderConfig)
+	logLevel := zapcore.DebugLevel
+
+	core := zapcore.NewCore(jsonEncoder, logFileIpamWriter, logLevel)
+	Logger := zap.New(core)
+	return Logger
+}
+
+func initTelemetryLog() *zap.Logger {
+	encoderConfig := zap.NewProductionEncoderConfig()
+	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	jsonEncoder := zapcore.NewJSONEncoder(encoderConfig)
+	logLevel := zapcore.DebugLevel
+
+	core := zapcore.NewCore(jsonEncoder, logFileTelemetryWriter, logLevel)
+	Logger := zap.New(core)
+	return Logger
+}
+
+func InitializeCNILogger() *zap.Logger {
+	defaultCNILogger := initZapCNILog()
+	return defaultCNILogger
+}
+
+func InitializeIpamLogger() *zap.Logger {
+	defaultIpamLogger := initIpamLog()
+	return defaultIpamLogger
+}
+
+func InitializeTelemetryLogger() *zap.Logger {
+	defaultTelemetryLogger := initTelemetryLog()
+	return defaultTelemetryLogger
 }

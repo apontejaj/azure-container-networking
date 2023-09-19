@@ -11,11 +11,6 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	loggerName = "net"
-	logger     = log.InitZapLogNet(loggerName)
-)
-
 type Hnsv1wrapper struct{}
 
 func (Hnsv1wrapper) CreateEndpoint(endpoint *hcsshim.HNSEndpoint, path string) (*hcsshim.HNSEndpoint, error) {
@@ -27,9 +22,9 @@ func (Hnsv1wrapper) CreateEndpoint(endpoint *hcsshim.HNSEndpoint, path string) (
 	hnsRequest := string(buffer)
 
 	// Create the HNS endpoint.
-	logger.Info("HNSEndpointRequest POST", zap.String("request", hnsRequest))
+	log.NetLogger.Info("HNSEndpointRequest POST", zap.String("request", hnsRequest))
 	hnsResponse, err := hcsshim.HNSEndpointRequest("POST", path, hnsRequest)
-	logger.Info("HNSEndpointRequest POST", zap.Any("response", hnsResponse), zap.Error(err))
+	log.NetLogger.Info("HNSEndpointRequest POST", zap.Any("response", hnsResponse), zap.Error(err))
 
 	if err != nil {
 		return nil, err
@@ -56,9 +51,9 @@ func (Hnsv1wrapper) CreateNetwork(network *hcsshim.HNSNetwork, path string) (*hc
 	hnsRequest := string(buffer)
 
 	// Create the HNS network.
-	logger.Info("HNSNetworkRequest POST request", zap.String("request", hnsRequest))
+	log.NetLogger.Info("HNSNetworkRequest POST request", zap.String("request", hnsRequest))
 	hnsResponse, err := hcsshim.HNSNetworkRequest("POST", path, hnsRequest)
-	logger.Info("HNSNetworkRequest POST response", zap.Any("response", hnsResponse), zap.Error(err))
+	log.NetLogger.Info("HNSNetworkRequest POST response", zap.Any("response", hnsResponse), zap.Error(err))
 
 	if err != nil {
 		return nil, err

@@ -7,18 +7,16 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 
 	"github.com/Azure/azure-container-networking/common"
-	"github.com/Azure/azure-container-networking/network/log"
 	"github.com/Azure/azure-container-networking/platform"
+	"github.com/Azure/azure-container-networking/zaplog"
 	"go.uber.org/zap"
 )
 
-var (
-	loggerName = "ovs"
-	logger     = log.InitZapLogNet(loggerName)
-)
+var logger = zaplog.InitializeCNILogger().With(zap.Int("pid", os.Getpid())).With(zap.String("component", "ovs"))
 
 const (
 	defaultMacForArpResponse = "12:34:56:78:9a:bc"
