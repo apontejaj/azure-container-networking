@@ -16,5 +16,9 @@ stages:
           - script: |
               echo "experimental stage"
               go version
+              make -C ./hack/aks connect-multitenancy
+              cd ~/.kube/
+              pwd
+              ls
             name: "test"
             displayName: "Test Multitenancy"
