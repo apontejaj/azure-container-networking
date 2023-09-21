@@ -17,7 +17,7 @@ import (
 )
 
 func MustCreateOrUpdatePod(ctx context.Context, podI typedcorev1.PodInterface, pod corev1.Pod) error {
-	if err := MustDeletePod(ctx, podI, pod); err != nil {
+	if err := MustDeletePod(ctx, podI, pod.Name); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return err
 		}
