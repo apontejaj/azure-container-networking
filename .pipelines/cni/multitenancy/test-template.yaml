@@ -1,0 +1,20 @@
+parameters:
+  dependsOn: ""
+  name: ""
+
+stages:
+  - stage: experimental
+    pool:
+      name: $(BUILD_POOL_NAME_DEFAULT)
+    dependsOn: ${{ parameters.dependsOn }}
+    displayName: "Experimental multitenancy"
+    jobs:
+      - job: test_multitenancy
+        pool:
+          name: "$(BUILD_POOL_NAME_DEFAULT)"
+        steps:
+          - script: |
+              echo "experimental stage"
+              go version
+            name: "test"
+            displayName: "Test Multitenancy"

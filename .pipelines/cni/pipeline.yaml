@@ -17,6 +17,10 @@ stages:
             name: "SetEnvVars"
             displayName: "Set Environment Variables"
             condition: always()
+    - template: multitenancy/test-template.yaml
+      parameters:
+        name: experimental
+        dependsOn: setup
   - template: cilium/cilium-overlay-load-test-template.yaml
     parameters:
       name: cilium
