@@ -12,5 +12,8 @@ steps:
       inlineScript: |
         set -ex
         make -C ./hack/aks set-kubeconf AZCLI=az GROUP=${{ parameters.group }} CLUSTER=${{ parameters.cluster }}
+        cd ~/.kube/
+        pwd
+        ls
     name: "ConnectCluster"
     displayName: "Retrieve Kubeconf"
