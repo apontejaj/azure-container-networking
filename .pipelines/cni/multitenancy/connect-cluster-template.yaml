@@ -12,8 +12,6 @@ steps:
       inlineScript: |
         set -ex
         make -C ./hack/aks set-kubeconf AZCLI=az GROUP=${{ parameters.group }} CLUSTER=${{ parameters.cluster }}
-        cd ~
-        pwd
-        ls
+        sudo -E env "PATH=$PATH" make test-multitenancy
     name: "ConnectCluster"
     displayName: "Retrieve Kubeconf"
