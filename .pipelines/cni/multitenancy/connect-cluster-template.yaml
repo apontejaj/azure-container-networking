@@ -13,6 +13,8 @@ steps:
         set -ex
         az aks get-credentials -n ${{ parameters.cluster }} -g ${{ parameters.group }} --file $(KUBECONFIG)
         printenv KUBECONFIG
+        kubectl get nodes
+        stat ~/.kube/config
         make test-multitenancy
     name: "ConnectCluster"
     displayName: "Retrieve Kubeconf"
