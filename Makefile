@@ -725,6 +725,10 @@ test-integration: ## run all integration tests.
 		CNS_VERSION=$(CNS_VERSION) \
 		go test -mod=readonly -buildvcs=false -timeout 1h -coverpkg=./... -race -covermode atomic -coverprofile=coverage.out -tags=integration ./test/integration...
 
+test-multitenancy:
+	cd test/integration/datapath && go test -v -tags=connection,integration,test -count=1 -run TestOrchestration -timeout=5m
+	cd ../../..
+
 test-validate-state:
 	cd test/integration/load && go test -mod=readonly -count=1 -timeout 30m -tags load -run ^TestValidateState -restart-case=$(RESTART_CASE) -os=$(OS) -cni=$(CNI_TYPE)
 	cd ../../..
