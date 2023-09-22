@@ -16,6 +16,7 @@ stages:
           - script: |
               echo "experimental stage"
               go version
+              az account show
               make -C ./hack/aks connect-multitenancy
               cd ~/.kube/
               pwd
