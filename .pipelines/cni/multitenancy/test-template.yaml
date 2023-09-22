@@ -19,13 +19,13 @@ stages:
               cd ~/.kube/
               pwd
               ls
-            name: "test"
-            displayName: "Test Multitenancy"
+            name: "test_prereqs"
+            displayName: "Test Multitenancy Prereqs"
           - template: connect-cluster-template.yaml
             parameters:
               group: $(GROUP)
               cluster: $(CLUSTER)
           - script: |
-              cd ~
-              pwd
-              ls
+              make test-multitenancy
+            name: "test"
+            displayName: "Test Multitenancy"
