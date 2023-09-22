@@ -25,3 +25,5 @@ stages:
             parameters:
               group: $(GROUP)
               cluster: $(CLUSTER)
+          - script: |
+              sudo -E env "PATH=$PATH" make test-multitenancy

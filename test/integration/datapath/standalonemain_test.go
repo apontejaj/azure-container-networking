@@ -32,19 +32,14 @@ const (
 	cniManagerPodDescribeFileName = "cni_pod_describe.txt"
 	goldpingerPodDescribeFileName = "goldpinger_pod_describe.txt"
 	cnsStateFileName              = "azure-cns.json"
-	defaultTimeoutSeconds         = 120
-	defaultRetryDelaySeconds      = 1
-	maxRetryDelaySeconds          = 10
-	deleteWaitTimeSeconds         = 20
-	deleteNCWaitTimeInSeconds     = 60
-	goldpingerRetryCount          = 24
-	goldpingerDelayTimeSeconds    = 5
+
+	deleteWaitTimeSeconds     = 20
+	deleteNCWaitTimeInSeconds = 60
 )
 
 var (
 	restConfig *rest.Config
 	clientset  *kubernetes.Clientset
-	k8sShim    *k8s.Shim
 	testConfig = &TestConfig{}
 
 	// todo: these should not need to be globals for the sake of clean up.
@@ -54,20 +49,8 @@ var (
 )
 
 type TestConfig struct {
-	CNIManagerImage             string `env:"CNI_MANAGER_IMAGE"`
-	CNSImage                    string `env:"CNS_IMAGE"`
-	CNIManagerDaemonsetYamlPath string `env:"CNI_MANAGER_DAEMONSET_YAML_PATH"`
-	CNSDaemonsetYamlPath        string `env:"CNS_DAEMONSET_YAML_PATH"`
-	CNSConfigmapYamlPath        string `env:"CNS_CONFIGMAP_YAML_PATH"`
-	GoldpingerPodYamlPath       string `env:"GOLDPINGER_POD_YAML_PATH"`
-	HostDaemonsetYamlPath       string `env:"HOST_DAEMONSET_YAML_PATH"`
-	PartitionKey                string `env:"PARTITION_KEY"`
-	EnableAZRKey                string `env:"ENABLE_AZR_KEY"`
-	DesiredNCsPerNode           int    `env:"DESIRED_NCS_PER_NODE"`
-	InfraVnetGuid               string `env:"INFRA_VNET_GUID"`
-	CustomerVnetGuid            string `env:"CUSTOMER_VNET_GUID"`
-	CustomerSubnetName          string `env:"CUSTOMER_SUBNET_NAME"`
-	DelegationToken             string `env:"DELEGATION_TOKEN"`
+	GoldpingerPodYamlPath string `env:"GOLDPINGER_POD_YAML_PATH"`
+	DesiredNCsPerNode     int    `env:"DESIRED_NCS_PER_NODE"`
 }
 
 func TestMain(m *testing.M) {
@@ -81,8 +64,6 @@ func TestMain(m *testing.M) {
 	if clientset, err = kubernetes.NewForConfig(restConfig); err != nil {
 		logrus.Fatalf("could not get k8s clientset: %v", err)
 	}
-
-	k8sShim = k8s.NewShim(clientset)
 
 	LoadEnvironment(testConfig)
 

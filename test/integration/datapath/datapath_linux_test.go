@@ -41,14 +41,15 @@ const (
 )
 
 var (
-	podPrefix        = flag.String("podName", "goldpinger", "Prefix for test pods")
-	podNamespace     = flag.String("namespace", "default", "Namespace for test pods")
-	nodepoolSelector = flag.String("nodepoolSelector", "nodepool1", "Provides nodepool as a Linux Node-Selector for pods")
+	goldpingerPodPrefix = flag.String("podName", "goldpinger", "Prefix for test pods")
+	podNamespace        = flag.String("namespace", "default", "Namespace for test pods")
+	nodepoolSelector    = flag.String("nodepoolSelector", "nodepool1", "Provides nodepool as a Linux Node-Selector for pods")
 	// TODO: add flag to support dual nic scenario
 	isDualStack    = flag.Bool("isDualStack", false, "whether system supports dualstack scenario")
 	defaultRetrier = retry.Retrier{
-		Attempts: 10,
-		Delay:    defaultRetryDelaySeconds * time.Second,
+		Attempts:   10,
+		Delay:      defaultRetryDelaySeconds * time.Second,
+		ExpBackoff: true,
 	}
 )
 
@@ -80,7 +81,7 @@ func setupLinuxEnvironment(t *testing.T) {
 	}
 
 	t.Log("Create Label Selectors")
-	podLabelSelector := k8sutils.CreateLabelSelector(podLabelKey, podPrefix)
+	podLabelSelector := k8sutils.CreateLabelSelector(podLabelKey, goldpingerPodPrefix)
 	nodeLabelSelector := k8sutils.CreateLabelSelector(nodepoolKey, nodepoolSelector)
 
 	t.Log("Get Nodes")
@@ -126,10 +127,10 @@ func setupLinuxEnvironment(t *testing.T) {
 
 	// Fields for overwritting existing deployment yaml.
 	// Defaults from flags will not change anything
-	deployment.Spec.Selector.MatchLabels[podLabelKey] = *podPrefix
-	deployment.Spec.Template.ObjectMeta.Labels[podLabelKey] = *podPrefix
+	deployment.Spec.Selector.MatchLabels[podLabelKey] = *goldpingerPodPrefix
+	deployment.Spec.Template.ObjectMeta.Labels[podLabelKey] = *goldpingerPodPrefix
 	deployment.Spec.Template.Spec.NodeSelector[nodepoolKey] = *nodepoolSelector
-	deployment.Name = *podPrefix
+	deployment.Name = *goldpingerPodPrefix
 	deployment.Namespace = *podNamespace
 	daemonset.Namespace = *podNamespace
 
@@ -196,7 +197,7 @@ func TestDatapathLinux(t *testing.T) {
 		t.Fatalf("could not get k8s clientset: %v", err)
 	}
 	setupLinuxEnvironment(t)
-	podLabelSelector := k8sutils.CreateLabelSelector(podLabelKey, podPrefix)
+	podLabelSelector := k8sutils.CreateLabelSelector(podLabelKey, goldpingerPodPrefix)
 
 	t.Run("Linux ping tests", func(t *testing.T) {
 		// Check goldpinger health
