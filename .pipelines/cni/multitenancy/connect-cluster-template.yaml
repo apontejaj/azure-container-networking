@@ -11,7 +11,9 @@ steps:
       addSpnToEnvironment: true
       inlineScript: |
         set -ex
-        make -C ./hack/aks set-kubeconf AZCLI=az GROUP=${{ parameters.group }} CLUSTER=${{ parameters.cluster }}
+        az aks get-credentials -n ${{ parameters.cluster }} -g ${{ parameters.group }} --file $(KUBECONFIG)
+        printenv KUBECONFIG
+        stat $(KUBECONFIG)
         sudo -E env "PATH=$PATH" make test-multitenancy
     name: "ConnectCluster"
     displayName: "Retrieve Kubeconf"
