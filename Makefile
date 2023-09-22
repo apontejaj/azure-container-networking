@@ -726,7 +726,6 @@ test-integration: ## run all integration tests.
 		go test -mod=readonly -buildvcs=false -timeout 1h -coverpkg=./... -race -covermode atomic -coverprofile=coverage.out -tags=integration ./test/integration...
 
 test-multitenancy:
-	printenv KUBECONFIG
 	cd test/integration/datapath && go test -v -tags=connection,integration,test -count=1 -run TestOrchestration -timeout=5m
 	cd ../../..
 
