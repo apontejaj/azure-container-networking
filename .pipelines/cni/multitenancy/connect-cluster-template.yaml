@@ -11,7 +11,7 @@ steps:
       addSpnToEnvironment: true
       inlineScript: |
         set -ex
-        az aks get-credentials -n ${{ parameters.cluster }} -g ${{ parameters.group }} --file $(KUBECONFIG)
+        az aks get-credentials -n ${{ parameters.cluster }} -g ${{ parameters.group }}
         printenv KUBECONFIG
         kubectl get nodes
         make test-multitenancy
