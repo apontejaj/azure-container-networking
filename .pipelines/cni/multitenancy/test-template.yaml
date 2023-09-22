@@ -16,10 +16,12 @@ stages:
           - script: |
               echo "experimental stage"
               go version
-              az account show
-              make -C ./hack/aks connect-multitenancy
               cd ~/.kube/
               pwd
               ls
             name: "test"
             displayName: "Test Multitenancy"
+          - template: connect-cluster-template.yaml
+            parameters:
+              group: $(GROUP)
+              cluster: $(CLUSTER)

@@ -267,6 +267,3 @@ restart-vmss: ## Restarts the nodes in the cluster
 
 scale-vmss: ## Scales the nodes in the cluster
 	$(AZCLI) vmss scale -g MC_${GROUP}_${CLUSTER}_${REGION} --name $(VMSS_NAME) --new-capacity $(NODE_COUNT)
-
-connect-multitenancy: ## $(AZCLI) account set --subscription $(SUB)
-	$(AZCLI) aks get-credentials --resource-group $(GROUP) --name $(CLUSTER)

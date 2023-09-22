@@ -1,0 +1,16 @@
+parameters:
+  group: ""
+  cluster: ""
+
+steps:
+  - task: AzureCLI@1
+    inputs:
+      azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+      scriptLocation: "inlineScript"
+      scriptType: "bash"
+      addSpnToEnvironment: true
+      inlineScript: |
+        set -ex
+        make -C ./hack/aks set-kubeconf AZCLI=az GROUP=${{ parameters.group }} CLUSTER=${{ parameters.cluster }}
+    name: "ConnectCluster"
+    displayName: "Retrieve Kubeconf"
