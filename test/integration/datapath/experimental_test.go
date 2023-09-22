@@ -88,10 +88,20 @@ func TestOrchestration(t *testing.T) {
 	t.Run("Linux ping tests", func(t *testing.T) {
 		// Check goldpinger health
 		t.Run("all pods have IPs assigned", func(t *testing.T) {
-			err := k8sutils.WaitForPodsRunning(ctx, clientset, *podNamespace, podLabelSelector)
-			if err != nil {
-				t.Fatalf("Pods are not in running state due to %+v", err)
+			ipCheckTimeout := defaultTimeoutSeconds * time.Second
+			ipCheckCtx, cancel := context.WithTimeout(ctx, ipCheckTimeout)
+			defer cancel()
+
+			select {
+			case <-ipCheckCtx.Done():
+				t.Fatalf("pod ips could not be assigned in %d seconds: %v", ipCheckTimeout, ctx.Err())
+			default:
+				err := k8sutils.WaitForPodsRunning(ctx, clientset, *podNamespace, podLabelSelector)
+				if err != nil {
+					t.Fatalf("Pods are not in running state due to %+v", err)
+				}
 			}
+
 			t.Log("all pods have been allocated IPs")
 		})
 
