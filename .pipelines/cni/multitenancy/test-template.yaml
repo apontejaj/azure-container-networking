@@ -28,7 +28,7 @@ stages:
       - job: prepare_cns
         pool:
           name: "$(BUILD_POOL_NAME_DEFAULT)"
-          steps:
+        steps:
           - script: |
               make cns-image-name-and-tag
               make cns-image
@@ -36,7 +36,7 @@ stages:
       - job: test_multitenancy
         pool:
           name: "$(BUILD_POOL_NAME_DEFAULT)"
-          steps:
+        steps:
           - script: |
               make test-multitenancy
             name: "test"
