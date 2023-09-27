@@ -25,18 +25,12 @@ stages:
             parameters:
               group: $(GROUP)
               cluster: $(CLUSTER)
-      - job: prepare_cns
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
-        steps:
           - script: |
               make cns-image-name-and-tag
               make cns-image
               make cns-image-name-and-tag
-      - job: test_multitenancy
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
-        steps:
+            name: "make_cns"
+            displayName: "Make CNS Image"
           - script: |
               make test-multitenancy
             name: "test"
