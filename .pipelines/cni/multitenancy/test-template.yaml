@@ -9,7 +9,7 @@ stages:
     dependsOn: ${{ parameters.dependsOn }}
     displayName: "Experimental multitenancy"
     jobs:
-      - job: connect cluster
+      - job: connect_cluster
         pool:
           name: "$(BUILD_POOL_NAME_DEFAULT)"
         steps:
