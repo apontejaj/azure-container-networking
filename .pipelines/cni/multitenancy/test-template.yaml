@@ -9,7 +9,7 @@ stages:
     dependsOn: ${{ parameters.dependsOn }}
     displayName: "Experimental multitenancy"
     jobs:
-      - job: test_multitenancy
+      - job: connect cluster
         pool:
           name: "$(BUILD_POOL_NAME_DEFAULT)"
         steps:
@@ -25,6 +25,15 @@ stages:
             parameters:
               group: $(GROUP)
               cluster: $(CLUSTER)
+      - job: prepare_cns
+        pool:
+          name: "$(BUILD_POOL_NAME_DEFAULT)"
+          steps:
+          - script: |
+              make cns-image-name-and-tag
+              make cns-image
+              make cns-image-name-and-tag
+      - job: test_multitenancy
           - script: |
               make test-multitenancy
             name: "test"
