@@ -34,6 +34,9 @@ stages:
               make cns-image
               make cns-image-name-and-tag
       - job: test_multitenancy
+        pool:
+          name: "$(BUILD_POOL_NAME_DEFAULT)"
+          steps:
           - script: |
               make test-multitenancy
             name: "test"
