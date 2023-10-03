@@ -311,7 +311,8 @@ func initCNSScenarioVars() (map[CNSScenario]map[corev1.OSName]cnsDetails, error)
 	cnsWindowsDaemonSetPath := cnsManifestFolder + "/daemonset-windows.yaml"
 	cnsClusterRolePath := cnsManifestFolder + "/clusterrole.yaml"
 	cnsClusterRoleBindingPath := cnsManifestFolder + "/clusterrolebinding.yaml"
-	cnsSwiftConfigMapPath := cnsConfigFolder + "/swiftconfigmap.yaml"
+	cnsSwiftLinuxConfigMapPath := cnsConfigFolder + "/swiftlinuxconfigmap.yaml"
+	cnsSwiftWindowsConfigMapPath := cnsConfigFolder + "/swiftwindowsconfigmap.yaml"
 	cnsCiliumConfigMapPath := cnsConfigFolder + "/ciliumconfigmap.yaml"
 	cnsOverlayConfigMapPath := cnsConfigFolder + "/overlayconfigmap.yaml"
 	cnsAzureCNIOverlayLinuxConfigMapPath := cnsConfigFolder + "/azurecnioverlaylinuxconfigmap.yaml"
@@ -343,7 +344,26 @@ func initCNSScenarioVars() (map[CNSScenario]map[corev1.OSName]cnsDetails, error)
 					"azure-swift.conflist", "-o", "/etc/cni/net.d/10-azure.conflist",
 				},
 				initContainerName:  initContainerNameCNI,
-				configMapPath:      cnsSwiftConfigMapPath,
+				configMapPath:      cnsSwiftLinuxConfigMapPath,
+				installIPMasqAgent: false,
+			},
+			corev1.Windows: {
+				daemonsetPath:          cnsWindowsDaemonSetPath,
+				labelSelector:          cnsWindowsLabelSelector,
+				rolePath:               cnsRolePath,
+				roleBindingPath:        cnsRoleBindingPath,
+				clusterRolePath:        cnsClusterRolePath,
+				clusterRoleBindingPath: cnsClusterRoleBindingPath,
+				serviceAccountPath:     cnsServiceAccountPath,
+				initContainerArgs: []string{
+					"deploy",
+					"azure-vnet.exe", "-o", "/k/azurecni/bin/azure-vnet.exe",
+					"azure-vnet-telemetry.exe", "-o", "/k/azurecni/bin/azure-vnet-telemetry.exe",
+					"azure-vnet-ipam.exe", "-o", "/k/azurecni/bin/azure-vnet-ipam.exe",
+					// "azure-swift.conflist", "-o", "/k/azurecni/netconf/10-azure.conflist",
+				}, // Add the above once confirmed how conflist generation works.
+				initContainerName:  initContainerNameCNI,
+				configMapPath:      cnsSwiftWindowsConfigMapPath,
 				installIPMasqAgent: false,
 			},
 		},
