@@ -25,10 +25,20 @@ stages:
             parameters:
               group: $(GROUP)
               cluster: $(CLUSTER)
+          - task: AzureCLI@1
+            inputs:
+              azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+              scriptLocation: "inlineScript"
+              scriptType: "bash"
+              addSpnToEnvironment: true
+              inlineScript: |
+                make cns-image-name-and-tag
+                make cns-image
+            name: "ConnectCluster"
+            displayName: "Make cns image and tag while logged in"
           - script: |
               make cns-image-name-and-tag
               make cns-image
-              make cns-image-name-and-tag
             name: "make_cns"
             displayName: "Make CNS Image"
           - script: |
