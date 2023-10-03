@@ -5,11 +5,6 @@ metadata:
   labels:
     app: goldpinger
 spec:
-  serviceAccount: "goldpinger-serviceaccount"
-  securityContext:
-    runAsNonRoot: true
-    runAsUser: 1000
-    fsGroup: 2000
   affinity:
     podAntiAffinity:
       preferredDuringSchedulingIgnoredDuringExecution:
@@ -26,7 +21,7 @@ spec:
     - name: kubeconfig
       secret:
         secretName: goldpinger-kubeconfig
-  dnsPolicy: "None"
+  dnsPolicy: Default
   dnsConfig:
     nameservers:
       - 168.63.129.16
@@ -49,10 +44,7 @@ spec:
               fieldPath: status.podIP
         - name: HOSTS_TO_RESOLVE
           value: "1.1.1.1 8.8.8.8 www.bing.com"
-      image: "docker.io/bloomberg/goldpinger:v3.0.0"
-      securityContext:
-        allowPrivilegeEscalation: false
-        readOnlyRootFilesystem: true
+      image: "tamilmani1989/ubuntu-tools"
       resources:
         limits:
           memory: 80Mi
@@ -62,6 +54,8 @@ spec:
       ports:
         - containerPort: 8080
           name: http
+        - containerPort: 80
+          protocol: TCP
       volumeMounts:
         - mountPath: /.kube/
           name: kubeconfig
