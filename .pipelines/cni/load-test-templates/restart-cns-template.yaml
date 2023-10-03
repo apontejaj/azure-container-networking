@@ -24,13 +24,13 @@ steps:
         cd ../../../
 
         echo "Validate pod IP assignment before CNS restart"
-        make test-validate-state CNI_TYPE=${{ parameters.cni }}
+        make test-validate-state OS_TYPE=${{ parameters.os }} CNI_TYPE=${{ parameters.cni }}
         echo "restart CNS"
         kubectl rollout restart ds azure-cns -n kube-system
         kubectl rollout status ds azure-cns -n kube-system
         kubectl get pod -owide -A
         echo "Validate pod IP assignment after CNS restart"
-        make test-validate-state CNI_TYPE=${{ parameters.cni }}
+        make test-validate-state OS_TYPE=${{ parameters.os }} CNI_TYPE=${{ parameters.cni }}
     name: "restartCNS"
     displayName: "Restart CNS and Validate pods"
     retryCountOnTaskFailure: 3
