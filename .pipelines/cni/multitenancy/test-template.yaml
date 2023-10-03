@@ -37,11 +37,6 @@ stages:
             name: "make_cns"
             displayName: "Make cns image and tag while logged in"
           - script: |
-              make cns-image-name-and-tag
-              make cns-image
-            name: "make_cns"
-            displayName: "Make CNS Image"
-          - script: |
               make test-multitenancy
             name: "test"
             displayName: "Test Multitenancy"
