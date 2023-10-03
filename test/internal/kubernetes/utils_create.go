@@ -61,6 +61,15 @@ var (
 	ErrNoCNSScenarioDefined   = errors.New("no CNSScenario set to true as env var")
 )
 
+func MustCreateOrUpdatePod(ctx context.Context, podI typedcorev1.PodInterface, pod corev1.Pod) error {
+	MustDeletePod(ctx, podI, pod.Name)
+	if _, err := podI.Create(ctx, &pod, metav1.CreateOptions{}); err != nil {
+		return errors.Wrapf(err, "failed to create pod %v", pod.Name)
+	}
+
+	return nil
+}
+
 func MustCreateDaemonset(ctx context.Context, daemonsets typedappsv1.DaemonSetInterface, ds appsv1.DaemonSet) {
 	MustDeleteDaemonset(ctx, daemonsets, ds)
 	log.Printf("Creating Daemonset %v", ds.Name)
