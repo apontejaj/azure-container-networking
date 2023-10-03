@@ -34,7 +34,7 @@ stages:
               inlineScript: |
                 make cns-image-name-and-tag
                 make cns-image
-            name: "ConnectCluster"
+            name: "make_cns"
             displayName: "Make cns image and tag while logged in"
           - script: |
               make cns-image-name-and-tag
