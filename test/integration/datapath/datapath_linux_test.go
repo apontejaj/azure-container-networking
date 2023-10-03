@@ -77,8 +77,8 @@ func setupLinuxEnvironment(t *testing.T) {
 	clientset := kubernetes.MustGetClientset()
 
 	t.Log("Create Label Selectors")
-	podLabelSelector := k8sutils.CreateLabelSelector(podLabelKey, goldpingerPodPrefix)
-	nodeLabelSelector := k8sutils.CreateLabelSelector(nodepoolKey, nodepoolSelector)
+	podLabelSelector := kubernetes.CreateLabelSelector(podLabelKey, goldpingerPodPrefix)
+	nodeLabelSelector := kubernetes.CreateLabelSelector(nodepoolKey, nodepoolSelector)
 
 	t.Log("Get Nodes")
 	nodes, err := kubernetes.GetNodeListByLabelSelector(ctx, clientset, nodeLabelSelector)
@@ -167,7 +167,7 @@ func TestDatapathLinux(t *testing.T) {
 	clientset := kubernetes.MustGetClientset()
 
 	setupLinuxEnvironment(t)
-	podLabelSelector := k8sutils.CreateLabelSelector(podLabelKey, goldpingerPodPrefix)
+	podLabelSelector := kubernetes.CreateLabelSelector(podLabelKey, goldpingerPodPrefix)
 
 	t.Run("Linux ping tests", func(t *testing.T) {
 		// Check goldpinger health

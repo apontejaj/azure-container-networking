@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	k8sutils "github.com/Azure/azure-container-networking/test/internal/k8sutils"
+	"github.com/Azure/azure-container-networking/test/internal/kubernetes"
 
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +23,7 @@ func TestOrchestration(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a node to node info map
-	nodes, err := k8sutils.GetNodeListByLabelSelector(ctx, clientset, ncNodeLabelSelector)
+	nodes, err := kubernetes.GetNodeListByLabelSelector(ctx, clientset, ncNodeLabelSelector)
 	require.NoError(t, err, fmt.Sprintf("Listing nodes with label selector %s failed.", ncNodeLabelSelector))
 	t.Logf("Nodes found: %v", len(nodes.Items))
 	nodeNameToNodeInfo = make(map[string]*nodeInfo)
@@ -70,14 +70,14 @@ func TestOrchestration(t *testing.T) {
 	customervnet := "testingValue"
 	for nodeName, nodeInfo := range nodeNameToNodeInfo {
 		for _, nc := range nodeInfo.allocatedNCs {
-			pod, err := k8sutils.MustParsePod(testConfig.GoldpingerPodYamlPath)
-			require.NoError(t, err, "Parsing pod deployment failed")
+			pod := kubernetes.MustParsePod(testConfig.GoldpingerPodYamlPath)
+
 			pod.Spec.NodeSelector = make(map[string]string)
 			pod.Spec.NodeSelector[nodeLabelKey] = nodeName
 			pod.ObjectMeta.Labels[podVnetKey] = customervnet
 			pod.Name = nc.PodName
 			pod.Namespace = nc.PodNamespace
-			err = k8sutils.MustCreateOrUpdatePod(ctx, clientset.CoreV1().Pods(pod.Namespace), pod)
+			err = kubernetes.MustCreateOrUpdatePod(ctx, clientset.CoreV1().Pods(pod.Namespace), pod)
 			require.NoError(t, err, "Creating pods failed")
 			require.NoError(t, err, fmt.Sprintf("Deploying Pod: %s failed with error: %v", pod.Name, err))
 			t.Logf("Successfully deployed pod: %s", pod.Name)
@@ -174,9 +174,7 @@ func buildCleanupFunc(ctx context.Context, t *testing.T) func() {
 		t.Log("Deleting pods...")
 		for _, nodeInfo := range nodeNameToNodeInfo {
 			for _, nc := range nodeInfo.allocatedNCs {
-				if err := k8sutils.MustDeletePod(ctx, clientset.CoreV1().Pods(nc.PodNamespace), nc.PodName); err != nil {
-					t.Logf("failed to delete pod: %v", err)
-				}
+				kubernetes.MustDeletePod(ctx, clientset.CoreV1().Pods(nc.PodNamespace), nc.PodName)
 			}
 		}
 
