@@ -77,8 +77,7 @@ func TestOrchestration(t *testing.T) {
 			pod.ObjectMeta.Labels[podVnetKey] = customervnet
 			pod.Name = nc.PodName
 			pod.Namespace = nc.PodNamespace
-			err = kubernetes.MustCreateOrUpdatePod(ctx, clientset.CoreV1().Pods(pod.Namespace), pod)
-			require.NoError(t, err, "Creating pods failed")
+			kubernetes.MustCreatePod(ctx, clientset.CoreV1().Pods(pod.Namespace), pod)
 			require.NoError(t, err, fmt.Sprintf("Deploying Pod: %s failed with error: %v", pod.Name, err))
 			t.Logf("Successfully deployed pod: %s", pod.Name)
 		}
