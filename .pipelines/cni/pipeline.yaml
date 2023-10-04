@@ -20,11 +20,6 @@ stages:
             name: "SetEnvVars"
             displayName: "Set Environment Variables"
             condition: always()
-  - template: multitenancy/test-template.yaml
-    parameters:
-      name: experimental
-      dependsOn: setup
-
   - stage: build_images
     dependsOn: setup
     displayName: "Build Images"
@@ -44,6 +39,10 @@ stages:
               name: cni-dropgz-test
               os: windows
               os_version: ltsc2022
+            cns_linux_amd64:
+              arch: amd64
+              name: cns
+              os: linux
         steps:
           - template: ../containers/container-template.yaml
             parameters:
@@ -67,7 +66,10 @@ stages:
               arch: $(arch)
               name: $(name)
               os: $(os)
-
+  - template: multitenancy/test-template.yaml
+    parameters:
+      name: experimental
+      dependsOn: build_images
   - stage: binaries
     displayName: Build Binaries
     dependsOn: setup
