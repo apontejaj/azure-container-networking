@@ -357,11 +357,8 @@ func initCNSScenarioVars() (map[CNSScenario]map[corev1.OSName]cnsDetails, error)
 				serviceAccountPath:     cnsServiceAccountPath,
 				initContainerArgs: []string{
 					"deploy",
-					"azure-vnet.exe", "-o", "/k/azurecni/bin/azure-vnet.exe",
-					"azure-vnet-telemetry.exe", "-o", "/k/azurecni/bin/azure-vnet-telemetry.exe",
-					"azure-vnet-ipam.exe", "-o", "/k/azurecni/bin/azure-vnet-ipam.exe",
-					// "azure-swift.conflist", "-o", "/k/azurecni/netconf/10-azure.conflist",
-				}, // Add the above once confirmed how conflist generation works.
+					"azure-vnet", "-o", "/k/azurecni/bin/azure-vnet.exe",
+				},
 				initContainerName:  initContainerNameCNI,
 				configMapPath:      cnsSwiftWindowsConfigMapPath,
 				installIPMasqAgent: false,
