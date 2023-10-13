@@ -205,6 +205,7 @@ stages:
               scaleup: ${{ parameters.scaleup }}
               nodeCount: ${{ parameters.nodeCount }}
       - job: recover
+        condition: not(failed())
         displayName: "Recover Resources"
         dependsOn: restart_cns
         steps:
@@ -284,6 +285,7 @@ stages:
                 os: ${{ parameters.os }}
                 iterations: ${{ parameters.iterations }}
                 nodeCount: ${{ parameters.nodeCount }}
+                jobName: "HNS_deploy_pods"
             - template: ../load-test-templates/validate-state-template.yaml
               parameters:
                 clusterName: ${{ parameters.clusterName }}-$(commitID)
@@ -299,6 +301,7 @@ stages:
                 os: ${{ parameters.os }}
                 nodeCount: ${{ parameters.nodeCount }}
                 scaleup: ${{ parameters.scaleup }}
+                jobName: "HNS_restart_nodes"
             - template: ../load-test-templates/validate-state-template.yaml
               parameters:
                 clusterName: ${{ parameters.clusterName }}-$(commitID)
@@ -316,7 +319,9 @@ stages:
                 cni: cniv2
                 scaleup: ${{ parameters.scaleup }}
                 nodeCount: ${{ parameters.nodeCount }}
+                jobName: "HNS_restart_cns"
         - job: recover
+          condition: not(failed())
           displayName: "Recover Resources"
           dependsOn: restart_cns
           steps:
@@ -362,3 +367,4 @@ stages:
                 clusterName: ${{ parameters.clusterName }}-$(commitID)
                 os: ${{ parameters.os }}
                 cni: cniv2
+                jobName: "HNS_failedE2ELogs"

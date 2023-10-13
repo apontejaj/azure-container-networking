@@ -7,6 +7,7 @@ parameters:
 
 jobs:
   - job: CNI_${{ parameters.os }}
+    condition: not(failed())
     displayName: CNI k8s E2E ${{ parameters.os }}
     dependsOn: ${{ parameters.dependsOn }}
     pool:

@@ -278,7 +278,7 @@ stages:
     parameters:
       name: windows_podsubnet
       clusterType: swift-byocni-up
-      clusterName: win-cniv2-podsubnet
+      clusterName: win-podsub
       nodeCount: ${NODE_COUNT_WINCLUSTER_SYSTEMPOOL}
       nodeCountWin: ${NODE_COUNT_WIN}
       vmSize: ${VM_SIZE_WINCLUSTER_SYSTEMPOOL}
@@ -293,7 +293,7 @@ stages:
     parameters:
       name: windows_overlay
       clusterType: overlay-byocni-up
-      clusterName: win-cniv2-overlay
+      clusterName: win-over
       nodeCount: ${NODE_COUNT_WINCLUSTER_SYSTEMPOOL}
       nodeCountWin: ${NODE_COUNT_WIN}
       vmSize: ${VM_SIZE_WINCLUSTER_SYSTEMPOOL}
