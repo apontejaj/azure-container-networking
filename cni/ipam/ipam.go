@@ -174,11 +174,12 @@ func (plugin *ipamPlugin) Add(args *cniSkel.CmdArgs) error {
 		defer func() {
 			if err != nil && poolID != "" {
 				log.Printf("[cni-ipam] Releasing pool %v.", poolID)
+				_ = plugin.am.ReleasePool(nwCfg.IPAM.AddrSpace, poolID)
 			}
 		}()
 
 		nwCfg.IPAM.Subnet = subnet
-		log.Printf("[cni-ipam] Releasing pool %v.", poolID)
+		log.Printf("[cni-ipam] Allocated address poolID %v with subnet %v.", poolID, subnet)
 	}
 
 	// Allocate an address for the endpoint.
