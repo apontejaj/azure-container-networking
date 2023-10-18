@@ -119,21 +119,21 @@ steps:
     displayName: "Restart CNS and Validate Pod State"
     retryCountOnTaskFailure: 3
 
-  # - task: AzureCLI@2
-  #   inputs:
-  #     azureSubscription: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
-  #     scriptLocation: "inlineScript"
-  #     scriptType: "bash"
-  #     addSpnToEnvironment: true
-  #     inlineScript: |
-  #       set -e
-  #       make -C ./hack/aks windows-nodepool-up AZCLI=az SUB=$(SUB_AZURE_NETWORK_AGENT_BUILD_VALIDATIONS) CLUSTER=${{ parameters.clusterName }}
-  #       echo "Windows nodes have been successfully added to DualStack Overlay Cluster"
-  #       kubectl cluster-info
-  #       kubectl get node -owide
-  #       kubectl get po -owide -A
-  #   name: "Add_Windows_Node"
-  #   displayName: "Add windows node"
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
+      scriptLocation: "inlineScript"
+      scriptType: "bash"
+      addSpnToEnvironment: true
+      inlineScript: |
+        set -e
+        make -C ./hack/aks windows-nodepool-up AZCLI=az SUB=$(SUB_AZURE_NETWORK_AGENT_BUILD_VALIDATIONS) CLUSTER=${{ parameters.clusterName }}
+        echo "Windows nodes have been successfully added to DualStack Overlay Cluster"
+        kubectl cluster-info
+        kubectl get node -owide
+        kubectl get po -owide -A
+    name: "Add_Windows_Node"
+    displayName: "Add windows node"
 
   # - script: |
   #     nodeList=`kubectl get node -owide | grep Windows | awk '{print $1}'`

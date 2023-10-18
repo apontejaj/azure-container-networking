@@ -140,21 +140,21 @@ steps:
     displayName: "Cleanup artifact dir"
     condition: always()
 
-  # - task: AzureCLI@2
-  #   inputs:
-  #     azureSubscription: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
-  #     scriptLocation: "inlineScript"
-  #     scriptType: "bash"
-  #     addSpnToEnvironment: true
-  #     inlineScript: |
-  #       set -e
-  #       make -C ./hack/aks windows-nodepool-up AZCLI=az SUB=$(SUB_AZURE_NETWORK_AGENT_BUILD_VALIDATIONS) CLUSTER=${{ parameters.clusterName }}
-  #       echo "Windows node are successfully added to v4 Overlay Cluster"
-  #       kubectl cluster-info
-  #       kubectl get node -owide
-  #       kubectl get po -owide -A
-  #   name: "Add_Windows_Node"
-  #   displayName: "Add windows node on v4 overlay cluster"
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
+      scriptLocation: "inlineScript"
+      scriptType: "bash"
+      addSpnToEnvironment: true
+      inlineScript: |
+        set -e
+        make -C ./hack/aks windows-nodepool-up AZCLI=az SUB=$(SUB_AZURE_NETWORK_AGENT_BUILD_VALIDATIONS) CLUSTER=${{ parameters.clusterName }}
+        echo "Windows node are successfully added to v4 Overlay Cluster"
+        kubectl cluster-info
+        kubectl get node -owide
+        kubectl get po -owide -A
+    name: "Add_Windows_Node"
+    displayName: "Add windows node on v4 overlay cluster"
 
   # - script: |
   #     nodeList=`kubectl get node -owide | grep Windows | awk '{print $1}'`
