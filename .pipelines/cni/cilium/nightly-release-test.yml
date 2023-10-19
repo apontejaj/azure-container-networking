@@ -83,27 +83,8 @@ stages:
         pool:
           name: $(BUILD_POOL_NAME_DEFAULT)
         steps:
-        - template: ../../singletenancy/cilium-overlay/cilium-overlay-e2e-step-template.yaml
-          parameters:
-            name: "cilium_nightly"
-            testDropgz: ""
-            clusterName: ciliumnightly-$(commitID)
-      - job: delete
-        displayName: Delete Cluster
-        condition: always()
-        dependsOn:
-          - cilium_nightly
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
-        strategy:
-          matrix:
-            cilium_nightly:
-              name: ciliumnightly
-              clusterName: overlaynightly
-        steps:
-          - template: ../../templates/delete-cluster.yaml
+          - template: ../../singletenancy/cilium-overlay/cilium-overlay-e2e-step-template.yaml
             parameters:
-              name: $(name)
-              clusterName: $(clusterName)-$(commitID)
-              region: $(LOCATION)
-
+              name: "cilium_nightly"
+              testDropgz: ""
+              clusterName: ciliumnightly-$(commitID)
