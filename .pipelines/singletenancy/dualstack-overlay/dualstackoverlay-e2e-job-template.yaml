@@ -31,6 +31,7 @@ stages:
           region: $(REGION_DUALSTACKOVERLAY_CLUSTER_TEST) # Dualstack has a specific region requirement
 
   - stage: ${{ parameters.name }}
+    condition: and( succeeded(), not(eq(dependencies.dualstackoverlaye2e.result,'SucceededWithIssues')) ) # Cant use parameters in dependencies
     displayName: E2E - ${{ parameters.displayName }}
     dependsOn:
     - setup
@@ -41,6 +42,8 @@ stages:
       GOBIN: "$(GOPATH)/bin" # Go binaries path
       modulePath: "$(GOPATH)/src/github.com/Azure/azure-container-networking"
       commitID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.commitID'] ]
+    pool:
+      name: $(BUILD_POOL_NAME_DEFAULT)
     jobs:
       - job: ${{ parameters.name }}
         displayName: DualStack Overlay Test Suite - (${{ parameters.name }})
@@ -58,7 +61,7 @@ stages:
 
       - template: ../../cni/k8s-e2e/k8s-e2e-job-template.yaml
         parameters:
-          sub: $(AZURE_TEST_AGENT_SERVICE_CONNECTION)
+          sub: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
           clusterName: ${{ parameters.clusterName }}-$(commitID)
           os: ${{ parameters.os }}
           dependsOn: ${{ parameters.name }}
@@ -67,3 +70,29 @@ stages:
           portforward: true
           hostport: true
           service: true
+
+      - template: ../../cni/k8s-e2e/k8s-e2e-job-template.yaml
+        parameters:
+          sub: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
+          clusterName: ${{ parameters.clusterName }}-$(commitID)
+          os: windows
+          dependsOn: cni_${{ parameters.os }}
+          dualstack: true
+          dns: true
+          portforward: true
+          service: true
+          hybridWin: true
+
+      - job: failedE2ELogs
+        displayName: "Failure Logs"
+        dependsOn:
+          - ${{ parameters.name }}
+          - cni_${{ parameters.os }}
+          - cni_windows
+        condition: failed()
+        steps:
+          - template: ../../templates/log-template.yaml
+            parameters:
+              clusterName: ${{ parameters.clusterName }}-$(commitID)
+              os: ${{ parameters.os }}
+              cni: cniv2

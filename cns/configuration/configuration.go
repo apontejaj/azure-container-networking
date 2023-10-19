@@ -23,6 +23,7 @@ type CNSConfig struct {
 	ChannelMode                 string
 	EnablePprof                 bool
 	EnableSubnetScarcity        bool
+	EnableSwiftV2               bool
 	InitializeFromCNI           bool
 	ManagedSettings             ManagedSettings
 	MetricsBindAddress          string
@@ -44,6 +45,9 @@ type CNSConfig struct {
 	CNIConflistFilepath         string
 	MellanoxMonitorIntervalSecs int
 	AZRSettings                 AZRSettings
+	WatchPods                   bool
+	EnableAsyncPodDelete        bool
+	AsyncPodDeletePath          string
 }
 
 type TelemetrySettings struct {
@@ -204,5 +208,8 @@ func SetCNSConfigDefaults(config *CNSConfig) {
 	}
 	if config.WireserverIP == "" {
 		config.WireserverIP = "168.63.129.16"
+	}
+	if config.AsyncPodDeletePath == "" {
+		config.AsyncPodDeletePath = "/var/run/azure-vnet/deleteIDs"
 	}
 }
