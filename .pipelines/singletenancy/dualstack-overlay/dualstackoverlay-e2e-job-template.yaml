@@ -71,24 +71,24 @@ stages:
           hostport: true
           service: true
 
-      # - template: ../../cni/k8s-e2e/k8s-e2e-job-template.yaml
-      #   parameters:
-      #     sub: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
-      #     clusterName: ${{ parameters.clusterName }}-$(commitID)
-      #     os: windows
-      #     dependsOn: cni_${{ parameters.os }}
-      #     dualstack: true
-      #     dns: true
-      #     portforward: true
-      #     service: true
-      #     hybridWin: true
+      - template: ../../cni/k8s-e2e/k8s-e2e-job-template.yaml
+        parameters:
+          sub: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
+          clusterName: ${{ parameters.clusterName }}-$(commitID)
+          os: windows
+          dependsOn: cni_${{ parameters.os }}
+          dualstack: true
+          dns: true
+          portforward: true
+          service: true
+          hybridWin: true
 
       - job: failedE2ELogs
         displayName: "Failure Logs"
         dependsOn:
           - ${{ parameters.name }}
           - cni_${{ parameters.os }}
-          # - cni_windows
+          - cni_windows
         condition: failed()
         steps:
           - template: ../../templates/log-template.yaml
