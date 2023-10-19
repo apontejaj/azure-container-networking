@@ -88,7 +88,7 @@ stages:
         dependsOn:
           - ${{ parameters.name }}
           - cni_${{ parameters.os }}
-          - cni_windows
+          # - cni_windows
         condition: failed()
         steps:
           - template: ../../templates/log-template.yaml
