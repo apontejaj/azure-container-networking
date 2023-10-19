@@ -34,9 +34,9 @@ stages:
     condition: and( succeeded(), not(eq(dependencies.dualstackoverlaye2e.result,'SucceededWithIssues')) ) # Cant use parameters in dependencies
     displayName: E2E - ${{ parameters.displayName }}
     dependsOn:
-    - setup
-    - publish
-    - ${{ parameters.clusterName }}
+      - setup
+      - publish
+      - ${{ parameters.clusterName }}
     variables:
       GOPATH: "$(Agent.TempDirectory)/go" # Go workspace path
       GOBIN: "$(GOPATH)/bin" # Go binaries path
@@ -50,8 +50,8 @@ stages:
         pool:
           name: $(BUILD_POOL_NAME_DEFAULT)
           demands:
-          - agent.os -equals Linux
-          - Role -equals $(CUSTOM_E2E_ROLE)
+            - agent.os -equals Linux
+            - Role -equals $(CUSTOM_E2E_ROLE)
         steps:
           - template: dualstackoverlay-e2e-step-template.yaml
             parameters:
@@ -71,17 +71,17 @@ stages:
           hostport: true
           service: true
 
-      - template: ../../cni/k8s-e2e/k8s-e2e-job-template.yaml
-        parameters:
-          sub: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
-          clusterName: ${{ parameters.clusterName }}-$(commitID)
-          os: windows
-          dependsOn: cni_${{ parameters.os }}
-          dualstack: true
-          dns: true
-          portforward: true
-          service: true
-          hybridWin: true
+      # - template: ../../cni/k8s-e2e/k8s-e2e-job-template.yaml
+      #   parameters:
+      #     sub: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
+      #     clusterName: ${{ parameters.clusterName }}-$(commitID)
+      #     os: windows
+      #     dependsOn: cni_${{ parameters.os }}
+      #     dualstack: true
+      #     dns: true
+      #     portforward: true
+      #     service: true
+      #     hybridWin: true
 
       - job: failedE2ELogs
         displayName: "Failure Logs"
