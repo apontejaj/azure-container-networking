@@ -148,6 +148,17 @@ stages:
                 done
               name: windows_taints
               displayName: Remove Windows Taints
+            - script: |
+                kubectl apply -f test/integration/manifests/load/privileged-daemonset-windows.yaml
+                kubectl rollout status ds -n kube-system privileged-daemonset
+
+                kubectl get pod -n kube-system -l app=privileged-daemonset,os=windows -n kube-system
+                pods=`kubectl get pod -n kube-system -l app=privileged-daemonset,os=windows -n kube-system --no-headers | awk '{print $1}'`
+                for pod in $pods; do
+                  kubectl exec -i -n kube-system $pod -- powershell "Restart-service kubeproxy"
+                done
+              name: kubeproxy
+              displayName: Restart Kubeproxy on Windows nodes
 
       - template: ../../npm/npm-cni-integration-test.yaml
         parameters:
@@ -205,7 +216,7 @@ stages:
               scaleup: ${{ parameters.scaleup }}
               nodeCount: ${{ parameters.nodeCount }}
       - job: recover
-        condition: not(failed())
+        condition: and( not(canceled()), not(failed()) )
         displayName: "Recover Resources"
         dependsOn: restart_cns
         steps:
@@ -321,7 +332,7 @@ stages:
                 nodeCount: ${{ parameters.nodeCount }}
                 jobName: "HNS_restart_cns"
         - job: recover
-          condition: not(failed())
+          condition: and( not(canceled()), not(failed()) )
           displayName: "Recover Resources"
           dependsOn: restart_cns
           steps:
