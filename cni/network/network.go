@@ -790,6 +790,8 @@ func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt) 
 
 	epInfo.Policies = append(epInfo.Policies, epPolicies...)
 
+	// if
+
 	// Populate addresses.
 	for _, ipconfig := range opt.result.IPs {
 		epInfo.IPAddresses = append(epInfo.IPAddresses, ipconfig.Address)

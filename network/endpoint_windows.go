@@ -98,7 +98,6 @@ func (nw *network) newEndpointImplHnsV1(epInfo *EndpointInfo, plc platform.ExecC
 	}
 
 	// HNS currently supports one IP address and one IPv6 address per endpoint.
-
 	for _, ipAddr := range epInfo.IPAddresses {
 		if ipAddr.IP.To4() != nil {
 			hnsEndpoint.IPAddress = ipAddr.IP
