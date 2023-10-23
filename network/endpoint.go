@@ -86,6 +86,7 @@ type EndpointInfo struct {
 	VnetCidrs                string
 	ServiceCidrs             string
 	NATInfo                  []policy.NATInfo
+	NetworkInterfaceInfo     NetworkInterfaceInfo
 }
 
 // RouteInfo contains information about an IP route.
@@ -98,6 +99,11 @@ type RouteInfo struct {
 	Scope    int
 	Priority int
 	Table    int
+}
+
+type NetworkInterfaceInfo struct {
+	NICType    string
+	MACAddress string
 }
 
 type apipaClient interface {

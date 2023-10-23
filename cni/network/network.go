@@ -760,25 +760,26 @@ func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt) 
 	}
 
 	epInfo = network.EndpointInfo{
-		Id:                 opt.endpointID,
-		ContainerID:        opt.args.ContainerID,
-		NetNsPath:          opt.args.Netns,
-		IfName:             opt.args.IfName,
-		Data:               make(map[string]interface{}),
-		DNS:                epDNSInfo,
-		Policies:           opt.policies,
-		IPsToRouteViaHost:  opt.nwCfg.IPsToRouteViaHost,
-		EnableSnatOnHost:   opt.nwCfg.EnableSnatOnHost,
-		EnableMultiTenancy: opt.nwCfg.MultiTenancy,
-		EnableInfraVnet:    opt.enableInfraVnet,
-		EnableSnatForDns:   opt.enableSnatForDNS,
-		PODName:            opt.k8sPodName,
-		PODNameSpace:       opt.k8sNamespace,
-		SkipHotAttachEp:    false, // Hot attach at the time of endpoint creation
-		IPV6Mode:           opt.nwCfg.IPV6Mode,
-		VnetCidrs:          opt.nwCfg.VnetCidrs,
-		ServiceCidrs:       opt.nwCfg.ServiceCidrs,
-		NATInfo:            opt.natInfo,
+		Id:                   opt.endpointID,
+		ContainerID:          opt.args.ContainerID,
+		NetNsPath:            opt.args.Netns,
+		IfName:               opt.args.IfName,
+		Data:                 make(map[string]interface{}),
+		DNS:                  epDNSInfo,
+		Policies:             opt.policies,
+		IPsToRouteViaHost:    opt.nwCfg.IPsToRouteViaHost,
+		EnableSnatOnHost:     opt.nwCfg.EnableSnatOnHost,
+		EnableMultiTenancy:   opt.nwCfg.MultiTenancy,
+		EnableInfraVnet:      opt.enableInfraVnet,
+		EnableSnatForDns:     opt.enableSnatForDNS,
+		PODName:              opt.k8sPodName,
+		PODNameSpace:         opt.k8sNamespace,
+		SkipHotAttachEp:      false, // Hot attach at the time of endpoint creation
+		IPV6Mode:             opt.nwCfg.IPV6Mode,
+		VnetCidrs:            opt.nwCfg.VnetCidrs,
+		ServiceCidrs:         opt.nwCfg.ServiceCidrs,
+		NATInfo:              opt.natInfo,
+		NetworkInterfaceInfo: opt.cnsNetworkConfig.NetworkInterfaceInfo, // require macAddress and NICType for accelnet network
 	}
 
 	isIPv6Enabled := opt.resultV6 != nil
@@ -790,7 +791,9 @@ func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt) 
 
 	epInfo.Policies = append(epInfo.Policies, epPolicies...)
 
-	// if
+	if epInfo.NetworkInterfaceInfo.NICType == "DelegatedVMNIC" {
+		epInfo.MacAddress = net.HardwareAddr(epInfo.NetworkInterfaceInfo.MACAddress)
+	}
 
 	// Populate addresses.
 	for _, ipconfig := range opt.result.IPs {
