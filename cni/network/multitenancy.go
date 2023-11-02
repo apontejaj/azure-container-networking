@@ -220,7 +220,16 @@ func (m *Multitenancy) GetAllNetworkContainers(
 	for i := 0; i < len(ncResponses); i++ {
 		ipamResults[i].ncResponse = &ncResponses[i]
 		ipamResults[i].hostSubnetPrefix = hostSubnetPrefixes[i]
-		ipamResults[i].ipv4Result = convertToCniResult(ipamResults[i].ncResponse, ifName)
+		ipamResults[i].defaultInterfaceInfo.ipResult = convertToCniResult(ipamResults[i].ncResponse, ifName)
+		ipamResults[i].defaultInterfaceInfo.nicType = cns.InfraNIC
+
+		// use swiftv2.0 as second network interface
+		var secondaryInterface InterfaceInfo
+		if ipamResults[i].ncResponse.NetworkInterfaceInfo.NICType != "" {
+			secondaryInterface.nicType = ipamResults[i].ncResponse.NetworkInterfaceInfo.NICType
+			secondaryInterface.macAddress = net.HardwareAddr(ipamResults[i].ncResponse.NetworkInterfaceInfo.MACAddress)
+			ipamResults[i].secondaryInterfacesInfo = append(ipamResults[i].secondaryInterfacesInfo, secondaryInterface)
+		}
 	}
 
 	return ipamResults, err

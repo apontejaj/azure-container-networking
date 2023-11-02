@@ -91,8 +91,8 @@ func TestPluginSecondAddSamePodWindows(t *testing.T) {
 			},
 			plugin: &NetPlugin{
 				Plugin:      plugin,
-				nm:          network.NewMockNetworkmanager(),
-				ipamInvoker: NewMockIpamInvoker(false, false, false),
+				nm:          network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
+				ipamInvoker: NewMockIpamInvoker(false, false, false, false, false),
 				report:      &telemetry.CNIReport{},
 				tb:          &telemetry.TelemetryBuffer{},
 			},
@@ -110,8 +110,8 @@ func TestPluginSecondAddSamePodWindows(t *testing.T) {
 			},
 			plugin: &NetPlugin{
 				Plugin:      plugin,
-				nm:          network.NewMockNetworkmanager(),
-				ipamInvoker: NewMockIpamInvoker(false, false, false),
+				nm:          network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
+				ipamInvoker: NewMockIpamInvoker(false, false, false, false, false),
 				report:      &telemetry.CNIReport{},
 				tb:          &telemetry.TelemetryBuffer{},
 			},
@@ -217,9 +217,8 @@ func TestSetEndpointOptions(t *testing.T) {
 
 func TestSetPoliciesFromNwCfg(t *testing.T) {
 	tests := []struct {
-		name          string
-		nwCfg         cni.NetworkConfig
-		isIPv6Enabled bool
+		name  string
+		nwCfg cni.NetworkConfig
 	}{
 		{
 			name: "Runtime network polices",
@@ -235,7 +234,6 @@ func TestSetPoliciesFromNwCfg(t *testing.T) {
 					},
 				},
 			},
-			isIPv6Enabled: false,
 		},
 		{
 			name: "Runtime hostPort mapping polices",
@@ -250,30 +248,13 @@ func TestSetPoliciesFromNwCfg(t *testing.T) {
 					},
 				},
 			},
-			isIPv6Enabled: false,
-		},
-		{
-			name: "Runtime hostPort mapping polices with ipv6 hostIP",
-			nwCfg: cni.NetworkConfig{
-				RuntimeConfig: cni.RuntimeConfig{
-					PortMappings: []cni.PortMapping{
-						{
-							Protocol:      "tcp",
-							HostPort:      44000,
-							ContainerPort: 80,
-							HostIp:        "2001:2002:2003::1",
-						},
-					},
-				},
-			},
-			isIPv6Enabled: true,
 		},
 	}
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			policies, err := getPoliciesFromRuntimeCfg(&tt.nwCfg, tt.isIPv6Enabled)
-			require.NoError(t, err)
+			isIPv6Enabled := false
+			policies := getPoliciesFromRuntimeCfg(&tt.nwCfg, isIPv6Enabled)
 			require.Condition(t, assert.Comparison(func() bool {
 				return len(policies) > 0 && policies[0].Type == policy.EndpointPolicy
 			}))
@@ -350,8 +331,8 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 			name: "Get Network Name from CNS with correct CIDR",
 			plugin: &NetPlugin{
 				Plugin:      plugin,
-				nm:          network.NewMockNetworkmanager(),
-				ipamInvoker: NewMockIpamInvoker(false, false, false),
+				nm:          network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
+				ipamInvoker: NewMockIpamInvoker(false, false, false, false, false),
 				report:      &telemetry.CNIReport{},
 				tb:          &telemetry.TelemetryBuffer{},
 			},
@@ -367,12 +348,14 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 						ID: 1,
 					},
 				},
-				ipv4Result: &cniTypesCurr.Result{
-					IPs: []*cniTypesCurr.IPConfig{
-						{
-							Address: net.IPNet{
-								IP:   net.ParseIP("10.240.0.5"),
-								Mask: net.CIDRMask(24, 32),
+				defaultInterfaceInfo: InterfaceInfo{
+					ipResult: &cniTypesCurr.Result{
+						IPs: []*cniTypesCurr.IPConfig{
+							{
+								Address: net.IPNet{
+									IP:   net.ParseIP("10.240.0.5"),
+									Mask: net.CIDRMask(24, 32),
+								},
 							},
 						},
 					},
@@ -385,8 +368,8 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 			name: "Get Network Name from CNS with malformed CIDR #1",
 			plugin: &NetPlugin{
 				Plugin:      plugin,
-				nm:          network.NewMockNetworkmanager(),
-				ipamInvoker: NewMockIpamInvoker(false, false, false),
+				nm:          network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
+				ipamInvoker: NewMockIpamInvoker(false, false, false, false, false),
 				report:      &telemetry.CNIReport{},
 				tb:          &telemetry.TelemetryBuffer{},
 			},
@@ -402,12 +385,14 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 						ID: 1,
 					},
 				},
-				ipv4Result: &cniTypesCurr.Result{
-					IPs: []*cniTypesCurr.IPConfig{
-						{
-							Address: net.IPNet{
-								IP:   net.ParseIP(""),
-								Mask: net.CIDRMask(24, 32),
+				defaultInterfaceInfo: InterfaceInfo{
+					ipResult: &cniTypesCurr.Result{
+						IPs: []*cniTypesCurr.IPConfig{
+							{
+								Address: net.IPNet{
+									IP:   net.ParseIP(""),
+									Mask: net.CIDRMask(24, 32),
+								},
 							},
 						},
 					},
@@ -420,8 +405,8 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 			name: "Get Network Name from CNS with malformed CIDR #2",
 			plugin: &NetPlugin{
 				Plugin:      plugin,
-				nm:          network.NewMockNetworkmanager(),
-				ipamInvoker: NewMockIpamInvoker(false, false, false),
+				nm:          network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
+				ipamInvoker: NewMockIpamInvoker(false, false, false, false, false),
 				report:      &telemetry.CNIReport{},
 				tb:          &telemetry.TelemetryBuffer{},
 			},
@@ -437,12 +422,14 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 						ID: 1,
 					},
 				},
-				ipv4Result: &cniTypesCurr.Result{
-					IPs: []*cniTypesCurr.IPConfig{
-						{
-							Address: net.IPNet{
-								IP:   net.ParseIP("10.0.00.6"),
-								Mask: net.CIDRMask(24, 32),
+				defaultInterfaceInfo: InterfaceInfo{
+					ipResult: &cniTypesCurr.Result{
+						IPs: []*cniTypesCurr.IPConfig{
+							{
+								Address: net.IPNet{
+									IP:   net.ParseIP("10.0.00.6"),
+									Mask: net.CIDRMask(24, 32),
+								},
 							},
 						},
 					},
@@ -455,8 +442,8 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 			name: "Get Network Name from CNS without NetNS",
 			plugin: &NetPlugin{
 				Plugin:      plugin,
-				nm:          network.NewMockNetworkmanager(),
-				ipamInvoker: NewMockIpamInvoker(false, false, false),
+				nm:          network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
+				ipamInvoker: NewMockIpamInvoker(false, false, false, false, false),
 				report:      &telemetry.CNIReport{},
 				tb:          &telemetry.TelemetryBuffer{},
 			},
@@ -472,12 +459,14 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 						ID: 1,
 					},
 				},
-				ipv4Result: &cniTypesCurr.Result{
-					IPs: []*cniTypesCurr.IPConfig{
-						{
-							Address: net.IPNet{
-								IP:   net.ParseIP("10.0.0.6"),
-								Mask: net.CIDRMask(24, 32),
+				defaultInterfaceInfo: InterfaceInfo{
+					ipResult: &cniTypesCurr.Result{
+						IPs: []*cniTypesCurr.IPConfig{
+							{
+								Address: net.IPNet{
+									IP:   net.ParseIP("10.0.0.6"),
+									Mask: net.CIDRMask(24, 32),
+								},
 							},
 						},
 					},
@@ -490,8 +479,8 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 			name: "Get Network Name from CNS without multitenancy",
 			plugin: &NetPlugin{
 				Plugin:      plugin,
-				nm:          network.NewMockNetworkmanager(),
-				ipamInvoker: NewMockIpamInvoker(false, false, false),
+				nm:          network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
+				ipamInvoker: NewMockIpamInvoker(false, false, false, false, false),
 				report:      &telemetry.CNIReport{},
 				tb:          &telemetry.TelemetryBuffer{},
 			},
@@ -503,12 +492,14 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 			},
 			ipamAddResult: &IPAMAddResult{
 				ncResponse: &cns.GetNetworkContainerResponse{},
-				ipv4Result: &cniTypesCurr.Result{
-					IPs: []*cniTypesCurr.IPConfig{
-						{
-							Address: net.IPNet{
-								IP:   net.ParseIP("10.0.0.6"),
-								Mask: net.CIDRMask(24, 32),
+				defaultInterfaceInfo: InterfaceInfo{
+					ipResult: &cniTypesCurr.Result{
+						IPs: []*cniTypesCurr.IPConfig{
+							{
+								Address: net.IPNet{
+									IP:   net.ParseIP("10.0.0.6"),
+									Mask: net.CIDRMask(24, 32),
+								},
 							},
 						},
 					},

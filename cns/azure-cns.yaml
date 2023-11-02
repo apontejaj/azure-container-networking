@@ -96,7 +96,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: cns-container
-          image: mcr.microsoft.com/containernetworking/azure-cns:v1.4.7
+          image: mcr.microsoft.com/containernetworking/azure-cns:v1.5.13
           imagePullPolicy: IfNotPresent
           args: [ "-c", "tcp://$(CNSIpAddress):$(CNSPort)", "-t", "$(CNSLogTarget)"]
           volumeMounts:
@@ -129,7 +129,7 @@ spec:
               valueFrom:
                   fieldRef:
                     apiVersion: v1
-                    fieldPath: spec.nodeName 
+                    fieldPath: spec.nodeName
       hostNetwork: true
       volumes:
         - name: azure-endpoints
@@ -184,9 +184,15 @@ data:
           "NodeID": "",
           "NodeSyncIntervalInSeconds": 30
       },
+      "EnableSubnetScarcity": false,
       "ChannelMode": "CRD",
       "InitializeFromCNI": true,
       "ManageEndpointState": false,
-      "ProgramSNATIPTables" : false
+      "ProgramSNATIPTables" : false,
+      "MetricsBindAddress": ":10092",
+      "EnableCNIConflistGeneration": false,
+      "CNIConflistFilepath": "C:\\k\\azurecni\\netconf\\10-azure.conflist",
+      "CNIConflistScenario": "dualStackOverlay"
     }
+
 # Toggle ManageEndpointState and ProgramSNATIPTables to true for delegated IPAM use case.

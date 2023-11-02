@@ -15,7 +15,7 @@ var (
 )
 
 const (
-	maxLogFileSizeInMb = 5
+	maxLogFileSizeInMb = 1
 	maxLogFileCount    = 8
 )
 
