@@ -34,10 +34,10 @@ stages:
               vmSize: ${{ parameters.vmSize }}
               region: $(LOCATION)
 
-# Conditions for below E2E test scenarios confirm that:
-# Pipeline has not been canceled and that the previous job has reports anything other than failure(Succeeded, SuccededWithIssues, Skipped). Previous job is declared by dependsOn:
-# CONTROL_SCENARIO either contains 'all' or its respective scenario 'npm', 'scaleTest', 'restartNode', 'restartCNS'. It is not case sensitive
-# Ex. CONTROL_SCENARIO = "restartnode SCALETEST" will only run Scale Test and Restart Test.
+  # Conditions for below E2E test scenarios confirm that:
+  # Pipeline has not been canceled and that the previous job has reports anything other than failure(Succeeded, SuccededWithIssues, Skipped). Previous job is declared by dependsOn:
+  # CONTROL_SCENARIO either contains 'all' or its respective scenario 'npm', 'scaleTest', 'restartNode', 'restartCNS'. It is not case sensitive
+  # Ex. CONTROL_SCENARIO = "restartnode SCALETEST" will only run Scale Test and Restart Test.
   - stage: ${{ parameters.name }}
     variables:
       commitID: $[ stagedependencies.setup.env.outputs['SetEnvVars.commitID'] ]
@@ -134,7 +134,7 @@ stages:
         steps:
           - script: |
               echo "install cilium CLI"
-              CILIUM_CLI_VERSION=v0.13.2
+              CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/master/stable.txt)
               CLI_ARCH=amd64
               curl -L --fail --remote-name-all https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
               sha256sum --check cilium-linux-${CLI_ARCH}.tar.gz.sha256sum
@@ -156,7 +156,7 @@ stages:
           - script: |
               kubectl delete ns load-test
               cilium connectivity test --connect-timeout 4s --request-timeout 30s
-            retryCountOnTaskFailure: 6
+            retryCountOnTaskFailure: 3
             name: "CiliumConnectivityTests"
             displayName: "Run Cilium Connectivity Tests"
       - job: failedE2ELogs
