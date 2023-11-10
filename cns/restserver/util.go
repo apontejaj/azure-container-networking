@@ -390,7 +390,6 @@ func (service *HTTPRestService) getAllNetworkContainerResponses(
 		if service.state.ContainerIDByOrchestratorContext[orchestratorContext] != nil {
 			ncs = strings.Split(string(*service.state.ContainerIDByOrchestratorContext[orchestratorContext]), ",")
 		}
-
 		// This indicates that there are no ncs for the given orchestrator context
 		if len(ncs) == 0 {
 			response := cns.Response{
@@ -786,7 +785,7 @@ func (service *HTTPRestService) validateIPConfigsRequest(ctx context.Context, ip
 
 // validateDefaultIPConfigsRequest validates the request for default IP configs request
 func (service *HTTPRestService) validateDefaultIPConfigsRequest(_ context.Context, ipConfigsRequest *cns.IPConfigsRequest) (respCode types.ResponseCode, message string) {
-	if service.state.OrchestratorType != cns.KubernetesCRD && service.state.OrchestratorType != cns.Kubernetes {
+	if service.state.OrchestratorType != cns.KubernetesCRD && service.state.OrchestratorType != cns.Kubernetes && service.state.OrchestratorType != cns.ServiceFabric {
 		return types.UnsupportedOrchestratorType, "ReleaseIPConfig API supported only for kubernetes orchestrator"
 	}
 

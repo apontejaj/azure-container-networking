@@ -211,6 +211,7 @@ func (service *HTTPRestService) requestIPConfigsHandler(w http.ResponseWriter, r
 	}
 
 	ipConfigsResp, err := service.requestIPConfigHandlerHelper(r.Context(), ipconfigsRequest) // nolint:contextcheck // appease linter
+	logger.Printf("ipConfigsResp are %+v", ipConfigsResp)
 	if err != nil {
 		w.Header().Set(cnsReturnCode, ipConfigsResp.Response.ReturnCode.String())
 		err = service.Listener.Encode(w, &ipConfigsResp)
@@ -218,6 +219,8 @@ func (service *HTTPRestService) requestIPConfigsHandler(w http.ResponseWriter, r
 		return
 	}
 
+	logger.Printf("ipconfigsRequest is %+v", ipconfigsRequest)
+	logger.Printf("ipConfigsResp.Response is %+v", ipConfigsResp.Response)
 	w.Header().Set(cnsReturnCode, ipConfigsResp.Response.ReturnCode.String())
 	err = service.Listener.Encode(w, &ipConfigsResp)
 	logger.ResponseEx(service.Name+operationName, ipconfigsRequest, ipConfigsResp, ipConfigsResp.Response.ReturnCode, err)

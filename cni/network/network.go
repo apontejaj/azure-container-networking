@@ -475,6 +475,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		ipamAddResults = append(ipamAddResults, ipamAddResult)
 	}
 
+	logger.Info("ipamAddResults", zap.Any("are", ipamAddResults))
 	// iterate ipamAddResults and program the endpoint
 	for i := 0; i < len(ipamAddResults); i++ {
 		var networkID string
@@ -798,6 +799,7 @@ func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt) 
 
 	epInfos := []*network.EndpointInfo{&epInfo}
 	// get secondary interface info
+	logger.Info("secondaryInterfacesInfo is", zap.Any("secondaryInterfacesInfo", opt.ipamAddResult.secondaryInterfacesInfo))
 	for _, secondaryCniResult := range opt.ipamAddResult.secondaryInterfacesInfo {
 		var addresses []net.IPNet
 		var routes []network.RouteInfo
@@ -820,6 +822,7 @@ func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt) 
 			})
 	}
 
+	logger.Info("epInfos are", zap.Any("epInfo", epInfos))
 	if len(opt.ipamAddResult.secondaryInterfacesInfo) > 1 {
 		opt.nwInfo.Mode = "transparent"
 	}

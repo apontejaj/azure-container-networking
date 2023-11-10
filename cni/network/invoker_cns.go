@@ -94,6 +94,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 		zap.Any("pod", podInfo),
 		zap.Any("ipconfig", ipconfigs))
 	response, err := invoker.cnsClient.RequestIPs(context.TODO(), ipconfigs)
+	logger.Info("requestIPs response", zap.Any("is", response))
 	if err != nil {
 		if cnscli.IsUnsupportedAPI(err) {
 			// If RequestIPs is not supported by CNS, use RequestIPAddress API
@@ -130,6 +131,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 	addResult := IPAMAddResult{}
 	numInterfacesWithDefaultRoutes := 0
 
+	logger.Info("requestIPs podIPInfo", zap.Any("is", response))
 	for i := 0; i < len(response.PodIPInfo); i++ {
 		info := IPResultInfo{
 			podIPAddress:       response.PodIPInfo[i].PodIPConfig.IPAddress,
@@ -460,5 +462,6 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 	result.ipResult.Routes = append(result.ipResult.Routes, routes...)
 	addResult.secondaryInterfacesInfo = append(addResult.secondaryInterfacesInfo, result)
 
+	logger.Info("addResult is", zap.Any("addResult", addResult))
 	return nil
 }

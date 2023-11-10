@@ -7,8 +7,8 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.1.0
 	github.com/Azure/azure-sdk-for-go/sdk/keyvault/azsecrets v0.11.0
 	github.com/Masterminds/semver v1.5.0
-	github.com/Microsoft/go-winio v0.4.17
-	github.com/Microsoft/hcsshim v0.8.23
+	github.com/Microsoft/go-winio v0.6.1
+	github.com/Microsoft/hcsshim v0.12.0-rc.1
 	github.com/avast/retry-go/v3 v3.1.1
 	github.com/avast/retry-go/v4 v4.3.4
 	github.com/billgraziano/dpapi v0.4.0
@@ -37,7 +37,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.25.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
-	golang.org/x/sys v0.12.0
+	golang.org/x/sys v0.13.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230911183012-2d3300fd4832 // indirect
 	google.golang.org/grpc v1.58.0
 	google.golang.org/protobuf v1.31.0
@@ -59,7 +59,7 @@ require (
 	github.com/AzureAD/microsoft-authentication-library-for-go v0.5.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/containerd/cgroups v1.0.1 // indirect
+	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/coreos/go-iptables v0.7.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/docker v20.10.24+incompatible // indirect
@@ -100,7 +100,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.11.1 // indirect
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect

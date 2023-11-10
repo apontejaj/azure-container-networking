@@ -201,6 +201,7 @@ func (m *Multitenancy) GetAllNetworkContainers(
 	logger.Info("Podname without suffix", zap.String("podName", podNameWithoutSuffix))
 
 	ncResponses, hostSubnetPrefixes, err := m.getNetworkContainersInternal(ctx, podNamespace, podNameWithoutSuffix)
+	logger.Info("ncResponses are", zap.Any("ncResponses", ncResponses))
 	if err != nil {
 		return []IPAMAddResult{}, fmt.Errorf("%w", err)
 	}
@@ -217,13 +218,15 @@ func (m *Multitenancy) GetAllNetworkContainers(
 
 	ipamResults := make([]IPAMAddResult, len(ncResponses))
 
+	//var secondaryInterface InterfaceInfo
+
 	for i := 0; i < len(ncResponses); i++ {
 		ipamResults[i].ncResponse = &ncResponses[i]
 		ipamResults[i].hostSubnetPrefix = hostSubnetPrefixes[i]
 		ipamResults[i].defaultInterfaceInfo.ipResult = convertToCniResult(ipamResults[i].ncResponse, ifName)
 		ipamResults[i].defaultInterfaceInfo.nicType = cns.InfraNIC
 
-		// use swiftv2.0 as second network interface
+		//use swiftv2.0 as second network interface
 		var secondaryInterface InterfaceInfo
 		if ipamResults[i].ncResponse.NetworkInterfaceInfo.NICType != "" {
 			secondaryInterface.nicType = ipamResults[i].ncResponse.NetworkInterfaceInfo.NICType
@@ -232,6 +235,7 @@ func (m *Multitenancy) GetAllNetworkContainers(
 		}
 	}
 
+	logger.Info("ipamResults are", zap.Any("ipamResults", ipamResults))
 	return ipamResults, err
 }
 
