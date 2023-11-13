@@ -11,10 +11,12 @@ import (
 	"strconv"
 
 	"github.com/Azure/azure-container-networking/cns"
+	"github.com/Azure/azure-container-networking/cns/configuration"
 	"github.com/Azure/azure-container-networking/cns/filter"
 	"github.com/Azure/azure-container-networking/cns/logger"
 	"github.com/Azure/azure-container-networking/cns/types"
 	"github.com/Azure/azure-container-networking/common"
+	acn "github.com/Azure/azure-container-networking/common"
 	"github.com/pkg/errors"
 )
 
@@ -38,9 +40,12 @@ func (service *HTTPRestService) requestIPConfigHandlerHelper(ctx context.Context
 	}
 
 	// record a pod requesting an IP
+	logger.Printf("podInfo.Key() is %s", podInfo.Key())
 	service.podsPendingIPAssignment.Push(podInfo.Key())
 
+	logger.Printf("ipconfigsRequest is %+v", ipconfigsRequest)
 	podIPInfo, err := requestIPConfigsHelper(service, ipconfigsRequest)
+	logger.Printf("poidInfo at ipamgo is %+v", podInfo)
 	if err != nil {
 		return &cns.IPConfigsResponse{
 			Response: cns.Response{
@@ -75,8 +80,16 @@ func (service *HTTPRestService) requestIPConfigHandlerHelper(ctx context.Context
 
 	// Check if request is for pod with secondary interface(s)
 	if podInfo.SecondaryInterfacesExist() {
+		cmdLineConfigPath := acn.GetArg(acn.OptCNSConfigPath).(string)
+		cnsconfig, err := configuration.ReadConfig(cmdLineConfigPath)
 		// In the future, if we have multiple scenario with secondary interfaces, we can add a switch case here
-		SWIFTv2PodIPInfo, err := service.SWIFTv2Middleware.GetIPConfig(ctx, podInfo)
+		var SWIFTv2PodIPInfo cns.PodIpInfo
+		switch cnsconfig.EnableSwiftV2 {
+		case configuration.EnableSFSwiftV2:
+			SWIFTv2PodIPInfo, err = service.SFSWIFTv2Middleware.GetIPConfigs(podInfo)
+		case configuration.EnableK8SwiftV2:
+			SWIFTv2PodIPInfo, err = service.SWIFTv2Middleware.GetIPConfig(ctx, podInfo)
+		}
 		if err != nil {
 			defer func() {
 				logger.Errorf("failed to get SWIFTv2 IP config : %v. Releasing default IP config...", err)
@@ -605,6 +618,7 @@ func (service *HTTPRestService) GetPendingReleaseIPConfigs() []cns.IPConfigurati
 // assignIPConfig assigns the the ipconfig to the passed Pod, sets the state as Assigned, does not take a lock.
 func (service *HTTPRestService) assignIPConfig(ipconfig cns.IPConfigurationStatus, podInfo cns.PodInfo) error { //nolint:gocritic // ignore hugeparam
 	ipconfig, err := service.updateIPConfigState(ipconfig.ID, types.Assigned, podInfo)
+	logger.Printf("ipconfig is %+v", ipconfig)
 	if err != nil {
 		return err
 	}
@@ -708,8 +722,9 @@ func (service *HTTPRestService) GetExistingIPConfig(podInfo cns.PodInfo) ([]cns.
 	numIPConfigs := len(service.PodIPIDByPodInterfaceKey[podInfo.Key()])
 	podIPInfo := make([]cns.PodIpInfo, numIPConfigs)
 	ipConfigExists := false
+	logger.Printf("service.PodIPIDByPodInterfaceKey is %+v", service.PodIPIDByPodInterfaceKey)
 
-	for i, ipID := range service.PodIPIDByPodInterfaceKey[podInfo.Key()] {
+	for i, ipID := range service.PodIPIDByPodInterfaceKey[podInfo.Key()] { // sf_testpod:ns_sf_testpodns
 		if ipID != "" {
 			if ipState, isExist := service.PodIPConfigState[ipID]; isExist {
 				if err := service.populateIPConfigInfoUntransacted(ipState, &podIPInfo[i]); err != nil {
@@ -845,7 +860,8 @@ func (service *HTTPRestService) AssignAvailableIPConfigs(podInfo cns.PodInfo) ([
 	podIPInfo := make([]cns.PodIpInfo, numOfNCs)
 	// This map is used to store whether or not we have found an available IP from an NC when looping through the pool
 	ipsToAssign := make(map[string]cns.IPConfigurationStatus)
-
+	logger.Printf("cns.IPConfigurationStatus is %+v", ipsToAssign)
+	logger.Printf("service.PodIPConfigState is %+v", service.PodIPConfigState)
 	// Searches for available IPs in the pool
 	for _, ipState := range service.PodIPConfigState {
 		// check if an IP from this NC is already set side for assignment.
@@ -922,6 +938,7 @@ func requestIPConfigsHelper(service *HTTPRestService, req cns.IPConfigsRequest) 
 		return podIPInfo, err
 	}
 
+	logger.Printf("[requestIPConfigsHelper] podIPInfo is %+v", podInfo)
 	// if the desired IP configs are not specified, assign any free IPConfigs
 	if len(req.DesiredIPAddresses) == 0 {
 		return service.AssignAvailableIPConfigs(podInfo)
@@ -943,5 +960,6 @@ func validateDesiredIPAddresses(desiredIPs []string) error {
 			return fmt.Errorf("[validateDesiredIPAddresses] invalid ip %s specified as desired IP", desiredIP)
 		}
 	}
+	logger.Printf("desiredIPs %+v", desiredIPs)
 	return nil
 }

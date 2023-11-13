@@ -49,6 +49,12 @@ type HTTPService interface {
 	GetPodIPConfigState() map[string]IPConfigurationStatus
 	MarkIPAsPendingRelease(numberToMark int) (map[string]IPConfigurationStatus, error)
 	AttachSWIFTv2Middleware(middleware SWIFTv2Middleware)
+	AttachSFSWIFTv2Middleware(middleware SFSWIFTv2Middleware)
+}
+
+type SFSWIFTv2Middleware interface {
+	ValidateIPConfigsRequests(context.Context, *IPConfigsRequest) (types.ResponseCode, string)
+	GetIPConfigs(PodInfo) (PodIpInfo, error)
 }
 
 // Middleware interface for testing later on
