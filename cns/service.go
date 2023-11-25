@@ -58,6 +58,38 @@ func (service *Service) getAPIServerURL() string {
 	return urls
 }
 
+func isPrivateIP(ip net.IP) bool {
+	var privateIPBlocks []*net.IPNet
+
+	for _, cidr := range []string{
+		"127.0.0.0/8",    // IPv4 loopback
+		"10.0.0.0/8",     // RFC1918
+		"172.16.0.0/12",  // RFC1918
+		"192.168.0.0/16", // RFC1918
+		"169.254.0.0/16", // RFC3927 link-local
+		"::1/128",        // IPv6 loopback
+		"fe80::/10",      // IPv6 link-local
+		"fc00::/7",       // IPv6 unique local addr
+	} {
+		_, block, err := net.ParseCIDR(cidr)
+		if err != nil {
+			panic(fmt.Errorf("parse error on %q: %v", cidr, err))
+		}
+		privateIPBlocks = append(privateIPBlocks, block)
+	}
+
+	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+		return true
+	}
+
+	for _, block := range privateIPBlocks {
+		if block.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
 // Initialize initializes the service and starts the listener.
 func (service *Service) Initialize(config *common.ServiceConfig) error {
 	log.Debugf("[Azure CNS] Going to initialize a service with config: %+v", config)
@@ -73,6 +105,11 @@ func (service *Service) Initialize(config *common.ServiceConfig) error {
 		u, err := url.Parse(service.getAPIServerURL())
 		if err != nil {
 			return err
+		}
+
+		// only bind private IPv4 and IPv6 address if CNS tries to bind metrics server on *:10092
+		if !isPrivateIP(net.ParseIP(u.Host)) {
+			return errors.Wrapf(err, "failed to bind metrics server with public address %s", u.Host)
 		}
 
 		listener, err := acn.NewListener(u)
