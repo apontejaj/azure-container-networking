@@ -197,3 +197,18 @@ rules:
   - create
   - get
   - update
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumloadbalancerippools
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumloadbalancerippools/status
+  verbs:
+  - patch
+  
