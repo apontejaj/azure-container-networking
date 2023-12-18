@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -789,37 +788,6 @@ func (service *HTTPRestService) validateDefaultIPConfigsRequest(_ context.Contex
 	return types.Success, ""
 }
 
-func isPrivateIP(ip net.IP) bool {
-
-	privateBlocks := []string{
-		"127.0.0.0/8",    // IPv4 loopback
-		"10.0.0.0/8",     // RFC1918
-		"172.16.0.0/12",  // RFC1918
-		"192.168.0.0/16", // RFC1918
-		"169.254.0.0/16", // RFC3927 link-local
-	}
-
-	var privateIPBlocks []*net.IPNet
-	for _, cidr := range privateBlocks {
-		_, block, err := net.ParseCIDR(cidr)
-		if err != nil {
-			logger.Errorf("Failed to parse CIDR")
-		}
-		privateIPBlocks = append(privateIPBlocks, block)
-	}
-
-	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
-		return true
-	}
-
-	for _, block := range privateIPBlocks {
-		if block.Contains(ip) {
-			return true
-		}
-	}
-	return false
-}
-
 // getPrimaryHostInterface returns the cached InterfaceInfo, if available, otherwise
 // queries the IMDS to get the primary interface info and caches it in the server state
 // before returning the result.
@@ -833,10 +801,6 @@ func (service *HTTPRestService) getPrimaryHostInterface(ctx context.Context) (*w
 		primary, err := wireserver.GetPrimaryInterfaceFromResult(res)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get primary interface from IMDS response")
-		}
-
-		if !isPrivateIP(net.ParseIP(primary.PrimaryIP)) {
-			return nil, errors.Wrap(err, "only private IPv4 or IPv6 address can be used")
 		}
 
 		service.state.primaryInterface = primary
