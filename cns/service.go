@@ -75,6 +75,15 @@ func (service *Service) Initialize(config *common.ServiceConfig) error {
 			return err
 		}
 
+		host, _, err := net.SplitHostPort(u.Host)
+		if err != nil {
+			return err
+		}
+
+		if !net.ParseIP(host).IsPrivate() || host != "localhost" {
+			return errors.Wrap(err, "only private IP or localhost can be used")
+		}
+
 		listener, err := acn.NewListener(u)
 		if err != nil {
 			return err
