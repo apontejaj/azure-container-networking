@@ -1,3 +1,5 @@
+//go:build networkobservability
+
 package networkobservability
 
 import (
