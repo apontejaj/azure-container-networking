@@ -77,7 +77,7 @@ func (service *Service) Initialize(config *common.ServiceConfig) error {
 
 		host, _, err := net.SplitHostPort(u.Host)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "failed to split hostPort")
 		}
 
 		if !net.ParseIP(host).IsPrivate() || host != "localhost" {
