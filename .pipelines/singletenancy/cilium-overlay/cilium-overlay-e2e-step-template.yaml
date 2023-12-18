@@ -133,7 +133,7 @@ steps:
           kubectl rollout status ds cilium -n kube-system --timeout=3m
           kubectl get pods -Aowide
           echo "verify Hubble metrics endpoint is usable"
-          go test ./test/integration/networkobservability -count=1 -v -tags=networkobservability
+          go test ./test/integration/networkobservability -tags=networkobservability
         retryCountOnTaskFailure: 3
         name: "HubbleConnectivityTests"
         displayName: "Run Hubble Connectivity Tests"
