@@ -171,6 +171,10 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 				numInterfacesWithDefaultRoutes++
 			}
 
+			info.hostSubnet = response.PodIPInfo[i].HostSecondaryIPInfo.Subnet
+			info.hostPrimaryIP = response.PodIPInfo[i].HostSecondaryIPInfo.PrimaryIP
+			info.hostGateway = response.PodIPInfo[i].HostSecondaryIPInfo.Gateway
+
 			if err := configureSecondaryAddResult(&info, &addResult, &response.PodIPInfo[i].PodIPConfig); err != nil {
 				return IPAMAddResult{}, err
 			}
