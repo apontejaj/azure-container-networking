@@ -9,6 +9,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/netio"
 	"github.com/Azure/azure-container-networking/netlink"
 	"github.com/Azure/azure-container-networking/network/policy"
@@ -74,16 +75,23 @@ func (nw *network) newEndpointImpl(
 	_ ipTablesClient,
 	epInfo []*EndpointInfo,
 ) (*endpoint, error) {
-	// there is only 1 epInfo for windows, multiple interfaces will be added in the future
-	if useHnsV2, err := UseHnsV2(epInfo[0].NetNsPath); useHnsV2 {
+
+	endpointInfo := epInfo[0]
+	for _, ep := range epInfo {
+		if ep.NICType == cns.DelegatedVMNIC {
+			endpointInfo = epInfo[1]
+		}
+	}
+
+	if useHnsV2, err := UseHnsV2(endpointInfo.NetNsPath); useHnsV2 {
 		if err != nil {
 			return nil, err
 		}
 
-		return nw.newEndpointImplHnsV2(cli, epInfo[0])
+		return nw.newEndpointImplHnsV2(cli, endpointInfo)
 	}
 
-	return nw.newEndpointImplHnsV1(epInfo[0], plc)
+	return nw.newEndpointImplHnsV1(endpointInfo, plc)
 }
 
 // newEndpointImplHnsV1 creates a new endpoint in the network using HnsV1
@@ -219,8 +227,13 @@ func (nw *network) configureHcnEndpoint(epInfo *EndpointInfo) (*hcn.HostComputeE
 			Major: hcnSchemaVersionMajor,
 			Minor: hcnSchemaVersionMinor,
 		},
-		MacAddress: epInfo.MacAddress.String(),
 	}
+
+	macAddress := epInfo.MacAddress.String()
+	if epInfo.NICType == cns.DelegatedVMNIC {
+		macAddress = strings.Join(strings.Split(macAddress, ":"), "-")
+	}
+	hcnEndpoint.MacAddress = macAddress
 
 	if endpointPolicies, err := policy.GetHcnEndpointPolicies(policy.EndpointPolicy, epInfo.Policies, epInfo.Data, epInfo.EnableSnatForDns, epInfo.EnableMultiTenancy, epInfo.NATInfo); err == nil {
 		for _, epPolicy := range endpointPolicies {

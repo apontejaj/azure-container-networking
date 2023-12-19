@@ -450,6 +450,13 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 		return errors.Wrap(err, "Invalid mac address")
 	}
 
+	_, hostIPNet, err := net.ParseCIDR(info.hostSubnet)
+	if err != nil {
+		return fmt.Errorf("unable to parse hostSubnet: %w", err)
+	}
+
+	addResult.hostSubnetPrefix = *hostIPNet
+
 	routes, err := getRoutes(info.routes, info.skipDefaultRoutes)
 	if err != nil {
 		return err
@@ -462,6 +469,7 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 					IP:   ip,
 					Mask: ipnet.Mask,
 				},
+				Gateway: net.ParseIP(info.ncGatewayIPAddress),
 			},
 		},
 		Routes:            routes,

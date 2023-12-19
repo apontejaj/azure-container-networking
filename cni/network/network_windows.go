@@ -144,14 +144,29 @@ func addSnatInterface(nwCfg *cni.NetworkConfig, result *cniTypesCurr.Result) {
 
 func (plugin *NetPlugin) getNetworkName(netNs string, ipamAddResult *IPAMAddResult, nwCfg *cni.NetworkConfig) (string, error) {
 	determineWinVer()
+
+	// check if it's swiftv2 mode
+	hasDelegatedNic := false
+	if hasSecondaryInterface(ipamAddResult, cns.DelegatedVMNIC) {
+		hasDelegatedNic = true
+	}
+
 	// For singletenancy, the network name is simply the nwCfg.Name
-	if !nwCfg.MultiTenancy {
+	if !nwCfg.MultiTenancy && !hasDelegatedNic {
 		return nwCfg.Name, nil
 	}
 
 	// in multitenancy case, the network name will be in the state file or can be built from cnsResponse
 	if len(strings.TrimSpace(netNs)) == 0 {
 		return "", fmt.Errorf("NetNs cannot be empty")
+	}
+
+	// if it's swiftv2 delegatedVMNIC, then use "azure-macAddres" format networkName
+	// networkName will look like ~ azure-01:23:ab:f4:ac:95
+	if ipamAddResult != nil and hasDelegatedNic {
+		swiftv2NetworkName := "azure-" + ipamAddResult.secondaryInterfacesInfo[0].MacAddress.String()
+		logger.Info("swiftv2 network name is", zap.String("swiftv2NetworkName", swiftv2NetworkName))
+		return swiftv2NetworkName, nil
 	}
 
 	// First try to build the network name from the cnsResponse if present
