@@ -159,6 +159,8 @@ spec:
           readOnly: true
         - mountPath: /run/xtables.lock
           name: xtables-lock
+        - name: tmp
+          mountPath: /tmp
       dnsPolicy: ClusterFirst
       hostNetwork: true
       initContainers:
@@ -366,6 +368,7 @@ spec:
       securityContext: {}
       serviceAccount: cilium
       serviceAccountName: cilium
+      automountServiceAccountToken: true
       terminationGracePeriodSeconds: 1
       tolerations:
       - key: CriticalAddonsOnly
@@ -424,6 +427,20 @@ spec:
           defaultMode: 256
           optional: true
           secretName: cilium-clustermesh
+      - name: clustermesh-apiserver-remote-cert
+        secret:
+          secretName: clustermesh-apiserver-remote-cert
+          optional: true
+          items:
+          - key: tls.key
+            path: common-etcd-client.key
+          - key: tls.crt
+            path: common-etcd-client.crt
+          - key: ca.crt
+            path: common-etcd-client-ca.crt 
+      # For sharing configuration between the "config" initContainer and the agent
+      - name: tmp
+        emptyDir: {}
       - configMap:
           defaultMode: 420
           name: cilium-config
