@@ -15,8 +15,6 @@ import (
 	"github.com/Azure/azure-container-networking/network"
 	"github.com/Azure/azure-container-networking/network/networkutils"
 	cniSkel "github.com/containernetworking/cni/pkg/skel"
-	cniTypes "github.com/containernetworking/cni/pkg/types"
-	cniTypesCurr "github.com/containernetworking/cni/pkg/types/100"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -178,8 +176,8 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 			}
 		default:
 			// only count dualstack interface once
-			if addResult.defaultInterfaceInfo.ipResult == nil {
-				addResult.defaultInterfaceInfo.ipResult = &cniTypesCurr.Result{}
+			if addResult.defaultInterfaceInfo.IPConfigs == nil {
+				addResult.defaultInterfaceInfo.IPConfigs = make([]*network.IPConfig, 0)
 				if !info.skipDefaultRoutes {
 					numInterfacesWithDefaultRoutes++
 				}
@@ -229,25 +227,26 @@ func setHostOptions(ncSubnetPrefix *net.IPNet, options map[string]interface{}, i
 	// we need to snat IMDS traffic to node IP, this sets up snat '--to'
 	snatHostIPJump := fmt.Sprintf("%s --to %s", iptables.Snat, info.hostPrimaryIP)
 
+	iptablesClient := iptables.NewClient()
 	var iptableCmds []iptables.IPTableEntry
-	if !iptables.ChainExists(iptables.V4, iptables.Nat, iptables.Swift) {
-		iptableCmds = append(iptableCmds, iptables.GetCreateChainCmd(iptables.V4, iptables.Nat, iptables.Swift))
+	if !iptablesClient.ChainExists(iptables.V4, iptables.Nat, iptables.Swift) {
+		iptableCmds = append(iptableCmds, iptablesClient.GetCreateChainCmd(iptables.V4, iptables.Nat, iptables.Swift))
 	}
 
-	if !iptables.RuleExists(iptables.V4, iptables.Nat, iptables.Postrouting, "", iptables.Swift) {
-		iptableCmds = append(iptableCmds, iptables.GetAppendIptableRuleCmd(iptables.V4, iptables.Nat, iptables.Postrouting, "", iptables.Swift))
+	if !iptablesClient.RuleExists(iptables.V4, iptables.Nat, iptables.Postrouting, "", iptables.Swift) {
+		iptableCmds = append(iptableCmds, iptablesClient.GetAppendIptableRuleCmd(iptables.V4, iptables.Nat, iptables.Postrouting, "", iptables.Swift))
 	}
 
-	if !iptables.RuleExists(iptables.V4, iptables.Nat, iptables.Swift, azureDNSUDPMatch, snatPrimaryIPJump) {
-		iptableCmds = append(iptableCmds, iptables.GetInsertIptableRuleCmd(iptables.V4, iptables.Nat, iptables.Swift, azureDNSUDPMatch, snatPrimaryIPJump))
+	if !iptablesClient.RuleExists(iptables.V4, iptables.Nat, iptables.Swift, azureDNSUDPMatch, snatPrimaryIPJump) {
+		iptableCmds = append(iptableCmds, iptablesClient.GetInsertIptableRuleCmd(iptables.V4, iptables.Nat, iptables.Swift, azureDNSUDPMatch, snatPrimaryIPJump))
 	}
 
-	if !iptables.RuleExists(iptables.V4, iptables.Nat, iptables.Swift, azureDNSTCPMatch, snatPrimaryIPJump) {
-		iptableCmds = append(iptableCmds, iptables.GetInsertIptableRuleCmd(iptables.V4, iptables.Nat, iptables.Swift, azureDNSTCPMatch, snatPrimaryIPJump))
+	if !iptablesClient.RuleExists(iptables.V4, iptables.Nat, iptables.Swift, azureDNSTCPMatch, snatPrimaryIPJump) {
+		iptableCmds = append(iptableCmds, iptablesClient.GetInsertIptableRuleCmd(iptables.V4, iptables.Nat, iptables.Swift, azureDNSTCPMatch, snatPrimaryIPJump))
 	}
 
-	if !iptables.RuleExists(iptables.V4, iptables.Nat, iptables.Swift, azureIMDSMatch, snatHostIPJump) {
-		iptableCmds = append(iptableCmds, iptables.GetInsertIptableRuleCmd(iptables.V4, iptables.Nat, iptables.Swift, azureIMDSMatch, snatHostIPJump))
+	if !iptablesClient.RuleExists(iptables.V4, iptables.Nat, iptables.Swift, azureIMDSMatch, snatHostIPJump) {
+		iptableCmds = append(iptableCmds, iptablesClient.GetInsertIptableRuleCmd(iptables.V4, iptables.Nat, iptables.Swift, azureIMDSMatch, snatHostIPJump))
 	}
 
 	options[network.IPTablesKey] = iptableCmds
@@ -331,8 +330,8 @@ func (invoker *CNSIPAMInvoker) Delete(address *net.IPNet, nwCfg *cni.NetworkConf
 	return nil
 }
 
-func getRoutes(cnsRoutes []cns.Route, skipDefaultRoutes bool) ([]*cniTypes.Route, error) {
-	routes := make([]*cniTypes.Route, 0)
+func getRoutes(cnsRoutes []cns.Route, skipDefaultRoutes bool) ([]network.RouteInfo, error) {
+	routes := make([]network.RouteInfo, 0)
 	for _, route := range cnsRoutes {
 		_, dst, routeErr := net.ParseCIDR(route.IPAddress)
 		if routeErr != nil {
@@ -345,9 +344,9 @@ func getRoutes(cnsRoutes []cns.Route, skipDefaultRoutes bool) ([]*cniTypes.Route
 		}
 
 		routes = append(routes,
-			&cniTypes.Route{
+			network.RouteInfo{
 				Dst: *dst,
-				GW:  gw,
+				Gw:  gw,
 			})
 	}
 
@@ -386,15 +385,15 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 	}
 
 	if ip := net.ParseIP(info.podIPAddress); ip != nil {
-		defaultInterfaceInfo := addResult.defaultInterfaceInfo.ipResult
+		defaultInterfaceInfo := &addResult.defaultInterfaceInfo
 		defaultRouteDstPrefix := network.Ipv4DefaultRouteDstPrefix
 		if ip.To4() == nil {
 			defaultRouteDstPrefix = network.Ipv6DefaultRouteDstPrefix
 			addResult.ipv6Enabled = true
 		}
 
-		defaultInterfaceInfo.IPs = append(defaultInterfaceInfo.IPs,
-			&cniTypesCurr.IPConfig{
+		defaultInterfaceInfo.IPConfigs = append(defaultInterfaceInfo.IPConfigs,
+			&network.IPConfig{
 				Address: net.IPNet{
 					IP:   ip,
 					Mask: ncIPNet.Mask,
@@ -410,14 +409,13 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 		if len(routes) > 0 {
 			defaultInterfaceInfo.Routes = append(defaultInterfaceInfo.Routes, routes...)
 		} else { // add default routes if none are provided
-			defaultInterfaceInfo.Routes = append(defaultInterfaceInfo.Routes, &cniTypes.Route{
+			defaultInterfaceInfo.Routes = append(defaultInterfaceInfo.Routes, network.RouteInfo{
 				Dst: defaultRouteDstPrefix,
-				GW:  ncgw,
+				Gw:  ncgw,
 			})
 		}
 
-		addResult.defaultInterfaceInfo.ipResult = defaultInterfaceInfo
-		addResult.defaultInterfaceInfo.skipDefaultRoutes = info.skipDefaultRoutes
+		addResult.defaultInterfaceInfo.SkipDefaultRoutes = info.skipDefaultRoutes
 	}
 
 	// get the name of the primary IP address
@@ -427,7 +425,7 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 	}
 
 	addResult.hostSubnetPrefix = *hostIPNet
-	addResult.defaultInterfaceInfo.nicType = cns.InfraNIC
+	addResult.defaultInterfaceInfo.NICType = cns.InfraNIC
 
 	// set subnet prefix for host vm
 	// setHostOptions will execute if IPAM mode is not v4 overlay and not dualStackOverlay mode
@@ -452,28 +450,26 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 		return errors.Wrap(err, "Invalid mac address")
 	}
 
-	result := InterfaceInfo{
-		ipResult: &cniTypesCurr.Result{
-			IPs: []*cniTypesCurr.IPConfig{
-				{
-					Address: net.IPNet{
-						IP:   ip,
-						Mask: ipnet.Mask,
-					},
-				},
-			},
-		},
-		nicType:           cns.DelegatedVMNIC,
-		macAddress:        macAddress,
-		skipDefaultRoutes: info.skipDefaultRoutes,
-	}
-
 	routes, err := getRoutes(info.routes, info.skipDefaultRoutes)
 	if err != nil {
 		return err
 	}
 
-	result.ipResult.Routes = append(result.ipResult.Routes, routes...)
+	result := network.InterfaceInfo{
+		IPConfigs: []*network.IPConfig{
+			{
+				Address: net.IPNet{
+					IP:   ip,
+					Mask: ipnet.Mask,
+				},
+			},
+		},
+		Routes:            routes,
+		NICType:           info.nicType,
+		MacAddress:        macAddress,
+		SkipDefaultRoutes: info.skipDefaultRoutes,
+	}
+
 	addResult.secondaryInterfacesInfo = append(addResult.secondaryInterfacesInfo, result)
 
 	return nil

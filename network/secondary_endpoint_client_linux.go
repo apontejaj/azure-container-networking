@@ -30,13 +30,14 @@ type SecondaryEndpointClient struct {
 
 func NewSecondaryEndpointClient(
 	nl netlink.NetlinkInterface,
+	nioc netio.NetIOInterface,
 	plc platform.ExecClient,
 	nsc NamespaceClientInterface,
 	endpoint *endpoint,
 ) *SecondaryEndpointClient {
 	client := &SecondaryEndpointClient{
 		netlink:        nl,
-		netioshim:      &netio.NetIO{},
+		netioshim:      nioc,
 		plClient:       plc,
 		netUtilsClient: networkutils.NewNetworkUtils(nl, plc),
 		nsClient:       nsc,
@@ -56,10 +57,16 @@ func (client *SecondaryEndpointClient) AddEndpoints(epInfo *EndpointInfo) error 
 	if _, exists := client.ep.SecondaryInterfaces[iface.Name]; exists {
 		return newErrorSecondaryEndpointClient(errors.New(iface.Name + " already exists"))
 	}
+
+	ipconfigs := make([]*IPConfig, len(epInfo.IPAddresses))
+	for i, ipconfig := range epInfo.IPAddresses {
+		ipconfigs[i] = &IPConfig{Address: ipconfig}
+	}
+
 	client.ep.SecondaryInterfaces[iface.Name] = &InterfaceInfo{
 		Name:              iface.Name,
 		MacAddress:        epInfo.MacAddress,
-		IPAddress:         epInfo.IPAddresses,
+		IPConfigs:         ipconfigs,
 		NICType:           epInfo.NICType,
 		SkipDefaultRoutes: epInfo.SkipDefaultRoutes,
 	}
@@ -105,6 +112,13 @@ func (client *SecondaryEndpointClient) ConfigureContainerInterfacesAndRoutes(epI
 
 	if len(epInfo.Routes) < 1 {
 		return newErrorSecondaryEndpointClient(errors.New("routes expected for " + epInfo.IfName))
+	}
+
+	// virtual gw route needs to be scope link
+	for i := range epInfo.Routes {
+		if epInfo.Routes[i].Gw == nil {
+			epInfo.Routes[i].Scope = netlink.RT_SCOPE_LINK
+		}
 	}
 
 	if err := addRoutes(client.netlink, client.netioshim, epInfo.IfName, epInfo.Routes); err != nil {

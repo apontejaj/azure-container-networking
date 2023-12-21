@@ -49,21 +49,17 @@ func (service *HTTPRestService) removeNetworkInfo(networkName string) {
 
 // saveState writes CNS state to persistent store.
 func (service *HTTPRestService) saveState() error {
-	logger.Printf("[Azure CNS] saveState")
-
 	// Skip if a store is not provided.
 	if service.store == nil {
-		logger.Printf("[Azure CNS]  store not initialized.")
+		logger.Printf("[Azure CNS] store not initialized.")
 		return nil
 	}
 
 	// Update time stamp.
 	service.state.TimeStamp = time.Now()
 	err := service.store.Write(storeKey, &service.state)
-	if err == nil {
-		logger.Printf("[Azure CNS]  State saved successfully.\n")
-	} else {
-		logger.Errorf("[Azure CNS]  Failed to save state., err:%v\n", err)
+	if err != nil {
+		logger.Errorf("[Azure CNS] Failed to save state, err: %v", err)
 	}
 
 	return err
@@ -684,9 +680,7 @@ func (service *HTTPRestService) getNetPluginDetails() *networkcontainers.NetPlug
 func (service *HTTPRestService) getNetworkContainerDetails(networkContainerID string) (containerstatus, bool) {
 	service.RLock()
 	defer service.RUnlock()
-
 	containerDetails, containerExists := service.state.ContainerStatus[networkContainerID]
-
 	return containerDetails, containerExists
 }
 
@@ -702,9 +696,7 @@ func (service *HTTPRestService) areNCsPresent() bool {
 func (service *HTTPRestService) isNetworkJoined(networkID string) bool {
 	namedLock.LockAcquire(stateJoinedNetworks)
 	defer namedLock.LockRelease(stateJoinedNetworks)
-
 	_, exists := service.state.joinedNetworks[networkID]
-
 	return exists
 }
 
@@ -712,7 +704,6 @@ func (service *HTTPRestService) isNetworkJoined(networkID string) bool {
 func (service *HTTPRestService) setNetworkStateJoined(networkID string) {
 	namedLock.LockAcquire(stateJoinedNetworks)
 	defer namedLock.LockRelease(stateJoinedNetworks)
-
 	service.state.joinedNetworks[networkID] = struct{}{}
 }
 
@@ -953,6 +944,11 @@ func (service *HTTPRestService) handlePostNetworkContainers(w http.ResponseWrite
 		}
 		err = service.Listener.Encode(w, &response)
 		logger.Response(service.Name, response, response.Response.ReturnCode, err)
+		return
+	}
+	if err := req.Validate(); err != nil { //nolint:govet // shadow okay
+		logger.Errorf("[Azure CNS] handlePostNetworkContainers failed with error: %s", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
