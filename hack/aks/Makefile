@@ -180,6 +180,7 @@ swift-byocni-nokubeproxy-up: rg-up swift-net-up ## Bring up a SWIFT BYO CNI clus
 		--no-ssh-key \
 		--os-sku $(OS_SKU) \
 		--kube-proxy-config ./kube-proxy.json \
+		--ip-families ipv4,ipv6 \
 		--yes
 	@$(MAKE) set-kubeconf
 
