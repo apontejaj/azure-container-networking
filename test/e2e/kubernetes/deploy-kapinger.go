@@ -6,8 +6,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/Azure/azure-container-networking/test/integration/networkobservability/types"
-	"github.com/Azure/azure-container-networking/test/integration/networkobservability/utils"
+	"github.com/Azure/azure-container-networking/test/e2e/types"
+	"github.com/Azure/azure-container-networking/test/e2e/utils"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/yaml"
@@ -21,16 +21,19 @@ import (
 )
 
 type CreateKapingerDeployment struct {
-	KapingerNamespace string
-	KapingerReplicas  string
+	KapingerNamespace  string
+	KapingerReplicas   string
+	KubeConfigFilePath string
 }
 
 func (c *CreateKapingerDeployment) Run(values *types.JobValues) error {
-	// Path to the kubeconfig file, leave empty for in-cluster config
-	kubeconfigPath := "" // Set your kubeconfig path if needed
+	_, err := strconv.Atoi(c.KapingerReplicas)
+	if err != nil {
+		fmt.Println("Error converting replicas to int for Kapinger replicas: ", err)
+		return err
+	}
 
-	// Create a Kubernetes client
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	config, err := clientcmd.BuildConfigFromFlags("", c.KubeConfigFilePath)
 	if err != nil {
 		fmt.Println("Error building kubeconfig: ", err)
 		return err
@@ -42,9 +45,41 @@ func (c *CreateKapingerDeployment) Run(values *types.JobValues) error {
 		return err
 	}
 
-	// Create a sample Deployment object
+	// Create a Kapinger Service object
+	service := c.getKapingerService()
+	_, err = clientset.CoreV1().Services(c.KapingerNamespace).Create(context.TODO(), service, metaV1.CreateOptions{})
+	if err != nil {
+		fmt.Println("Error creating Service: ", err)
+		return err
+	}
+
+	// Create a Kapinger ServiceAccount object
+	serviceaccount := c.getKapingerServiceAccount()
+	_, err = clientset.CoreV1().ServiceAccounts(c.KapingerNamespace).Create(context.TODO(), serviceaccount, metaV1.CreateOptions{})
+	if err != nil {
+		fmt.Println("Error creating ServiceAccount: ", err)
+		return err
+	}
+
+	// Create a Kapinger ClusterRole object
+	clusterrole := c.getKapingerClusterRole()
+	_, err = clientset.RbacV1().ClusterRoles().Create(context.TODO(), clusterrole, metaV1.CreateOptions{})
+	if err != nil {
+		fmt.Println("Error creating ClusterRole: ", err)
+		return err
+	}
+
+	// Create a Kapinger ClusterRoleBinding object
+	clusterrolebinding := c.getKapingerClusterRoleBinding()
+	_, err = clientset.RbacV1().ClusterRoleBindings().Create(context.TODO(), clusterrolebinding, metaV1.CreateOptions{})
+	if err != nil {
+		fmt.Println("Error creating ClusterRoleBinding: ", err)
+		return err
+	}
+
+	// Create a Kapinger Deployment object
 	deployment := c.getKapingerDeployment()
-	_, err = clientset.AppsV1().Deployments("default").Create(context.TODO(), deployment, metaV1.CreateOptions{})
+	_, err = clientset.AppsV1().Deployments(c.KapingerNamespace).Create(context.TODO(), deployment, metaV1.CreateOptions{})
 	if err != nil {
 		fmt.Println("Error creating Deployment: ", err)
 		return err
@@ -54,18 +89,15 @@ func (c *CreateKapingerDeployment) Run(values *types.JobValues) error {
 	return nil
 }
 
-func (c *CreateKapingerDeployment) Prevalidate(values *types.JobValues) error {
-
-	_, err := strconv.Atoi(c.KapingerReplicas)
-	if err != nil {
-		fmt.Println("Error converting replicas to int for Kapinger replicas: ", err)
-		return err
-	}
-
-	return nil
+func (c *CreateKapingerDeployment) ExpectError() bool {
+	return false
 }
 
-func (c *CreateKapingerDeployment) DryRun(values *types.JobValues) error {
+func (c *CreateKapingerDeployment) SaveParametersToJob() bool {
+	return true
+}
+
+func (c *CreateKapingerDeployment) Prevalidate(values *types.JobValues) error {
 	return nil
 }
 

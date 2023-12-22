@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/Azure/azure-container-networking/test/integration/networkobservability/types"
+	"github.com/Azure/azure-container-networking/test/e2e/types"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v4"
 )
@@ -35,10 +35,14 @@ func (c *DeleteCluster) Run(values *types.JobValues) error {
 	return nil
 }
 
-func (c *DeleteCluster) Prevalidate(values *types.JobValues) error {
-	return nil
+func (c *DeleteCluster) ExpectError() bool {
+	return false
 }
 
-func (c *DeleteCluster) DryRun(values *types.JobValues) error {
+func (c *DeleteCluster) SaveParametersToJob() bool {
+	return true
+}
+
+func (c *DeleteCluster) Prevalidate(values *types.JobValues) error {
 	return nil
 }

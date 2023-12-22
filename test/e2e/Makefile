@@ -1,0 +1,3 @@
+.phony generate:
+generate:
+	@go generate ./...

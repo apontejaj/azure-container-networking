@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/Azure/azure-container-networking/test/integration/networkobservability/types"
+	"github.com/Azure/azure-container-networking/test/e2e/types"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v4"
@@ -23,12 +23,27 @@ func (c *CreateCluster) Run(values *types.JobValues) error {
 		log.Fatalf("failed to obtain a credential: %v", err)
 	}
 	ctx := context.Background()
-	clientFactory, err := armcontainerservice.NewClientFactory("<subscription-id>", cred, nil)
+	clientFactory, err := armcontainerservice.NewClientFactory(c.SubscriptionID, cred, nil)
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
-	poller, err := clientFactory.NewManagedClustersClient().BeginCreateOrUpdate(ctx, "rg1", "clustername1", armcontainerservice.ManagedCluster{
-		Location: to.Ptr(c.ResourceGroupName),
+
+	poller, err := clientFactory.NewManagedClustersClient().BeginCreateOrUpdate(ctx, c.ResourceGroupName, c.ClusterName, GetStarterClusterTemplate(c.Location), nil)
+	if err != nil {
+		log.Fatalf("failed to finish the request: %v", err)
+	}
+	_, err = poller.PollUntilDone(ctx, nil)
+	if err != nil {
+		log.Fatalf("failed to pull the result: %v", err)
+	}
+
+	return nil
+}
+
+func GetStarterClusterTemplate(location string) armcontainerservice.ManagedCluster {
+	id := armcontainerservice.ResourceIdentityTypeSystemAssigned
+	return armcontainerservice.ManagedCluster{
+		Location: to.Ptr(location),
 		Tags: map[string]*string{
 			"archv2": to.Ptr(""),
 			"tier":   to.Ptr("production"),
@@ -40,54 +55,48 @@ func (c *CreateCluster) Run(values *types.JobValues) error {
 					Type:               to.Ptr(armcontainerservice.AgentPoolTypeVirtualMachineScaleSets),
 					AvailabilityZones:  []*string{to.Ptr("1")},
 					Count:              to.Ptr[int32](3),
-					EnableNodePublicIP: to.Ptr(true),
+					EnableNodePublicIP: to.Ptr(false),
 					Mode:               to.Ptr(armcontainerservice.AgentPoolModeSystem),
 					OSType:             to.Ptr(armcontainerservice.OSTypeLinux),
-					ScaleDownMode:      to.Ptr(armcontainerservice.ScaleDownModeDeallocate),
-					VMSize:             to.Ptr("Standard_DS1_v2"),
+					ScaleDownMode:      to.Ptr(armcontainerservice.ScaleDownModeDelete),
+					VMSize:             to.Ptr("Standard_D4s_v3"),
 					Name:               to.Ptr("nodepool1"),
+					MaxPods:            to.Ptr(int32(250)),
 				}},
-			KubernetesVersion: to.Ptr(""),
-			LinuxProfile: &armcontainerservice.LinuxProfile{
-				AdminUsername: to.Ptr("azureuser"),
-				SSH: &armcontainerservice.SSHConfiguration{
-					PublicKeys: []*armcontainerservice.SSHPublicKey{
-						{
-							KeyData: to.Ptr("keydata"),
-						}},
-				},
-			},
+			KubernetesVersion:       to.Ptr(""),
+			DNSPrefix:               to.Ptr("dnsprefix1"),
+			EnablePodSecurityPolicy: to.Ptr(false),
+			EnableRBAC:              to.Ptr(true),
+			LinuxProfile:            nil,
 			NetworkProfile: &armcontainerservice.NetworkProfile{
 				LoadBalancerSKU: to.Ptr(armcontainerservice.LoadBalancerSKUStandard),
 				OutboundType:    to.Ptr(armcontainerservice.OutboundTypeLoadBalancer),
+				NetworkPlugin:   to.Ptr(armcontainerservice.NetworkPluginAzure),
 			},
 			WindowsProfile: &armcontainerservice.ManagedClusterWindowsProfile{
 				AdminPassword: to.Ptr("replacePassword1234$"),
 				AdminUsername: to.Ptr("azureuser"),
 			},
 		},
-		SKU: &armcontainerservice.ManagedClusterSKU{
-			Name: to.Ptr(armcontainerservice.ManagedClusterSKUName("Basic")),
-			Tier: to.Ptr(armcontainerservice.ManagedClusterSKUTierFree),
+		Identity: &armcontainerservice.ManagedClusterIdentity{
+			Type: &id,
 		},
-	}, nil)
-	if err != nil {
-		log.Fatalf("failed to finish the request: %v", err)
-	}
-	res, err := poller.PollUntilDone(ctx, nil)
-	if err != nil {
-		log.Fatalf("failed to pull the result: %v", err)
-	}
-	// You could use response here. We use blank identifier for just demo purposes.
-	_ = res
 
-	return nil
+		SKU: &armcontainerservice.ManagedClusterSKU{
+			Name: to.Ptr(armcontainerservice.ManagedClusterSKUName("Base")),
+			Tier: to.Ptr(armcontainerservice.ManagedClusterSKUTierStandard),
+		},
+	}
+}
+
+func (c *CreateCluster) ExpectError() bool {
+	return false
+}
+
+func (c *CreateCluster) SaveParametersToJob() bool {
+	return true
 }
 
 func (c *CreateCluster) Prevalidate(values *types.JobValues) error {
-	return nil
-}
-
-func (c *CreateCluster) DryRun(values *types.JobValues) error {
 	return nil
 }

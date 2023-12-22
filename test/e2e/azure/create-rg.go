@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Azure/azure-container-networking/test/integration/networkobservability/types"
+	"github.com/Azure/azure-container-networking/test/e2e/types"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
@@ -27,14 +27,16 @@ func (c *CreateResourceGroup) Run(values *types.JobValues) error {
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
-	res, err := clientFactory.NewResourceGroupsClient().CreateOrUpdate(ctx, c.ResourceGroupName, armresources.ResourceGroup{
+	fmt.Println("resource group\"" + c.ResourceGroupName + "\" creating...")
+
+	_, err = clientFactory.NewResourceGroupsClient().CreateOrUpdate(ctx, c.ResourceGroupName, armresources.ResourceGroup{
 		Location: to.Ptr(c.Location),
 	}, nil)
 	if err != nil {
 		log.Fatalf("failed to finish the request: %v", err)
 	}
 
-	fmt.Println(res.ResourceGroup.ID)
+	fmt.Println("resource group\"" + c.ResourceGroupName + "\" created successfully")
 	return nil
 }
 
@@ -42,6 +44,10 @@ func (c *CreateResourceGroup) Prevalidate(values *types.JobValues) error {
 	return nil
 }
 
-func (c *CreateResourceGroup) DryRun(values *types.JobValues) error {
-	return nil
+func (c *CreateResourceGroup) ExpectError() bool {
+	return false
+}
+
+func (c *CreateResourceGroup) SaveParametersToJob() bool {
+	return true
 }
