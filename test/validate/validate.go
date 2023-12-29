@@ -176,7 +176,7 @@ func (v *Validator) validateIPs(ctx context.Context, stateFileIps stateFileIpsFu
 		podIps := getPodIPsWithoutNodeIP(ctx, v.clientset, nodes.Items[index])
 
 		if err := compareIPs(filePodIps, podIps); err != nil {
-			return errors.Wrapf(errors.New("State file validation failed"), "for %s on node %s", checkType, nodes.Items[index].Name)
+			return errors.Wrapf(err, "State file validation failed for %s on node %s", checkType, nodes.Items[index].Name)
 		}
 	}
 	log.Printf("State file validation for %s passed", checkType)
