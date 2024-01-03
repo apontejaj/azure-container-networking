@@ -16,13 +16,88 @@ stages:
           name: "$(BUILD_POOL_NAME_DEFAULT)"
         steps:
           - script: |
-              echo "Setting up environment"
+              # To use the variables below, you must make the respective stage's dependsOn have - setup or it will not retain context of this stage
+              BUILD_NUMBER=$(Build.BuildNumber)
+              echo Build Number ${BUILD_NUMBER//./-}
+              echo $(make revision)-$(date "+%d%H%M")
+              echo Tag - $(make version)
+              echo npm version $(make npm-version)
+              echo azure-ipam - $(make azure-ipam-version)
+              echo cns version - $(make cns-version)
+              echo ----- TEST END -----
+              cat /etc/os-release
+              uname -a
+              sudo chown -R $(whoami):$(whoami) .
               go version
-              echo "##vso[task.setvariable variable=commitID;isOutput=true]$(echo $(make revision)-$(date "+%d%H%M"))"
-              echo "##vso[task.setvariable variable=npmVersion;isOutput=true]$(make npm-version)"
-              echo "##vso[task.setvariable variable=cnsVersion;isOutput=true]$(CNS_VERSION)"
-            name: "SetEnvVars"
-            displayName: "Set Environment Variables"
+              go env
+              which go
+              echo $PATH
+              echo "------"
+              echo $(Build.QueuedBy)
+              echo $(Build.Reason) # manual, PR, IndividualCI
+              echo $(Build.SourceBranch)
+            name: "EnvironmentalVariables"
+            displayName: "Set environmental variables"
+            condition: always()
+
+      - job: envarm
+        displayName: Setup Arm
+        pool:
+          name: "$(BUILD_POOL_NAME_LINUX_ARM64)"
+        steps:
+          - script: |
+              # To use the variables below, you must make the respective stage's dependsOn have - setup or it will not retain context of this stage
+              BUILD_NUMBER=$(Build.BuildNumber)
+              echo Build Number ${BUILD_NUMBER//./-}
+              echo $(make revision)-$(date "+%d%H%M")
+              echo Tag - $(make version)
+              echo npm version $(make npm-version)
+              echo azure-ipam - $(make azure-ipam-version)
+              echo cns version - $(make cns-version)
+              echo ----- TEST END -----
+              cat /etc/os-release
+              uname -a
+              sudo chown -R $(whoami):$(whoami) .
+              go version
+              go env
+              which go
+              echo $PATH
+              echo "------"
+              echo $(Build.QueuedBy)
+              echo $(Build.Reason) # manual, PR, IndividualCI
+              echo $(Build.SourceBranch)
+            name: "EnvironmentalVariables"
+            displayName: "Set environmental variables"
+            condition: always()
+
+      - job: envwin
+        displayName: Setup Windows
+        pool:
+          name: "$(BUILD_POOL_NAME_DEFAULT_WINDOWS_ALT)"
+        steps:
+          - script: |
+              # To use the variables below, you must make the respective stage's dependsOn have - setup or it will not retain context of this stage
+              BUILD_NUMBER=$(Build.BuildNumber)
+              echo Build Number ${BUILD_NUMBER//./-}
+              echo $(make revision)-$(date "+%d%H%M")
+              echo Tag - $(make version)
+              echo npm version $(make npm-version)
+              echo azure-ipam - $(make azure-ipam-version)
+              echo cns version - $(make cns-version)
+              echo ----- TEST END -----
+              cat /etc/os-release
+              uname -a
+              sudo chown -R $(whoami):$(whoami) .
+              go version
+              go env
+              which go
+              echo $PATH
+              echo "------"
+              echo $(Build.QueuedBy)
+              echo $(Build.Reason) # manual, PR, IndividualCI
+              echo $(Build.SourceBranch)
+            name: "EnvironmentalVariables"
+            displayName: "Set environmental variables"
             condition: always()
 
   - stage: build_images
