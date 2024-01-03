@@ -71,7 +71,7 @@ func TestPortForward(t *testing.T) {
 
 	job.AddStep(&azure.CreateResourceGroup{
 		SubscriptionID:    "9b8218f9-902a-4d20-a65c-e98acec5362f",
-		ResourceGroupName: "matmerr-e2e-framework-test8",
+		ResourceGroupName: "matmerr-e2e-framework-test9",
 		Location:          "westus2",
 	})
 
@@ -94,6 +94,11 @@ func TestPortForward(t *testing.T) {
 
 	job.AddStep(&azure.GetAKSKubeConfig{
 		KubeConfigFilePath: "./test.yaml",
+	})
+
+	job.AddStep(&kubernetes.CreateKapingerDeployment{
+		KapingerNamespace: "default",
+		KapingerReplicas:  "1",
 	})
 
 	job.AddStep(&kubernetes.PortForward{

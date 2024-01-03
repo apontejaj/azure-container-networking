@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
         - name: cilium-operator
-          image: $CILIUM_IMAGE_REGISTRY/cilium/operator-generic:$CILIUM_VERSION_TAG
+          image: mcr.microsoft.com/oss/cilium/operator-generic:1.14.5
           imagePullPolicy: IfNotPresent
           command:
             - cilium-operator-generic

@@ -40,7 +40,7 @@ type CreateBYOCiliumCluster struct {
 	ServiceCidr       string
 }
 
-func Printjson(data interface{}) {
+func printjson(data interface{}) {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "    ")
 	if err := enc.Encode(data); err != nil {
@@ -58,6 +58,69 @@ func (c *CreateBYOCiliumCluster) Prevalidate(values *types.JobValues) error {
 		}
 	}
 
+	return nil
+}
+
+func (c *CreateBYOCiliumCluster) Run(values *types.JobValues) error {
+	// Start with default cluster template
+	ciliumCluster := GetStarterClusterTemplate(c.Location)
+	ciliumCluster.Properties.NetworkProfile.NetworkPlugin = to.Ptr(armcontainerservice.NetworkPluginNone)
+	ciliumCluster.Properties.NetworkProfile.NetworkPluginMode = to.Ptr(armcontainerservice.NetworkPluginModeOverlay)
+	ciliumCluster.Properties.NetworkProfile.PodCidr = to.Ptr(c.PodCidr)
+	ciliumCluster.Properties.NetworkProfile.DNSServiceIP = to.Ptr(c.DNSServiceIP)
+	ciliumCluster.Properties.NetworkProfile.ServiceCidr = to.Ptr(c.ServiceCidr)
+	subnetkey := fmt.Sprintf("/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s/subnets/%s", c.SubscriptionID, c.ResourceGroupName, c.VnetName, c.SubnetName)
+	ciliumCluster.Properties.AgentPoolProfiles[0].VnetSubnetID = to.Ptr(subnetkey)
+
+	kubeProxyConfig := armcontainerservice.NetworkProfileKubeProxyConfig{
+		Mode:    to.Ptr(armcontainerservice.ModeIPVS),
+		Enabled: to.Ptr(false),
+		IpvsConfig: to.Ptr(armcontainerservice.NetworkProfileKubeProxyConfigIpvsConfig{
+			Scheduler:            to.Ptr(armcontainerservice.IpvsSchedulerLeastConnection),
+			TCPTimeoutSeconds:    to.Ptr(int32(900)), //nolint:gomnd set by existing kube-proxy in hack/aks/kube-proxy.json
+			TCPFinTimeoutSeconds: to.Ptr(int32(120)), //nolint:gomnd set by existing kube-proxy in hack/aks/kube-proxy.json
+			UDPTimeoutSeconds:    to.Ptr(int32(300)), //nolint:gomnd set by existing kube-proxy in hack/aks/kube-proxy.json
+		}),
+	}
+
+	fmt.Printf("using kube-proxy config:\n")
+	printjson(kubeProxyConfig)
+
+	ciliumCluster.Properties.NetworkProfile.KubeProxyConfig = to.Ptr(kubeProxyConfig)
+
+	// Deploy cluster
+	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		log.Fatalf("failed to obtain a credential: %v", err)
+	}
+	ctx := context.Background()
+	clientFactory, err := armcontainerservice.NewClientFactory(c.SubscriptionID, cred, nil)
+	if err != nil {
+		log.Fatalf("failed to create client: %v", err)
+	}
+
+	log.Printf("creating cluster %s in resource group %s...", c.ClusterName, c.ResourceGroupName)
+
+	poller, err := clientFactory.NewManagedClustersClient().BeginCreateOrUpdate(ctx, c.ResourceGroupName, c.ClusterName, ciliumCluster, nil)
+	if err != nil {
+		log.Fatalf("failed to finish the request: %v", err)
+	}
+	_, err = poller.PollUntilDone(ctx, nil)
+	if err != nil {
+		log.Fatalf("failed to create cluster: %v", err)
+	}
+
+	log.Printf("deploying cilium components to cluster %s in resource group %s...", c.ClusterName, c.ResourceGroupName)
+
+	err = c.deployCiliumComponents(values)
+	if err != nil {
+		fmt.Errorf("failed to deploy cilium components: %v", err)
+	}
+
+	return err
+}
+
+func (c *CreateBYOCiliumCluster) deployCiliumComponents(values *types.JobValues) error {
 	// create temporary directory for kubeconfig, as we need access to deploy cilium things
 	dir, err := os.MkdirTemp("", "cilium-e2e")
 	if err != nil {
@@ -128,70 +191,6 @@ func (c *CreateBYOCiliumCluster) Prevalidate(values *types.JobValues) error {
 			fmt.Println("Error walking the path:", err)
 		}
 	}
-
-	return nil
-}
-
-func (c *CreateBYOCiliumCluster) Run(values *types.JobValues) error {
-
-	// deploy cilium things
-	//getKubeconfigJob
-
-	//////////////////////////////////////////
-
-	// Start with started cluster template
-	ciliumCluster := GetStarterClusterTemplate(c.Location)
-
-	ciliumCluster.Properties.NetworkProfile.NetworkPlugin = to.Ptr(armcontainerservice.NetworkPluginNone)
-	// Add BYO Cilium
-
-	ciliumCluster.Properties.NetworkProfile.NetworkPluginMode = to.Ptr(armcontainerservice.NetworkPluginModeOverlay)
-	ciliumCluster.Properties.NetworkProfile.PodCidr = to.Ptr(c.PodCidr)
-	ciliumCluster.Properties.NetworkProfile.DNSServiceIP = to.Ptr(c.DNSServiceIP)
-	ciliumCluster.Properties.NetworkProfile.ServiceCidr = to.Ptr(c.ServiceCidr)
-
-	subnetkey := fmt.Sprintf("/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s/subnets/%s", c.SubscriptionID, c.ResourceGroupName, c.VnetName, c.SubnetName)
-
-	ciliumCluster.Properties.AgentPoolProfiles[0].VnetSubnetID = to.Ptr(subnetkey)
-
-	kubeProxyConfig := armcontainerservice.NetworkProfileKubeProxyConfig{
-		Mode:    to.Ptr(armcontainerservice.ModeIPVS),
-		Enabled: to.Ptr(false),
-		IpvsConfig: to.Ptr(armcontainerservice.NetworkProfileKubeProxyConfigIpvsConfig{
-			Scheduler:            to.Ptr(armcontainerservice.IpvsSchedulerLeastConnection),
-			TCPTimeoutSeconds:    to.Ptr(int32(900)), //nolint:gomnd set by existing kube-proxy in hack/aks/kube-proxy.json
-			TCPFinTimeoutSeconds: to.Ptr(int32(120)), //nolint:gomnd set by existing kube-proxy in hack/aks/kube-proxy.json
-			UDPTimeoutSeconds:    to.Ptr(int32(300)), //nolint:gomnd set by existing kube-proxy in hack/aks/kube-proxy.json
-		}),
-	}
-
-	fmt.Printf("using kube-proxy config:\n")
-	Printjson(kubeProxyConfig)
-
-	ciliumCluster.Properties.NetworkProfile.KubeProxyConfig = to.Ptr(kubeProxyConfig)
-
-	// Deploy cluster
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
-	if err != nil {
-		log.Fatalf("failed to obtain a credential: %v", err)
-	}
-	ctx := context.Background()
-	clientFactory, err := armcontainerservice.NewClientFactory(c.SubscriptionID, cred, nil)
-	if err != nil {
-		log.Fatalf("failed to create client: %v", err)
-	}
-
-	log.Printf("creating cluster %s in resource group %s...", c.ClusterName, c.ResourceGroupName)
-
-	poller, err := clientFactory.NewManagedClustersClient().BeginCreateOrUpdate(ctx, c.ResourceGroupName, c.ClusterName, ciliumCluster, nil)
-	if err != nil {
-		log.Fatalf("failed to finish the request: %v", err)
-	}
-	_, err = poller.PollUntilDone(ctx, nil)
-	if err != nil {
-		log.Fatalf("failed to create cluster: %v", err)
-	}
-
 	return nil
 }
 

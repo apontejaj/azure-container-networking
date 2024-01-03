@@ -89,7 +89,7 @@ func CreateResource(ctx context.Context, obj runtime.Object, clientset *kubernet
 	case *v1.ConfigMap:
 		client := clientset.CoreV1().ConfigMaps(o.Namespace)
 		_, err := client.Get(ctx, o.Name, metaV1.GetOptions{})
-		if errors.IsNotFound(err) {
+			if errors.IsNotFound(err) {
 			_, err = client.Create(ctx, o, metaV1.CreateOptions{})
 			return err
 		}

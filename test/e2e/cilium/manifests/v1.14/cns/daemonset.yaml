@@ -86,17 +86,15 @@ spec:
                   fieldPath: spec.nodeName
       initContainers:
         - name: cni-installer
-          image: mcr.microsoft.com/containernetworking/azure-ipam:latest
+          image: mcr.microsoft.com/containernetworking/cni-dropgz:v0.1.1
           imagePullPolicy: Always
           command: ["/dropgz"]
-          args:
-            - deploy
-            - azure-ipam
-            - -o
-            - /opt/cni/bin/azure-ipam
+          args: ["deploy", "azure-ipam", "-o", "/opt/cni/bin/azure-ipam"]
           volumeMounts:
             - name: cni-bin
               mountPath: /opt/cni/bin
+            - name: cni-conflist
+              mountPath: /etc/cni/net.d
       hostNetwork: true
       volumes:
         - name: cni-conflist
