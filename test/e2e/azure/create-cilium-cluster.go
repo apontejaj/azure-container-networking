@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 
 	k8s "github.com/Azure/azure-container-networking/test/e2e/kubernetes"
-	"github.com/Azure/azure-container-networking/test/e2e/types"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v4"
@@ -21,10 +20,10 @@ import (
 
 var (
 	componentFolders = []string{
-		"cilium/manifests/v1.14/cns",
-		"cilium/manifests/v1.14/agent",
-		"cilium/manifests/v1.14/ipmasq",
-		"cilium/manifests/v1.14/operator",
+		"manifests/cilium/v1.14/cns",
+		"manifests/cilium/v1.14/agent",
+		"manifests/cilium/v1.14/ipmasq",
+		"manifests/cilium/v1.14/operator",
 	}
 )
 
@@ -48,7 +47,7 @@ func printjson(data interface{}) {
 	}
 }
 
-func (c *CreateBYOCiliumCluster) Prevalidate(values *types.JobValues) error {
+func (c *CreateBYOCiliumCluster) Prevalidate() error {
 	// get current working directory
 	cwd, _ := os.Getwd()
 
@@ -61,11 +60,11 @@ func (c *CreateBYOCiliumCluster) Prevalidate(values *types.JobValues) error {
 	return nil
 }
 
-func (c *CreateBYOCiliumCluster) Postvalidate(values *types.JobValues) error {
+func (c *CreateBYOCiliumCluster) Postvalidate() error {
 	return nil
 }
 
-func (c *CreateBYOCiliumCluster) Run(values *types.JobValues) error {
+func (c *CreateBYOCiliumCluster) Run() error {
 	// Start with default cluster template
 	ciliumCluster := GetStarterClusterTemplate(c.Location)
 	ciliumCluster.Properties.NetworkProfile.NetworkPlugin = to.Ptr(armcontainerservice.NetworkPluginNone)
@@ -116,7 +115,7 @@ func (c *CreateBYOCiliumCluster) Run(values *types.JobValues) error {
 
 	log.Printf("deploying cilium components to cluster %s in resource group %s...", c.ClusterName, c.ResourceGroupName)
 
-	err = c.deployCiliumComponents(values)
+	err = c.deployCiliumComponents()
 	if err != nil {
 		fmt.Errorf("failed to deploy cilium components: %v", err)
 	}
@@ -124,7 +123,7 @@ func (c *CreateBYOCiliumCluster) Run(values *types.JobValues) error {
 	return err
 }
 
-func (c *CreateBYOCiliumCluster) deployCiliumComponents(values *types.JobValues) error {
+func (c *CreateBYOCiliumCluster) deployCiliumComponents() error {
 	// create temporary directory for kubeconfig, as we need access to deploy cilium things
 	dir, err := os.MkdirTemp("", "cilium-e2e")
 	if err != nil {
@@ -142,7 +141,7 @@ func (c *CreateBYOCiliumCluster) deployCiliumComponents(values *types.JobValues)
 		KubeConfigFilePath: dir + "/kubeconfig",
 	}
 
-	getKubeconfigJob.Run(values)
+	getKubeconfigJob.Run()
 
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigpath)
 	if err != nil {

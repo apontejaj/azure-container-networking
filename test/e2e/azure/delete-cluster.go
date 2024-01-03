@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 
-	"github.com/Azure/azure-container-networking/test/e2e/types"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v4"
 )
@@ -16,7 +15,7 @@ type DeleteCluster struct {
 	Location          string
 }
 
-func (c *DeleteCluster) Run(values *types.JobValues) error {
+func (c *DeleteCluster) Run() error {
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
@@ -43,10 +42,10 @@ func (c *DeleteCluster) SaveParametersToJob() bool {
 	return true
 }
 
-func (c *DeleteCluster) Prevalidate(values *types.JobValues) error {
+func (c *DeleteCluster) Prevalidate() error {
 	return nil
 }
 
-func (c *DeleteCluster) Postvalidate(values *types.JobValues) error {
+func (c *DeleteCluster) Postvalidate() error {
 	return nil
 }

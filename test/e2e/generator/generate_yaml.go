@@ -2,9 +2,9 @@
 
 package main
 
-import "github.com/Azure/azure-container-networking/test/e2e/kubernetes"
+import k8s "github.com/Azure/azure-container-networking/test/e2e/kubernetes"
 
 func main() {
-	testresources := "../testresources"
-	kubernetes.GenerateKapingerYAML(testresources)
+	testresources := "../manifests/"
+	k8s.GenerateKapingerYAML(testresources)
 }

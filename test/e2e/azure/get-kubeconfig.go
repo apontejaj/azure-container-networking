@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/Azure/azure-container-networking/test/e2e/types"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v4"
 )
@@ -18,7 +17,7 @@ type GetAKSKubeConfig struct {
 	KubeConfigFilePath string
 }
 
-func (c *GetAKSKubeConfig) Run(values *types.JobValues) error {
+func (c *GetAKSKubeConfig) Run() error {
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
@@ -47,10 +46,10 @@ func (c *GetAKSKubeConfig) SaveParametersToJob() bool {
 	return true
 }
 
-func (c *GetAKSKubeConfig) Prevalidate(values *types.JobValues) error {
+func (c *GetAKSKubeConfig) Prevalidate() error {
 	return nil
 }
 
-func (c *GetAKSKubeConfig) Postvalidate(values *types.JobValues) error {
+func (c *GetAKSKubeConfig) Postvalidate() error {
 	return nil
 }

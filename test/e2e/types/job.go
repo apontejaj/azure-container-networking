@@ -44,7 +44,7 @@ func (j *Job) Run() error {
 	}
 
 	for _, step := range j.Steps {
-		err := step.Prevalidate(j.Values)
+		err := step.Prevalidate()
 		if err != nil {
 			assert.NoError(j.t, err)
 			return err
@@ -53,7 +53,7 @@ func (j *Job) Run() error {
 
 	for _, step := range j.Steps {
 		responseDivider(reflect.TypeOf(step).Elem().Name())
-		err := step.Run(j.Values)
+		err := step.Run()
 		if err != nil {
 			assert.NoError(j.t, err)
 			return err
@@ -61,7 +61,7 @@ func (j *Job) Run() error {
 	}
 
 	for _, step := range j.Steps {
-		err := step.Postvalidate(j.Values)
+		err := step.Postvalidate()
 		if err != nil {
 			assert.NoError(j.t, err)
 			return err

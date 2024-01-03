@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 
-	"github.com/Azure/azure-container-networking/test/e2e/types"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v4"
@@ -17,7 +16,7 @@ type CreateCluster struct {
 	ClusterName       string
 }
 
-func (c *CreateCluster) Run(values *types.JobValues) error {
+func (c *CreateCluster) Run() error {
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
@@ -97,10 +96,10 @@ func (c *CreateCluster) SaveParametersToJob() bool {
 	return true
 }
 
-func (c *CreateCluster) Prevalidate(values *types.JobValues) error {
+func (c *CreateCluster) Prevalidate() error {
 	return nil
 }
 
-func (c *CreateCluster) Postvalidate(values *types.JobValues) error {
+func (c *CreateCluster) Postvalidate() error {
 	return nil
 }

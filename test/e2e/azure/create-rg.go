@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Azure/azure-container-networking/test/e2e/types"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
@@ -17,7 +16,7 @@ type CreateResourceGroup struct {
 	Location          string
 }
 
-func (c *CreateResourceGroup) Run(values *types.JobValues) error {
+func (c *CreateResourceGroup) Run() error {
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
@@ -40,7 +39,7 @@ func (c *CreateResourceGroup) Run(values *types.JobValues) error {
 	return nil
 }
 
-func (c *CreateResourceGroup) Prevalidate(values *types.JobValues) error {
+func (c *CreateResourceGroup) Prevalidate() error {
 	return nil
 }
 
@@ -52,6 +51,6 @@ func (c *CreateResourceGroup) SaveParametersToJob() bool {
 	return true
 }
 
-func (c *CreateResourceGroup) Postvalidate(values *types.JobValues) error {
+func (c *CreateResourceGroup) Postvalidate() error {
 	return nil
 }

@@ -1,9 +1,9 @@
 package types
 
 type Step interface {
-	Prevalidate(values *JobValues) error
-	Run(values *JobValues) error
-	Postvalidate(values *JobValues) error
+	Prevalidate() error
+	Run() error
+	Postvalidate() error
 	ExpectError() bool
 	SaveParametersToJob() bool
 }

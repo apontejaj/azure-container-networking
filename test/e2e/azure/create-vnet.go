@@ -18,7 +18,7 @@ type CreateVNet struct {
 	VnetAddressSpace  string
 }
 
-func (c *CreateVNet) Run(values *types.JobValues) error {
+func (c *CreateVNet) Run() error {
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
@@ -60,11 +60,11 @@ func (c *CreateVNet) SaveParametersToJob() bool {
 	return true
 }
 
-func (c *CreateVNet) Prevalidate(values *types.JobValues) error {
+func (c *CreateVNet) Prevalidate() error {
 	return nil
 }
 
-func (c *CreateVNet) Postvalidate(values *types.JobValues) error {
+func (c *CreateVNet) Postvalidate() error {
 	return nil
 }
 

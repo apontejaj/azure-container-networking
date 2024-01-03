@@ -5,8 +5,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-
-	"github.com/Azure/azure-container-networking/test/e2e/types"
 )
 
 var (
@@ -20,7 +18,7 @@ type ValidateHubbleMetrics struct {
 	LocalPort string
 }
 
-func (v *ValidateHubbleMetrics) Run(values *types.JobValues) error {
+func (v *ValidateHubbleMetrics) Run() error {
 	promAddress := fmt.Sprintf("http://localhost:%s/metrics", v.LocalPort)
 
 	metrics, err := getPrometheusMetrics(promAddress)
@@ -45,11 +43,11 @@ func (c *ValidateHubbleMetrics) SaveParametersToJob() bool {
 	return true
 }
 
-func (c *ValidateHubbleMetrics) Prevalidate(values *types.JobValues) error {
+func (c *ValidateHubbleMetrics) Prevalidate() error {
 	return nil
 }
 
-func (c *ValidateHubbleMetrics) Postvalidate(values *types.JobValues) error {
+func (c *ValidateHubbleMetrics) Postvalidate() error {
 	return nil
 }
 
