@@ -45,6 +45,9 @@ const (
 	ipv6FullMask          = 128
 )
 
+// Secondary interface NIC types
+var secondaryInterfaceNICType = []string{cns.BackendNICNC, string(cns.DelegatedVMNIC)}
+
 // CNI Operation Types
 const (
 	CNI_ADD    = "ADD"
@@ -76,6 +79,7 @@ type NetPlugin struct {
 	tb                 *telemetry.TelemetryBuffer
 	nnsClient          NnsClient
 	multitenancyClient MultitenancyClient
+	interfaceUsage     map[string]string // save master interfaces that are being used; key is ipnet, value is ifName
 }
 
 type PolicyArgs struct {
@@ -313,6 +317,17 @@ func addNatIPV6SubnetInfo(nwCfg *cni.NetworkConfig,
 	}
 }
 
+func hasSecondaryInterface(ipamAddResult IPAMAddResult) bool {
+	if ipamAddResult.secondaryInterfacesInfo != nil {
+		for _, interfaceNICType := range secondaryInterfaceNICType {
+			if string(ipamAddResult.secondaryInterfacesInfo[0].NICType) == interfaceNICType {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // CNI implementation
 // https://github.com/containernetworking/cni/blob/master/SPEC.md
 
@@ -362,12 +377,16 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		telemetry.SendCNIMetric(&cniMetric, plugin.tb)
 
 		// Add Interfaces to result.
-		defaultCniResult := convertInterfaceInfoToCniResult(ipamAddResult.defaultInterfaceInfo, args.IfName)
-
-		addSnatInterface(nwCfg, defaultCniResult)
+		cniResult := cniTypesCurr.Result{}
+		if hasSecondaryInterface(ipamAddResult) {
+			cniResult = *convertInterfaceInfoToCniResult(ipamAddResult.secondaryInterfacesInfo[0], args.IfName)
+		} else {
+			cniResult = *convertInterfaceInfoToCniResult(ipamAddResult.defaultInterfaceInfo, args.IfName)
+		}
+		addSnatInterface(nwCfg, &cniResult)
 
 		// Convert result to the requested CNI version.
-		res, vererr := defaultCniResult.GetAsVersion(nwCfg.CNIVersion)
+		res, vererr := cniResult.GetAsVersion(nwCfg.CNIVersion)
 		if vererr != nil {
 			logger.Error("GetAsVersion failed", zap.Error(vererr))
 			plugin.Error(vererr)
@@ -380,7 +399,8 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 		logger.Info("ADD command completed for",
 			zap.String("pod", k8sPodName),
-			zap.Any("IPs", defaultCniResult.IPs),
+			zap.Any("IPs", cniResult.IPs),
+			zap.Any("Interfaces", cniResult.Interfaces),
 			zap.Error(err))
 	}()
 
@@ -434,6 +454,9 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		return fmt.Errorf("failed to create cns client with error: %w", err)
 	}
 
+	options := make(map[string]any)
+	ipamAddConfig := IPAMAddConfig{nwCfg: nwCfg, args: args, options: options}
+
 	if nwCfg.MultiTenancy {
 		plugin.report.Context = "AzureCNIMultitenancy"
 		plugin.multitenancyClient.Init(cnsClient, AzureNetIOShim{})
@@ -460,6 +483,13 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 				zap.Any("results", ipamAddResult))
 			return plugin.Errorf(errMsg)
 		}
+	} else if !nwCfg.MultiTenancy && nwCfg.IPAM.Type == network.AzureCNS {
+		plugin.ipamInvoker = NewCNSInvoker(k8sPodName, k8sNamespace, cnsClient, util.ExecutionMode(nwCfg.ExecutionMode), util.IpamMode(nwCfg.IPAM.Mode))
+		ipamAddResult, err = plugin.ipamInvoker.Add(ipamAddConfig)
+		if err != nil {
+			return fmt.Errorf("IPAM Invoker Add failed with error: %w", err)
+		}
+		sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.defaultInterfaceInfo, ipamAddResult.secondaryInterfacesInfo))
 	} else {
 		// TODO: refactor this code for simplification
 		// Add dummy ipamAddResult nil object for single tenancy mode
@@ -507,22 +537,14 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 		// Initialize azureipam/cns ipam
 		if plugin.ipamInvoker == nil {
-			switch nwCfg.IPAM.Type {
-			case network.AzureCNS:
-				plugin.ipamInvoker = NewCNSInvoker(k8sPodName, k8sNamespace, cnsClient, util.ExecutionMode(nwCfg.ExecutionMode), util.IpamMode(nwCfg.IPAM.Mode))
-
-			default:
-				plugin.ipamInvoker = NewAzureIpamInvoker(plugin, &nwInfo)
+			plugin.ipamInvoker = NewAzureIpamInvoker(plugin, &nwInfo)
+			if !nwCfg.MultiTenancy {
+				ipamAddResult, err = plugin.ipamInvoker.Add(ipamAddConfig)
+				if err != nil {
+					return fmt.Errorf("IPAM Invoker Add failed with error: %w", err)
+				}
+				sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.defaultInterfaceInfo, ipamAddResult.secondaryInterfacesInfo))
 			}
-		}
-
-		ipamAddConfig := IPAMAddConfig{nwCfg: nwCfg, args: args, options: options}
-		if !nwCfg.MultiTenancy {
-			ipamAddResult, err = plugin.ipamInvoker.Add(ipamAddConfig)
-			if err != nil {
-				return fmt.Errorf("IPAM Invoker Add failed with error: %w", err)
-			}
-			sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.defaultInterfaceInfo, ipamAddResult.secondaryInterfacesInfo))
 		}
 
 		defer func() { //nolint:gocritic
@@ -607,13 +629,36 @@ func (plugin *NetPlugin) createNetworkInternal(
 	nwInfo := network.NetworkInfo{}
 	ipamAddResult.hostSubnetPrefix.IP = ipamAddResult.hostSubnetPrefix.IP.Mask(ipamAddResult.hostSubnetPrefix.Mask)
 	ipamAddConfig.nwCfg.IPAM.Subnet = ipamAddResult.hostSubnetPrefix.String()
-	// Find the master interface.
-	masterIfName := plugin.findMasterInterface(ipamAddConfig.nwCfg, &ipamAddResult.hostSubnetPrefix)
-	if masterIfName == "" {
-		err := plugin.Errorf("Failed to find the master interface")
-		return nwInfo, err
+
+	ipnet := net.IPNet{}
+	interfaceInfo := network.InterfaceInfo{}
+	if hasSecondaryInterface(ipamAddResult) {
+		interfaceInfo = ipamAddResult.secondaryInterfacesInfo[0]
+		_, net, err := net.ParseCIDR(ipamAddResult.secondaryInterfacesInfo[0].IPConfigs[0].Address.String())
+		if err != nil {
+			logger.Error("Failed to parse secondary interface ipnet", zap.Error(err))
+		}
+		ipnet = *net
+	} else {
+		interfaceInfo = ipamAddResult.defaultInterfaceInfo
+		ipnet = ipamAddResult.hostSubnetPrefix
 	}
+
+	// Find the master interface.
+	masterIfName := plugin.findMasterInterface(ipamAddConfig.nwCfg, &ipnet)
+	if masterIfName == "" {
+		// check if masterInterface is in masterInterfaces map
+		// if not, then no master interface is found
+		if ifName, ok := plugin.interfaceUsage[ipnet.String()]; ok {
+			masterIfName = ifName
+		} else {
+			err := plugin.Errorf("Failed to find the master interface")
+			return nwInfo, err
+		}
+	}
+
 	logger.Info("Found master interface", zap.String("ifname", masterIfName))
+	plugin.interfaceUsage[ipnet.String()] = masterIfName
 
 	// Add the master as an external interface.
 	err := plugin.nm.AddExternalInterface(masterIfName, ipamAddResult.hostSubnetPrefix.String())
@@ -622,7 +667,7 @@ func (plugin *NetPlugin) createNetworkInternal(
 		return nwInfo, err
 	}
 
-	nwDNSInfo, err := getNetworkDNSSettings(ipamAddConfig.nwCfg, ipamAddResult.defaultInterfaceInfo.DNS)
+	nwDNSInfo, err := getNetworkDNSSettings(ipamAddConfig.nwCfg, interfaceInfo.DNS)
 	if err != nil {
 		err = plugin.Errorf("Failed to getDNSSettings: %v", err)
 		return nwInfo, err
@@ -666,7 +711,14 @@ func (plugin *NetPlugin) createNetworkInternal(
 
 // construct network info with ipv4/ipv6 subnets
 func addSubnetToNetworkInfo(ipamAddResult IPAMAddResult, nwInfo *network.NetworkInfo) error {
-	for _, ipConfig := range ipamAddResult.defaultInterfaceInfo.IPConfigs {
+	interfaceInfo := network.InterfaceInfo{}
+	if hasSecondaryInterface(ipamAddResult) {
+		interfaceInfo = ipamAddResult.secondaryInterfacesInfo[0]
+	} else {
+		interfaceInfo = ipamAddResult.defaultInterfaceInfo
+	}
+
+	for _, ipConfig := range interfaceInfo.IPConfigs {
 		ip, podSubnetPrefix, err := net.ParseCIDR(ipConfig.Address.String())
 		if err != nil {
 			return fmt.Errorf("Failed to ParseCIDR for pod subnet prefix: %w", err)
@@ -1081,6 +1133,15 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 		sendEvent(plugin, fmt.Sprintf("Deleting endpoint:%v", endpointID))
 		// Delete the endpoint.
 		if err = plugin.nm.DeleteEndpoint(networkID, endpointID, epInfo); err != nil {
+			// cleanup interfaces usage map
+			if plugin.interfaceUsage != nil {
+				delete(plugin.interfaceUsage, nwInfo.MasterIfName)
+				// delete hnsNetwork in delegatedVMNIC scenario
+				err = plugin.nm.DeleteNetwork(networkID)
+				if err != nil {
+					logger.Error("Failed to delete hnsNetwork", zap.Error(err))
+				}
+			}
 			// return a retriable error so the container runtime will retry this DEL later
 			// the implementation of this function returns nil if the endpoint doens't exist, so
 			// we don't have to check that here

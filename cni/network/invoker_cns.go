@@ -171,6 +171,10 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 				numInterfacesWithDefaultRoutes++
 			}
 
+			info.hostSubnet = response.PodIPInfo[i].HostSecondaryIPInfo.Subnet
+			info.hostPrimaryIP = response.PodIPInfo[i].HostSecondaryIPInfo.PrimaryIP
+			info.hostGateway = response.PodIPInfo[i].HostSecondaryIPInfo.Gateway
+
 			if err := configureSecondaryAddResult(&info, &addResult, &response.PodIPInfo[i].PodIPConfig); err != nil {
 				return IPAMAddResult{}, err
 			}
@@ -450,6 +454,13 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 		return errors.Wrap(err, "Invalid mac address")
 	}
 
+	_, hostIPNet, err := net.ParseCIDR(info.hostSubnet)
+	if err != nil {
+		return fmt.Errorf("unable to parse hostSubnet: %w", err)
+	}
+
+	addResult.hostSubnetPrefix = *hostIPNet
+
 	routes, err := getRoutes(info.routes, info.skipDefaultRoutes)
 	if err != nil {
 		return err
@@ -462,6 +473,7 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 					IP:   ip,
 					Mask: ipnet.Mask,
 				},
+				Gateway: net.ParseIP(info.ncGatewayIPAddress),
 			},
 		},
 		Routes:            routes,
