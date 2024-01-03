@@ -59,6 +59,14 @@ func (j *Job) Run() error {
 			return err
 		}
 	}
+
+	for _, step := range j.Steps {
+		err := step.Postvalidate(j.Values)
+		if err != nil {
+			assert.NoError(j.t, err)
+			return err
+		}
+	}
 	return nil
 }
 

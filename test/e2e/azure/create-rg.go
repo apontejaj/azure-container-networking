@@ -51,3 +51,7 @@ func (c *CreateResourceGroup) ExpectError() bool {
 func (c *CreateResourceGroup) SaveParametersToJob() bool {
 	return true
 }
+
+func (c *CreateResourceGroup) Postvalidate(values *types.JobValues) error {
+	return nil
+}

@@ -1,11 +1,12 @@
 package main
 
 import (
+	"os/user"
 	"testing"
 
 	"github.com/Azure/azure-container-networking/test/e2e/azure"
 	"github.com/Azure/azure-container-networking/test/e2e/hubble"
-	"github.com/Azure/azure-container-networking/test/e2e/kubernetes"
+	k8s "github.com/Azure/azure-container-networking/test/e2e/kubernetes"
 	"github.com/Azure/azure-container-networking/test/e2e/types"
 )
 
@@ -36,7 +37,7 @@ func TestCreateCluster(t *testing.T) {
 		KubeConfigFilePath: "./test.yaml",
 	})
 
-	job.AddStep(&kubernetes.CreateKapingerDeployment{
+	job.AddStep(&k8s.CreateKapingerDeployment{
 		KapingerNamespace: "kapinger",
 		KapingerReplicas:  "1",
 	})
@@ -58,7 +59,7 @@ func TestDeployKapinger(t *testing.T) {
 	job := types.NewJob(t)
 	defer job.Run()
 
-	job.AddStep(&kubernetes.CreateKapingerDeployment{
+	job.AddStep(&k8s.CreateKapingerDeployment{
 		KapingerNamespace:  "default",
 		KapingerReplicas:   "1",
 		KubeConfigFilePath: "./test.yaml",
@@ -69,9 +70,12 @@ func TestPortForward(t *testing.T) {
 	job := types.NewJob(t)
 	defer job.Run()
 
+	user, _ := user.Current()
+	testName := user.Name + " validate-hubble-metrics"
+
 	job.AddStep(&azure.CreateResourceGroup{
 		SubscriptionID:    "9b8218f9-902a-4d20-a65c-e98acec5362f",
-		ResourceGroupName: "matmerr-e2e-framework-test9",
+		ResourceGroupName: testName,
 		Location:          "westus2",
 	})
 
@@ -86,26 +90,27 @@ func TestPortForward(t *testing.T) {
 	})
 
 	job.AddStep(&azure.CreateBYOCiliumCluster{
-		ClusterName:  "matmerr-e2e-framework-test",
+		ClusterName:  testName,
 		PodCidr:      "10.128.0.0/9",
 		DNSServiceIP: "192.168.0.10",
 		ServiceCidr:  "192.168.0.0/28",
 	})
 
 	job.AddStep(&azure.GetAKSKubeConfig{
-		KubeConfigFilePath: "./test.yaml",
+		KubeConfigFilePath: "./test.pem",
 	})
 
-	job.AddStep(&kubernetes.CreateKapingerDeployment{
+	job.AddStep(&k8s.CreateKapingerDeployment{
 		KapingerNamespace: "default",
 		KapingerReplicas:  "1",
 	})
 
-	job.AddStep(&kubernetes.PortForward{
-		Namespace:     "default",
-		LabelSelector: "k8s-app=hubble",
-		LocalPort:     "9965",
-		RemotePort:    "9965",
+	job.AddStep(&k8s.PortForward{
+		KubeConfigFilePath: "./test.pem",
+		Namespace:          "kube-system",
+		LabelSelector:      "k8s-app=cilium",
+		LocalPort:          "9965",
+		RemotePort:         "9965",
 	})
 
 	job.AddStep(&hubble.ValidateHubbleMetrics{})

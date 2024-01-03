@@ -21,7 +21,6 @@ type ValidateHubbleMetrics struct {
 }
 
 func (v *ValidateHubbleMetrics) Run(values *types.JobValues) error {
-
 	promAddress := fmt.Sprintf("http://localhost:%s/metrics", v.LocalPort)
 
 	metrics, err := getPrometheusMetrics(promAddress)
@@ -34,7 +33,7 @@ func (v *ValidateHubbleMetrics) Run(values *types.JobValues) error {
 			return fmt.Errorf("scraping %s, did not find metric %s", val, promAddress) //nolint:goerr113,gocritic
 		}
 	}
-	fmt.Println("all metrics validated: %+v", requiredMetrics)
+	fmt.Printf("all metrics validated: %+v", requiredMetrics)
 	return nil
 }
 
@@ -47,6 +46,10 @@ func (c *ValidateHubbleMetrics) SaveParametersToJob() bool {
 }
 
 func (c *ValidateHubbleMetrics) Prevalidate(values *types.JobValues) error {
+	return nil
+}
+
+func (c *ValidateHubbleMetrics) Postvalidate(values *types.JobValues) error {
 	return nil
 }
 

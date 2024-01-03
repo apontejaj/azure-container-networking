@@ -100,3 +100,7 @@ func (c *CreateCluster) SaveParametersToJob() bool {
 func (c *CreateCluster) Prevalidate(values *types.JobValues) error {
 	return nil
 }
+
+func (c *CreateCluster) Postvalidate(values *types.JobValues) error {
+	return nil
+}

@@ -64,6 +64,10 @@ func (c *CreateVNet) Prevalidate(values *types.JobValues) error {
 	return nil
 }
 
+func (c *CreateVNet) Postvalidate(values *types.JobValues) error {
+	return nil
+}
+
 type CreateSubnet struct {
 	SubscriptionID     string
 	ResourceGroupName  string
@@ -111,5 +115,9 @@ func (c *CreateSubnet) SaveParametersToJob() bool {
 }
 
 func (c *CreateSubnet) Prevalidate(values *types.JobValues) error {
+	return nil
+}
+
+func (c *CreateSubnet) Postvalidate(values *types.JobValues) error {
 	return nil
 }

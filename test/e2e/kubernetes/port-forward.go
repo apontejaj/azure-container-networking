@@ -1,4 +1,4 @@
-package kubernetes
+package k8s
 
 import (
 	"context"
@@ -13,12 +13,12 @@ import (
 )
 
 const (
-	retryAttempts = 10
-	retryDelay    = 5 * time.Second
+	retryAttempts         = 15
+	defaultTimeoutSeconds = 120
 )
 
 var (
-	defaultRetrier = retry.Retrier{Attempts: retryAttempts, Delay: retryDelay}
+	defaultRetrier = retry.Retrier{Attempts: 60, Delay: time.Second}
 )
 
 type PortForward struct {
@@ -27,6 +27,10 @@ type PortForward struct {
 	LocalPort          string
 	RemotePort         string
 	KubeConfigFilePath string
+
+	// local properties
+	pf                *k8s.PortForwarder
+	portForwardHandle k8s.PortForwardStreamHandle
 }
 
 func (p *PortForward) Run(values *types.JobValues) error {
@@ -38,31 +42,29 @@ func (p *PortForward) Run(values *types.JobValues) error {
 	lport, _ := strconv.Atoi(p.LocalPort)
 	rport, _ := strconv.Atoi(p.RemotePort)
 
-	pf, err := k8s.NewPortForwarder(config, nil, k8s.PortForwardingOpts{
-		Namespace:     p.Namespace,
-		LabelSelector: p.LabelSelector,
-		LocalPort:     lport,
-		DestPort:      rport,
-	})
+	p.pf, err = k8s.NewPortForwarder(config)
 
 	if err != nil {
 		return fmt.Errorf("could not create port forwarder: %w", err)
 	}
 	pctx := context.Background()
 
-	portForwardCtx, cancel := context.WithTimeout(pctx, (retryAttempts+1)*retryDelay)
+	portForwardCtx, cancel := context.WithTimeout(pctx, defaultTimeoutSeconds*time.Second)
 	defer cancel()
 
 	portForwardFn := func() error {
-		fmt.Println("attempting port forward to a pod with label %s, in namespace %s...", p.LabelSelector, p.Namespace)
-		if err = pf.Forward(portForwardCtx); err != nil {
+		fmt.Printf("attempting port forward to a pod with label %s, in namespace %s...", p.LabelSelector, p.Namespace)
+		handle, err := p.pf.Forward(pctx, p.Namespace, p.LabelSelector, lport, rport)
+		if err != nil {
 			return fmt.Errorf("could not start port forward: %w", err)
 		}
+		p.portForwardHandle = handle
 		return nil
 	}
+	fmt.Printf("streamHandle: %v\n", p.portForwardHandle.Url())
 
 	if err = defaultRetrier.Do(portForwardCtx, portForwardFn); err != nil {
-		return fmt.Errorf("could not start port forward within %d: %v", (retryAttempts+1)*retryDelay, err)
+		return fmt.Errorf("could not start port forward within %ds: %v", defaultTimeoutSeconds, err)
 	}
 
 	return nil
@@ -72,10 +74,15 @@ func (p *PortForward) ExpectError() bool {
 	return false
 }
 
-func (c *PortForward) SaveParametersToJob() bool {
+func (p *PortForward) SaveParametersToJob() bool {
 	return true
 }
 
-func (c *PortForward) Prevalidate(values *types.JobValues) error {
+func (p *PortForward) Prevalidate(values *types.JobValues) error {
+	return nil
+}
+
+func (p *PortForward) Postvalidate(values *types.JobValues) error {
+	p.portForwardHandle.Stop()
 	return nil
 }

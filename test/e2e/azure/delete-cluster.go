@@ -46,3 +46,7 @@ func (c *DeleteCluster) SaveParametersToJob() bool {
 func (c *DeleteCluster) Prevalidate(values *types.JobValues) error {
 	return nil
 }
+
+func (c *DeleteCluster) Postvalidate(values *types.JobValues) error {
+	return nil
+}

@@ -61,6 +61,10 @@ func (c *CreateBYOCiliumCluster) Prevalidate(values *types.JobValues) error {
 	return nil
 }
 
+func (c *CreateBYOCiliumCluster) Postvalidate(values *types.JobValues) error {
+	return nil
+}
+
 func (c *CreateBYOCiliumCluster) Run(values *types.JobValues) error {
 	// Start with default cluster template
 	ciliumCluster := GetStarterClusterTemplate(c.Location)

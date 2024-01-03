@@ -1,4 +1,4 @@
-package kubernetes
+package k8s
 
 import (
 	"context"
@@ -98,6 +98,10 @@ func (c *CreateKapingerDeployment) SaveParametersToJob() bool {
 }
 
 func (c *CreateKapingerDeployment) Prevalidate(values *types.JobValues) error {
+	return nil
+}
+
+func (c *CreateKapingerDeployment) Postvalidate(values *types.JobValues) error {
 	return nil
 }
 

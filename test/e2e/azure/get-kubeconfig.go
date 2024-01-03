@@ -50,3 +50,7 @@ func (c *GetAKSKubeConfig) SaveParametersToJob() bool {
 func (c *GetAKSKubeConfig) Prevalidate(values *types.JobValues) error {
 	return nil
 }
+
+func (c *GetAKSKubeConfig) Postvalidate(values *types.JobValues) error {
+	return nil
+}

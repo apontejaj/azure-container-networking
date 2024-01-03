@@ -24,7 +24,7 @@ data:
   enable-health-check-nodeport: "true"
   enable-health-checking: "true"
   enable-host-legacy-routing: "true"
-  enable-hubble: "false"
+  enable-hubble: "true"
   enable-ipv4: "true"
   enable-ipv4-masquerade: "false"
   enable-ipv6: "false"
@@ -42,6 +42,8 @@ data:
   enable-vtep: "false"
   enable-well-known-identities: "false"
   enable-xt-socket-fallback: "true"
+  hubble-metrics-server: :9965
+  hubble-metrics: flow:sourceEgressContext=pod;destinationIngressContext=pod tcp:sourceEgressContext=pod;destinationIngressContext=pod dns:sourceEgressContext=pod;destinationIngressContext=pod
   identity-allocation-mode: crd
   install-iptables-rules: "true"
   install-no-conntrack-iptables-rules: "false"
