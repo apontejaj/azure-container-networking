@@ -69,6 +69,10 @@ func TestValidateHubbleMetrics(t *testing.T) {
 		RemotePort:    "9965",
 	})
 
+	job.AddStep(&types.Sleep{
+		Duration: 15 * time.Second,
+	})
+
 	job.AddStep(&hubble.ValidateHubbleMetrics{})
 
 	job.AddStep(&azure.DeleteResourceGroup{})
