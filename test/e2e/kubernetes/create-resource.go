@@ -2,7 +2,6 @@ package k8s
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -31,6 +30,17 @@ func CreateResource(ctx context.Context, obj runtime.Object, clientset *kubernet
 	case *appsv1.Deployment:
 		log.Printf("Create/Update Deployment %s in namespace %s\n", o.Name, o.Namespace)
 		client := clientset.AppsV1().Deployments(o.Namespace)
+		_, err := client.Get(ctx, o.Name, metaV1.GetOptions{})
+		if errors.IsNotFound(err) {
+			_, err = client.Create(ctx, o, metaV1.CreateOptions{})
+			return err
+		}
+		_, err = client.Update(ctx, o, metaV1.UpdateOptions{})
+		return err
+
+	case *v1.Service:
+		log.Printf("Create/Update Service %s in namespace %s\n", o.Name, o.Namespace)
+		client := clientset.CoreV1().Services(o.Namespace)	
 		_, err := client.Get(ctx, o.Name, metaV1.GetOptions{})
 		if errors.IsNotFound(err) {
 			_, err = client.Create(ctx, o, metaV1.CreateOptions{})
@@ -106,7 +116,7 @@ func CreateResource(ctx context.Context, obj runtime.Object, clientset *kubernet
 		return err
 
 	default:
-		fmt.Println("The object is not a Kubernetes resource")
+		log.Println("The object is not a Kubernetes resource")
 	}
 	return nil
 }
