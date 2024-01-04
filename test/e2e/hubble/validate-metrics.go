@@ -31,7 +31,7 @@ type ValidateHubbleMetrics struct {
 
 func (v *ValidateHubbleMetrics) Run() error {
 	promAddress := fmt.Sprintf("http://localhost:%s/metrics", v.LocalPort)
-
+	log.Printf("require all metrics to be present: %+v\n", requiredMetrics)
 	ctx := context.Background()
 	var metrics map[string]struct{}
 	scrapeMetricsFn := func() error {
@@ -55,7 +55,9 @@ func (v *ValidateHubbleMetrics) Run() error {
 
 	for _, reqMetric := range requiredMetrics {
 		if _, exists := metrics[reqMetric]; !exists {
-			return fmt.Errorf("scraping %s, did not find metric %s, all metrics: %+v", promAddress, reqMetric, requiredMetrics) //nolint:goerr113,gocritic
+			return fmt.Errorf("scraping %s, did not find metric %s: ", promAddress, reqMetric) //nolint:goerr113,gocritic
+		} else {
+			log.Printf("found metric %s\n", reqMetric)
 		}
 	}
 

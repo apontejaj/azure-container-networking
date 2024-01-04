@@ -11,7 +11,6 @@ import (
 
 type CreateVNet struct {
 	SubscriptionID    string
-	TenantID          string
 	ResourceGroupName string
 	Location          string
 	VnetName          string
@@ -19,9 +18,7 @@ type CreateVNet struct {
 }
 
 func (c *CreateVNet) Run() error {
-	cred, err := azidentity.NewDefaultAzureCredential(to.Ptr(azidentity.DefaultAzureCredentialOptions{
-		TenantID: c.TenantID,
-	}))
+	cred, err := azidentity.NewAzureCLICredential(nil)
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
 	}

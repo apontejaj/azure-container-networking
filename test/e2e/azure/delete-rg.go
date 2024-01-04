@@ -11,7 +11,6 @@ import (
 
 type DeleteResourceGroup struct {
 	SubscriptionID    string
-	TenantID          string
 	ResourceGroupName string
 	Location          string
 }

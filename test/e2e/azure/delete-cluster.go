@@ -11,7 +11,6 @@ import (
 type DeleteCluster struct {
 	ClusterName       string
 	SubscriptionID    string
-	TenantID          string
 	ResourceGroupName string
 	Location          string
 }

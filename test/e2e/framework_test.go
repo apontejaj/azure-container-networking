@@ -3,7 +3,9 @@ package main
 import (
 	"os"
 	"os/user"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/Azure/azure-container-networking/test/e2e/azure"
 	"github.com/Azure/azure-container-networking/test/e2e/hubble"
@@ -24,14 +26,12 @@ func TestValidateHubbleMetrics(t *testing.T) {
 	defer job.Run()
 
 	user, _ := user.Current()
-	testName := user.Username + "-validate-hubble-metrics-17"
+	testName := user.Username + "-e2e-netobs-" + strconv.FormatInt(time.Now().Unix(), 10)
 
 	sub := os.Getenv("AZURE_SUBSCRIPTION_ID")
-	tenant := os.Getenv("AZURE_TENANT_ID")
 
 	job.AddStep(&azure.CreateResourceGroup{
 		SubscriptionID:    sub,
-		TenantID:          tenant,
 		ResourceGroupName: testName,
 		Location:          "westus2",
 	})

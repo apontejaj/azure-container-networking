@@ -12,7 +12,6 @@ import (
 type GetAKSKubeConfig struct {
 	ClusterName        string
 	SubscriptionID     string
-	TenantID           string
 	ResourceGroupName  string
 	Location           string
 	KubeConfigFilePath string

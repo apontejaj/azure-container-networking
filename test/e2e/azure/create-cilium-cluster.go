@@ -33,7 +33,6 @@ var (
 
 type CreateBYOCiliumCluster struct {
 	SubscriptionID    string
-	TenantID          string
 	ResourceGroupName string
 	Location          string
 	ClusterName       string
@@ -60,6 +59,10 @@ func (c *CreateBYOCiliumCluster) Prevalidate() error {
 		if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("directory not found: %s\ncurrent working directory: %s", dir, cwd)
 		}
+	}
+
+	if len(c.ResourceGroupName) > 80 {
+		return fmt.Errorf("resource group name for nodes cannot exceed 80 characters")
 	}
 
 	return nil
