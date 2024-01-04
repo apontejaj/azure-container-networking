@@ -2,7 +2,6 @@ package azure
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
@@ -12,12 +11,13 @@ import (
 
 type CreateResourceGroup struct {
 	SubscriptionID    string
+	TenantID          string
 	ResourceGroupName string
 	Location          string
 }
 
 func (c *CreateResourceGroup) Run() error {
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	cred, err := azidentity.NewAzureCLICredential(nil)
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
 	}
@@ -26,7 +26,7 @@ func (c *CreateResourceGroup) Run() error {
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
-	fmt.Println("resource group\"" + c.ResourceGroupName + "\" creating...")
+	log.Println("resource group\"" + c.ResourceGroupName + "\" creating...")
 
 	_, err = clientFactory.NewResourceGroupsClient().CreateOrUpdate(ctx, c.ResourceGroupName, armresources.ResourceGroup{
 		Location: to.Ptr(c.Location),
@@ -35,7 +35,7 @@ func (c *CreateResourceGroup) Run() error {
 		log.Fatalf("failed to finish the request: %v", err)
 	}
 
-	fmt.Println("resource group\"" + c.ResourceGroupName + "\" created successfully")
+	log.Println("resource group \"" + c.ResourceGroupName + "\" created successfully")
 	return nil
 }
 

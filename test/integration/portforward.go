@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -72,6 +73,8 @@ func (p *PortForwarder) Forward(ctx context.Context, namespace, labelSelector st
 		Namespace(namespace).
 		Name(podName).
 		SubResource("portforward").URL()
+
+	log.Printf("port forwarding to pod %s in namespace %s...\n", podName, namespace)
 
 	stopChan := make(chan struct{}, 1)
 	errChan := make(chan error, 1)

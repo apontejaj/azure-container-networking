@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v4"
 )
@@ -11,12 +12,15 @@ import (
 type DeleteCluster struct {
 	ClusterName       string
 	SubscriptionID    string
+	TenantID          string
 	ResourceGroupName string
 	Location          string
 }
 
 func (c *DeleteCluster) Run() error {
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	cred, err := azidentity.NewDefaultAzureCredential(to.Ptr(azidentity.DefaultAzureCredentialOptions{
+		TenantID: c.TenantID,
+	}))
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
 	}
@@ -25,12 +29,16 @@ func (c *DeleteCluster) Run() error {
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
-	res, err := clientFactory.NewManagedClustersClient().Get(ctx, c.ResourceGroupName, c.ClusterName, nil)
+
+	log.Printf("deleting cluster %s in resource group %s...", c.ClusterName, c.ResourceGroupName)
+	poller, err := clientFactory.NewManagedClustersClient().BeginDelete(ctx, c.ResourceGroupName, c.ClusterName, nil)
 	if err != nil {
 		log.Fatalf("failed to finish the request: %v", err)
 	}
-	// You could use response here. We use blank identifier for just demo purposes.
-	_ = res
+	_, err = poller.PollUntilDone(ctx, nil)
+	if err != nil {
+		log.Fatalf("failed to pull the result: %v", err)
+	}
 	return nil
 }
 

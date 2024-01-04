@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 
-	"github.com/Azure/azure-container-networking/test/e2e/types"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v5"
@@ -12,6 +11,7 @@ import (
 
 type CreateVNet struct {
 	SubscriptionID    string
+	TenantID          string
 	ResourceGroupName string
 	Location          string
 	VnetName          string
@@ -19,7 +19,9 @@ type CreateVNet struct {
 }
 
 func (c *CreateVNet) Run() error {
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	cred, err := azidentity.NewDefaultAzureCredential(to.Ptr(azidentity.DefaultAzureCredentialOptions{
+		TenantID: c.TenantID,
+	}))
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
 	}
@@ -77,7 +79,7 @@ type CreateSubnet struct {
 	SubnetAddressSpace string
 }
 
-func (c *CreateSubnet) Run(values *types.JobValues) error {
+func (c *CreateSubnet) Run() error {
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
@@ -114,10 +116,10 @@ func (c *CreateSubnet) SaveParametersToJob() bool {
 	return true
 }
 
-func (c *CreateSubnet) Prevalidate(values *types.JobValues) error {
+func (c *CreateSubnet) Prevalidate() error {
 	return nil
 }
 
-func (c *CreateSubnet) Postvalidate(values *types.JobValues) error {
+func (c *CreateSubnet) Postvalidate() error {
 	return nil
 }

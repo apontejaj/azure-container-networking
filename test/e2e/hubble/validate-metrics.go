@@ -1,10 +1,19 @@
 package hubble
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/Azure/azure-container-networking/test/internal/retry"
+)
+
+const (
+	defaultTimeoutSeconds = 300
 )
 
 var (
@@ -12,6 +21,8 @@ var (
 		"hubble_flows_processed_total",
 		"hubble_tcp_flags_total",
 	}
+
+	defaultRetrier = retry.Retrier{Attempts: 60, Delay: 5 * time.Second}
 )
 
 type ValidateHubbleMetrics struct {
@@ -21,17 +32,34 @@ type ValidateHubbleMetrics struct {
 func (v *ValidateHubbleMetrics) Run() error {
 	promAddress := fmt.Sprintf("http://localhost:%s/metrics", v.LocalPort)
 
-	metrics, err := getPrometheusMetrics(promAddress)
-	if err != nil {
-		return fmt.Errorf("failed to get prometheus metrics: %w", err)
+	ctx := context.Background()
+	var metrics map[string]struct{}
+	scrapeMetricsFn := func() error {
+		log.Printf("attempting scrape metrics on %s", promAddress)
+
+		var err error
+		metrics, err = getPrometheusMetrics(promAddress)
+		if err != nil {
+			log.Printf("failed to get prometheus metrics: %v", err)
+			return fmt.Errorf("failed to get prometheus metrics: %w", err)
+		}
+		return nil
+	}
+
+	portForwardCtx, cancel := context.WithTimeout(ctx, defaultTimeoutSeconds*time.Second)
+	defer cancel()
+
+	if err := defaultRetrier.Do(portForwardCtx, scrapeMetricsFn); err != nil {
+		return fmt.Errorf("could not start port forward within %ds: %v", defaultTimeoutSeconds, err)
 	}
 
 	for _, reqMetric := range requiredMetrics {
-		if val, exists := metrics[reqMetric]; !exists {
-			return fmt.Errorf("scraping %s, did not find metric %s", val, promAddress) //nolint:goerr113,gocritic
+		if _, exists := metrics[reqMetric]; !exists {
+			return fmt.Errorf("scraping %s, did not find metric %s, all metrics: %+v", promAddress, reqMetric, requiredMetrics) //nolint:goerr113,gocritic
 		}
 	}
-	fmt.Printf("all metrics validated: %+v", requiredMetrics)
+
+	log.Printf("all metrics validated: %+v\n", requiredMetrics)
 	return nil
 }
 

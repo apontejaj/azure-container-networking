@@ -1,40 +1,40 @@
-pr:
-  branches:
-    include:
-      - master
-      - release/*
-  paths:
-    exclude:
-      - ".devcontainer"
-      - ".hooks"
-      - ".vscode"
-      - ".github"
-      - docs
+  pr:
+    branches:
+      include:
+        - master
+        - release/*
+    paths:
+      exclude:
+        - ".devcontainer"
+        - ".hooks"
+        - ".vscode"
+        - ".github"
+        - docs
 
-trigger:
-  branches:
-    include:
-      - gh-readonly-queue/master/*
-  paths:
-    exclude:
-      - docs
-      - "zapai/*"
-      - "azure-ipam/*"
-      - "dropgz/*"
-  tags:
-    include:
-      - "*"
+  trigger:
+    branches:
+      include:
+        - gh-readonly-queue/master/*
+    paths:
+      exclude:
+        - docs
+        - "zapai/*"
+        - "azure-ipam/*"
+        - "dropgz/*"
+    tags:
+      include:
+        - "*"
 
-stages:
-  - stage: setup
-    displayName: ACN
-    jobs:
-      - job: env
-        displayName: Setup
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
-        steps:
-          - script: |
+  stages:
+    - stage: setup
+      displayName: ACN
+      jobs:
+        - job: env
+          displayName: Setup
+          pool:
+            name: "$(BUILD_POOL_NAME_DEFAULT)"
+          steps:
+            - script: |
               # To use the variables below, you must make the respective stage's dependsOn have - setup or it will not retain context of this stage
               BUILD_NUMBER=$(Build.BuildNumber)
               echo "##vso[task.setvariable variable=StorageID;isOutput=true]$(echo ${BUILD_NUMBER//./-})"

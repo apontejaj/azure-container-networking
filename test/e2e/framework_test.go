@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"os/user"
 	"testing"
 
@@ -18,63 +19,19 @@ import (
 // - Cluster resources used in code should be able to be generated to yaml for easy manual repro
 // - Avoid shell/ps calls wherever possible and use go libraries for typed parameters (avoid capturing error codes/stderr/stdout)
 
-func TestCreateCluster(t *testing.T) {
-	job := types.NewJob(t)
-	defer job.Run()
-
-	job.AddStep(&azure.CreateResourceGroup{
-		SubscriptionID:    "9b8218f9-902a-4d20-a65c-e98acec5362f",
-		ResourceGroupName: "matmerr-e2e-framework-test2",
-		Location:          "westus2",
-	})
-
-	job.AddStep(&azure.CreateCluster{
-		ClusterName: "matmerr-e2e-framework-test",
-		//ResourceGroupName: "matmerr-e2e-framework-zdfgtest2",
-	})
-
-	job.AddStep(&azure.GetAKSKubeConfig{
-		KubeConfigFilePath: "./test.yaml",
-	})
-
-	job.AddStep(&k8s.CreateKapingerDeployment{
-		KapingerNamespace: "kapinger",
-		KapingerReplicas:  "1",
-	})
-
-	//job.AddStep(&azure.DeleteCluster{})
-}
-
-func TestAddJobs(t *testing.T) {
-	job := types.NewJob(t)
-	defer job.Run()
-
-	job.AddStep(&azure.CreateResourceGroup{
-		SubscriptionID: "9b8218f9-902a-4d20-a65c-e98acec5362f",
-		Location:       "westus2",
-	})
-}
-
-func TestDeployKapinger(t *testing.T) {
-	job := types.NewJob(t)
-	defer job.Run()
-
-	job.AddStep(&k8s.CreateKapingerDeployment{
-		KapingerNamespace:  "default",
-		KapingerReplicas:   "1",
-		KubeConfigFilePath: "./test.yaml",
-	})
-}
-
-func TestPortForward(t *testing.T) {
+func TestValidateHubbleMetrics(t *testing.T) {
 	job := types.NewJob(t)
 	defer job.Run()
 
 	user, _ := user.Current()
-	testName := user.Name + " validate-hubble-metrics"
+	testName := user.Username + "-validate-hubble-metrics-17"
+
+	sub := os.Getenv("AZURE_SUBSCRIPTION_ID")
+	tenant := os.Getenv("AZURE_TENANT_ID")
 
 	job.AddStep(&azure.CreateResourceGroup{
-		SubscriptionID:    "9b8218f9-902a-4d20-a65c-e98acec5362f",
+		SubscriptionID:    sub,
+		TenantID:          tenant,
 		ResourceGroupName: testName,
 		Location:          "westus2",
 	})
@@ -106,12 +63,13 @@ func TestPortForward(t *testing.T) {
 	})
 
 	job.AddStep(&k8s.PortForward{
-		KubeConfigFilePath: "./test.pem",
-		Namespace:          "kube-system",
-		LabelSelector:      "k8s-app=cilium",
-		LocalPort:          "9965",
-		RemotePort:         "9965",
+		Namespace:     "kube-system",
+		LabelSelector: "k8s-app=cilium",
+		LocalPort:     "9965",
+		RemotePort:    "9965",
 	})
 
 	job.AddStep(&hubble.ValidateHubbleMetrics{})
+
+	job.AddStep(&azure.DeleteResourceGroup{})
 }

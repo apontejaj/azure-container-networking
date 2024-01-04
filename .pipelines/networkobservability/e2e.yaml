@@ -1,0 +1,33 @@
+pr: none
+
+stages:
+  - stage: setup
+    displayName: Setup
+    jobs:
+      - job: env
+        displayName: Setup
+        pool:
+          name: "$(BUILD_POOL_NAME_DEFAULT)"
+        steps:
+          - script: |
+              echo "##vso[task.setvariable variable=TEST_ENV_VAR;isOutput=true]test"
+            name: "SetEnvVars"
+            displayName: "Set Environment Variables"
+            condition: always()
+
+  - stage: Run_E2E
+    displayName: Run E2E
+    jobs:
+      - job: Run_E2E
+        displayName: Run Network Observability E2E
+        pool:
+          name: "$(BUILD_POOL_NAME_DEFAULT)"
+        steps:
+          - task: AzureCLI@2
+            displayName: "Run Network Observability E2E"
+            inputs:
+              azureSubscription: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
+              scriptType: "bash"
+              scriptLocation: "inlineScript"
+              inlineScript: |
+                go test -v test/e2e/framework_test.go -timeout 30m

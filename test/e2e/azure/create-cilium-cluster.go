@@ -8,11 +8,15 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	k8s "github.com/Azure/azure-container-networking/test/e2e/kubernetes"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v4"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubectl/pkg/scheme"
@@ -29,6 +33,7 @@ var (
 
 type CreateBYOCiliumCluster struct {
 	SubscriptionID    string
+	TenantID          string
 	ResourceGroupName string
 	Location          string
 	ClusterName       string
@@ -86,13 +91,15 @@ func (c *CreateBYOCiliumCluster) Run() error {
 		}),
 	}
 
-	fmt.Printf("using kube-proxy config:\n")
+	log.Printf("using kube-proxy config:\n")
 	printjson(kubeProxyConfig)
 
 	ciliumCluster.Properties.NetworkProfile.KubeProxyConfig = to.Ptr(kubeProxyConfig)
 
 	// Deploy cluster
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	cred, err := azidentity.NewDefaultAzureCredential(to.Ptr(azidentity.DefaultAzureCredentialOptions{
+		TenantID: c.TenantID,
+	}))
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
 	}
@@ -158,7 +165,7 @@ func (c *CreateBYOCiliumCluster) deployCiliumComponents() error {
 	for _, dir := range componentFolders {
 		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-				fmt.Println("error:", err)
+				log.Println("error:", err)
 				return err
 			}
 
@@ -167,7 +174,7 @@ func (c *CreateBYOCiliumCluster) deployCiliumComponents() error {
 				// Get the YAML file
 				yamlFile, err := os.ReadFile(path)
 				if err != nil {
-					fmt.Printf("error reading YAML file: %s\n", err)
+					log.Printf("error reading YAML file: %s\n", err)
 					return err
 				}
 
@@ -175,7 +182,7 @@ func (c *CreateBYOCiliumCluster) deployCiliumComponents() error {
 				decode := scheme.Codecs.UniversalDeserializer().Decode
 				obj, _, err := decode([]byte(yamlFile), nil, nil)
 				if err != nil {
-					fmt.Printf("error decoding YAML file: %s\n", err)
+					log.Printf("error decoding YAML file: %s\n", err)
 					return err
 				}
 
@@ -184,16 +191,52 @@ func (c *CreateBYOCiliumCluster) deployCiliumComponents() error {
 					return err
 				}
 
-				fmt.Printf("created resource: %s\n", path)
+				log.Printf("created resource: %s\n", path)
 			}
 
 			return nil
 		})
 
 		if err != nil {
-			fmt.Println("Error walking the path:", err)
+			log.Println("Error walking the path:", err)
 		}
 	}
+	pctx := context.Background()
+	pollctx, cancel := context.WithDeadline(pctx, time.Now().Add(5*time.Minute))
+	defer cancel()
+
+	log.Println("waiting for cilium pods to be in Running state...")
+
+	conditionFunc := wait.ConditionWithContextFunc(func(context.Context) (bool, error) {
+		ns := "kube-system"
+		label := "k8s-app=cilium"
+		listOptions := metav1.ListOptions{LabelSelector: label}
+		podList, err := clientset.CoreV1().Pods(ns).List(pollctx, listOptions)
+		if err != nil {
+			fmt.Printf("Error listing Pods: %v\n", err)
+			return false, err
+		}
+
+		for _, pod := range podList.Items {
+			pod, err := clientset.CoreV1().Pods("kube-system").Get(context.TODO(), pod.Name, metav1.GetOptions{})
+			if err != nil {
+				log.Printf("error getting Pod: %v\n", err)
+				return false, err
+			}
+
+			// Check the Pod phase
+			if pod.Status.Phase != corev1.PodRunning {
+				log.Printf("pod %s is not in Running state yet. Waiting...\n", pod.Name)
+				return false, nil
+			}
+
+		}
+		log.Printf("all cilium pods are in Running state\n")
+		return true, nil
+	})
+
+	err = wait.PollUntilContextCancel(pollctx, 5*time.Second, true, conditionFunc)
+
 	return nil
 }
 

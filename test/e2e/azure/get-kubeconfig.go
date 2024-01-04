@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v4"
 )
@@ -12,13 +13,16 @@ import (
 type GetAKSKubeConfig struct {
 	ClusterName        string
 	SubscriptionID     string
+	TenantID           string
 	ResourceGroupName  string
 	Location           string
 	KubeConfigFilePath string
 }
 
 func (c *GetAKSKubeConfig) Run() error {
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	cred, err := azidentity.NewDefaultAzureCredential(to.Ptr(azidentity.DefaultAzureCredentialOptions{
+		TenantID: c.TenantID,	
+	}))
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
 	}

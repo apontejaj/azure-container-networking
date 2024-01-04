@@ -11,13 +11,16 @@ import (
 
 type CreateCluster struct {
 	SubscriptionID    string
+	TenantID          string
 	ResourceGroupName string
 	Location          string
 	ClusterName       string
 }
 
 func (c *CreateCluster) Run() error {
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	cred, err := azidentity.NewDefaultAzureCredential(to.Ptr(azidentity.DefaultAzureCredentialOptions{
+		TenantID: c.TenantID,
+	}))
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
 	}

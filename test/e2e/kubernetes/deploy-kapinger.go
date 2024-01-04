@@ -6,7 +6,6 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/Azure/azure-container-networking/test/e2e/types"
 	"github.com/Azure/azure-container-networking/test/e2e/utils"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -26,7 +25,7 @@ type CreateKapingerDeployment struct {
 	KubeConfigFilePath string
 }
 
-func (c *CreateKapingerDeployment) Run(values *types.JobValues) error {
+func (c *CreateKapingerDeployment) Run() error {
 	_, err := strconv.Atoi(c.KapingerReplicas)
 	if err != nil {
 		fmt.Println("Error converting replicas to int for Kapinger replicas: ", err)
@@ -97,11 +96,11 @@ func (c *CreateKapingerDeployment) SaveParametersToJob() bool {
 	return true
 }
 
-func (c *CreateKapingerDeployment) Prevalidate(values *types.JobValues) error {
+func (c *CreateKapingerDeployment) Prevalidate() error {
 	return nil
 }
 
-func (c *CreateKapingerDeployment) Postvalidate(values *types.JobValues) error {
+func (c *CreateKapingerDeployment) Postvalidate() error {
 	return nil
 }
 
