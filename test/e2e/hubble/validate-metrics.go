@@ -57,7 +57,7 @@ func (v *ValidateHubbleMetrics) Run() error {
 		if _, exists := metrics[reqMetric]; !exists {
 			return fmt.Errorf("scraping %s, did not find metric %s: ", promAddress, reqMetric) //nolint:goerr113,gocritic
 		}
-		log.Printf("found metric %s\n", reqMetric)		
+		log.Printf("found metric %s\n", reqMetric)
 	}
 
 	log.Printf("all metrics validated: %+v\n", requiredMetrics)

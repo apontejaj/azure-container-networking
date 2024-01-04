@@ -15,7 +15,18 @@ type Job struct {
 }
 
 func responseDivider(jobname string) {
-	fmt.Println("################## " + jobname + " ##################")
+	totalWidth := 100
+	start := 20
+	i := 0
+	for ; i < start; i++ {
+		fmt.Print("#")
+	}
+	mid := fmt.Sprintf(" %s ", jobname)
+	fmt.Print(mid)
+	for ; i < totalWidth-(start+len(mid)); i++ {
+		fmt.Print("#")
+	}
+	fmt.Println()
 }
 
 func NewJob(t *testing.T) *Job {
@@ -72,7 +83,6 @@ func (j *Job) AddStep(step Step) {
 
 	// skip saving parameters to job
 	if step.SaveParametersToJob() {
-
 		for i, f := range reflect.VisibleFields(val.Type()) {
 
 			// skip saving unexported fields
@@ -91,13 +101,13 @@ func (j *Job) AddStep(step Step) {
 					if value != "" {
 						j.Values.Set(parameter, value)
 						continue
-					} else {
-						assert.FailNowf(j.t, "parameter %s is required for step %s", parameter, stepName)
 					}
+					assert.FailNowf(j.t, "missing parameter", "parameter %s is required for step %s", parameter, stepName)
+
 				}
 
 				if value != "" {
-					assert.FailNowf(j.t, "parameter %s for step %s is already set from previous step", parameter, stepName)
+					assert.FailNowf(j.t, "parameter already set", "parameter %s for step %s is already set from previous step", parameter, stepName)
 				}
 
 				// don't use log format since this is technically preexecution and easier to read
@@ -108,5 +118,4 @@ func (j *Job) AddStep(step Step) {
 	}
 
 	j.Steps = append(j.Steps, step)
-
 }

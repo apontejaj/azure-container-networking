@@ -33,8 +33,8 @@ func (c *GetAKSKubeConfig) Run() error {
 		log.Fatalf("failed to finish the request: %v", err)
 	}
 
-	err = os.WriteFile(c.KubeConfigFilePath, []byte(res.Kubeconfigs[0].Value), 0644)
-	log.Printf("kubeconfig for cluster %s in resource group %s written to %s\n", c.ClusterName, c.ResourceGroupName, c.KubeConfigFilePath)
+	err = os.WriteFile(c.KubeConfigFilePath, []byte(res.Kubeconfigs[0].Value), 0o644)
+	log.Printf("kubeconfig for cluster \"%s\" in resource group \"%s\" written to \"%s\"\n", c.ClusterName, c.ResourceGroupName, c.KubeConfigFilePath)
 	return nil
 }
 

@@ -25,8 +25,8 @@ func TestValidateHubbleMetrics(t *testing.T) {
 	job := types.NewJob(t)
 	defer job.Run()
 
-	user, _ := user.Current()
-	testName := user.Username + "-e2e-netobs-" + strconv.FormatInt(time.Now().Unix(), 10)
+	curuser, _ := user.Current()
+	testName := curuser.Username + "-e2e-netobs-" + strconv.FormatInt(time.Now().Unix(), 10)
 
 	sub := os.Getenv("AZURE_SUBSCRIPTION_ID")
 

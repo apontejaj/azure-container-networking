@@ -1,20 +1,6 @@
 pr: none
 
 stages:
-  #  - stage: setup
-  #    displayName: Setup
-  #    jobs:
-  #      - job: env
-  #        displayName: Setup
-  #        pool:
-  #          name: "$(BUILD_POOL_NAME_DEFAULT)"
-  #        steps:
-  #          - script: |
-  #              echo "##vso[task.setvariable variable=TEST_ENV_VAR;isOutput=true]test"
-  #            name: "SetEnvVars"
-  #            displayName: "Set Environment Variables"
-  #            condition: always()
-
   - stage: Run_E2E
     displayName: Run E2E
     jobs:
@@ -30,4 +16,4 @@ stages:
               scriptType: "bash"
               scriptLocation: "inlineScript"
               inlineScript: |
-                go test -v test/e2e/framework_test.go -timeout 30m
+                go test -v test/e2e/main_e2e_test.go -timeout 30m

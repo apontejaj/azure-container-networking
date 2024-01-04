@@ -3,11 +3,14 @@ package azure
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v4"
 )
+
+var defaultTimeout = 30 * time.Minute
 
 type CreateCluster struct {
 	SubscriptionID    string
@@ -21,7 +24,8 @@ func (c *CreateCluster) Run() error {
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
 	}
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	clientFactory, err := armcontainerservice.NewClientFactory(c.SubscriptionID, cred, nil)
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
@@ -61,7 +65,8 @@ func GetStarterClusterTemplate(location string) armcontainerservice.ManagedClust
 					VMSize:             to.Ptr("Standard_D4s_v3"),
 					Name:               to.Ptr("nodepool1"),
 					MaxPods:            to.Ptr(int32(250)),
-				}},
+				},
+			},
 			KubernetesVersion:       to.Ptr(""),
 			DNSPrefix:               to.Ptr("dnsprefix1"),
 			EnablePodSecurityPolicy: to.Ptr(false),

@@ -17,9 +17,7 @@ const (
 	defaultTimeoutSeconds = 300
 )
 
-var (
-	defaultRetrier = retry.Retrier{Attempts: 60, Delay: 5 * time.Second}
-)
+var defaultRetrier = retry.Retrier{Attempts: 60, Delay: 5 * time.Second}
 
 type PortForward struct {
 	Namespace          string
@@ -53,7 +51,7 @@ func (p *PortForward) Run() error {
 	defer cancel()
 
 	portForwardFn := func() error {
-		log.Printf("attempting port forward to a pod with label %s, in namespace %s...\n", p.LabelSelector, p.Namespace)
+		log.Printf("attempting port forward to a pod with label \"%s\", in namespace \"%s\"...\n", p.LabelSelector, p.Namespace)
 		handle, err := p.pf.Forward(pctx, p.Namespace, p.LabelSelector, lport, rport)
 		if err != nil {
 			return fmt.Errorf("could not start port forward: %w", err)
@@ -71,7 +69,7 @@ func (p *PortForward) Run() error {
 		}
 		defer resp.Body.Close()
 
-		log.Printf("port forward validation HTTP request to %s succeeded, response: %s\n", handle.URL(), resp.Status)
+		log.Printf("port forward validation HTTP request to \"%s\" succeeded, response: %s\n", handle.URL(), resp.Status)
 		p.portForwardHandle = handle
 		return nil
 	}
@@ -79,7 +77,7 @@ func (p *PortForward) Run() error {
 	if err = defaultRetrier.Do(portForwardCtx, portForwardFn); err != nil {
 		return fmt.Errorf("could not start port forward within %ds: %v", defaultTimeoutSeconds, err)
 	}
-	log.Printf("successfully port forwarded to %s\n", p.portForwardHandle.URL())
+	log.Printf("successfully port forwarded to \"%s\"\n", p.portForwardHandle.URL())
 	return nil
 }
 

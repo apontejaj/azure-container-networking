@@ -25,7 +25,7 @@ func (c *CreateResourceGroup) Run() error {
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
-	log.Println("resource group\"" + c.ResourceGroupName + "\" creating...")
+	log.Printf("creating resource group %s in location %s...", c.ResourceGroupName, c.Location)
 
 	_, err = clientFactory.NewResourceGroupsClient().CreateOrUpdate(ctx, c.ResourceGroupName, armresources.ResourceGroup{
 		Location: to.Ptr(c.Location),
@@ -34,7 +34,7 @@ func (c *CreateResourceGroup) Run() error {
 		log.Fatalf("failed to finish the request: %v", err)
 	}
 
-	log.Println("resource group \"" + c.ResourceGroupName + "\" created successfully")
+	log.Printf("resource group %s in location %s", c.ResourceGroupName, c.Location)
 	return nil
 }
 

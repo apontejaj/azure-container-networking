@@ -16,7 +16,7 @@ type DeleteResourceGroup struct {
 }
 
 func (d *DeleteResourceGroup) Run() error {
-	log.Printf("deleting resource group %s...", d.ResourceGroupName)
+	log.Printf("deleting resource group \"%s\"...", d.ResourceGroupName)
 	cred, err := azidentity.NewAzureCLICredential(nil)
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
@@ -37,7 +37,7 @@ func (d *DeleteResourceGroup) Run() error {
 		log.Fatalf("failed to poll delete rg: %v\n", err)
 	}
 
-	log.Printf("resource group %s deleted successfully", d.ResourceGroupName)
+	log.Printf("resource group \"%s\" deleted successfully", d.ResourceGroupName)
 	return nil
 }
 

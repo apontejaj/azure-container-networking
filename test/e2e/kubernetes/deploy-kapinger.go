@@ -8,16 +8,15 @@ import (
 	"strconv"
 
 	"github.com/Azure/azure-container-networking/test/e2e/utils"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/yaml"
-
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/yaml"
 )
 
 type CreateKapingerDeployment struct {
@@ -105,7 +104,11 @@ func (c *CreateKapingerDeployment) Postvalidate() error {
 
 func GenerateKapingerYAML(folder string) {
 	kappiefolder := folder + "/kapinger"
-	os.MkdirAll(kappiefolder, os.ModePerm)
+	err := os.MkdirAll(kappiefolder, os.ModePerm)
+	if err != nil {
+		fmt.Printf("Error creating folder %s: %v", kappiefolder, err)
+		return
+	}
 	// Create a sample Deployment object
 	c := CreateKapingerDeployment{
 		KapingerNamespace: "default",
@@ -137,7 +140,8 @@ func (c *CreateKapingerDeployment) getKapingerDeployment() *appsv1.Deployment {
 	if err != nil {
 		fmt.Println("Error converting replicas to int for Kapinger replicas: ", err)
 	}
-	reps := int32(replicas)	
+	reps := int32(replicas)
+
 	return &appsv1.Deployment{
 		TypeMeta: metaV1.TypeMeta{
 			Kind:       "Deployment",

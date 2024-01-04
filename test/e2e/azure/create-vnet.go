@@ -2,6 +2,7 @@ package azure
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
@@ -28,25 +29,27 @@ func (c *CreateVNet) Run() error {
 		log.Fatalf("failed to create client: %v", err)
 	}
 
-	log.Printf("creating vnet %s in resource group %s...", c.VnetName, c.ResourceGroupName)
+	log.Printf("creating vnet \"%s\" in resource group \"%s\"...", c.VnetName, c.ResourceGroupName)
 
 	poller, err := clientFactory.NewVirtualNetworksClient().BeginCreateOrUpdate(ctx, c.ResourceGroupName, c.VnetName, armnetwork.VirtualNetwork{
 		Location: to.Ptr(c.Location),
 		Properties: &armnetwork.VirtualNetworkPropertiesFormat{
 			AddressSpace: &armnetwork.AddressSpace{
 				AddressPrefixes: []*string{
-					to.Ptr(c.VnetAddressSpace)},
+					to.Ptr(c.VnetAddressSpace),
+				},
 			},
 			FlowTimeoutInMinutes: to.Ptr[int32](10),
 		},
 	}, nil)
 
 	if err != nil {
-		log.Fatalf("failed to finish the request: %v", err)
+		return fmt.Errorf("failed to finish the request for create vnet: %v", err)
 	}
+
 	_, err = poller.PollUntilDone(ctx, nil)
 	if err != nil {
-		log.Fatalf("failed to pull the result: %v", err)
+		return fmt.Errorf("failed to pull the result for create vnet: %v", err)
 	}
 	return nil
 }
@@ -87,7 +90,7 @@ func (c *CreateSubnet) Run() error {
 		log.Fatalf("failed to create client: %v", err)
 	}
 
-	log.Printf("creating subnet %s in resource group %s...", c.SubnetName, c.ResourceGroupName)
+	log.Printf("creating subnet \"%s\" in vnet \"%s\" in resource group \"%s\"...", c.SubnetName, c.VnetName, c.ResourceGroupName)
 
 	poller, err := clientFactory.NewSubnetsClient().BeginCreateOrUpdate(ctx, c.ResourceGroupName, c.VnetName, c.SubnetName, armnetwork.Subnet{
 		Properties: &armnetwork.SubnetPropertiesFormat{
@@ -96,11 +99,12 @@ func (c *CreateSubnet) Run() error {
 	}, nil)
 
 	if err != nil {
-		log.Fatalf("failed to finish the request: %v", err)
+		return fmt.Errorf("failed to finish the request for create subnet: %v", err)
 	}
+
 	_, err = poller.PollUntilDone(ctx, nil)
 	if err != nil {
-		log.Fatalf("failed to pull the result: %v", err)
+		return fmt.Errorf("failed to pull the result for create subnet: %v", err)
 	}
 	return nil
 }
