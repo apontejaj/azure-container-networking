@@ -82,7 +82,7 @@ data:
   external-envoy-proxy: "false"
   k8s-client-qps: "5"
   k8s-client-burst: "10"
-  mesh-auth-enabled: "true"
+  mesh-auth-enabled: "false" # cilium default is true, setting to false for AKS
   mesh-auth-queue-size: "1024"
   mesh-auth-rotated-identities-queue-size: "1024"
   mesh-auth-gc-interval: "5m0s"
@@ -90,7 +90,6 @@ data:
   proxy-max-requests-per-connection: "0"
   proxy-max-connection-duration-seconds: "0" 
   set-cilium-node-taints: "true"
-  unmanaged-pod-watcher-interval: "15"
 kind: ConfigMap
 metadata:
   annotations:
