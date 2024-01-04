@@ -18,9 +18,7 @@ type DeleteResourceGroup struct {
 
 func (d *DeleteResourceGroup) Run() error {
 	log.Printf("deleting resource group %s...", d.ResourceGroupName)
-	cred, err := azidentity.NewDefaultAzureCredential(to.Ptr(azidentity.DefaultAzureCredentialOptions{
-		TenantID: d.TenantID,
-	}))
+	cred, err := azidentity.NewAzureCLICredential(nil)
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
 	}

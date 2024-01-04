@@ -18,8 +18,8 @@ type CreateCluster struct {
 }
 
 func (c *CreateCluster) Run() error {
-	cred, err := azidentity.NewDefaultAzureCredential(to.Ptr(azidentity.DefaultAzureCredentialOptions{
-		TenantID: c.TenantID,
+	cred, err := azidentity.NewAzureCLICredential(to.Ptr(azidentity.AzureCLICredentialOptions{
+		TenantID: c.TenantID,	
 	}))
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)

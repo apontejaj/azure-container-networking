@@ -1,19 +1,19 @@
 pr: none
 
 stages:
-  - stage: setup
-    displayName: Setup
-    jobs:
-      - job: env
-        displayName: Setup
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
-        steps:
-          - script: |
-              echo "##vso[task.setvariable variable=TEST_ENV_VAR;isOutput=true]test"
-            name: "SetEnvVars"
-            displayName: "Set Environment Variables"
-            condition: always()
+  #  - stage: setup
+  #    displayName: Setup
+  #    jobs:
+  #      - job: env
+  #        displayName: Setup
+  #        pool:
+  #          name: "$(BUILD_POOL_NAME_DEFAULT)"
+  #        steps:
+  #          - script: |
+  #              echo "##vso[task.setvariable variable=TEST_ENV_VAR;isOutput=true]test"
+  #            name: "SetEnvVars"
+  #            displayName: "Set Environment Variables"
+  #            condition: always()
 
   - stage: Run_E2E
     displayName: Run E2E

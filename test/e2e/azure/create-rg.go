@@ -17,7 +17,9 @@ type CreateResourceGroup struct {
 }
 
 func (c *CreateResourceGroup) Run() error {
-	cred, err := azidentity.NewAzureCLICredential(nil)
+	cred, err := azidentity.NewAzureCLICredential(to.Ptr(azidentity.AzureCLICredentialOptions{
+		TenantID: c.TenantID,
+	}))
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
 	}

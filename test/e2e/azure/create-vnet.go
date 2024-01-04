@@ -80,7 +80,7 @@ type CreateSubnet struct {
 }
 
 func (c *CreateSubnet) Run() error {
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	cred, err := azidentity.NewAzureCLICredential(nil)
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
 	}

@@ -97,9 +97,7 @@ func (c *CreateBYOCiliumCluster) Run() error {
 	ciliumCluster.Properties.NetworkProfile.KubeProxyConfig = to.Ptr(kubeProxyConfig)
 
 	// Deploy cluster
-	cred, err := azidentity.NewDefaultAzureCredential(to.Ptr(azidentity.DefaultAzureCredentialOptions{
-		TenantID: c.TenantID,
-	}))
+	cred, err := azidentity.NewAzureCLICredential(nil)
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
 	}
