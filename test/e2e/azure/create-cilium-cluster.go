@@ -191,8 +191,6 @@ func (c *CreateBYOCiliumCluster) deployCiliumComponents() error {
 				if err != nil {
 					return err
 				}
-
-				log.Printf("created resource: %s\n", path)
 			}
 
 			return nil

@@ -3,6 +3,7 @@ package k8s
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 
@@ -44,43 +45,41 @@ func (c *CreateKapingerDeployment) Run() error {
 		return err
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Create a Kapinger Service object
-	service := c.getKapingerService()
-	_, err = clientset.CoreV1().Services(c.KapingerNamespace).Create(context.TODO(), service, metaV1.CreateOptions{})
+	err = CreateResource(ctx, c.getKapingerService(), clientset)
 	if err != nil {
-		fmt.Println("Error creating Service: ", err)
+		log.Println("Error creating Service: ", err)
 		return err
 	}
 
 	// Create a Kapinger ServiceAccount object
-	serviceaccount := c.getKapingerServiceAccount()
-	_, err = clientset.CoreV1().ServiceAccounts(c.KapingerNamespace).Create(context.TODO(), serviceaccount, metaV1.CreateOptions{})
+	err = CreateResource(ctx, c.getKapingerServiceAccount(), clientset)
 	if err != nil {
-		fmt.Println("Error creating ServiceAccount: ", err)
+		log.Println("Error creating ServiceAccount: ", err)
 		return err
 	}
 
 	// Create a Kapinger ClusterRole object
-	clusterrole := c.getKapingerClusterRole()
-	_, err = clientset.RbacV1().ClusterRoles().Create(context.TODO(), clusterrole, metaV1.CreateOptions{})
+	err = CreateResource(ctx, c.getKapingerClusterRole(), clientset)
 	if err != nil {
-		fmt.Println("Error creating ClusterRole: ", err)
+		log.Println("Error creating ClusterRole: ", err)
 		return err
 	}
 
 	// Create a Kapinger ClusterRoleBinding object
-	clusterrolebinding := c.getKapingerClusterRoleBinding()
-	_, err = clientset.RbacV1().ClusterRoleBindings().Create(context.TODO(), clusterrolebinding, metaV1.CreateOptions{})
+	err = CreateResource(ctx, c.getKapingerClusterRoleBinding(), clientset)
 	if err != nil {
-		fmt.Println("Error creating ClusterRoleBinding: ", err)
+		log.Println("Error creating ClusterRoleBinding: ", err)
 		return err
 	}
 
 	// Create a Kapinger Deployment object
-	deployment := c.getKapingerDeployment()
-	_, err = clientset.AppsV1().Deployments(c.KapingerNamespace).Create(context.TODO(), deployment, metaV1.CreateOptions{})
+	err = CreateResource(ctx, c.getKapingerDeployment(), clientset)
 	if err != nil {
-		fmt.Println("Error creating Deployment: ", err)
+		log.Println("Error creating Deployment: ", err)
 		return err
 	}
 

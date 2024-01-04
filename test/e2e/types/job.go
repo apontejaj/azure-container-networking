@@ -75,41 +75,40 @@ func (j *Job) AddStep(step Step) {
 	val := reflect.ValueOf(step).Elem()
 
 	// skip saving parameters to job
-	if !step.SaveParametersToJob() {
-		return
-	}
+	if step.SaveParametersToJob() {
 
-	for i, f := range reflect.VisibleFields(val.Type()) {
+		for i, f := range reflect.VisibleFields(val.Type()) {
 
-		// skip saving unexported fields
-		if !f.IsExported() {
-			continue
-		}
+			// skip saving unexported fields
+			if !f.IsExported() {
+				continue
+			}
 
-		k := reflect.Indirect(val.Field(i)).Kind()
+			k := reflect.Indirect(val.Field(i)).Kind()
 
-		if k == reflect.String {
-			parameter := val.Type().Field(i).Name
-			value := val.Field(i).Interface().(string)
-			storedValue := j.Values.Get(parameter)
+			if k == reflect.String {
+				parameter := val.Type().Field(i).Name
+				value := val.Field(i).Interface().(string)
+				storedValue := j.Values.Get(parameter)
 
-			if storedValue == "" {
-				if value != "" {
-					j.Values.Set(parameter, value)
-					continue
-				} else {
-					assert.FailNow(j.t, "parameter "+parameter+" is required for step "+stepName)
+				if storedValue == "" {
+					if value != "" {
+						j.Values.Set(parameter, value)
+						continue
+					} else {
+						assert.FailNow(j.t, "parameter "+parameter+" is required for step "+stepName)
+					}
 				}
-			}
 
-			if value != "" {
-				assert.FailNow(j.t, "parameter "+parameter+" for step "+stepName+" is already set from previous step ")
-				j.t.Fatal("parameter", parameter, "for step", stepName, "is already set from previous step")
-				panic("parameter " + parameter + " for step " + stepName + " is already set from previous step")
-			}
+				if value != "" {
+					assert.FailNow(j.t, "parameter "+parameter+" for step "+stepName+" is already set from previous step ")
+					j.t.Fatal("parameter", parameter, "for step", stepName, "is already set from previous step")
+					panic("parameter " + parameter + " for step " + stepName + " is already set from previous step")
+				}
 
-			fmt.Println(stepName, "using previously stored value for parameter", parameter, "set as", j.Values.Get(parameter))
-			val.Field(i).SetString(storedValue)
+				fmt.Println(stepName, "using previously stored value for parameter", parameter, "set as", j.Values.Get(parameter))
+				val.Field(i).SetString(storedValue)
+			}
 		}
 	}
 
