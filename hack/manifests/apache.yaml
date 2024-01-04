@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-   name: apachebench
+  name: apachebench
 spec:
   selector:
     matchLabels:
@@ -12,7 +12,6 @@ spec:
         app: apachebench
     spec:
       containers:
-      - name: ubuntu-tools
-        image: tamilmani1989/ubuntu18-tools
-        command: ["/bin/sleep", "3650d"]
-        
+        - name: ubuntu-tools
+          image: acnpublic.azurecr.io/tamilmani1989/ubuntu18-tools
+          command: ["/bin/sleep", "3650d"]

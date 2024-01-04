@@ -56,9 +56,8 @@ func (v *ValidateHubbleMetrics) Run() error {
 	for _, reqMetric := range requiredMetrics {
 		if _, exists := metrics[reqMetric]; !exists {
 			return fmt.Errorf("scraping %s, did not find metric %s: ", promAddress, reqMetric) //nolint:goerr113,gocritic
-		} else {
-			log.Printf("found metric %s\n", reqMetric)
 		}
+		log.Printf("found metric %s\n", reqMetric)		
 	}
 
 	log.Printf("all metrics validated: %+v\n", requiredMetrics)
@@ -69,15 +68,15 @@ func (v *ValidateHubbleMetrics) ExpectError() bool {
 	return false
 }
 
-func (c *ValidateHubbleMetrics) SaveParametersToJob() bool {
+func (v *ValidateHubbleMetrics) SaveParametersToJob() bool {
 	return true
 }
 
-func (c *ValidateHubbleMetrics) Prevalidate() error {
+func (v *ValidateHubbleMetrics) Prevalidate() error {
 	return nil
 }
 
-func (c *ValidateHubbleMetrics) Postvalidate() error {
+func (v *ValidateHubbleMetrics) Postvalidate() error {
 	return nil
 }
 

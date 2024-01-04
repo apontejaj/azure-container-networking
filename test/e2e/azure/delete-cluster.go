@@ -15,19 +15,19 @@ type DeleteCluster struct {
 	Location          string
 }
 
-func (c *DeleteCluster) Run() error {
+func (d *DeleteCluster) Run() error {
 	cred, err := azidentity.NewAzureCLICredential(nil)
 	if err != nil {
 		log.Fatalf("failed to obtain a credential: %v", err)
 	}
 	ctx := context.Background()
-	clientFactory, err := armcontainerservice.NewClientFactory(c.SubscriptionID, cred, nil)
+	clientFactory, err := armcontainerservice.NewClientFactory(d.SubscriptionID, cred, nil)
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
 
-	log.Printf("deleting cluster %s in resource group %s...", c.ClusterName, c.ResourceGroupName)
-	poller, err := clientFactory.NewManagedClustersClient().BeginDelete(ctx, c.ResourceGroupName, c.ClusterName, nil)
+	log.Printf("deleting cluster %s in resource group %s...", d.ClusterName, d.ResourceGroupName)
+	poller, err := clientFactory.NewManagedClustersClient().BeginDelete(ctx, d.ResourceGroupName, d.ClusterName, nil)
 	if err != nil {
 		log.Fatalf("failed to finish the request: %v", err)
 	}
@@ -38,18 +38,18 @@ func (c *DeleteCluster) Run() error {
 	return nil
 }
 
-func (c *DeleteCluster) ExpectError() bool {
+func (d *DeleteCluster) ExpectError() bool {
 	return false
 }
 
-func (c *DeleteCluster) SaveParametersToJob() bool {
+func (d *DeleteCluster) SaveParametersToJob() bool {
 	return true
 }
 
-func (c *DeleteCluster) Prevalidate() error {
+func (d *DeleteCluster) Prevalidate() error {
 	return nil
 }
 
-func (c *DeleteCluster) Postvalidate() error {
+func (d *DeleteCluster) Postvalidate() error {
 	return nil
 }

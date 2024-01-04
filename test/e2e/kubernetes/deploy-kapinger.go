@@ -133,11 +133,11 @@ func GenerateKapingerYAML(folder string) {
 }
 
 func (c *CreateKapingerDeployment) getKapingerDeployment() *appsv1.Deployment {
-	replicas, err := strconv.Atoi(c.KapingerReplicas)
+	replicas, err := strconv.ParseInt(c.KapingerReplicas, 10, 32)
 	if err != nil {
 		fmt.Println("Error converting replicas to int for Kapinger replicas: ", err)
 	}
-	reps := int32(replicas)
+	reps := int32(replicas)	
 	return &appsv1.Deployment{
 		TypeMeta: metaV1.TypeMeta{
 			Kind:       "Deployment",

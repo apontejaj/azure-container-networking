@@ -32,8 +32,8 @@ func (p *PortForwardStreamHandle) Stop() {
 	p.stopChan <- struct{}{}
 }
 
-// Url returns a url for communicating with the pod.
-func (p *PortForwardStreamHandle) Url() string {
+// URL returns a url for communicating with the pod.
+func (p *PortForwardStreamHandle) URL() string {
 	return p.url
 }
 

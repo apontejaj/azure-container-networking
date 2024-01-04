@@ -63,15 +63,15 @@ func (p *PortForward) Run() error {
 		client := http.Client{
 			Timeout: 2 * time.Second,
 		}
-		resp, err := client.Get(handle.Url()) //nolint
+		resp, err := client.Get(handle.URL()) //nolint
 		if err != nil {
-			log.Printf("port forward validation HTTP request to %s failed: %v\n", handle.Url(), err)
+			log.Printf("port forward validation HTTP request to %s failed: %v\n", handle.URL(), err)
 			handle.Stop()
-			return fmt.Errorf("port forward validation HTTP request to %s failed: %w", handle.Url(), err)
+			return fmt.Errorf("port forward validation HTTP request to %s failed: %w", handle.URL(), err)
 		}
 		defer resp.Body.Close()
 
-		log.Printf("port forward validation HTTP request to %s succeeded, response: %s\n", handle.Url(), resp.Status)
+		log.Printf("port forward validation HTTP request to %s succeeded, response: %s\n", handle.URL(), resp.Status)
 		p.portForwardHandle = handle
 		return nil
 	}
@@ -79,7 +79,7 @@ func (p *PortForward) Run() error {
 	if err = defaultRetrier.Do(portForwardCtx, portForwardFn); err != nil {
 		return fmt.Errorf("could not start port forward within %ds: %v", defaultTimeoutSeconds, err)
 	}
-	log.Printf("successfully port forwarded to %s\n", p.portForwardHandle.Url())
+	log.Printf("successfully port forwarded to %s\n", p.portForwardHandle.URL())
 	return nil
 }
 

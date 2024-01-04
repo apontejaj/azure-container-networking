@@ -38,16 +38,15 @@ func (j *Job) Validate() error {
 	return nil
 }
 
-func (j *Job) Run() error {
+func (j *Job) Run() {
 	if j.t.Failed() {
-		return fmt.Errorf("job failed")
+		return
 	}
 
 	for _, step := range j.Steps {
 		err := step.Prevalidate()
 		if err != nil {
 			assert.NoError(j.t, err)
-			return err
 		}
 	}
 
@@ -56,7 +55,6 @@ func (j *Job) Run() error {
 		err := step.Run()
 		if err != nil {
 			assert.NoError(j.t, err)
-			return err
 		}
 	}
 
@@ -64,10 +62,8 @@ func (j *Job) Run() error {
 		err := step.Postvalidate()
 		if err != nil {
 			assert.NoError(j.t, err)
-			return err
 		}
 	}
-	return nil
 }
 
 func (j *Job) AddStep(step Step) {
@@ -96,16 +92,15 @@ func (j *Job) AddStep(step Step) {
 						j.Values.Set(parameter, value)
 						continue
 					} else {
-						assert.FailNow(j.t, "parameter "+parameter+" is required for step "+stepName)
+						assert.FailNowf(j.t, "parameter %s is required for step %s", parameter, stepName)
 					}
 				}
 
 				if value != "" {
-					assert.FailNow(j.t, "parameter "+parameter+" for step "+stepName+" is already set from previous step ")
-					j.t.Fatal("parameter", parameter, "for step", stepName, "is already set from previous step")
-					panic("parameter " + parameter + " for step " + stepName + " is already set from previous step")
+					assert.FailNowf(j.t, "parameter %s for step %s is already set from previous step", parameter, stepName)
 				}
 
+				// don't use log format since this is technically preexecution and easier to read
 				fmt.Println(stepName, "using previously stored value for parameter", parameter, "set as", j.Values.Get(parameter))
 				val.Field(i).SetString(storedValue)
 			}

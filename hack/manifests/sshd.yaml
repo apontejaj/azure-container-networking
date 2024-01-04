@@ -17,22 +17,22 @@ spec:
     spec:
       hostNetwork: true
       containers:
-      - name: sshd
-        image: docker.io/linuxserver/openssh-server:latest
-        env:
-        - name: USER_PASSWORD
-          value: aoeuaoeu
-        volumeMounts:
-        - name: cni-bin
-          mountPath: /opt/cni/bin
-        - name: cni-state
-          mountPath: /var/run/azure-vnet.json
+        - name: sshd
+          image: acnpublic.azurecr.io/linuxserver/openssh-server:latest
+          env:
+            - name: USER_PASSWORD
+              value: aoeuaoeu
+          volumeMounts:
+            - name: cni-bin
+              mountPath: /opt/cni/bin
+            - name: cni-state
+              mountPath: /var/run/azure-vnet.json
       volumes:
-      - name: cni-bin
-        hostPath:
-          path: /opt/cni/bin
-          type: Directory
-      - name: cni-state
-        hostPath:
-          path: /var/run/azure-vnet.json
-          type: File
+        - name: cni-bin
+          hostPath:
+            path: /opt/cni/bin
+            type: Directory
+        - name: cni-state
+          hostPath:
+            path: /var/run/azure-vnet.json
+            type: File

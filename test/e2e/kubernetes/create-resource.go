@@ -40,7 +40,7 @@ func CreateResource(ctx context.Context, obj runtime.Object, clientset *kubernet
 
 	case *v1.Service:
 		log.Printf("Create/Update Service %s in namespace %s\n", o.Name, o.Namespace)
-		client := clientset.CoreV1().Services(o.Namespace)	
+		client := clientset.CoreV1().Services(o.Namespace)
 		_, err := client.Get(ctx, o.Name, metaV1.GetOptions{})
 		if errors.IsNotFound(err) {
 			_, err = client.Create(ctx, o, metaV1.CreateOptions{})
