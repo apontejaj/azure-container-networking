@@ -3,7 +3,6 @@ package k8s
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 
@@ -13,10 +12,17 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/yaml"
+)
+
+const (
+	KapingerHTTPPort = 8080
+	KapingerTCPPort  = 8085
+	KapingerUDPPort  = 8086
 )
 
 type CreateKapingerDeployment struct {
@@ -28,61 +34,37 @@ type CreateKapingerDeployment struct {
 func (c *CreateKapingerDeployment) Run() error {
 	_, err := strconv.Atoi(c.KapingerReplicas)
 	if err != nil {
-		fmt.Println("Error converting replicas to int for Kapinger replicas: ", err)
-		return err
+		return fmt.Errorf("error converting replicas to int for Kapinger replicas: %w", err)
 	}
 
 	config, err := clientcmd.BuildConfigFromFlags("", c.KubeConfigFilePath)
 	if err != nil {
-		fmt.Println("Error building kubeconfig: ", err)
-		return err
+		return fmt.Errorf("error building kubeconfig: %w", err)
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		fmt.Println("Error creating Kubernetes client: ", err)
-		return err
+		return fmt.Errorf("error creating Kubernetes client: %w", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Create a Kapinger Service object
-	err = CreateResource(ctx, c.getKapingerService(), clientset)
-	if err != nil {
-		log.Println("Error creating Service: ", err)
-		return err
+	resources := []runtime.Object{
+		c.getKapingerService(),
+		c.getKapingerServiceAccount(),
+		c.getKapingerClusterRole(),
+		c.getKapingerClusterRoleBinding(),
+		c.getKapingerDeployment(),
 	}
 
-	// Create a Kapinger ServiceAccount object
-	err = CreateResource(ctx, c.getKapingerServiceAccount(), clientset)
-	if err != nil {
-		log.Println("Error creating ServiceAccount: ", err)
-		return err
+	for i := range resources {
+		err = CreateResource(ctx, resources[i], clientset)
+		if err != nil {
+			return fmt.Errorf("error kapinger component: %w", err)
+		}
 	}
 
-	// Create a Kapinger ClusterRole object
-	err = CreateResource(ctx, c.getKapingerClusterRole(), clientset)
-	if err != nil {
-		log.Println("Error creating ClusterRole: ", err)
-		return err
-	}
-
-	// Create a Kapinger ClusterRoleBinding object
-	err = CreateResource(ctx, c.getKapingerClusterRoleBinding(), clientset)
-	if err != nil {
-		log.Println("Error creating ClusterRoleBinding: ", err)
-		return err
-	}
-
-	// Create a Kapinger Deployment object
-	err = CreateResource(ctx, c.getKapingerDeployment(), clientset)
-	if err != nil {
-		log.Println("Error creating Deployment: ", err)
-		return err
-	}
-
-	// Print the YAML to stdout
 	return nil
 }
 
@@ -139,6 +121,7 @@ func (c *CreateKapingerDeployment) getKapingerDeployment() *appsv1.Deployment {
 	replicas, err := strconv.ParseInt(c.KapingerReplicas, 10, 32)
 	if err != nil {
 		fmt.Println("Error converting replicas to int for Kapinger replicas: ", err)
+		return nil
 	}
 	reps := int32(replicas)
 
@@ -181,7 +164,7 @@ func (c *CreateKapingerDeployment) getKapingerDeployment() *appsv1.Deployment {
 							},
 							Ports: []v1.ContainerPort{
 								{
-									ContainerPort: 8080,
+									ContainerPort: KapingerHTTPPort,
 								},
 							},
 							Env: []v1.EnvVar{
@@ -191,15 +174,15 @@ func (c *CreateKapingerDeployment) getKapingerDeployment() *appsv1.Deployment {
 								},
 								{
 									Name:  "HTTP_PORT",
-									Value: "8080",
+									Value: strconv.Itoa(KapingerHTTPPort),
 								},
 								{
 									Name:  "TCP_PORT",
-									Value: "8085",
+									Value: strconv.Itoa(KapingerTCPPort),
 								},
 								{
 									Name:  "UDP_PORT",
-									Value: "8086",
+									Value: strconv.Itoa(KapingerUDPPort),
 								},
 							},
 						},
@@ -229,9 +212,9 @@ func (c *CreateKapingerDeployment) getKapingerService() *v1.Service {
 			},
 			Ports: []v1.ServicePort{
 				{
-					Port:       8080,
+					Port:       KapingerHTTPPort,
 					Protocol:   v1.ProtocolTCP,
-					TargetPort: intstr.FromInt(8080),
+					TargetPort: intstr.FromInt(KapingerHTTPPort),
 				},
 			},
 		},

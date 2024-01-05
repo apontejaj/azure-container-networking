@@ -14,6 +14,8 @@ import (
 
 const (
 	defaultTimeoutSeconds = 300
+	defaultRetryDelay     = 5 * time.Second
+	defaultRetryAttempts  = 60
 )
 
 var (
@@ -22,7 +24,7 @@ var (
 		"hubble_tcp_flags_total",
 	}
 
-	defaultRetrier = retry.Retrier{Attempts: 60, Delay: 5 * time.Second}
+	defaultRetrier = retry.Retrier{Attempts: defaultRetryAttempts, Delay: defaultRetryDelay}
 )
 
 type ValidateHubbleMetrics struct {
@@ -40,7 +42,6 @@ func (v *ValidateHubbleMetrics) Run() error {
 		var err error
 		metrics, err = getPrometheusMetrics(promAddress)
 		if err != nil {
-			log.Printf("failed to get prometheus metrics: %v", err)
 			return fmt.Errorf("failed to get prometheus metrics: %w", err)
 		}
 		return nil
@@ -50,7 +51,7 @@ func (v *ValidateHubbleMetrics) Run() error {
 	defer cancel()
 
 	if err := defaultRetrier.Do(portForwardCtx, scrapeMetricsFn); err != nil {
-		return fmt.Errorf("could not start port forward within %ds: %v", defaultTimeoutSeconds, err)
+		return fmt.Errorf("could not start port forward within %ds: %w	", defaultTimeoutSeconds, err)
 	}
 
 	for _, reqMetric := range requiredMetrics {

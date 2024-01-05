@@ -2,7 +2,7 @@ package azure
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
@@ -10,7 +10,13 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v4"
 )
 
-var defaultTimeout = 30 * time.Minute
+const (
+	MaxNumberOfNodes = 3
+	MaxPodsPerNode   = 250
+	AgentSKU         = "Standard_D4s_v3"
+)
+
+var defaultClusterCreateTimeout = 30 * time.Minute
 
 type CreateCluster struct {
 	SubscriptionID    string
@@ -22,22 +28,22 @@ type CreateCluster struct {
 func (c *CreateCluster) Run() error {
 	cred, err := azidentity.NewAzureCLICredential(nil)
 	if err != nil {
-		log.Fatalf("failed to obtain a credential: %v", err)
+		return fmt.Errorf("failed to obtain a credential: %w", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultClusterCreateTimeout)
 	defer cancel()
 	clientFactory, err := armcontainerservice.NewClientFactory(c.SubscriptionID, cred, nil)
 	if err != nil {
-		log.Fatalf("failed to create client: %v", err)
+		return fmt.Errorf("failed to create client: %w", err)
 	}
 
 	poller, err := clientFactory.NewManagedClustersClient().BeginCreateOrUpdate(ctx, c.ResourceGroupName, c.ClusterName, GetStarterClusterTemplate(c.Location), nil)
 	if err != nil {
-		log.Fatalf("failed to finish the request: %v", err)
+		return fmt.Errorf("failed to finish the create cluster request: %w", err)
 	}
 	_, err = poller.PollUntilDone(ctx, nil)
 	if err != nil {
-		log.Fatalf("failed to pull the result: %v", err)
+		return fmt.Errorf("failed to pull the create cluster result: %w", err)
 	}
 
 	return nil
@@ -57,14 +63,14 @@ func GetStarterClusterTemplate(location string) armcontainerservice.ManagedClust
 				{
 					Type:               to.Ptr(armcontainerservice.AgentPoolTypeVirtualMachineScaleSets),
 					AvailabilityZones:  []*string{to.Ptr("1")},
-					Count:              to.Ptr[int32](3),
+					Count:              to.Ptr[int32](MaxNumberOfNodes),
 					EnableNodePublicIP: to.Ptr(false),
 					Mode:               to.Ptr(armcontainerservice.AgentPoolModeSystem),
 					OSType:             to.Ptr(armcontainerservice.OSTypeLinux),
 					ScaleDownMode:      to.Ptr(armcontainerservice.ScaleDownModeDelete),
-					VMSize:             to.Ptr("Standard_D4s_v3"),
+					VMSize:             to.Ptr(AgentSKU),
 					Name:               to.Ptr("nodepool1"),
-					MaxPods:            to.Ptr(int32(250)),
+					MaxPods:            to.Ptr(int32(MaxPodsPerNode)),
 				},
 			},
 			KubernetesVersion:       to.Ptr(""),

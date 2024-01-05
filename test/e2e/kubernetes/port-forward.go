@@ -14,10 +14,13 @@ import (
 )
 
 const (
-	defaultTimeoutSeconds = 300
+	defaultTimeoutSeconds    = 300
+	defaultRetryDelay        = 5 * time.Second
+	defaultRetryAttempts     = 60
+	defaultHTTPClientTimeout = 2 * time.Second
 )
 
-var defaultRetrier = retry.Retrier{Attempts: 60, Delay: 5 * time.Second}
+var defaultRetrier = retry.Retrier{Attempts: defaultRetryAttempts, Delay: defaultRetryDelay}
 
 type PortForward struct {
 	Namespace          string
@@ -34,8 +37,7 @@ type PortForward struct {
 func (p *PortForward) Run() error {
 	config, err := clientcmd.BuildConfigFromFlags("", p.KubeConfigFilePath)
 	if err != nil {
-		fmt.Println("Error building kubeconfig: ", err)
-		return err
+		return fmt.Errorf("error building kubeconfig: %w", err)
 	}
 	lport, _ := strconv.Atoi(p.LocalPort)
 	rport, _ := strconv.Atoi(p.RemotePort)
@@ -52,14 +54,15 @@ func (p *PortForward) Run() error {
 
 	portForwardFn := func() error {
 		log.Printf("attempting port forward to a pod with label \"%s\", in namespace \"%s\"...\n", p.LabelSelector, p.Namespace)
-		handle, err := p.pf.Forward(pctx, p.Namespace, p.LabelSelector, lport, rport)
+		var handle k8s.PortForwardStreamHandle
+		handle, err = p.pf.Forward(pctx, p.Namespace, p.LabelSelector, lport, rport)
 		if err != nil {
 			return fmt.Errorf("could not start port forward: %w", err)
 		}
 
 		// verify port forward succeeded
 		client := http.Client{
-			Timeout: 2 * time.Second,
+			Timeout: defaultHTTPClientTimeout,
 		}
 		resp, err := client.Get(handle.URL()) //nolint
 		if err != nil {
@@ -75,7 +78,7 @@ func (p *PortForward) Run() error {
 	}
 
 	if err = defaultRetrier.Do(portForwardCtx, portForwardFn); err != nil {
-		return fmt.Errorf("could not start port forward within %ds: %v", defaultTimeoutSeconds, err)
+		return fmt.Errorf("could not start port forward within %ds: %w", defaultTimeoutSeconds, err)
 	}
 	log.Printf("successfully port forwarded to \"%s\"\n", p.portForwardHandle.URL())
 	return nil

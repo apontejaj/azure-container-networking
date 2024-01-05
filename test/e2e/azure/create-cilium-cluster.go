@@ -22,9 +22,14 @@ import (
 	"k8s.io/kubectl/pkg/scheme"
 )
 
+const (
+	RetryTimeoutCiliumPodsReady  = 5 * time.Minute
+	RetryIntervalCiliumPodsReady = 5 * time.Second
+)
+
 var (
-	defaultTimeout   = 30 * time.Minute
-	componentFolders = []string{
+	ErrResourceNameTooLong = fmt.Errorf("resource name too long")
+	componentFolders       = []string{
 		"manifests/cilium/v1.14/cns",
 		"manifests/cilium/v1.14/agent",
 		"manifests/cilium/v1.14/ipmasq",
@@ -58,12 +63,12 @@ func (c *CreateBYOCiliumCluster) Prevalidate() error {
 
 	for _, dir := range componentFolders {
 		if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("directory not found: %s\ncurrent working directory: %s", dir, cwd)
+			return fmt.Errorf("directory not found: %s\ncurrent working directory: %s, err: %w", dir, cwd, err)
 		}
 	}
 
-	if len(c.ResourceGroupName) > 80 {
-		return fmt.Errorf("resource group name for nodes cannot exceed 80 characters")
+	if len(c.ResourceGroupName) > 80 { //nolint:gomnd // 80 is the max length for resource group names
+		return fmt.Errorf("resource group name for nodes cannot exceed 80 characters: %w", ErrResourceNameTooLong)
 	}
 
 	return nil
@@ -103,32 +108,32 @@ func (c *CreateBYOCiliumCluster) Run() error {
 	// Deploy cluster
 	cred, err := azidentity.NewAzureCLICredential(nil)
 	if err != nil {
-		return fmt.Errorf("failed to obtain a credential: %v", err)
+		return fmt.Errorf("failed to obtain a credential: %w", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultClusterCreateTimeout)
 	defer cancel()
 
 	clientFactory, err := armcontainerservice.NewClientFactory(c.SubscriptionID, cred, nil)
 	if err != nil {
-		return fmt.Errorf("failed to create az client: %v", err)
+		return fmt.Errorf("failed to create az client: %w", err)
 	}
 
 	log.Printf("creating cluster \"%s\" in resource group \"%s\"...", c.ClusterName, c.ResourceGroupName)
 
 	poller, err := clientFactory.NewManagedClustersClient().BeginCreateOrUpdate(ctx, c.ResourceGroupName, c.ClusterName, ciliumCluster, nil)
 	if err != nil {
-		return fmt.Errorf("failed to finish the create cluster request: %v", err)
+		return fmt.Errorf("failed to finish the create cluster request: %w", err)
 	}
 	_, err = poller.PollUntilDone(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("failed to create cluster: %v", err)
+		return fmt.Errorf("failed to create cluster: %w", err)
 	}
 
 	// Deploy the cilium components once the cluster is created
 	log.Printf("deploying cilium components to cluster \"%s\" in resource group \"%s\"...", c.ClusterName, c.ResourceGroupName)
 	err = c.deployCiliumComponents()
 	if err != nil {
-		return fmt.Errorf("failed to deploy cilium components: %v", err)
+		return fmt.Errorf("failed to deploy cilium components: %w", err)
 	}
 
 	return err
@@ -138,7 +143,7 @@ func (c *CreateBYOCiliumCluster) deployCiliumComponents() error {
 	// create temporary directory for kubeconfig, as we need access to deploy cilium things
 	dir, err := os.MkdirTemp("", "cilium-e2e")
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("failed to create temporary directory to deploy cilium components on cluster \"%s\": %w", c.ClusterName, err)
 	}
 
 	// reuse getKubeConfig job
@@ -153,22 +158,22 @@ func (c *CreateBYOCiliumCluster) deployCiliumComponents() error {
 
 	err = getKubeconfigJob.Run()
 	if err != nil {
-		return fmt.Errorf("failed to get kubeconfig to deploy cilium components on cluster \"%s\": %v", c.ClusterName, err)
+		return fmt.Errorf("failed to get kubeconfig to deploy cilium components on cluster \"%s\": %w", c.ClusterName, err)
 	}
 
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigpath)
 	if err != nil {
-		return fmt.Errorf("failed to build kubeconfig to deploy cilium components on cluster \"%s\": %v", c.ClusterName, err)
+		return fmt.Errorf("failed to build kubeconfig to deploy cilium components on cluster \"%s\": %w", c.ClusterName, err)
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return fmt.Errorf("failed to create Kubernetes client to deploy cilium components on cluster \"%s\": %v", c.ClusterName, err)
+		return fmt.Errorf("failed to create Kubernetes client to deploy cilium components on cluster \"%s\": %w", c.ClusterName, err)
 	}
 
 	// traverse the predefined Cilium component folders
 	for _, dir := range componentFolders {
-		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return fmt.Errorf("error traversing the cilium components directory: %w", err)
 			}
@@ -190,13 +195,12 @@ func (c *CreateBYOCiliumCluster) deployCiliumComponents() error {
 				// create the resource
 				err = k8s.CreateResource(context.Background(), obj, clientset)
 				if err != nil {
-					return err
+					return fmt.Errorf("error creating resource: %w", err)
 				}
 			}
 
 			return nil
 		})
-
 		if err != nil {
 			return fmt.Errorf("error walking the cilium components directory: %w", err)
 		}
@@ -204,7 +208,7 @@ func (c *CreateBYOCiliumCluster) deployCiliumComponents() error {
 
 	// wait for cilium pods to be in Running state
 	ctx := context.Background()
-	pollctx, cancel := context.WithDeadline(ctx, time.Now().Add(5*time.Minute))
+	pollctx, cancel := context.WithDeadline(ctx, time.Now().Add(RetryTimeoutCiliumPodsReady))
 	defer cancel()
 
 	log.Println("waiting for cilium pods to be in Running state...")
@@ -214,14 +218,16 @@ func (c *CreateBYOCiliumCluster) deployCiliumComponents() error {
 		label := "k8s-app=cilium"
 
 		// get a list of all cilium pods
-		podList, err := clientset.CoreV1().Pods(ns).List(pollctx, metav1.ListOptions{LabelSelector: label})
+		var podList *corev1.PodList
+		podList, err = clientset.CoreV1().Pods(ns).List(pollctx, metav1.ListOptions{LabelSelector: label})
 		if err != nil {
 			return false, fmt.Errorf("error listing Pods: %w", err)
 		}
 
 		// check each indviidual pod to see if it's in Running state
 		for i := range podList.Items {
-			pod, err := clientset.CoreV1().Pods("kube-system").Get(pollctx, podList.Items[i].Name, metav1.GetOptions{})
+			var pod *corev1.Pod
+			pod, err = clientset.CoreV1().Pods("kube-system").Get(pollctx, podList.Items[i].Name, metav1.GetOptions{})
 			if err != nil {
 				return false, fmt.Errorf("error getting Pod: %w", err)
 			}
@@ -238,7 +244,7 @@ func (c *CreateBYOCiliumCluster) deployCiliumComponents() error {
 	})
 
 	// wait until all cilium pods are in Running state condition is true
-	err = wait.PollUntilContextCancel(pollctx, 5*time.Second, true, conditionFunc)
+	err = wait.PollUntilContextCancel(pollctx, RetryIntervalCiliumPodsReady, true, conditionFunc)
 
 	return nil
 }

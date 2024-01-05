@@ -83,7 +83,7 @@ func TestEndpoints(t *testing.T) {
 	}
 
 	if err := defaultRetrier.Do(clusterCtx, pingCheckFn); err != nil {
-		t.Fatalf("metrics check failed with error: %v", err)
+		t.Fatalf("metrics check failed with error: %v	", err)
 	}
 }
 

@@ -10,6 +10,8 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v5"
 )
 
+const FlowTimeoutInMinutes = 10
+
 type CreateVNet struct {
 	SubscriptionID    string
 	ResourceGroupName string
@@ -21,12 +23,12 @@ type CreateVNet struct {
 func (c *CreateVNet) Run() error {
 	cred, err := azidentity.NewAzureCLICredential(nil)
 	if err != nil {
-		log.Fatalf("failed to obtain a credential: %v", err)
+		return fmt.Errorf("failed to obtain a credential: %w", err)
 	}
 	ctx := context.Background()
 	clientFactory, err := armnetwork.NewClientFactory(c.SubscriptionID, cred, nil)
 	if err != nil {
-		log.Fatalf("failed to create client: %v", err)
+		return fmt.Errorf("failed to create client: %w", err)
 	}
 
 	log.Printf("creating vnet \"%s\" in resource group \"%s\"...", c.VnetName, c.ResourceGroupName)
@@ -39,17 +41,16 @@ func (c *CreateVNet) Run() error {
 					to.Ptr(c.VnetAddressSpace),
 				},
 			},
-			FlowTimeoutInMinutes: to.Ptr[int32](10),
+			FlowTimeoutInMinutes: to.Ptr[int32](FlowTimeoutInMinutes),
 		},
 	}, nil)
-
 	if err != nil {
-		return fmt.Errorf("failed to finish the request for create vnet: %v", err)
+		return fmt.Errorf("failed to finish the request for create vnet: %w", err)
 	}
 
 	_, err = poller.PollUntilDone(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("failed to pull the result for create vnet: %v", err)
+		return fmt.Errorf("failed to pull the result for create vnet: %w", err)
 	}
 	return nil
 }
@@ -82,12 +83,12 @@ type CreateSubnet struct {
 func (c *CreateSubnet) Run() error {
 	cred, err := azidentity.NewAzureCLICredential(nil)
 	if err != nil {
-		log.Fatalf("failed to obtain a credential: %v", err)
+		return fmt.Errorf("failed to obtain a credential: %w", err)
 	}
 	ctx := context.Background()
 	clientFactory, err := armnetwork.NewClientFactory(c.SubscriptionID, cred, nil)
 	if err != nil {
-		log.Fatalf("failed to create client: %v", err)
+		return fmt.Errorf("failed to create client: %w", err)
 	}
 
 	log.Printf("creating subnet \"%s\" in vnet \"%s\" in resource group \"%s\"...", c.SubnetName, c.VnetName, c.ResourceGroupName)
@@ -97,14 +98,13 @@ func (c *CreateSubnet) Run() error {
 			AddressPrefix: to.Ptr(c.SubnetAddressSpace),
 		},
 	}, nil)
-
 	if err != nil {
-		return fmt.Errorf("failed to finish the request for create subnet: %v", err)
+		return fmt.Errorf("failed to finish the request for create subnet: %w", err)
 	}
 
 	_, err = poller.PollUntilDone(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("failed to pull the result for create subnet: %v", err)
+		return fmt.Errorf("failed to pull the result for create subnet: %w", err)
 	}
 	return nil
 }

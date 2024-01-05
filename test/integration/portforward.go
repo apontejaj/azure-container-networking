@@ -3,7 +3,7 @@ package k8s
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 
@@ -12,6 +12,11 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
+)
+
+var (
+	ErrNoPodsFound = fmt.Errorf("no pods found")
+	ErrInvalidPort = fmt.Errorf("invalid port")
 )
 
 // PortForwarder can initiate port forwarding to a k8s pod.
@@ -41,11 +46,11 @@ func (p *PortForwardStreamHandle) URL() string {
 func NewPortForwarder(restConfig *rest.Config) (*PortForwarder, error) {
 	clientset, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
-		return nil, fmt.Errorf("could not create clientset: %v", err)
+		return nil, fmt.Errorf("could not create clientset: %w", err)
 	}
 	transport, upgrader, err := spdy.RoundTripperFor(restConfig)
 	if err != nil {
-		return nil, fmt.Errorf("could not create spdy roundtripper: %v", err)
+		return nil, fmt.Errorf("could not create spdy roundtripper: %w", err)
 	}
 	return &PortForwarder{
 		clientset: clientset,
@@ -62,10 +67,10 @@ func (p *PortForwarder) Forward(ctx context.Context, namespace, labelSelector st
 		FieldSelector: "status.phase=Running",
 	})
 	if err != nil {
-		return PortForwardStreamHandle{}, fmt.Errorf("could not list pods in %q with label %q: %v", namespace, labelSelector, err)
+		return PortForwardStreamHandle{}, fmt.Errorf("could not list pods in %q with label %q: %w", namespace, labelSelector, err)
 	}
 	if len(pods.Items) < 1 {
-		return PortForwardStreamHandle{}, fmt.Errorf("no pods found in %q with label %q", namespace, labelSelector)
+		return PortForwardStreamHandle{}, fmt.Errorf("no pods found in %q with label %q: %w", namespace, labelSelector, ErrNoPodsFound)
 	}
 	podName := pods.Items[0].Name
 	portForwardURL := p.clientset.CoreV1().RESTClient().Post().
@@ -82,9 +87,9 @@ func (p *PortForwarder) Forward(ctx context.Context, namespace, labelSelector st
 
 	dialer := spdy.NewDialer(p.upgrader, &http.Client{Transport: p.transport}, http.MethodPost, portForwardURL)
 	ports := []string{fmt.Sprintf("%d:%d", localPort, destPort)}
-	pf, err := portforward.New(dialer, ports, stopChan, readyChan, ioutil.Discard, ioutil.Discard)
+	pf, err := portforward.New(dialer, ports, stopChan, readyChan, io.Discard, io.Discard)
 	if err != nil {
-		return PortForwardStreamHandle{}, fmt.Errorf("could not create portforwarder: %v", err)
+		return PortForwardStreamHandle{}, fmt.Errorf("could not create portforwarder: %w", err)
 	}
 
 	go func() {
@@ -94,20 +99,20 @@ func (p *PortForwarder) Forward(ctx context.Context, namespace, labelSelector st
 	var portForwardPort int
 	select {
 	case <-ctx.Done():
-		return PortForwardStreamHandle{}, ctx.Err()
+		return PortForwardStreamHandle{}, fmt.Errorf("context done: %w", ctx.Err())
 	case err := <-errChan:
-		return PortForwardStreamHandle{}, fmt.Errorf("portforward failed: %v", err)
+		return PortForwardStreamHandle{}, fmt.Errorf("portforward failed: %w", err)
 	case <-pf.Ready:
 		ports, err := pf.GetPorts()
 		if err != nil {
-			return PortForwardStreamHandle{}, fmt.Errorf("get portforward port: %v", err)
+			return PortForwardStreamHandle{}, fmt.Errorf("get portforward port: %w", err)
 		}
 		for _, port := range ports {
 			portForwardPort = int(port.Local)
 			break
 		}
 		if portForwardPort < 1 {
-			return PortForwardStreamHandle{}, fmt.Errorf("invalid port returned: %d", portForwardPort)
+			return PortForwardStreamHandle{}, fmt.Errorf("invalid port returned: %d, err: %w", portForwardPort, ErrInvalidPort)
 		}
 	}
 

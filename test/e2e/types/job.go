@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type Job struct {
@@ -38,17 +39,6 @@ func NewJob(t *testing.T) *Job {
 	}
 }
 
-func (j *Job) Validate() error {
-	// ensure that each property in the
-	for _, step := range j.Steps {
-		val := reflect.ValueOf(step).Elem()
-		for i := 0; i < val.NumField(); i++ {
-			fmt.Println(val.Type().Field(i).Name)
-		}
-	}
-	return nil
-}
-
 func (j *Job) Run() {
 	if j.t.Failed() {
 		return
@@ -57,7 +47,7 @@ func (j *Job) Run() {
 	for _, step := range j.Steps {
 		err := step.Prevalidate()
 		if err != nil {
-			assert.NoError(j.t, err)
+			require.NoError(j.t, err)
 		}
 	}
 
@@ -65,14 +55,14 @@ func (j *Job) Run() {
 		responseDivider(reflect.TypeOf(step).Elem().Name())
 		err := step.Run()
 		if err != nil {
-			assert.NoError(j.t, err)
+			require.NoError(j.t, err)
 		}
 	}
 
 	for _, step := range j.Steps {
 		err := step.Postvalidate()
 		if err != nil {
-			assert.NoError(j.t, err)
+			require.NoError(j.t, err)
 		}
 	}
 }
