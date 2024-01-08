@@ -152,21 +152,22 @@ func (plugin *NetPlugin) getNetworkName(netNs string, ipamAddResult *IPAMAddResu
 	}
 
 	// For singletenancy, the network name is simply the nwCfg.Name
-	if !nwCfg.MultiTenancy && !hasSecondaryInterfaceNIC {
+	if !nwCfg.MultiTenancy || !hasSecondaryInterfaceNIC {
 		return nwCfg.Name, nil
+	}
+
+	// check if it's swiftv2 mode
+	// if it's swiftv2 secondaryInterfaceNIC, then use "azure-macAddres" format networkName
+	// swiftv2NetworkName will look like ~ azure-01:23:ab:f4:ac:95
+	if ipamAddResult != nil && hasSecondaryInterfaceNIC {
+		swiftv2NetworkName := "azure-" + ipamAddResult.secondaryInterfacesInfo[0].MacAddress.String()
+		logger.Info("swiftv2 network name is", zap.String("swiftv2NetworkName", swiftv2NetworkName))
+		return swiftv2NetworkName, nil
 	}
 
 	// in multitenancy case, the network name will be in the state file or can be built from cnsResponse
 	if len(strings.TrimSpace(netNs)) == 0 {
 		return "", fmt.Errorf("NetNs cannot be empty")
-	}
-
-	// if it's swiftv2 secondaryInterfaceNIC, then use "azure-macAddres" format networkName
-	// networkName will look like ~ azure-01:23:ab:f4:ac:95
-	if ipamAddResult != nil && hasSecondaryInterfaceNIC {
-		swiftv2NetworkName := "azure-" + ipamAddResult.secondaryInterfacesInfo[0].MacAddress.String()
-		logger.Info("swiftv2 network name is", zap.String("swiftv2NetworkName", swiftv2NetworkName))
-		return swiftv2NetworkName, nil
 	}
 
 	// First try to build the network name from the cnsResponse if present

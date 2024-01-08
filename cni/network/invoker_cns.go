@@ -482,7 +482,8 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 		SkipDefaultRoutes: info.skipDefaultRoutes,
 	}
 
-	addResult.secondaryInterfacesInfo = append(addResult.secondaryInterfacesInfo, result)
+	logger.Info("Result is", zap.Any("result", result))
 
+	addResult.secondaryInterfacesInfo = append(addResult.secondaryInterfacesInfo, result)
 	return nil
 }
