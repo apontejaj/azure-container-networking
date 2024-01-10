@@ -92,6 +92,7 @@ type EndpointInfo struct {
 	NICType                  cns.NICType
 	SkipDefaultRoutes        bool
 	HNSEndpointID            string
+	Endpoint                 endpoint
 }
 
 // RouteInfo contains information about an IP route.

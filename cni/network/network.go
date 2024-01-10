@@ -1014,14 +1014,15 @@ func (plugin *NetPlugin) Get(args *cniSkel.CmdArgs) error {
 // Delete handles CNI delete commands.
 func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 	var (
-		err          error
-		nwCfg        *cni.NetworkConfig
-		k8sPodName   string
-		k8sNamespace string
-		networkID    string
-		nwInfo       network.NetworkInfo
-		epInfo       *network.EndpointInfo
-		cniMetric    telemetry.AIMetric
+		err           error
+		nwCfg         *cni.NetworkConfig
+		k8sPodName    string
+		k8sNamespace  string
+		networkID     string
+		nwInfo        network.NetworkInfo
+		epInfo        *network.EndpointInfo
+		cniMetric     telemetry.AIMetric
+		ipamAddResult IPAMAddResult
 	)
 
 	startTime := time.Now()
@@ -1111,6 +1112,14 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 		numEndpointsToDelete = plugin.nm.GetNumEndpointsByContainerID(args.ContainerID)
 	}
 
+	ipamAddResult.secondaryInterfacesInfo = []network.InterfaceInfo{}
+	result := network.InterfaceInfo{
+		NICType:    cns.DelegatedVMNIC,
+		MacAddress: net.HardwareAddr(epInfo.Endpoint.MacAddress),
+	}
+	ipamAddResult.secondaryInterfacesInfo = append(ipamAddResult.secondaryInterfacesInfo, result)
+	logger.Info("CNI Delete ipamAddResult.secondaryInterfacesInfo", zap.Any("ipamAddResult.secondaryInterfacesInfo", ipamAddResult.secondaryInterfacesInfo))
+
 	logger.Info("Endpoints to be deleted", zap.Int("count", numEndpointsToDelete))
 	for i := 0; i < numEndpointsToDelete; i++ {
 		// Initialize values from network config.
@@ -1138,7 +1147,7 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 		// }
 		logger.Info("endpoint info CNI Deletion is", zap.Any("endpoint info CNI Deletion", epInfo))
 		logger.Info("endpoint info CNI Deletion IfName is", zap.Any("endpoint info CNI Deletion IfName", epInfo.IfName))
-		networkID, err = plugin.getNetworkName(args.Netns, nil, nwCfg)
+		networkID, err = plugin.getNetworkName(args.Netns, &ipamAddResult, nwCfg)
 		if err != nil {
 			// If error is not found error, then we ignore it, to comply with CNI SPEC.
 			if network.IsNetworkNotFoundError(err) {
