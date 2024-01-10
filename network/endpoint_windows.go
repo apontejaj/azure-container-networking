@@ -32,7 +32,7 @@ const (
 	defaultGwMac = "12-34-56-78-9a-bc"
 
 	// Default IPv6 Route
-	defaultIPv6Route = "::/1"
+	defaultIPv6Route = "::/0"
 
 	// Default IPv6 nextHop
 	defaultIPv6NextHop = "fe80::1234:5678:9abc"
