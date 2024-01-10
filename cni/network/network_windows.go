@@ -152,11 +152,10 @@ func (plugin *NetPlugin) getNetworkName(netNs string, ipamAddResult *IPAMAddResu
 	}
 
 	// For singletenancy, the network name is simply the nwCfg.Name
-	if !nwCfg.MultiTenancy || !hasSecondaryInterfaceNIC {
+	if !nwCfg.MultiTenancy && !hasSecondaryInterfaceNIC {
 		return nwCfg.Name, nil
 	}
 
-	// check if it's swiftv2 mode
 	// if it's swiftv2 secondaryInterfaceNIC, then use "azure-macAddres" format networkName
 	// swiftv2NetworkName will look like ~ azure-01:23:ab:f4:ac:95
 	if ipamAddResult != nil && hasSecondaryInterfaceNIC {
