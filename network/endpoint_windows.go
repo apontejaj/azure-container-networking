@@ -196,7 +196,7 @@ func (nw *network) addIPv6DefaultRoute(plc platform.ExecClient) error {
 		out string
 	)
 	// the default ipv6 route is missing sometimes due to ARP issue
-	// need to add ipv6 default route if it does not exist in dualstack overlay windows
+	// need to add ipv6 default route if it does not exist in dualstack overlay windows node
 	if len(nw.Subnets) < 2 {
 		return fmt.Errorf("Ipv6 subnet not found in network state")
 	}
