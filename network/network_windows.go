@@ -27,6 +27,7 @@ const (
 	vEthernetAdapterPrefix = "vEthernet"
 	baseDecimal            = 10
 	bitSize                = 32
+	numDualStackSubnet     = 2
 	defaultRouteCIDR       = "0.0.0.0/0"
 	// prefix for interface name created by azure network
 	ifNamePrefix = "vEthernet"
@@ -331,7 +332,7 @@ func (nm *networkManager) addIPv6DefaultRoute() error {
 	logger.Info("Adding default ipv6 route to windows node")
 	// the default ipv6 route is missing sometimes
 	// need to add ipv6 default route if it does not exist in dualstack overlay windows node
-	cmd := fmt.Sprintf(`Get-NetAdapter | Where-Object { $_.InterfaceDescription -like 'Hyper-V*' } | Select-Object -ExpandProperty ifIndex`)
+	cmd := `Get-NetAdapter | Where-Object { $_.InterfaceDescription -like 'Hyper-V*' } | Select-Object -ExpandProperty ifIndex`
 	ifIndex, err := nm.plClient.ExecutePowershellCommand(cmd)
 	if err != nil {
 		return fmt.Errorf("error while executing powershell command to get ipv6 Hyper-V interface: %w", err)
@@ -345,7 +346,7 @@ func (nm *networkManager) addIPv6DefaultRoute() error {
 			defaultIPv6Route, ifIndex, defaultIPv6NextHop)
 		if out, err = nm.plClient.ExecutePowershellCommand(addCmd); err != nil {
 			logger.Error("Failed to add ipv6 default gateway route", zap.Any("out", out), zap.Error(err))
-			return err
+			return errors.Wrapf(err, "Failed to add ipv6 default gateway route")
 		}
 	}
 
@@ -382,9 +383,9 @@ func (nm *networkManager) newNetworkImplHnsV2(nwInfo *NetworkInfo, extIf *extern
 	}
 
 	// check if ipv6 default gateway route is missing before windows endpoint creation
-	if len(nwInfo.Subnets) >= 2 {
+	if len(nwInfo.Subnets) >= numDualStackSubnet {
 		if err = nm.addIPv6DefaultRoute(); err != nil {
-			return nil, fmt.Errorf("Failed to add ipv6 default route")
+			return nil, errors.Wrapf(err, "failed to add missing ipv6 default route")
 		}
 	}
 
