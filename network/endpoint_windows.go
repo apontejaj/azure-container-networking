@@ -31,12 +31,6 @@ const (
 	// Default gateway Mac
 	defaultGwMac = "12-34-56-78-9a-bc"
 
-	// Default IPv6 Route
-	defaultIPv6Route = "::/0"
-
-	// Default IPv6 nextHop
-	defaultIPv6NextHop = "fe80::1234:5678:9abc"
-
 	// Container interface name prefix
 	containerIfNamePrefix = "vEthernet"
 
@@ -83,11 +77,6 @@ func (nw *network) newEndpointImpl(
 	// there is only 1 epInfo for windows, multiple interfaces will be added in the future
 	if useHnsV2, err := UseHnsV2(epInfo[0].NetNsPath); useHnsV2 {
 		if err != nil {
-			return nil, err
-		}
-
-		// check if ipv6 default gateway route is missing before windows endpoint creation
-		if err := nw.addIPv6DefaultRoute(plc); err != nil {
 			return nil, err
 		}
 
@@ -188,38 +177,6 @@ func (nw *network) newEndpointImplHnsV1(epInfo *EndpointInfo, plc platform.ExecC
 	ep.MacAddress, _ = net.ParseMAC(hnsResponse.MacAddress)
 
 	return ep, nil
-}
-
-func (nw *network) addIPv6DefaultRoute(plc platform.ExecClient) error {
-	var (
-		err error
-		out string
-	)
-	// the default ipv6 route is missing sometimes due to ARP issue
-	// need to add ipv6 default route if it does not exist in dualstack overlay windows node
-	if len(nw.Subnets) < 2 {
-		return fmt.Errorf("Ipv6 subnet not found in network state")
-	}
-
-	cmd := fmt.Sprintf(`Get-NetAdapter | Where-Object { $_.InterfaceDescription -like 'Hyper-V*' } | Select-Object -ExpandProperty ifIndex`)
-	ifIndex, err := plc.ExecutePowershellCommand(cmd)
-	if err != nil {
-		return fmt.Errorf("error while executing powershell command to get ipv6 Hyper-V interface: %w", err)
-	}
-
-	getIPv6RouteCmd := fmt.Sprintf("Get-NetRoute -DestinationPrefix %s", defaultIPv6Route)
-	if out, err = plc.ExecutePowershellCommand(getIPv6RouteCmd); err != nil {
-		logger.Info("ipv6 default route is not found, adding it to the system", zap.Any("out", out))
-		// run powershell cmd to add ipv6 default route
-		addCmd := fmt.Sprintf("New-NetRoute -DestinationPrefix %s -InterfaceIndex %s -NextHop %s",
-			defaultIPv6Route, ifIndex, defaultIPv6NextHop)
-		if out, err = plc.ExecutePowershellCommand(addCmd); err != nil {
-			logger.Error("Failed to add ipv6 default gateway route", zap.Any("out", out), zap.Error(err))
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (nw *network) addIPv6NeighborEntryForGateway(epInfo *EndpointInfo, plc platform.ExecClient) error {

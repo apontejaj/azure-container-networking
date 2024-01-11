@@ -38,6 +38,10 @@ const (
 	routeCmd = "netsh interface ipv6 %s route \"%s\" \"%s\" \"%s\" store=persistent"
 	// add/delete ipv4 and ipv6 route rules to/from windows node
 	netRouteCmd = "netsh interface %s %s route \"%s\" \"%s\" \"%s\""
+	// Default IPv6 Route
+	defaultIPv6Route = "::/0"
+	// Default IPv6 nextHop
+	defaultIPv6NextHop = "fe80::1234:5678:9abc"
 )
 
 // Windows implementation of route.
@@ -318,6 +322,34 @@ func (nm *networkManager) configureHcnNetwork(nwInfo *NetworkInfo, extIf *extern
 	return hcnNetwork, nil
 }
 
+func (nm *networkManager) addIPv6DefaultRoute() error {
+	var (
+		err error
+		out string
+	)
+	// the default ipv6 route is missing sometimes due to ARP issue
+	// need to add ipv6 default route if it does not exist in dualstack overlay windows node
+	cmd := fmt.Sprintf(`Get-NetAdapter | Where-Object { $_.InterfaceDescription -like 'Hyper-V*' } | Select-Object -ExpandProperty ifIndex`)
+	ifIndex, err := nm.plClient.ExecutePowershellCommand(cmd)
+	if err != nil {
+		return fmt.Errorf("error while executing powershell command to get ipv6 Hyper-V interface: %w", err)
+	}
+
+	getIPv6RouteCmd := fmt.Sprintf("Get-NetRoute -DestinationPrefix %s", defaultIPv6Route)
+	if out, err = nm.plClient.ExecutePowershellCommand(getIPv6RouteCmd); err != nil {
+		logger.Info("ipv6 default route is not found, adding it to the system", zap.Any("out", out))
+		// run powershell cmd to add ipv6 default route
+		addCmd := fmt.Sprintf("New-NetRoute -DestinationPrefix %s -InterfaceIndex %s -NextHop %s",
+			defaultIPv6Route, ifIndex, defaultIPv6NextHop)
+		if out, err = nm.plClient.ExecutePowershellCommand(addCmd); err != nil {
+			logger.Error("Failed to add ipv6 default gateway route", zap.Any("out", out), zap.Error(err))
+			return err
+		}
+	}
+
+	return nil
+}
+
 // newNetworkImplHnsV2 creates a new container network for HNSv2.
 func (nm *networkManager) newNetworkImplHnsV2(nwInfo *NetworkInfo, extIf *externalInterface) (*network, error) {
 	hcnNetwork, err := nm.configureHcnNetwork(nwInfo, extIf)
@@ -345,6 +377,13 @@ func (nm *networkManager) newNetworkImplHnsV2(nwInfo *NetworkInfo, extIf *extern
 		}
 	} else {
 		logger.Info("Network with name already exists", zap.String("name", hcnNetwork.Name))
+	}
+
+	// check if ipv6 default gateway route is missing before windows endpoint creation
+	if len(nwInfo.Subnets) >= 2 {
+		if err = nm.addIPv6DefaultRoute(); err != nil {
+			return nil, fmt.Errorf("Failed to add ipv6 default route")
+		}
 	}
 
 	var vlanid int
