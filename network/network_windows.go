@@ -329,7 +329,7 @@ func (nm *networkManager) addIPv6DefaultRoute() error {
 	)
 
 	logger.Info("Adding default ipv6 route to windows node")
-	// the default ipv6 route is missing sometimes due to ARP issue
+	// the default ipv6 route is missing sometimes
 	// need to add ipv6 default route if it does not exist in dualstack overlay windows node
 	cmd := fmt.Sprintf(`Get-NetAdapter | Where-Object { $_.InterfaceDescription -like 'Hyper-V*' } | Select-Object -ExpandProperty ifIndex`)
 	ifIndex, err := nm.plClient.ExecutePowershellCommand(cmd)
