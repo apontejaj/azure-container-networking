@@ -8,23 +8,14 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"time"
 
 	k8s "github.com/Azure/azure-container-networking/test/e2e/kubernetes"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v4"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubectl/pkg/scheme"
-)
-
-const (
-	RetryTimeoutCiliumPodsReady  = 5 * time.Minute
-	RetryIntervalCiliumPodsReady = 5 * time.Second
 )
 
 var (
@@ -129,23 +120,32 @@ func (c *CreateBYOCiliumCluster) Run() error {
 		return fmt.Errorf("failed to create cluster: %w", err)
 	}
 
+	// get kubeconfig
+	log.Printf("getting kubeconfig for cluster \"%s\" in resource group \"%s\"...", c.ClusterName, c.ResourceGroupName)
+	clientset, err := c.getKubeConfig()
+	if err != nil {
+		return fmt.Errorf("failed to get kubeconfig for cluster \"%s\": %w", c.ClusterName, err)
+	}
+
 	// Deploy the cilium components once the cluster is created
 	log.Printf("deploying cilium components to cluster \"%s\" in resource group \"%s\"...", c.ClusterName, c.ResourceGroupName)
-	err = c.deployCiliumComponents()
+	err = c.deployCiliumComponents(clientset)
 	if err != nil {
 		return fmt.Errorf("failed to deploy cilium components: %w", err)
 	}
 
+	// wait for cilium pods to be ready
+	k8s.WaitForPodReady(ctx, clientset, "kube-system", "k8s-app=cilium")
+
 	return err
 }
 
-func (c *CreateBYOCiliumCluster) deployCiliumComponents() error {
+func (c *CreateBYOCiliumCluster) getKubeConfig() (*kubernetes.Clientset, error) {
 	// create temporary directory for kubeconfig, as we need access to deploy cilium things
 	dir, err := os.MkdirTemp("", "cilium-e2e")
 	if err != nil {
-		return fmt.Errorf("failed to create temporary directory to deploy cilium components on cluster \"%s\": %w", c.ClusterName, err)
+		return nil, fmt.Errorf("failed to create temporary directory to deploy cilium components on cluster \"%s\": %w", c.ClusterName, err)
 	}
-
 	// reuse getKubeConfig job
 	kubeconfigpath := dir + "/kubeconfig"
 	getKubeconfigJob := GetAKSKubeConfig{
@@ -158,22 +158,25 @@ func (c *CreateBYOCiliumCluster) deployCiliumComponents() error {
 
 	err = getKubeconfigJob.Run()
 	if err != nil {
-		return fmt.Errorf("failed to get kubeconfig to deploy cilium components on cluster \"%s\": %w", c.ClusterName, err)
+		return nil, fmt.Errorf("failed to get kubeconfig to deploy cilium components on cluster \"%s\": %w", c.ClusterName, err)
 	}
 
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigpath)
 	if err != nil {
-		return fmt.Errorf("failed to build kubeconfig to deploy cilium components on cluster \"%s\": %w", c.ClusterName, err)
+		return nil, fmt.Errorf("failed to build kubeconfig to deploy cilium components on cluster \"%s\": %w", c.ClusterName, err)
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return fmt.Errorf("failed to create Kubernetes client to deploy cilium components on cluster \"%s\": %w", c.ClusterName, err)
+		return nil, fmt.Errorf("failed to create Kubernetes client to deploy cilium components on cluster \"%s\": %w", c.ClusterName, err)
 	}
+	return clientset, nil
+}
 
+func (c *CreateBYOCiliumCluster) deployCiliumComponents(clientset *kubernetes.Clientset) error {
 	// traverse the predefined Cilium component folders
 	for _, dir := range componentFolders {
-		err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return fmt.Errorf("error traversing the cilium components directory: %w", err)
 			}
@@ -205,46 +208,6 @@ func (c *CreateBYOCiliumCluster) deployCiliumComponents() error {
 			return fmt.Errorf("error walking the cilium components directory: %w", err)
 		}
 	}
-
-	// wait for cilium pods to be in Running state
-	ctx := context.Background()
-	pollctx, cancel := context.WithDeadline(ctx, time.Now().Add(RetryTimeoutCiliumPodsReady))
-	defer cancel()
-
-	log.Println("waiting for cilium pods to be in Running state...")
-
-	conditionFunc := wait.ConditionWithContextFunc(func(context.Context) (bool, error) {
-		ns := "kube-system"
-		label := "k8s-app=cilium"
-
-		// get a list of all cilium pods
-		var podList *corev1.PodList
-		podList, err = clientset.CoreV1().Pods(ns).List(pollctx, metav1.ListOptions{LabelSelector: label})
-		if err != nil {
-			return false, fmt.Errorf("error listing Pods: %w", err)
-		}
-
-		// check each indviidual pod to see if it's in Running state
-		for i := range podList.Items {
-			var pod *corev1.Pod
-			pod, err = clientset.CoreV1().Pods("kube-system").Get(pollctx, podList.Items[i].Name, metav1.GetOptions{})
-			if err != nil {
-				return false, fmt.Errorf("error getting Pod: %w", err)
-			}
-
-			// Check the Pod phase
-			if pod.Status.Phase != corev1.PodRunning {
-				log.Printf("pod \"%s\" is not in Running state yet. Waiting...\n", pod.Name)
-				return false, nil
-			}
-
-		}
-		log.Printf("all cilium pods are in Running state\n")
-		return true, nil
-	})
-
-	// wait until all cilium pods are in Running state condition is true
-	err = wait.PollUntilContextCancel(pollctx, RetryIntervalCiliumPodsReady, true, conditionFunc)
 
 	return nil
 }

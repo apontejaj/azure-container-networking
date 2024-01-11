@@ -60,8 +60,8 @@ func NewPortForwarder(restConfig *rest.Config) (*PortForwarder, error) {
 }
 
 // todo: can be made more flexible to allow a service to be specified
-// Forward attempts to initiate port forwarding to the specified pod and port using labels.
-func (p *PortForwarder) Forward(ctx context.Context, namespace, labelSelector string, localPort, destPort int) (PortForwardStreamHandle, error) {
+// ForwardWithLabelSelector attempts to initiate port forwarding to the specified pod and port using labels.
+func (p *PortForwarder) ForwardWithLabelSelector(ctx context.Context, namespace, labelSelector string, localPort, destPort int) (PortForwardStreamHandle, error) {
 	pods, err := p.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labelSelector,
 		FieldSelector: "status.phase=Running",
@@ -73,6 +73,10 @@ func (p *PortForwarder) Forward(ctx context.Context, namespace, labelSelector st
 		return PortForwardStreamHandle{}, fmt.Errorf("no pods found in %q with label %q: %w", namespace, labelSelector, ErrNoPodsFound)
 	}
 	podName := pods.Items[0].Name
+	return p.ForwardWithPodName(ctx, namespace, podName, localPort, destPort)
+}
+
+func (p *PortForwarder) ForwardWithPodName(ctx context.Context, namespace, podName string, localPort, destPort int) (PortForwardStreamHandle, error) {
 	portForwardURL := p.clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Namespace(namespace).

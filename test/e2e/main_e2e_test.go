@@ -13,6 +13,10 @@ import (
 	"github.com/Azure/azure-container-networking/test/e2e/types"
 )
 
+const (
+	netObsRGtag = "-e2e-netobs-"
+)
+
 // Objectives
 // - Steps are reusable
 // - Steps parameters are saved to the context of the job
@@ -26,7 +30,8 @@ func TestValidateHubbleMetrics(t *testing.T) {
 	defer job.Run()
 
 	curuser, _ := user.Current()
-	testName := curuser.Username + "-e2e-netobs-" + strconv.FormatInt(time.Now().Unix(), 10)
+
+	testName := curuser.Username + netObsRGtag + strconv.FormatInt(time.Now().Unix(), 10)
 
 	sub := os.Getenv("AZURE_SUBSCRIPTION_ID")
 
@@ -54,19 +59,35 @@ func TestValidateHubbleMetrics(t *testing.T) {
 	})
 
 	job.AddStep(&azure.GetAKSKubeConfig{
+		// ClusterName: "matmerr-e2e-netobs-1704927259",
+		// ResourceGroupName:  "matmerr-e2e-netobs-1704927259",
+		// Location:           "westus2",
+		// SubscriptionID:     "d9eabe18-12f6-4421-934a-d7e2327585f5",
 		KubeConfigFilePath: "./test.pem",
 	})
 
 	job.AddStep(&k8s.CreateKapingerDeployment{
-		KapingerNamespace: "default",
+		KapingerNamespace: "kube-system",
 		KapingerReplicas:  "1",
 	})
 
+	job.AddStep(&k8s.CreateAgnhostStatefulSet{
+		AgnhostName:      "agnhost-a",
+		AgnhostNamespace: "kube-system",
+	})
+
+	job.AddStep(&k8s.ExecInPod{
+		PodName:      "agnhost-a-0",
+		PodNamespace: "kube-system",
+		Command:      "curl -s google.com",
+	})
+
 	job.AddStep(&k8s.PortForward{
-		Namespace:     "kube-system",
-		LabelSelector: "k8s-app=cilium",
-		LocalPort:     "9965",
-		RemotePort:    "9965",
+		Namespace:             "kube-system",
+		LabelSelector:         "k8s-app=cilium",
+		LocalPort:             "9965",
+		RemotePort:            "9965",
+		OptionalLabelAffinity: "app=agnhost-a", // port forward to a pod on a node that also has this pod with this label, assuming same namespace
 	})
 
 	job.AddStep(&types.Sleep{
@@ -76,4 +97,42 @@ func TestValidateHubbleMetrics(t *testing.T) {
 	job.AddStep(&hubble.ValidateHubbleMetrics{})
 
 	job.AddStep(&azure.DeleteResourceGroup{})
+}
+
+func TestCreateAMAWorkspace(t *testing.T) {
+	job := types.NewJob(t)
+	defer job.Run()
+
+	curuser, _ := user.Current()
+	testName := curuser.Username + netObsRGtag + strconv.FormatInt(time.Now().Unix(), 10)
+
+	sub := os.Getenv("AZURE_SUBSCRIPTION_ID")
+
+	job.AddStep(&azure.CreateAzureMonitor{
+		SubscriptionID:    sub,
+		ResourceGroupName: testName,
+		ClusterName:       testName,
+		Location:          "westus2",
+	})
+
+	job.AddStep(&azure.CreateAzureMonitor{})
+}
+
+func TestDNSTraffic(t *testing.T) {
+	job := types.NewJob(t)
+	defer job.Run()
+
+	curuser, _ := user.Current()
+	testName := curuser.Username + netObsRGtag + strconv.FormatInt(time.Now().Unix(), 10)
+
+	sub := os.Getenv("AZURE_SUBSCRIPTION_ID")
+
+	job.AddStep(&azure.CreateAzureMonitor{
+		SubscriptionID:    sub,
+		ResourceGroupName: testName,
+		ClusterName:       testName,
+		Location:          "westus2",
+	})
+
+	job.AddStep(&azure.CreateAzureMonitor{})
 }

@@ -20,9 +20,10 @@ import (
 )
 
 const (
-	KapingerHTTPPort = 8080
-	KapingerTCPPort  = 8085
-	KapingerUDPPort  = 8086
+	KapingerHTTPPort  = 8080
+	KapingerTCPPort   = 8085
+	KapingerUDPPort   = 8086
+	MaxAffinityWeight = 100
 )
 
 type CreateKapingerDeployment struct {
@@ -148,7 +149,26 @@ func (c *CreateKapingerDeployment) getKapingerDeployment() *appsv1.Deployment {
 						"server": "good",
 					},
 				},
+
 				Spec: v1.PodSpec{
+					Affinity: &v1.Affinity{
+						PodAntiAffinity: &v1.PodAntiAffinity{
+							// prefer an even spread across the cluster to avoid scheduling on the same node
+							PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
+								{
+									Weight: MaxAffinityWeight,
+									PodAffinityTerm: v1.PodAffinityTerm{
+										TopologyKey: "kubernetes.io/hostname",
+										LabelSelector: &metaV1.LabelSelector{
+											MatchLabels: map[string]string{
+												"app": "kapinger",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
 					ServiceAccountName: "kapinger-sa",
 					Containers: []v1.Container{
 						{

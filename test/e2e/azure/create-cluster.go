@@ -59,6 +59,13 @@ func GetStarterClusterTemplate(location string) armcontainerservice.ManagedClust
 		},
 		Properties: &armcontainerservice.ManagedClusterProperties{
 			AddonProfiles: map[string]*armcontainerservice.ManagedClusterAddonProfile{},
+			/* Moving this to a separate stage to enable AMA since it takes some time to provision
+			AzureMonitorProfile: &armcontainerservice.ManagedClusterAzureMonitorProfile{
+				Metrics: &armcontainerservice.ManagedClusterAzureMonitorProfileMetrics{
+					Enabled: to.Ptr(true),
+				},
+			},
+			*/
 			AgentPoolProfiles: []*armcontainerservice.ManagedClusterAgentPoolProfile{
 				{
 					Type:               to.Ptr(armcontainerservice.AgentPoolTypeVirtualMachineScaleSets),

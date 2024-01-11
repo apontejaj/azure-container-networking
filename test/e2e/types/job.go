@@ -71,39 +71,39 @@ func (j *Job) AddStep(step Step) {
 	stepName := reflect.TypeOf(step).Elem().Name()
 	val := reflect.ValueOf(step).Elem()
 
-	// skip saving parameters to job
-	if step.SaveParametersToJob() {
-		for i, f := range reflect.VisibleFields(val.Type()) {
+	for i, f := range reflect.VisibleFields(val.Type()) {
 
-			// skip saving unexported fields
-			if !f.IsExported() {
-				continue
-			}
+		// skip saving unexported fields
+		if !f.IsExported() {
+			continue
+		}
 
-			k := reflect.Indirect(val.Field(i)).Kind()
+		k := reflect.Indirect(val.Field(i)).Kind()
 
-			if k == reflect.String {
-				parameter := val.Type().Field(i).Name
-				value := val.Field(i).Interface().(string)
-				storedValue := j.Values.Get(parameter)
+		if k == reflect.String {
+			parameter := val.Type().Field(i).Name
+			value := val.Field(i).Interface().(string)
+			storedValue := j.Values.Get(parameter)
 
-				if storedValue == "" {
-					if value != "" {
-						j.Values.Set(parameter, value)
-						continue
-					}
-					assert.FailNowf(j.t, "missing parameter", "parameter %s is required for step %s", parameter, stepName)
-
-				}
-
+			if storedValue == "" {
 				if value != "" {
-					assert.FailNowf(j.t, "parameter already set", "parameter %s for step %s is already set from previous step", parameter, stepName)
+					if step.SaveParametersToJob() {
+						fmt.Printf("%s setting parameter %s in job context to %s\n", stepName, parameter, value)
+						j.Values.Set(parameter, value)
+					}
+					continue
 				}
+				assert.FailNowf(j.t, "missing parameter", "parameter %s is required for step %s", parameter, stepName)
 
-				// don't use log format since this is technically preexecution and easier to read
-				fmt.Println(stepName, "using previously stored value for parameter", parameter, "set as", j.Values.Get(parameter))
-				val.Field(i).SetString(storedValue)
 			}
+
+			if value != "" {
+				assert.FailNowf(j.t, "parameter already set", "parameter %s for step %s is already set from previous step", parameter, stepName)
+			}
+
+			// don't use log format since this is technically preexecution and easier to read
+			fmt.Println(stepName, "using previously stored value for parameter", parameter, "set as", j.Values.Get(parameter))
+			val.Field(i).SetString(storedValue)
 		}
 	}
 
