@@ -1,4 +1,4 @@
-package hubble
+package scenarios
 
 import (
 	"context"
@@ -64,6 +64,7 @@ func (v *ValidateHubbleDropMetric) Run() error {
 		return fmt.Errorf("failed to find metric matching %+v: %w", validMetric, ErrNoMetricFound)
 	}
 
+	log.Printf("found metric matching %+v\n", validMetric)
 	return nil
 }
 

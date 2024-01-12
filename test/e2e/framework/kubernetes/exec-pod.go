@@ -35,9 +35,6 @@ func (e *ExecInPod) Run() error {
 	return nil
 }
 
-
-
-
 func (e *ExecInPod) Prevalidate() error {
 	return nil
 }

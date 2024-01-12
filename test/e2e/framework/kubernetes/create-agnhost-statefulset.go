@@ -14,9 +14,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var (
-	ErrLabelMissingFromPod = fmt.Errorf("label missing from pod")
-)
+var ErrLabelMissingFromPod = fmt.Errorf("label missing from pod")
 
 const (
 	AgnhostHTTPPort = 80

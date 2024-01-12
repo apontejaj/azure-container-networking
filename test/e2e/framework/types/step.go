@@ -1,11 +1,9 @@
 package types
 
-var (
-	DefaultOpts = StepOptions{
-		ExpectError:         false,
-		SaveParametersToJob: true,
-	}
-)
+var DefaultOpts = StepOptions{
+	ExpectError:         false,
+	SaveParametersToJob: true,
+}
 
 type Step interface {
 	Prevalidate() error

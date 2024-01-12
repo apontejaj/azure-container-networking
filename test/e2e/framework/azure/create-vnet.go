@@ -55,9 +55,6 @@ func (c *CreateVNet) Run() error {
 	return nil
 }
 
-
-
-
 func (c *CreateVNet) Prevalidate() error {
 	return nil
 }
@@ -103,10 +100,6 @@ func (c *CreateSubnet) Run() error {
 	}
 	return nil
 }
-
-
-
-
 
 func (c *CreateSubnet) Prevalidate() error {
 	return nil

@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	k8s "github.com/Azure/azure-container-networking/test/e2e/kubernetes"
+	k8s "github.com/Azure/azure-container-networking/test/e2e/framework/kubernetes"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v4"
@@ -135,9 +135,12 @@ func (c *CreateBYOCiliumCluster) Run() error {
 	}
 
 	// wait for cilium pods to be ready
-	k8s.WaitForPodReady(ctx, clientset, "kube-system", "k8s-app=cilium")
+	err = k8s.WaitForPodReady(ctx, clientset, "kube-system", "k8s-app=cilium")
+	if err != nil {
+		return fmt.Errorf("failed to wait for cilium pods to be ready: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 func (c *CreateBYOCiliumCluster) getKubeConfig() (*kubernetes.Clientset, error) {

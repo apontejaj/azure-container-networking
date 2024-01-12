@@ -3,10 +3,8 @@ package k8s
 import (
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 
-	"github.com/Azure/azure-container-networking/test/e2e/utils"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -16,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -52,11 +49,11 @@ func (c *CreateKapingerDeployment) Run() error {
 	defer cancel()
 
 	resources := []runtime.Object{
-		c.getKapingerService(),
-		c.getKapingerServiceAccount(),
-		c.getKapingerClusterRole(),
-		c.getKapingerClusterRoleBinding(),
-		c.getKapingerDeployment(),
+		c.GetKapingerService(),
+		c.GetKapingerServiceAccount(),
+		c.GetKapingerClusterRole(),
+		c.GetKapingerClusterRoleBinding(),
+		c.GetKapingerDeployment(),
 	}
 
 	for i := range resources {
@@ -69,9 +66,6 @@ func (c *CreateKapingerDeployment) Run() error {
 	return nil
 }
 
-
-
-
 func (c *CreateKapingerDeployment) Prevalidate() error {
 	return nil
 }
@@ -80,40 +74,7 @@ func (c *CreateKapingerDeployment) Postvalidate() error {
 	return nil
 }
 
-func GenerateKapingerYAML(folder string) {
-	kappiefolder := folder + "/kapinger"
-	err := os.MkdirAll(kappiefolder, os.ModePerm)
-	if err != nil {
-		fmt.Printf("Error creating folder %s: %v", kappiefolder, err)
-		return
-	}
-	// Create a sample Deployment object
-	c := CreateKapingerDeployment{
-		KapingerNamespace: "default",
-		KapingerReplicas:  "1",
-	}
-
-	resources := map[string]interface{}{
-		"kapinger-deployment.yaml":         c.getKapingerDeployment(),
-		"kapinger-service.yaml":            c.getKapingerService(),
-		"kapinger-serviceaccount.yaml":     c.getKapingerServiceAccount(),
-		"kapinger-clusterrole.yaml":        c.getKapingerClusterRole(),
-		"kapinger-clusterrolebinding.yaml": c.getKapingerClusterRoleBinding(),
-	}
-
-	for filename, obj := range resources {
-		yamlBytes, err := yaml.Marshal(obj)
-		if err != nil {
-			fmt.Println("Error marshalling object: ", err)
-		}
-		err = utils.WriteYAMLToFile(yamlBytes, kappiefolder+"/"+filename)
-		if err != nil {
-			fmt.Println("Error writing YAML to file: ", err)
-		}
-	}
-}
-
-func (c *CreateKapingerDeployment) getKapingerDeployment() *appsv1.Deployment {
+func (c *CreateKapingerDeployment) GetKapingerDeployment() *appsv1.Deployment {
 	replicas, err := strconv.ParseInt(c.KapingerReplicas, 10, 32)
 	if err != nil {
 		fmt.Println("Error converting replicas to int for Kapinger replicas: ", err)
@@ -208,7 +169,7 @@ func (c *CreateKapingerDeployment) getKapingerDeployment() *appsv1.Deployment {
 	}
 }
 
-func (c *CreateKapingerDeployment) getKapingerService() *v1.Service {
+func (c *CreateKapingerDeployment) GetKapingerService() *v1.Service {
 	return &v1.Service{
 		TypeMeta: metaV1.TypeMeta{
 			Kind:       "Service",
@@ -236,7 +197,7 @@ func (c *CreateKapingerDeployment) getKapingerService() *v1.Service {
 	}
 }
 
-func (c *CreateKapingerDeployment) getKapingerServiceAccount() *v1.ServiceAccount {
+func (c *CreateKapingerDeployment) GetKapingerServiceAccount() *v1.ServiceAccount {
 	return &v1.ServiceAccount{
 		TypeMeta: metaV1.TypeMeta{
 			Kind:       "ServiceAccount",
@@ -249,7 +210,7 @@ func (c *CreateKapingerDeployment) getKapingerServiceAccount() *v1.ServiceAccoun
 	}
 }
 
-func (c *CreateKapingerDeployment) getKapingerClusterRole() *rbacv1.ClusterRole {
+func (c *CreateKapingerDeployment) GetKapingerClusterRole() *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		TypeMeta: metaV1.TypeMeta{
 			Kind:       "ClusterRole",
@@ -269,7 +230,7 @@ func (c *CreateKapingerDeployment) getKapingerClusterRole() *rbacv1.ClusterRole 
 	}
 }
 
-func (c *CreateKapingerDeployment) getKapingerClusterRoleBinding() *rbacv1.ClusterRoleBinding {
+func (c *CreateKapingerDeployment) GetKapingerClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		TypeMeta: metaV1.TypeMeta{
 			Kind:       "ClusterRoleBinding",

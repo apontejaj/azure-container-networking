@@ -149,10 +149,6 @@ func (p *PortForward) findPodsWithAffinity(ctx context.Context, clientset *kuber
 	return "", fmt.Errorf("could not find a pod with label \"%s\", on a node that also has a pod with label \"%s\": %w", p.LabelSelector, p.OptionalLabelAffinity, ErrNoPodWithLabelFound)
 }
 
-
-
-
-
 func (p *PortForward) Prevalidate() error {
 	return nil
 }

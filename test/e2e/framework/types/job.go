@@ -13,12 +13,12 @@ import (
 type Job struct {
 	t      *testing.T
 	Values *JobValues
-	Steps  []*stepWrapper
+	Steps  []*StepWrapper
 }
 
-type stepWrapper struct {
-	step Step
-	opts *StepOptions
+type StepWrapper struct {
+	Step Step
+	Opts *StepOptions
 }
 
 func responseDivider(jobname string) {
@@ -51,17 +51,17 @@ func (j *Job) Run() {
 	}
 
 	for _, wrapper := range j.Steps {
-		err := wrapper.step.Prevalidate()
+		err := wrapper.Step.Prevalidate()
 		if err != nil {
 			require.NoError(j.t, err)
 		}
 	}
 
 	for _, wrapper := range j.Steps {
-		responseDivider(reflect.TypeOf(wrapper.step).Elem().Name())
-		log.Printf("INFO: step options provided: %+v\n", wrapper.opts)
-		err := wrapper.step.Run()
-		if wrapper.opts.ExpectError {
+		responseDivider(reflect.TypeOf(wrapper.Step).Elem().Name())
+		log.Printf("INFO: step options provided: %+v\n", wrapper.Opts)
+		err := wrapper.Step.Run()
+		if wrapper.Opts.ExpectError {
 			require.Error(j.t, err)
 		} else {
 			require.NoError(j.t, err)
@@ -69,10 +69,16 @@ func (j *Job) Run() {
 	}
 
 	for _, wrapper := range j.Steps {
-		err := wrapper.step.Postvalidate()
+		err := wrapper.Step.Postvalidate()
 		if err != nil {
 			require.NoError(j.t, err)
 		}
+	}
+}
+
+func (j *Job) AddScenario(steps []StepWrapper) {
+	for _, step := range steps {
+		j.AddStep(step.Step, step.Opts)
 	}
 }
 
@@ -121,8 +127,8 @@ func (j *Job) AddStep(step Step, opts *StepOptions) {
 		}
 	}
 
-	j.Steps = append(j.Steps, &stepWrapper{
-		step: step,
-		opts: opts,
+	j.Steps = append(j.Steps, &StepWrapper{
+		Step: step,
+		Opts: opts,
 	})
 }

@@ -39,9 +39,6 @@ func (d *DeleteCluster) Run() error {
 	return nil
 }
 
-
-
-
 func (d *DeleteCluster) Prevalidate() error {
 	return nil
 }

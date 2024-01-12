@@ -1,4 +1,4 @@
-package hubble
+package scenarios
 
 import (
 	"context"
@@ -64,9 +64,6 @@ func (v *ValidateHubbleFlowMetric) Run() error {
 	log.Printf("all metrics validated: %+v\n", requiredMetrics)
 	return nil
 }
-
-
-
 
 func (v *ValidateHubbleFlowMetric) Prevalidate() error {
 	return nil

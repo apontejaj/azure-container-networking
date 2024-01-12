@@ -19,8 +19,6 @@ func (c *Sleep) Prevalidate() error {
 	return nil
 }
 
-
-
 func (c *Sleep) Postvalidate() error {
 	return nil
 }

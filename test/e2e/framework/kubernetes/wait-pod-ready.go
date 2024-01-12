@@ -18,7 +18,6 @@ const (
 )
 
 func WaitForPodReady(ctx context.Context, clientset *kubernetes.Clientset, namespace, labelSelector string) error {
-
 	podReadyMap := make(map[string]bool)
 
 	conditionFunc := wait.ConditionWithContextFunc(func(context.Context) (bool, error) {

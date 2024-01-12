@@ -3,6 +3,7 @@ package k8s
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,6 +19,7 @@ const (
 type CreateDenyAllNetworkPolicy struct {
 	NetworkPolicyNamespace string
 	KubeConfigFilePath     string
+	DenyAllLabelSelector   string
 }
 
 func (c *CreateDenyAllNetworkPolicy) Run() error {
@@ -34,7 +36,7 @@ func (c *CreateDenyAllNetworkPolicy) Run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	agnhostStatefulest := getNetworkPolicy(c.NetworkPolicyNamespace)
+	agnhostStatefulest := getNetworkPolicy(c.NetworkPolicyNamespace, c.DenyAllLabelSelector)
 	err = CreateResource(ctx, agnhostStatefulest, clientset)
 	if err != nil {
 		return fmt.Errorf("error creating simple deny-all network policy: %w", err)
@@ -43,8 +45,8 @@ func (c *CreateDenyAllNetworkPolicy) Run() error {
 	return nil
 }
 
-func getNetworkPolicy(namespace string) *networkingv1.NetworkPolicy {
-
+func getNetworkPolicy(namespace, labelSelector string) *networkingv1.NetworkPolicy {
+	labelSelectorSlice := strings.Split(labelSelector, "=")
 	return &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "deny-all",
@@ -53,7 +55,7 @@ func getNetworkPolicy(namespace string) *networkingv1.NetworkPolicy {
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app": "agnhost-a",
+					labelSelectorSlice[0]: labelSelectorSlice[1],
 				},
 			},
 			PolicyTypes: []networkingv1.PolicyType{
@@ -77,6 +79,7 @@ func (c *CreateDenyAllNetworkPolicy) Postvalidate() error {
 type DeleteDenyAllNetworkPolicy struct {
 	NetworkPolicyNamespace string
 	KubeConfigFilePath     string
+	DenyAllLabelSelector   string
 }
 
 func (d *DeleteDenyAllNetworkPolicy) Run() error {
@@ -93,7 +96,7 @@ func (d *DeleteDenyAllNetworkPolicy) Run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	agnhostStatefulest := getNetworkPolicy(d.NetworkPolicyNamespace)
+	agnhostStatefulest := getNetworkPolicy(d.NetworkPolicyNamespace, d.DenyAllLabelSelector)
 	err = DeleteResource(ctx, agnhostStatefulest, clientset)
 	if err != nil {
 		return fmt.Errorf("error creating simple deny-all network policy: %w", err)

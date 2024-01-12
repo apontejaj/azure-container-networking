@@ -47,10 +47,6 @@ func (d *DeleteResourceGroup) Prevalidate() error {
 	return nil
 }
 
-
-
-
-
 func (d *DeleteResourceGroup) Postvalidate() error {
 	return nil
 }

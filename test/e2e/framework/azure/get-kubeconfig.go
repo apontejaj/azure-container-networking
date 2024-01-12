@@ -44,10 +44,6 @@ func (c *GetAKSKubeConfig) Run() error {
 	return nil
 }
 
-
-
-
-
 func (c *GetAKSKubeConfig) Prevalidate() error {
 	return nil
 }

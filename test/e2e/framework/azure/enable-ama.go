@@ -14,6 +14,8 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/monitor/armmonitor"
 )
 
+const fileperms = 0o600
+
 type CreateAzureMonitor struct {
 	SubscriptionID    string
 	ResourceGroupName string
@@ -51,7 +53,12 @@ az aks update --enable-azure-monitor-metrics \
 	}
 
 	// Create grafana
+
 	granafaClientFactory, err := armdashboard.NewClientFactory(c.SubscriptionID, cred, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create grafana client: %w", err)
+	}
+
 	_, err = granafaClientFactory.NewGrafanaClient().BeginCreate(ctx, c.ResourceGroupName, "test", armdashboard.ManagedGrafana{}, &armdashboard.GrafanaClientBeginCreateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to create grafana: %w", err)
@@ -83,7 +90,7 @@ az aks update --enable-azure-monitor-metrics \
 	}
 
 	// Write the JSON data to a file
-	err = os.WriteFile("cluster.json", jsonData, 0o600)
+	err = os.WriteFile("cluster.json", jsonData, fileperms)
 	if err != nil {
 		return fmt.Errorf("failed to write cluster JSON to file for AMA: %w", err)
 	}
@@ -104,10 +111,6 @@ az aks update --enable-azure-monitor-metrics \
 func (c *CreateAzureMonitor) Prevalidate() error {
 	return nil
 }
-
-
-
-
 
 func (c *CreateAzureMonitor) Postvalidate() error {
 	return nil

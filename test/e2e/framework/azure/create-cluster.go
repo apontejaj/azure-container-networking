@@ -106,8 +106,6 @@ func GetStarterClusterTemplate(location string) armcontainerservice.ManagedClust
 	}
 }
 
-
-
 func (c *CreateCluster) Prevalidate() error {
 	return nil
 }
