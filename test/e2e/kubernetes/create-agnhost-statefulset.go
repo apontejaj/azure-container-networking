@@ -4,14 +4,18 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+)
+
+var (
+	ErrLabelMissingFromPod = fmt.Errorf("label missing from pod")
 )
 
 const (
@@ -36,35 +40,28 @@ func (c *CreateAgnhostStatefulSet) Run() error {
 		return fmt.Errorf("error creating Kubernetes client: %w", err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeoutSeconds*time.Second)
 	defer cancel()
 
-	resources := []runtime.Object{
-		c.getAgnhostDeployment(),
+	agnhostStatefulest := c.getAgnhostDeployment()
+
+	err = CreateResource(ctx, agnhostStatefulest, clientset)
+	if err != nil {
+		return fmt.Errorf("error agnhost component: %w", err)
 	}
 
-	for i := range resources {
-		err = CreateResource(ctx, resources[i], clientset)
-		if err != nil {
-			return fmt.Errorf("error agnhost component: %w", err)
-		}
+	selector, exists := agnhostStatefulest.Spec.Selector.MatchLabels["app"]
+	if !exists {
+		return fmt.Errorf("missing label \"app=%s\" from agnhost statefulset: %w", c.AgnhostName, ErrLabelMissingFromPod)
 	}
 
-	err = WaitForPodReady(ctx, clientset, c.AgnhostNamespace, c.AgnhostName)
+	labelSelector := fmt.Sprintf("app=%s", selector)
+	err = WaitForPodReady(ctx, clientset, c.AgnhostNamespace, labelSelector)
 	if err != nil {
 		return fmt.Errorf("error waiting for agnhost pod to be ready: %w", err)
 	}
 
 	return nil
-}
-
-func (c *CreateAgnhostStatefulSet) ExpectError() bool {
-	return false
-}
-
-// we'll potentially create multiple deployments, so don't save parameters to the job
-func (c *CreateAgnhostStatefulSet) SaveParametersToJob() bool {
-	return false
 }
 
 func (c *CreateAgnhostStatefulSet) Prevalidate() error {

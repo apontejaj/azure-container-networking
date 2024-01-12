@@ -55,13 +55,8 @@ func (c *CreateVNet) Run() error {
 	return nil
 }
 
-func (c *CreateVNet) ExpectError() bool {
-	return false
-}
 
-func (c *CreateVNet) SaveParametersToJob() bool {
-	return true
-}
+
 
 func (c *CreateVNet) Prevalidate() error {
 	return nil
@@ -109,13 +104,9 @@ func (c *CreateSubnet) Run() error {
 	return nil
 }
 
-func (c *CreateSubnet) ExpectError() bool {
-	return false
-}
 
-func (c *CreateSubnet) SaveParametersToJob() bool {
-	return true
-}
+
+
 
 func (c *CreateSubnet) Prevalidate() error {
 	return nil

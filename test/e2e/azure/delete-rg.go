@@ -47,13 +47,9 @@ func (d *DeleteResourceGroup) Prevalidate() error {
 	return nil
 }
 
-func (d *DeleteResourceGroup) ExpectError() bool {
-	return false
-}
 
-func (d *DeleteResourceGroup) SaveParametersToJob() bool {
-	return true
-}
+
+
 
 func (d *DeleteResourceGroup) Postvalidate() error {
 	return nil

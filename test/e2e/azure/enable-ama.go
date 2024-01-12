@@ -105,13 +105,9 @@ func (c *CreateAzureMonitor) Prevalidate() error {
 	return nil
 }
 
-func (c *CreateAzureMonitor) ExpectError() bool {
-	return false
-}
 
-func (c *CreateAzureMonitor) SaveParametersToJob() bool {
-	return true
-}
+
+
 
 func (c *CreateAzureMonitor) Postvalidate() error {
 	return nil

@@ -7,6 +7,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,13 +17,12 @@ import (
 
 var (
 	ErrUnknownResourceType = fmt.Errorf("unknown resource type")
-	ErrNilResource         = fmt.Errorf("cannot create nil resource")
+	ErrCreateNilResource   = fmt.Errorf("cannot create nil resource")
 )
 
 func CreateResource(ctx context.Context, obj runtime.Object, clientset *kubernetes.Clientset) error { //nolint:gocyclo //this is just boilerplate code
-	// Create the object
 	if obj == nil {
-		return ErrNilResource
+		return ErrCreateNilResource
 	}
 
 	switch o := obj.(type) {
@@ -184,6 +184,22 @@ func CreateResource(ctx context.Context, obj runtime.Object, clientset *kubernet
 		_, err = client.Update(ctx, o, metaV1.UpdateOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to create/update ConfigMap \"%s\" in namespace \"%s\": %w", o.Name, o.Namespace, err)
+		}
+
+	case *networkingv1.NetworkPolicy:
+		log.Printf("Creating/Updating NetworkPolicy \"%s\" in namespace \"%s\"...\n", o.Name, o.Namespace)
+		client := clientset.NetworkingV1().NetworkPolicies(o.Namespace)
+		_, err := client.Get(ctx, o.Name, metaV1.GetOptions{})
+		if errors.IsNotFound(err) {
+			_, err = client.Create(ctx, o, metaV1.CreateOptions{})
+			if err != nil {
+				return fmt.Errorf("failed to create NetworkPolicy \"%s\" in namespace \"%s\": %w", o.Name, o.Namespace, err)
+			}
+			return nil
+		}
+		_, err = client.Update(ctx, o, metaV1.UpdateOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to create/update NetworkPolicy \"%s\" in namespace \"%s\": %w", o.Name, o.Namespace, err)
 		}
 
 	default:

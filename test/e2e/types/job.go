@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"testing"
 
@@ -12,7 +13,12 @@ import (
 type Job struct {
 	t      *testing.T
 	Values *JobValues
-	Steps  []Step
+	Steps  []*stepWrapper
+}
+
+type stepWrapper struct {
+	step Step
+	opts *StepOptions
 }
 
 func responseDivider(jobname string) {
@@ -44,32 +50,40 @@ func (j *Job) Run() {
 		return
 	}
 
-	for _, step := range j.Steps {
-		err := step.Prevalidate()
+	for _, wrapper := range j.Steps {
+		err := wrapper.step.Prevalidate()
 		if err != nil {
 			require.NoError(j.t, err)
 		}
 	}
 
-	for _, step := range j.Steps {
-		responseDivider(reflect.TypeOf(step).Elem().Name())
-		err := step.Run()
-		if err != nil {
+	for _, wrapper := range j.Steps {
+		responseDivider(reflect.TypeOf(wrapper.step).Elem().Name())
+		log.Printf("INFO: step options provided: %+v\n", wrapper.opts)
+		err := wrapper.step.Run()
+		if wrapper.opts.ExpectError {
+			require.Error(j.t, err)
+		} else {
 			require.NoError(j.t, err)
 		}
 	}
 
-	for _, step := range j.Steps {
-		err := step.Postvalidate()
+	for _, wrapper := range j.Steps {
+		err := wrapper.step.Postvalidate()
 		if err != nil {
 			require.NoError(j.t, err)
 		}
 	}
 }
 
-func (j *Job) AddStep(step Step) {
+func (j *Job) AddStep(step Step, opts *StepOptions) {
 	stepName := reflect.TypeOf(step).Elem().Name()
 	val := reflect.ValueOf(step).Elem()
+
+	// set default options if none are provided
+	if opts == nil {
+		opts = &DefaultOpts
+	}
 
 	for i, f := range reflect.VisibleFields(val.Type()) {
 
@@ -87,7 +101,7 @@ func (j *Job) AddStep(step Step) {
 
 			if storedValue == "" {
 				if value != "" {
-					if step.SaveParametersToJob() {
+					if opts.SaveParametersToJob {
 						fmt.Printf("%s setting parameter %s in job context to %s\n", stepName, parameter, value)
 						j.Values.Set(parameter, value)
 					}
@@ -107,5 +121,8 @@ func (j *Job) AddStep(step Step) {
 		}
 	}
 
-	j.Steps = append(j.Steps, step)
+	j.Steps = append(j.Steps, &stepWrapper{
+		step: step,
+		opts: opts,
+	})
 }

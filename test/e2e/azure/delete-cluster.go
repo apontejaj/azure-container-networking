@@ -39,13 +39,8 @@ func (d *DeleteCluster) Run() error {
 	return nil
 }
 
-func (d *DeleteCluster) ExpectError() bool {
-	return false
-}
 
-func (d *DeleteCluster) SaveParametersToJob() bool {
-	return true
-}
+
 
 func (d *DeleteCluster) Prevalidate() error {
 	return nil

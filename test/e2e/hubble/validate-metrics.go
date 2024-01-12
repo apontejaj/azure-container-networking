@@ -27,11 +27,11 @@ var (
 	defaultRetrier = retry.Retrier{Attempts: defaultRetryAttempts, Delay: defaultRetryDelay}
 )
 
-type ValidateHubbleMetrics struct {
+type ValidateHubbleFlowMetric struct {
 	LocalPort string
 }
 
-func (v *ValidateHubbleMetrics) Run() error {
+func (v *ValidateHubbleFlowMetric) Run() error {
 	promAddress := fmt.Sprintf("http://localhost:%s/metrics", v.LocalPort)
 	log.Printf("require all metrics to be present: %+v\n", requiredMetrics)
 	ctx := context.Background()
@@ -65,19 +65,14 @@ func (v *ValidateHubbleMetrics) Run() error {
 	return nil
 }
 
-func (v *ValidateHubbleMetrics) ExpectError() bool {
-	return false
-}
 
-func (v *ValidateHubbleMetrics) SaveParametersToJob() bool {
-	return true
-}
 
-func (v *ValidateHubbleMetrics) Prevalidate() error {
+
+func (v *ValidateHubbleFlowMetric) Prevalidate() error {
 	return nil
 }
 
-func (v *ValidateHubbleMetrics) Postvalidate() error {
+func (v *ValidateHubbleFlowMetric) Postvalidate() error {
 	return nil
 }
 

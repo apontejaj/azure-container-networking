@@ -18,6 +18,9 @@ const (
 )
 
 func WaitForPodReady(ctx context.Context, clientset *kubernetes.Clientset, namespace, labelSelector string) error {
+
+	podReadyMap := make(map[string]bool)
+
 	conditionFunc := wait.ConditionWithContextFunc(func(context.Context) (bool, error) {
 		// get a list of all cilium pods
 		var podList *corev1.PodList
@@ -26,10 +29,15 @@ func WaitForPodReady(ctx context.Context, clientset *kubernetes.Clientset, names
 			return false, fmt.Errorf("error listing Pods: %w", err)
 		}
 
+		if len(podList.Items) == 0 {
+			log.Printf("no pods found in namespace \"%s\" with label \"%s\"", namespace, labelSelector)
+			return false, nil
+		}
+
 		// check each indviidual pod to see if it's in Running state
 		for i := range podList.Items {
 			var pod *corev1.Pod
-			pod, err = clientset.CoreV1().Pods("kube-system").Get(ctx, podList.Items[i].Name, metav1.GetOptions{})
+			pod, err = clientset.CoreV1().Pods(namespace).Get(ctx, podList.Items[i].Name, metav1.GetOptions{})
 			if err != nil {
 				return false, fmt.Errorf("error getting Pod: %w", err)
 			}
@@ -38,6 +46,10 @@ func WaitForPodReady(ctx context.Context, clientset *kubernetes.Clientset, names
 			if pod.Status.Phase != corev1.PodRunning {
 				log.Printf("pod \"%s\" is not in Running state yet. Waiting...\n", pod.Name)
 				return false, nil
+			}
+			if !podReadyMap[pod.Name] {
+				log.Printf("pod \"%s\" is in Running state\n", pod.Name)
+				podReadyMap[pod.Name] = true
 			}
 		}
 		log.Printf("all pods in namespace \"%s\" with label \"%s\" are in Running state\n", namespace, labelSelector)

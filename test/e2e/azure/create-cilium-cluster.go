@@ -211,11 +211,3 @@ func (c *CreateBYOCiliumCluster) deployCiliumComponents(clientset *kubernetes.Cl
 
 	return nil
 }
-
-func (c *CreateBYOCiliumCluster) ExpectError() bool {
-	return false
-}
-
-func (c *CreateBYOCiliumCluster) SaveParametersToJob() bool {
-	return true
-}

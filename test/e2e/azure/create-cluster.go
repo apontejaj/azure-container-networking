@@ -106,13 +106,7 @@ func GetStarterClusterTemplate(location string) armcontainerservice.ManagedClust
 	}
 }
 
-func (c *CreateCluster) ExpectError() bool {
-	return false
-}
 
-func (c *CreateCluster) SaveParametersToJob() bool {
-	return true
-}
 
 func (c *CreateCluster) Prevalidate() error {
 	return nil

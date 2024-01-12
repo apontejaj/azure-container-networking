@@ -44,13 +44,9 @@ func (c *GetAKSKubeConfig) Run() error {
 	return nil
 }
 
-func (c *GetAKSKubeConfig) ExpectError() bool {
-	return false
-}
 
-func (c *GetAKSKubeConfig) SaveParametersToJob() bool {
-	return true
-}
+
+
 
 func (c *GetAKSKubeConfig) Prevalidate() error {
 	return nil

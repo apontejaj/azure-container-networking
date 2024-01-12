@@ -35,13 +35,8 @@ func (e *ExecInPod) Run() error {
 	return nil
 }
 
-func (e *ExecInPod) ExpectError() bool {
-	return false
-}
 
-func (e *ExecInPod) SaveParametersToJob() bool {
-	return false
-}
+
 
 func (e *ExecInPod) Prevalidate() error {
 	return nil

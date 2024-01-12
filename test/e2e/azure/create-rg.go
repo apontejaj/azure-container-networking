@@ -43,13 +43,9 @@ func (c *CreateResourceGroup) Prevalidate() error {
 	return nil
 }
 
-func (c *CreateResourceGroup) ExpectError() bool {
-	return false
-}
 
-func (c *CreateResourceGroup) SaveParametersToJob() bool {
-	return true
-}
+
+
 
 func (c *CreateResourceGroup) Postvalidate() error {
 	return nil

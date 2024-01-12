@@ -69,13 +69,8 @@ func (c *CreateKapingerDeployment) Run() error {
 	return nil
 }
 
-func (c *CreateKapingerDeployment) ExpectError() bool {
-	return false
-}
 
-func (c *CreateKapingerDeployment) SaveParametersToJob() bool {
-	return true
-}
+
 
 func (c *CreateKapingerDeployment) Prevalidate() error {
 	return nil
