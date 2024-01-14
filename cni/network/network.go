@@ -201,6 +201,7 @@ func (plugin *NetPlugin) GetAllEndpointState(networkid string) (*api.AzureCNISta
 			PodNamespace:  ep.PODNameSpace,
 			PodEndpointId: ep.Id,
 			ContainerID:   ep.ContainerID,
+			MacAddress:    ep.MacAddress.String(),
 			IPAddresses:   ep.IPAddresses,
 		}
 
@@ -1112,39 +1113,22 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 		numEndpointsToDelete = plugin.nm.GetNumEndpointsByContainerID(args.ContainerID)
 	}
 
+	endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
+	logger.Info("endpointID is", zap.String("endpointID", endpointID))
+
+	endpointState, _ := plugin.GetAllEndpointState(endpointID)
+	logger.Info("endpointState result", zap.Any("endpointState result", endpointState.PrintResult()))
+	logger.Info("endpointState.ContainerInterfaces[endpointID]", zap.Any("endpointState.ContainerInterfaces[endpointID]", endpointState.ContainerInterfaces[endpointID]))
 	ipamAddResult.secondaryInterfacesInfo = []network.InterfaceInfo{}
 	result := network.InterfaceInfo{
 		NICType:    cns.DelegatedVMNIC,
-		MacAddress: net.HardwareAddr(epInfo.Endpoint.MacAddress),
+		MacAddress: net.HardwareAddr(endpointState.ContainerInterfaces[endpointID].MacAddress),
 	}
 	ipamAddResult.secondaryInterfacesInfo = append(ipamAddResult.secondaryInterfacesInfo, result)
 	logger.Info("CNI Delete ipamAddResult.secondaryInterfacesInfo", zap.Any("ipamAddResult.secondaryInterfacesInfo", ipamAddResult.secondaryInterfacesInfo))
 
 	logger.Info("Endpoints to be deleted", zap.Int("count", numEndpointsToDelete))
 	for i := 0; i < numEndpointsToDelete; i++ {
-		// Initialize values from network config.
-		// logger.Info("endpoints to be delete ipamAddResult", zap.Any("ipamAddResult", ipamAddResult))
-		// logger.Info("SecondaryInterfaces", zap.Any("SecondaryInterfaces", SecondaryInterfaces))
-		// for i := range plugin.secondaryInterfaces {
-		// 	logger.Info("plugin.secondaryInterfaces", zap.String("plugin.secondaryInterfaces[i].macAddress", plugin.secondaryInterfaces[i].macAddress))
-		// }
-
-		//ipamAddResult.secondaryInterfacesInfo = []network.InterfaceInfo{}
-		// if ipamAddResult == nil {
-		// 	for ifName, secondaryInterface := range SecondaryInterfaces {
-		// 		logger.Info("ifName is", zap.String("ifName", ifName))
-		// 		logger.Info("secondaryInterface", zap.Any("secondaryInterface", secondaryInterface))
-		// 		if epInfo.IfName == ifName {
-		// 			result := network.InterfaceInfo{
-		// 				NICType:    cns.DelegatedVMNIC,
-		// 				MacAddress: net.HardwareAddr(secondaryInterface.macAddress),
-		// 			}
-
-		// 			ipamAddResult.secondaryInterfacesInfo = append(ipamAddResult.secondaryInterfacesInfo, result)
-		// 			logger.Info("CNI Deletion CALL", zap.Any("ipamAddResult.secondaryInterfacesInfo", ipamAddResult.secondaryInterfacesInfo))
-		// 		}
-		// 	}
-		// }
 		logger.Info("endpoint info CNI Deletion is", zap.Any("endpoint info CNI Deletion", epInfo))
 		logger.Info("endpoint info CNI Deletion IfName is", zap.Any("endpoint info CNI Deletion IfName", epInfo.IfName))
 		networkID, err = plugin.getNetworkName(args.Netns, &ipamAddResult, nwCfg)
@@ -1188,7 +1172,6 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 			}
 		}
 
-		endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
 		// Query the endpoint.
 		if epInfo, err = plugin.nm.GetEndpointInfo(networkID, endpointID); err != nil {
 			logger.Info("GetEndpoint",

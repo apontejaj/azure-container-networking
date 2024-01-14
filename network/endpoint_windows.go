@@ -216,7 +216,7 @@ func (nw *network) configureHcnEndpoint(epInfo *EndpointInfo) (*hcn.HostComputeE
 	infraEpName, _ := ConstructEndpointID(epInfo.ContainerID, epInfo.NetNsPath, epInfo.IfName)
 
 	hcnEndpoint := &hcn.HostComputeEndpoint{
-		Name:               infraEpName,
+		Name:               infraEpName + "eth0",
 		HostComputeNetwork: nw.HnsId,
 		Dns: hcn.Dns{
 			Search:     strings.Split(epInfo.DNS.Suffix, ","),
@@ -234,6 +234,7 @@ func (nw *network) configureHcnEndpoint(epInfo *EndpointInfo) (*hcn.HostComputeE
 		macAddress = strings.Join(strings.Split(macAddress, ":"), "-")
 	}
 	hcnEndpoint.MacAddress = macAddress
+	epInfo.MacAddress = net.HardwareAddr(macAddress)
 
 	if endpointPolicies, err := policy.GetHcnEndpointPolicies(policy.EndpointPolicy, epInfo.Policies, epInfo.Data, epInfo.EnableSnatForDns, epInfo.EnableMultiTenancy, epInfo.NATInfo); err == nil {
 		for _, epPolicy := range endpointPolicies {
