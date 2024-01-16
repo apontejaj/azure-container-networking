@@ -18,30 +18,30 @@ import (
 )
 
 const (
-	retryAttempts = 10
-	retryDelay    = 5 * time.Second
-	promAddress   = "http://localhost:9965/metrics"
-	labelSelector = "k8s-app=cilium"
-	namespace     = "kube-system"
-	hubbleflowsprocessedtotal = "hubble_flows_processed_total"
-	hubbletcpflagstotal = "hubble_tcp_flags_total"
-	hubblednsresponsestotal = "hubble_dns_responses_total"
+	retryAttempts               = 10
+	retryDelay                  = 5 * time.Second
+	promAddress                 = "http://localhost:9965/metrics"
+	labelSelector               = "k8s-app=cilium"
+	namespace                   = "kube-system"
+	hubbleflowsprocessedtotal   = "hubble_flows_processed_total"
+	hubbletcpflagstotal         = "hubble_tcp_flags_total"
+	hubblednsresponsestotal     = "hubble_dns_responses_total"
 	hubblednsresponsetypestotal = "hubble_dns_response_types_total"
-	hubblednsqueriestotal = "hubble_dns_queries_total"
-	hubbledroptotal = "hubble_drop_total"
+	hubblednsqueriestotal       = "hubble_dns_queries_total"
+	hubbledroptotal             = "hubble_drop_total"
 )
 
 var (
 	defaultRetrier = retry.Retrier{Attempts: retryAttempts, Delay: retryDelay}
-	hubbleKeys     = map[string][]string {
-		hubbleflowsprocessedtotal: flow,
-		hubbletcpflagstotal: flow,
-		hubblednsresponsestotal: dns,
+	hubbleKeys     = map[string][]string{
+		hubbleflowsprocessedtotal:   flow,
+		hubbletcpflagstotal:         flow,
+		hubblednsresponsestotal:     dns,
 		hubblednsresponsetypestotal: dns,
-		hubblednsqueriestotal: dns,
-		hubbledroptotal: drop,
+		hubblednsqueriestotal:       dns,
+		hubbledroptotal:             drop,
 	}
-	dns = []string{"query"}
+	dns  = []string{"query"}
 	flow = []string{"source", "destination"}
 	drop = []string{"source", "source"}
 )
