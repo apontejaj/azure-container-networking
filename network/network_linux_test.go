@@ -1,6 +1,7 @@
 package network
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/Azure/azure-container-networking/platform"
@@ -86,7 +87,7 @@ func TestAddDNSServers(t *testing.T) {
 		}
 		cmd, err := nm.addDNSServers(tc.ifName, tc.servers)
 
-		if err != tc.err {
+		if !errors.Is(err, tc.err) {
 			t.Errorf("Expected error: %v, got: %v", tc.err, err)
 		}
 		if cmd != tc.cmd {
