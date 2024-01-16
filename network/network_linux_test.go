@@ -2,6 +2,7 @@ package network
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/Azure/azure-container-networking/platform"
@@ -90,11 +91,8 @@ func TestAddDNSServers(t *testing.T) {
 		if !errors.Is(err, tc.err) {
 			t.Errorf("Expected error: %v, got: %v", tc.err, err)
 		}
-		if cmd != tc.cmd {
+		if strings.Compare(cmd, tc.cmd) != 0 {
 			t.Errorf("Expected cmd: %v, got: %v", tc.cmd, cmd)
 		}
-
-		t.Log("Passed: ", tc.desc, " for ", tc.osversion)
-
 	}
 }
