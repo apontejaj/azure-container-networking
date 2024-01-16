@@ -12,9 +12,7 @@ import (
 	"github.com/prometheus/common/expfmt"
 )
 
-var (
-	ErrNoMetricFound = fmt.Errorf("no metric found")
-)
+var ErrNoMetricFound = fmt.Errorf("no metric found")
 
 const (
 	destinationKey = "destination"

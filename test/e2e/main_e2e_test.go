@@ -1,3 +1,5 @@
+//go:build e2e_new
+
 package main
 
 import (
@@ -61,7 +63,7 @@ func TestDropHubbleMetrics(t *testing.T) {
 		KubeConfigFilePath: "./test.pem",
 	}, nil)
 
-	job.AddScenario(hubble.HubbleDropScenario())
+	job.AddScenario(hubble.ValidateDropMetric())
 
 	job.AddStep(&azure.DeleteResourceGroup{}, nil)
 }

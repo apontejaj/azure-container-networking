@@ -20,7 +20,7 @@ const (
 	Delay = 30 * time.Second
 )
 
-func HubbleDropScenario() []types.StepWrapper {
+func ValidateDropMetric() []types.StepWrapper {
 	return []types.StepWrapper{
 		{
 			Step: &k8s.CreateKapingerDeployment{
