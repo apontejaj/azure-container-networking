@@ -1,6 +1,4 @@
-//go:build e2e_new
-
-package main
+package hubble
 
 import (
 	"os"
@@ -11,7 +9,6 @@ import (
 
 	"github.com/Azure/azure-container-networking/test/e2e/framework/azure"
 	"github.com/Azure/azure-container-networking/test/e2e/framework/types"
-	"github.com/Azure/azure-container-networking/test/e2e/hubble"
 )
 
 const (
@@ -63,7 +60,7 @@ func TestDropHubbleMetrics(t *testing.T) {
 		KubeConfigFilePath: "./test.pem",
 	}, nil)
 
-	job.AddScenario(hubble.ValidateDropMetric())
+	job.AddScenario(ValidateDropMetric()...)
 
 	job.AddStep(&azure.DeleteResourceGroup{}, nil)
 }

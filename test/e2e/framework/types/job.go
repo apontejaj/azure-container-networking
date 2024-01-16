@@ -76,7 +76,7 @@ func (j *Job) Run() {
 	}
 }
 
-func (j *Job) AddScenario(steps []StepWrapper) {
+func (j *Job) AddScenario(steps ...StepWrapper) {
 	for _, step := range steps {
 		j.AddStep(step.Step, step.Opts)
 	}

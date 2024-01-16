@@ -5,7 +5,7 @@ import (
 
 	k8s "github.com/Azure/azure-container-networking/test/e2e/framework/kubernetes"
 	"github.com/Azure/azure-container-networking/test/e2e/framework/types"
-	"github.com/Azure/azure-container-networking/test/e2e/hubble/scenarios"
+	"github.com/Azure/azure-container-networking/test/e2e/scenarios/hubble/steps"
 )
 
 const (
@@ -68,7 +68,7 @@ func ValidateDropMetric() []types.StepWrapper {
 			},
 		},
 		{
-			Step: &scenarios.ValidateHubbleDropMetric{
+			Step: &steps.ValidateHubbleDropMetric{
 				PortForwardedHubblePort: "9965",
 				Source:                  "agnhost-a",
 				Reason:                  PolicyDenied,

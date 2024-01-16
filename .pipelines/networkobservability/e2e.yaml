@@ -16,4 +16,4 @@ stages:
               scriptType: "bash"
               scriptLocation: "inlineScript"
               inlineScript: |
-                go test -v test/e2e/main_e2e_test.go -timeout 30m
+                go test -v ./test/e2e/scenarios/hubble/... -timeout 30m
