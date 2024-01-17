@@ -234,7 +234,6 @@ func (nw *network) configureHcnEndpoint(epInfo *EndpointInfo) (*hcn.HostComputeE
 		macAddress = strings.Join(strings.Split(macAddress, ":"), "-")
 	}
 	hcnEndpoint.MacAddress = macAddress
-	epInfo.MacAddress = net.HardwareAddr(macAddress)
 
 	if endpointPolicies, err := policy.GetHcnEndpointPolicies(policy.EndpointPolicy, epInfo.Policies, epInfo.Data, epInfo.EnableSnatForDns, epInfo.EnableMultiTenancy, epInfo.NATInfo); err == nil {
 		for _, epPolicy := range endpointPolicies {
@@ -412,13 +411,22 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 		ContainerID:              epInfo.ContainerID,
 		PODName:                  epInfo.PODName,
 		PODNameSpace:             epInfo.PODNameSpace,
+		SecondaryInterfaces:      make(map[string]*InterfaceInfo),
 	}
 
 	for _, route := range epInfo.Routes {
 		ep.Routes = append(ep.Routes, route)
 	}
 
+	logger.Info("hnsResponse.MacAddress is", zap.Any("hnsResponse.MacAddress", hnsResponse.MacAddress))
 	ep.MacAddress, _ = net.ParseMAC(hnsResponse.MacAddress)
+
+	ep.SecondaryInterfaces[ep.Id] = &InterfaceInfo{
+		Name:       ep.Id,
+		MacAddress: net.HardwareAddr(hnsResponse.MacAddress),
+		Routes:     ep.Routes,
+		NICType:    cns.DelegatedVMNIC,
+	}
 
 	return ep, nil
 }

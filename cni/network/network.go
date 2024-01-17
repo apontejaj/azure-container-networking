@@ -1116,22 +1116,19 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 	endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
 	logger.Info("endpointID is", zap.String("endpointID", endpointID))
 
-	endpointState, _ := plugin.GetAllEndpointState(endpointID)
-	logger.Info("endpointState result", zap.Any("endpointState result", endpointState.PrintResult()))
-	logger.Info("endpointState.ContainerInterfaces[endpointID]", zap.Any("endpointState.ContainerInterfaces[endpointID]", endpointState.ContainerInterfaces[endpointID]))
-	ipamAddResult.secondaryInterfacesInfo = []network.InterfaceInfo{}
-	result := network.InterfaceInfo{
-		NICType:    cns.DelegatedVMNIC,
-		MacAddress: net.HardwareAddr(endpointState.ContainerInterfaces[endpointID].MacAddress),
+	netInfo, err := plugin.nm.GetNetworkInterfaceInfo(endpointID)
+	if err != nil {
+		logger.Error("Failed to get netInfo", zap.Error(err))
 	}
-	ipamAddResult.secondaryInterfacesInfo = append(ipamAddResult.secondaryInterfacesInfo, result)
+
+	ipamAddResult.secondaryInterfacesInfo = []network.InterfaceInfo{}
+	ipamAddResult.secondaryInterfacesInfo = append(ipamAddResult.secondaryInterfacesInfo, *netInfo)
 	logger.Info("CNI Delete ipamAddResult.secondaryInterfacesInfo", zap.Any("ipamAddResult.secondaryInterfacesInfo", ipamAddResult.secondaryInterfacesInfo))
 
 	logger.Info("Endpoints to be deleted", zap.Int("count", numEndpointsToDelete))
 	for i := 0; i < numEndpointsToDelete; i++ {
-		logger.Info("endpoint info CNI Deletion is", zap.Any("endpoint info CNI Deletion", epInfo))
-		logger.Info("endpoint info CNI Deletion IfName is", zap.Any("endpoint info CNI Deletion IfName", epInfo.IfName))
 		networkID, err = plugin.getNetworkName(args.Netns, &ipamAddResult, nwCfg)
+		logger.Info("networkID is", zap.String("networkID", networkID))
 		if err != nil {
 			// If error is not found error, then we ignore it, to comply with CNI SPEC.
 			if network.IsNetworkNotFoundError(err) {
@@ -1145,9 +1142,9 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 		}
 
 		// cleanup interfaces usage map fot swiftv2
-		if SecondaryInterfaces != nil {
+		if &ipamAddResult != nil {
 			logger.Info("hnsNetworks to be deleted")
-			delete(SecondaryInterfaces, nwInfo.MasterIfName)
+			// delete(SecondaryInterfaces, nwInfo.MasterIfName)
 			// delete hnsNetwork in swiftv2 L1VH scenario
 			err = plugin.nm.DeleteNetwork(networkID)
 			if err != nil {
