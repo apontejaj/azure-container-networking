@@ -78,7 +78,7 @@ func (nw *network) newEndpointImpl(
 
 	endpointInfo := epInfo[0]
 	for _, ep := range epInfo {
-		if ep.NICType == cns.DelegatedVMNIC {
+		if ep.NICType == cns.DelegatedVMNIC || ep.NICType == cns.BackendNIC {
 			endpointInfo = epInfo[1]
 		}
 	}
