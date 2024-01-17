@@ -243,12 +243,12 @@ func (nm *networkManager) deleteNetwork(networkID string) error {
 
 func (nm *networkManager) GetNetworkInterfaceInfo(endpointId string) (*InterfaceInfo, error) {
 	for _, extIf := range nm.ExternalInterfaces {
+		logger.Info("nm.ExternalInterfaces", zap.Any("nm.ExternalInterfaces", nm.ExternalInterfaces))
 		for _, nw := range extIf.Networks {
+			logger.Info("epID.SecondaryInterfaces nw.Endpoints", zap.Any("epID.SecondaryInterfaces nw.Endpoints", nw.Endpoints))
 			for _, epID := range nw.Endpoints {
 				interfaceInfo := epID.SecondaryInterfaces[endpointId]
-				if interfaceInfo == nil {
-					return nil, fmt.Errorf("Failed to find secondary interfaceInfo")
-				} else {
+				if interfaceInfo != nil {
 					return interfaceInfo, nil
 				}
 			}

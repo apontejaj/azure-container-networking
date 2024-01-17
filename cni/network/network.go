@@ -18,6 +18,7 @@ import (
 	"github.com/Azure/azure-container-networking/cni/util"
 	"github.com/Azure/azure-container-networking/cns"
 	cnscli "github.com/Azure/azure-container-networking/cns/client"
+	"github.com/Azure/azure-container-networking/cns/hnsclient"
 	"github.com/Azure/azure-container-networking/common"
 	"github.com/Azure/azure-container-networking/iptables"
 	"github.com/Azure/azure-container-networking/netio"
@@ -1144,9 +1145,7 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 		// cleanup interfaces usage map fot swiftv2
 		if &ipamAddResult != nil {
 			logger.Info("hnsNetworks to be deleted")
-			// delete(SecondaryInterfaces, nwInfo.MasterIfName)
-			// delete hnsNetwork in swiftv2 L1VH scenario
-			err = plugin.nm.DeleteNetwork(networkID)
+			err = hnsclient.DeleteHnsNetwork(networkID)
 			if err != nil {
 				logger.Error("Failed to delete hnsNetwork", zap.Error(err))
 			}
