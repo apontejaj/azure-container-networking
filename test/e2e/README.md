@@ -10,4 +10,9 @@
 ---
 ## Starter Example:
 
-./hubble/index_test.go
+When authoring tests, make sure to prefix the test name with `TestE2E` so that it is skipped by existing pipeline unit test framework.
+For reference, see the `test-all` recipe in the root [Makefile](../../Makefile)
+
+
+For sample test, please check out:
+[the Hubble E2E](./scenarios/hubble/index_test.go)

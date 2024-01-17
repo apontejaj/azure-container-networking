@@ -11,9 +11,10 @@ import (
 )
 
 type Job struct {
-	t      *testing.T
-	Values *JobValues
-	Steps  []*StepWrapper
+	t           *testing.T
+	Values      *JobValues
+	Description string
+	Steps       []*StepWrapper
 }
 
 type StepWrapper struct {
@@ -49,6 +50,8 @@ func (j *Job) Run() {
 	if j.t.Failed() {
 		return
 	}
+
+	require.NotEmpty(j.t, j.Description, "no description provided for job, please add one to capture the scenario being tested")
 
 	for _, wrapper := range j.Steps {
 		err := wrapper.Step.Prevalidate()

@@ -16,17 +16,13 @@ const (
 	netObsRGtag = "-e2e-netobs-"
 )
 
-// Objectives
-// - Steps are reusable
-// - Steps parameters are saved to the context of the job
-// - Once written to the job context, the values are immutable
-// - Steps have access to the job context and read/write to it
-// - Cluster resources used in code should be able to be generated to yaml for easy manual repro
-// - Avoid shell/ps calls wherever possible and use go libraries for typed parameters (avoid capturing error codes/stderr/stdout)
-
-func TestDropHubbleMetrics(t *testing.T) {
+// Test against a BYO cluster with Cilium and Hubble enabled,
+// create a pod with a deny all network policy and validate
+// that the drop metrics are present in the prometheus endpoint
+func TestE2EDropHubbleMetrics(t *testing.T) {
 	job := types.NewJob(t)
 	defer job.Run()
+	job.Description = "Validate that drop metrics are present in the prometheus endpoint"
 
 	curuser, _ := user.Current()
 

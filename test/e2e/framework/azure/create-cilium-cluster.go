@@ -21,10 +21,10 @@ import (
 var (
 	ErrResourceNameTooLong = fmt.Errorf("resource name too long")
 	componentFolders       = []string{
-		"../manifests/cilium/v1.14/cns",
-		"../manifests/cilium/v1.14/agent",
-		"../manifests/cilium/v1.14/ipmasq",
-		"../manifests/cilium/v1.14/operator",
+		"../../manifests/cilium/v1.14/cns",
+		"../../manifests/cilium/v1.14/agent",
+		"../../manifests/cilium/v1.14/ipmasq",
+		"../../manifests/cilium/v1.14/operator",
 	}
 )
 
