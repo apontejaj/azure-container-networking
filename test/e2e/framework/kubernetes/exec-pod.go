@@ -29,7 +29,7 @@ func (e *ExecInPod) Run() error {
 
 	err := ExecPod(ctx, e.KubeConfigFilePath, e.PodNamespace, e.PodName, e.Command)
 	if err != nil {
-		return fmt.Errorf("error executing command: %w", err)
+		return fmt.Errorf("error executing command [%s]: %w", e.Command, err)
 	}
 
 	return nil

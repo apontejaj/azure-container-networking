@@ -75,7 +75,7 @@ func (j *Job) Run() error {
 	for _, wrapper := range j.Steps {
 		err := wrapper.Step.Prevalidate()
 		if err != nil {
-			return err
+			return err //nolint:wrapcheck // don't wrap error, wouldn't provide any more context than the error itself
 		}
 	}
 
@@ -85,8 +85,8 @@ func (j *Job) Run() error {
 		err := wrapper.Step.Run()
 		if wrapper.Opts.ExpectError && err == nil {
 			return fmt.Errorf("expected error from step %s but got nil: %w", reflect.TypeOf(wrapper.Step).Elem().Name(), ErrNilError)
-		} else if err != nil {
-			return err //nolint:wrapcheck // don't wrap error, wouldn't provide any more context than the error itself
+		} else if !wrapper.Opts.ExpectError && err != nil {
+			return fmt.Errorf("did not expect error from step %s but got error: %w", reflect.TypeOf(wrapper.Step).Elem().Name(), err)
 		}
 	}
 
@@ -111,7 +111,6 @@ func (j *Job) Validate() error {
 }
 
 func (j *Job) validateStep(stepw *StepWrapper) error {
-
 	stepName := reflect.TypeOf(stepw.Step).Elem().Name()
 	val := reflect.ValueOf(stepw.Step).Elem()
 
