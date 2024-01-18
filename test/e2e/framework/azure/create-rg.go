@@ -35,7 +35,7 @@ func (c *CreateResourceGroup) Run() error {
 		return fmt.Errorf("failed to finish the request: %w", err)
 	}
 
-	log.Printf("resource group %s in location %s", c.ResourceGroupName, c.Location)
+	log.Printf("resource group created %s in location %s", c.ResourceGroupName, c.Location)
 	return nil
 }
 

@@ -123,7 +123,7 @@ func (c *CreateAgnhostStatefulSet) getAgnhostDeployment() *appsv1.StatefulSet {
 					Containers: []v1.Container{
 						{
 							Name:  c.AgnhostName,
-							Image: "k8s.gcr.io/e2e-test-images/agnhost:2.36",
+							Image: "acnpublic.azurecr.io/agnhost:2.40",
 							Resources: v1.ResourceRequirements{
 								Requests: v1.ResourceList{
 									"memory": resource.MustParse("20Mi"),

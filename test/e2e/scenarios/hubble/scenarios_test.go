@@ -20,9 +20,9 @@ const (
 // create a pod with a deny all network policy and validate
 // that the drop metrics are present in the prometheus endpoint
 func TestE2EDropHubbleMetrics(t *testing.T) {
-	job := types.NewJob(t)
-	defer job.Run()
-	job.Description = "Validate that drop metrics are present in the prometheus endpoint"
+	job := types.NewJob("Validate that drop metrics are present in the prometheus endpoint")
+	runner := types.NewRunner(t, job)
+	defer runner.Run()
 
 	curuser, _ := user.Current()
 

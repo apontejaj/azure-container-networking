@@ -3,13 +3,12 @@ package azure
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 
 	k8s "github.com/Azure/azure-container-networking/test/e2e/framework/kubernetes"
+	"github.com/Azure/azure-container-networking/test/e2e/manifests"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v4"
@@ -20,12 +19,7 @@ import (
 
 var (
 	ErrResourceNameTooLong = fmt.Errorf("resource name too long")
-	componentFolders       = []string{
-		"../../manifests/cilium/v1.14/cns",
-		"../../manifests/cilium/v1.14/agent",
-		"../../manifests/cilium/v1.14/ipmasq",
-		"../../manifests/cilium/v1.14/operator",
-	}
+	ErrEmptyFile           = fmt.Errorf("empty file")
 )
 
 type CreateBYOCiliumCluster struct {
@@ -49,12 +43,21 @@ func printjson(data interface{}) {
 }
 
 func (c *CreateBYOCiliumCluster) Prevalidate() error {
-	// get current working directory
-	cwd, _ := os.Getwd()
+	for _, dir := range manifests.CiliumV14Directories {
+		files, err := manifests.CiliumManifests.ReadDir(dir)
+		if err != nil {
+			return fmt.Errorf("error reading manifest directory %s from embed: %w", dir, err)
+		}
 
-	for _, dir := range componentFolders {
-		if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("directory not found: %s\ncurrent working directory: %s, err: %w", dir, cwd, err)
+		for _, file := range files {
+			b, err := manifests.CiliumManifests.ReadFile(fmt.Sprintf("%s/%s", dir, file.Name()))
+			if err != nil {
+				return fmt.Errorf("error reading manifest file %s from embed: %w", file.Name(), err)
+			}
+			if len(b) == 0 {
+				return fmt.Errorf("manifest file %s from embed is empty: %w", file.Name(), ErrEmptyFile)
+			}
+
 		}
 	}
 
@@ -178,37 +181,31 @@ func (c *CreateBYOCiliumCluster) getKubeConfig() (*kubernetes.Clientset, error) 
 
 func (c *CreateBYOCiliumCluster) deployCiliumComponents(clientset *kubernetes.Clientset) error {
 	// traverse the predefined Cilium component folders
-	for _, dir := range componentFolders {
-		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return fmt.Errorf("error traversing the cilium components directory: %w", err)
-			}
+	for _, dir := range manifests.CiliumV14Directories {
 
-			// Skip directories, only care about yaml
-			if !info.IsDir() {
-				yamlFile, err := os.ReadFile(path)
-				if err != nil {
-					return fmt.Errorf("error reading YAML file: %w", err)
-				}
-
-				// Decode the YAML file into a Kubernetes object
-				decode := scheme.Codecs.UniversalDeserializer().Decode
-				obj, _, err := decode([]byte(yamlFile), nil, nil)
-				if err != nil {
-					return fmt.Errorf("error decoding YAML file: %w", err)
-				}
-
-				// create the resource
-				err = k8s.CreateResource(context.Background(), obj, clientset)
-				if err != nil {
-					return fmt.Errorf("error creating resource: %w", err)
-				}
-			}
-
-			return nil
-		})
+		files, err := manifests.CiliumManifests.ReadDir(dir)
 		if err != nil {
-			return fmt.Errorf("error walking the cilium components directory: %w", err)
+			return fmt.Errorf("error reading manifest directory %s from embed: %w", dir, err)
+		}
+
+		for _, file := range files {
+			yamlFile, err := manifests.CiliumManifests.ReadFile(fmt.Sprintf("%s/%s", dir, file.Name()))
+			if err != nil {
+				return fmt.Errorf("error reading YAML file: %w", err)
+			}
+
+			// Decode the YAML file into a Kubernetes object
+			decode := scheme.Codecs.UniversalDeserializer().Decode
+			obj, _, err := decode([]byte(yamlFile), nil, nil)
+			if err != nil {
+				return fmt.Errorf("error decoding YAML file: %w", err)
+			}
+
+			// create the resource
+			err = k8s.CreateResource(context.Background(), obj, clientset)
+			if err != nil {
+				return fmt.Errorf("error creating resource: %w", err)
+			}
 		}
 	}
 

@@ -4,14 +4,17 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"testing"
+)
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+var (
+	ErrEmptyDescription    = fmt.Errorf("job description is empty")
+	ErrNonNilError         = fmt.Errorf("expected error to be non-nil")
+	ErrNilError            = fmt.Errorf("expected error to be nil")
+	ErrMissingParameter    = fmt.Errorf("missing parameter")
+	ErrParameterAlreadySet = fmt.Errorf("parameter already set")
 )
 
 type Job struct {
-	t           *testing.T
 	Values      *JobValues
 	Description string
 	Steps       []*StepWrapper
@@ -37,45 +40,12 @@ func responseDivider(jobname string) {
 	fmt.Println()
 }
 
-func NewJob(t *testing.T) *Job {
+func NewJob(description string) *Job {
 	return &Job{
-		t: t,
 		Values: &JobValues{
 			kv: make(map[string]string),
 		},
-	}
-}
-
-func (j *Job) Run() {
-	if j.t.Failed() {
-		return
-	}
-
-	require.NotEmpty(j.t, j.Description, "no description provided for job, please add one to capture the scenario being tested")
-
-	for _, wrapper := range j.Steps {
-		err := wrapper.Step.Prevalidate()
-		if err != nil {
-			require.NoError(j.t, err)
-		}
-	}
-
-	for _, wrapper := range j.Steps {
-		responseDivider(reflect.TypeOf(wrapper.Step).Elem().Name())
-		log.Printf("INFO: step options provided: %+v\n", wrapper.Opts)
-		err := wrapper.Step.Run()
-		if wrapper.Opts.ExpectError {
-			require.Error(j.t, err)
-		} else {
-			require.NoError(j.t, err)
-		}
-	}
-
-	for _, wrapper := range j.Steps {
-		err := wrapper.Step.Postvalidate()
-		if err != nil {
-			require.NoError(j.t, err)
-		}
+		Description: description,
 	}
 }
 
@@ -86,12 +56,68 @@ func (j *Job) AddScenario(steps ...StepWrapper) {
 }
 
 func (j *Job) AddStep(step Step, opts *StepOptions) {
-	stepName := reflect.TypeOf(step).Elem().Name()
-	val := reflect.ValueOf(step).Elem()
+	j.Steps = append(j.Steps, &StepWrapper{
+		Step: step,
+		Opts: opts,
+	})
+}
+
+func (j *Job) Run() error {
+	if j.Description == "" {
+		return ErrEmptyDescription
+	}
+
+	err := j.Validate()
+	if err != nil {
+		return err // nolint:wrapcheck // don't wrap error, wouldn't provide any more context than the error itself
+	}
+
+	for _, wrapper := range j.Steps {
+		err := wrapper.Step.Prevalidate()
+		if err != nil {
+			return err
+		}
+	}
+
+	for _, wrapper := range j.Steps {
+		responseDivider(reflect.TypeOf(wrapper.Step).Elem().Name())
+		log.Printf("INFO: step options provided: %+v\n", wrapper.Opts)
+		err := wrapper.Step.Run()
+		if wrapper.Opts.ExpectError && err == nil {
+			return fmt.Errorf("expected error from step %s but got nil: %w", reflect.TypeOf(wrapper.Step).Elem().Name(), ErrNilError)
+		} else if err != nil {
+			return err //nolint:wrapcheck // don't wrap error, wouldn't provide any more context than the error itself
+		}
+	}
+
+	for _, wrapper := range j.Steps {
+		err := wrapper.Step.Postvalidate()
+		if err != nil {
+			return err //nolint:wrapcheck // don't wrap error, wouldn't provide any more context than the error itself
+		}
+	}
+	return nil
+}
+
+func (j *Job) Validate() error {
+	for _, wrapper := range j.Steps {
+		err := j.validateStep(wrapper)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (j *Job) validateStep(stepw *StepWrapper) error {
+
+	stepName := reflect.TypeOf(stepw.Step).Elem().Name()
+	val := reflect.ValueOf(stepw.Step).Elem()
 
 	// set default options if none are provided
-	if opts == nil {
-		opts = &DefaultOpts
+	if stepw.Opts == nil {
+		stepw.Opts = &DefaultOpts
 	}
 
 	for i, f := range reflect.VisibleFields(val.Type()) {
@@ -110,18 +136,18 @@ func (j *Job) AddStep(step Step, opts *StepOptions) {
 
 			if storedValue == "" {
 				if value != "" {
-					if opts.SaveParametersToJob {
+					if stepw.Opts.SaveParametersToJob {
 						fmt.Printf("%s setting parameter %s in job context to %s\n", stepName, parameter, value)
 						j.Values.Set(parameter, value)
 					}
 					continue
 				}
-				assert.FailNowf(j.t, "missing parameter", "parameter %s is required for step %s", parameter, stepName)
+				return fmt.Errorf("missing parameter %s for step %s: %w", parameter, stepName, ErrMissingParameter)
 
 			}
 
 			if value != "" {
-				assert.FailNowf(j.t, "parameter already set", "parameter %s for step %s is already set from previous step", parameter, stepName)
+				return fmt.Errorf("parameter %s for step %s is already set from previous step: %w", parameter, stepName, ErrParameterAlreadySet)
 			}
 
 			// don't use log format since this is technically preexecution and easier to read
@@ -130,8 +156,5 @@ func (j *Job) AddStep(step Step, opts *StepOptions) {
 		}
 	}
 
-	j.Steps = append(j.Steps, &StepWrapper{
-		Step: step,
-		Opts: opts,
-	})
+	return nil
 }
