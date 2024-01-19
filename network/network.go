@@ -241,7 +241,7 @@ func (nm *networkManager) deleteNetwork(networkID string) error {
 	return nil
 }
 
-func (nm *networkManager) GetNetworkInterfaceInfo(endpointId string) (*InterfaceInfo, error) {
+func (nm *networkManager) GetNetworkSecondaryInterfaceInfo(endpointId string) (*InterfaceInfo, error) {
 	for _, extIf := range nm.ExternalInterfaces {
 		for _, nw := range extIf.Networks {
 			for _, epID := range nw.Endpoints {
@@ -252,7 +252,7 @@ func (nm *networkManager) GetNetworkInterfaceInfo(endpointId string) (*Interface
 			}
 		}
 	}
-	return nil, nil
+	return nil, errSecondaryInterfaceNotFound
 }
 
 // GetNetwork returns the network with the given ID.

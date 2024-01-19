@@ -423,7 +423,7 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 
 	ep.SecondaryInterfaces[ep.Id] = &InterfaceInfo{
 		Name:       ep.Id,
-		MacAddress: net.HardwareAddr(hnsResponse.MacAddress),
+		MacAddress: ep.MacAddress,
 		Routes:     ep.Routes,
 		NICType:    cns.DelegatedVMNIC,
 	}

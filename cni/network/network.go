@@ -18,7 +18,6 @@ import (
 	"github.com/Azure/azure-container-networking/cni/util"
 	"github.com/Azure/azure-container-networking/cns"
 	cnscli "github.com/Azure/azure-container-networking/cns/client"
-	"github.com/Azure/azure-container-networking/cns/hnsclient"
 	"github.com/Azure/azure-container-networking/common"
 	"github.com/Azure/azure-container-networking/iptables"
 	"github.com/Azure/azure-container-networking/netio"
@@ -686,24 +685,12 @@ func (plugin *NetPlugin) createNetworkInternal(
 		}
 	}
 
-	logger.Info("Found master interface", zap.String("ifname", masterIfName))
-	logger.Info("ipnet.String()", zap.String("ipnet.String()", ipnet.String()))
-	logger.Info("macAddress", zap.String("macAddress", macAddress))
-
 	var secondaryInterfaceProperty SecondaryInterfaceProperty
 	secondaryInterfaceProperty.ipNet = ipnet.String()
 	secondaryInterfaceProperty.macAddress = macAddress
-	logger.Info("secondaryInterfaceProperty", zap.Any("secondaryInterfaceProperty ipNet", secondaryInterfaceProperty.ipNet))
-	logger.Info("secondaryInterfaceProperty", zap.Any("secondaryInterfaceProperty macAddress", secondaryInterfaceProperty.macAddress))
 
-	// plugin.secondaryInterfaces[masterIfName] = secondaryInterfaceProperty
-
-	// logger.Info("this time plugin.secondaryInterfaces[masterIfName]", zap.Any("plugin.secondaryInterfaces[masterIfName]", plugin.secondaryInterfaces[masterIfName]))
-	// logger.Info("this time plugin.secondaryInterfaces[masterIfName]", zap.Any("plugin.secondaryInterfaces[masterIfName].ipNet", plugin.secondaryInterfaces[masterIfName].ipNet))
-	// logger.Info("this time plugin.secondaryInterfaces[masterIfName]", zap.Any("plugin.secondaryInterfaces[masterIfName].macAddress", plugin.secondaryInterfaces[masterIfName].macAddress))
 	SecondaryInterfaces = make(map[string]SecondaryInterfaceProperty)
 	SecondaryInterfaces[masterIfName] = secondaryInterfaceProperty
-	logger.Info("SecondaryInterfaces", zap.Any("SecondaryInterfaces", SecondaryInterfaces[masterIfName]))
 	// Add the master as an external interface.
 	err := plugin.nm.AddExternalInterface(masterIfName, ipamAddResult.hostSubnetPrefix.String())
 	if err != nil {
@@ -716,8 +703,6 @@ func (plugin *NetPlugin) createNetworkInternal(
 		err = plugin.Errorf("Failed to getDNSSettings: %v", err)
 		return nwInfo, err
 	}
-
-	logger.Info("DNS Info", zap.Any("info", nwDNSInfo))
 
 	// Create the network.
 	nwInfo = network.NetworkInfo{
@@ -1117,11 +1102,12 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 	endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
 	logger.Info("endpointID is", zap.String("endpointID", endpointID))
 
-	netInfo, err := plugin.nm.GetNetworkInterfaceInfo(endpointID)
+	netInfo, err := plugin.nm.GetNetworkSecondaryInterfaceInfo(endpointID)
 	if err != nil {
 		logger.Error("Failed to get netInfo", zap.Error(err))
 	}
 
+	logger.Info("netInfo", zap.Any("netInfo", netInfo))
 	ipamAddResult.secondaryInterfacesInfo = []network.InterfaceInfo{}
 	ipamAddResult.secondaryInterfacesInfo = append(ipamAddResult.secondaryInterfacesInfo, *netInfo)
 	logger.Info("CNI Delete ipamAddResult.secondaryInterfacesInfo", zap.Any("ipamAddResult.secondaryInterfacesInfo", ipamAddResult.secondaryInterfacesInfo))
@@ -1145,7 +1131,7 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 		// cleanup interfaces usage map fot swiftv2
 		if &ipamAddResult != nil {
 			logger.Info("hnsNetworks to be deleted")
-			err = hnsclient.DeleteHnsNetwork(networkID)
+			err := plugin.nm.DeleteNetwork(networkID)
 			if err != nil {
 				logger.Error("Failed to delete hnsNetwork", zap.Error(err))
 			}
