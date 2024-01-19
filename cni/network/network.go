@@ -226,9 +226,7 @@ func (plugin *NetPlugin) findMasterInterface(nwCfg *cni.NetworkConfig, subnetPre
 
 	// Otherwise, pick the first interface with an IP address in the given subnet.
 	subnetPrefixString := subnetPrefix.String()
-	logger.Info("findMasterInterface subnetPrefix is", zap.String("subnetPrefix", subnetPrefixString))
 	interfaces, _ := net.Interfaces()
-	logger.Info("master interfaces are", zap.Any("master interfaces", interfaces))
 	for _, iface := range interfaces {
 		addrs, _ := iface.Addrs()
 		for _, addr := range addrs {
@@ -237,7 +235,6 @@ func (plugin *NetPlugin) findMasterInterface(nwCfg *cni.NetworkConfig, subnetPre
 				continue
 			}
 			if subnetPrefixString == ipnet.String() {
-				logger.Info("Master interface choose is", zap.String("nwCfg.Master", iface.Name))
 				return iface.Name
 			}
 		}
@@ -328,11 +325,8 @@ func addNatIPV6SubnetInfo(nwCfg *cni.NetworkConfig,
 }
 
 func hasSecondaryInterface(ipamAddResult IPAMAddResult) bool {
-	logger.Info("hasSecondaryInterface ipamAddResult", zap.Any("ipamAddResult", ipamAddResult.secondaryInterfacesInfo[0]))
 	if ipamAddResult.secondaryInterfacesInfo != nil {
 		for _, interfaceNICType := range secondaryInterfaceNICType {
-			logger.Info("interfaceNICType is", zap.String("interfaceNICType", interfaceNICType))
-			logger.Info("hasSecondaryInterface ipamAddResult", zap.Any("ipamAddResult", ipamAddResult.secondaryInterfacesInfo[0]))
 			if string(ipamAddResult.secondaryInterfacesInfo[0].NICType) == interfaceNICType {
 				return true
 			}
@@ -396,8 +390,6 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		} else {
 			cniResult = *convertInterfaceInfoToCniResult(ipamAddResult.defaultInterfaceInfo, args.IfName)
 		}
-
-		logger.Info("cniResult", zap.Any("cniResult", cniResult))
 
 		addSnatInterface(nwCfg, &cniResult)
 

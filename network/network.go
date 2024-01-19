@@ -245,8 +245,7 @@ func (nm *networkManager) GetNetworkSecondaryInterfaceInfo(endpointId string) (*
 	for _, extIf := range nm.ExternalInterfaces {
 		for _, nw := range extIf.Networks {
 			for _, epID := range nw.Endpoints {
-				interfaceInfo := epID.SecondaryInterfaces[endpointId]
-				if interfaceInfo != nil {
+				if interfaceInfo := epID.SecondaryInterfaces[endpointId]; interfaceInfo != nil {
 					return interfaceInfo, nil
 				}
 			}
