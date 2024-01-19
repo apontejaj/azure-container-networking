@@ -516,6 +516,42 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 			want:    "azure",
 			wantErr: false,
 		},
+		{
+			name: "Get Network Name from CNS for swiftv2 L1VH",
+			plugin: &NetPlugin{
+				Plugin:      plugin,
+				nm:          network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
+				ipamInvoker: NewMockIpamInvoker(false, false, false, true, false),
+				report:      &telemetry.CNIReport{},
+				tb:          &telemetry.TelemetryBuffer{},
+			},
+			netNs: "azure",
+			nwCfg: &cni.NetworkConfig{
+				CNIVersion:   "0.3.0",
+				Name:         "azure",
+				MultiTenancy: false,
+			},
+			ipamAddResult: &IPAMAddResult{
+				ncResponse: &cns.GetNetworkContainerResponse{},
+				defaultInterfaceInfo: network.InterfaceInfo{
+					IPConfigs: []*network.IPConfig{},
+				},
+				secondaryInterfacesInfo: []network.InterfaceInfo {
+					Name: "interfaceOne",
+					MacAddress: net.HardwareAddr("00:00:5e:00:53:01"),
+					IPConfigs: []*network.IPConfig{
+						Address: net.IPNet{
+							IP:   net.ParseIP("10.0.0.6"),
+							Mask: net.CIDRMask(24, 32),
+						},
+					},
+					NICType: cns.DelegatedVMNIC,
+					SkipDefaultRoutes: false,
+				}
+			},
+			want:    "azure",
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
