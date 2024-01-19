@@ -79,8 +79,6 @@ type NetPlugin struct {
 	tb                 *telemetry.TelemetryBuffer
 	nnsClient          NnsClient
 	multitenancyClient MultitenancyClient
-	// save master interfaces that are being used; key is ifName, value is secondary interface obj(macAddress and ipnet)
-	// secondaryInterfaces map[string]SecondaryInterfaceProperty
 }
 
 var SecondaryInterfaces map[string]SecondaryInterfaceProperty
@@ -504,12 +502,11 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	} else if !nwCfg.MultiTenancy && nwCfg.IPAM.Type == network.AzureCNS {
 		plugin.ipamInvoker = NewCNSInvoker(k8sPodName, k8sNamespace, cnsClient, util.ExecutionMode(nwCfg.ExecutionMode), util.IpamMode(nwCfg.IPAM.Mode))
 		ipamAddResult, err = plugin.ipamInvoker.Add(ipamAddConfig)
-		logger.Info("nwCfg.IPAM.Type  ipamAddResult", zap.Any("ipamAddResult", ipamAddResult.secondaryInterfacesInfo))
 		if err != nil {
 			return fmt.Errorf("IPAM Invoker Add failed with error: %w", err)
 		}
 		ipamAddResults = append(ipamAddResults, ipamAddResult)
-		// sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.defaultInterfaceInfo, ipamAddResult.secondaryInterfacesInfo))
+		sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.defaultInterfaceInfo, ipamAddResult.secondaryInterfacesInfo))
 	} else {
 		// TODO: refactor this code for simplification
 		// Add dummy ipamAddResult nil object for single tenancy mode
@@ -517,16 +514,12 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		ipamAddResults = append(ipamAddResults, ipamAddResult)
 	}
 
-	logger.Info("iteration ipamAddResults")
 	// iterate ipamAddResults and program the endpoint
 	for i := 0; i < len(ipamAddResults); i++ {
 		var networkID string
 		ipamAddResult = ipamAddResults[i]
-		logger.Info("iteration ipamAddResult[i] is", zap.Any("ipamAddResult", ipamAddResult.secondaryInterfacesInfo))
 
-		options := make(map[string]any)
 		networkID, err = plugin.getNetworkName(args.Netns, &ipamAddResult, nwCfg)
-		logger.Info("networkID", zap.String("networkID", networkID))
 
 		endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
 		policies := cni.GetPoliciesFromNwCfg(nwCfg.AdditionalArgs)
@@ -882,6 +875,7 @@ func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt) 
 
 		epInfos = append(epInfos,
 			&network.EndpointInfo{
+				IfName:            epInfo.IfName,
 				ContainerID:       epInfo.ContainerID,
 				NetNsPath:         epInfo.NetNsPath,
 				IPAddresses:       addresses,
@@ -1100,22 +1094,18 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 	}
 
 	endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
-	logger.Info("endpointID is", zap.String("endpointID", endpointID))
 
 	netInfo, err := plugin.nm.GetNetworkSecondaryInterfaceInfo(endpointID)
 	if err != nil {
 		logger.Error("Failed to get netInfo", zap.Error(err))
 	}
 
-	logger.Info("netInfo", zap.Any("netInfo", netInfo))
 	ipamAddResult.secondaryInterfacesInfo = []network.InterfaceInfo{}
 	ipamAddResult.secondaryInterfacesInfo = append(ipamAddResult.secondaryInterfacesInfo, *netInfo)
-	logger.Info("CNI Delete ipamAddResult.secondaryInterfacesInfo", zap.Any("ipamAddResult.secondaryInterfacesInfo", ipamAddResult.secondaryInterfacesInfo))
 
 	logger.Info("Endpoints to be deleted", zap.Int("count", numEndpointsToDelete))
 	for i := 0; i < numEndpointsToDelete; i++ {
 		networkID, err = plugin.getNetworkName(args.Netns, &ipamAddResult, nwCfg)
-		logger.Info("networkID is", zap.String("networkID", networkID))
 		if err != nil {
 			// If error is not found error, then we ignore it, to comply with CNI SPEC.
 			if network.IsNetworkNotFoundError(err) {
@@ -1130,10 +1120,10 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 
 		// cleanup interfaces usage map fot swiftv2
 		if &ipamAddResult != nil {
-			logger.Info("hnsNetworks to be deleted")
+			logger.Info("deleting hnsNetwork")
 			err := plugin.nm.DeleteNetwork(networkID)
 			if err != nil {
-				logger.Error("Failed to delete hnsNetwork", zap.Error(err))
+				logger.Error("Failed to delete hnsNetwork", zap.Error(err), zap.String("hnsNetwork id", networkID))
 			}
 		}
 

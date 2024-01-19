@@ -216,7 +216,7 @@ func (nw *network) configureHcnEndpoint(epInfo *EndpointInfo) (*hcn.HostComputeE
 	infraEpName, _ := ConstructEndpointID(epInfo.ContainerID, epInfo.NetNsPath, epInfo.IfName)
 
 	hcnEndpoint := &hcn.HostComputeEndpoint{
-		Name:               infraEpName + "eth0",
+		Name:               infraEpName,
 		HostComputeNetwork: nw.HnsId,
 		Dns: hcn.Dns{
 			Search:     strings.Split(epInfo.DNS.Suffix, ","),
@@ -418,7 +418,6 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 		ep.Routes = append(ep.Routes, route)
 	}
 
-	logger.Info("hnsResponse.MacAddress is", zap.Any("hnsResponse.MacAddress", hnsResponse.MacAddress))
 	ep.MacAddress, _ = net.ParseMAC(hnsResponse.MacAddress)
 
 	ep.SecondaryInterfaces[ep.Id] = &InterfaceInfo{
