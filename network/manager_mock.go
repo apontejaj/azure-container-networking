@@ -121,6 +121,11 @@ func (nm *MockNetworkManager) DetachEndpoint(networkID string, endpointID string
 	return nil
 }
 
+// GetNetworkSecondaryInterfaceInfo mock
+func (nm *MockNetworkManager) GetNetworkSecondaryInterfaceInfo(endpointID string) (*InterfaceInfo, error) {
+	return &InterfaceInfo{}, nil
+}
+
 // UpdateEndpoint mock
 func (nm *MockNetworkManager) UpdateEndpoint(networkID string, existingEpInfo *EndpointInfo, targetEpInfo *EndpointInfo) error {
 	return nil

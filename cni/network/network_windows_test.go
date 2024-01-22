@@ -334,6 +334,67 @@ func TestDSRPolciy(t *testing.T) {
 	}
 }
 
+func TestGetNetworkNameSwiftv2FromCNS(t *testing.T) {
+	plugin, _ := cni.NewPlugin("name", "0.3.0")
+	swiftv2L1VHSecondaryInterfacesInfo := []network.InterfaceInfo{}
+	swiftv2L1VHInterfaceInfo := network.InterfaceInfo{
+		Name:       "swiftv2L1VHinterface",
+		MacAddress: net.HardwareAddr("00:00:5e:00:53:01"),
+		NICType:    cns.DelegatedVMNIC,
+	}
+
+	swiftv2L1VHSecondaryInterfacesInfo = append(swiftv2L1VHSecondaryInterfacesInfo, swiftv2L1VHInterfaceInfo)
+
+	tests := []struct {
+		name          string
+		plugin        *NetPlugin
+		netNs         string
+		nwCfg         *cni.NetworkConfig
+		ipamAddResult *IPAMAddResult
+		want          string
+		wantErr       bool
+	}{
+		{
+			name: "Get Network Name from CNS for swiftv2 L1VH",
+			plugin: &NetPlugin{
+				Plugin:      plugin,
+				nm:          network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
+				ipamInvoker: NewMockIpamInvoker(false, false, false, true, false),
+				report:      &telemetry.CNIReport{},
+				tb:          &telemetry.TelemetryBuffer{},
+			},
+			netNs: "azure",
+			nwCfg: &cni.NetworkConfig{
+				CNIVersion:   "0.3.0",
+				MultiTenancy: false,
+			},
+			ipamAddResult: &IPAMAddResult{
+				ncResponse: &cns.GetNetworkContainerResponse{},
+				defaultInterfaceInfo: network.InterfaceInfo{
+					IPConfigs: []*network.IPConfig{},
+				},
+				secondaryInterfacesInfo: swiftv2L1VHSecondaryInterfacesInfo,
+			},
+			want:    "azure-00:00:5e:00:53:01",
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Log(tt.ipamAddResult.secondaryInterfacesInfo[0])
+			networkName, err := tt.plugin.getNetworkName(tt.netNs, tt.ipamAddResult, tt.nwCfg)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.want, networkName)
+			}
+		})
+	}
+}
+
 func TestGetNetworkNameFromCNS(t *testing.T) {
 	plugin, _ := cni.NewPlugin("name", "0.3.0")
 	tests := []struct {
@@ -512,42 +573,6 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 						},
 					},
 				},
-			},
-			want:    "azure",
-			wantErr: false,
-		},
-		{
-			name: "Get Network Name from CNS for swiftv2 L1VH",
-			plugin: &NetPlugin{
-				Plugin:      plugin,
-				nm:          network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
-				ipamInvoker: NewMockIpamInvoker(false, false, false, true, false),
-				report:      &telemetry.CNIReport{},
-				tb:          &telemetry.TelemetryBuffer{},
-			},
-			netNs: "azure",
-			nwCfg: &cni.NetworkConfig{
-				CNIVersion:   "0.3.0",
-				Name:         "azure",
-				MultiTenancy: false,
-			},
-			ipamAddResult: &IPAMAddResult{
-				ncResponse: &cns.GetNetworkContainerResponse{},
-				defaultInterfaceInfo: network.InterfaceInfo{
-					IPConfigs: []*network.IPConfig{},
-				},
-				secondaryInterfacesInfo: []network.InterfaceInfo {
-					Name: "interfaceOne",
-					MacAddress: net.HardwareAddr("00:00:5e:00:53:01"),
-					IPConfigs: []*network.IPConfig{
-						Address: net.IPNet{
-							IP:   net.ParseIP("10.0.0.6"),
-							Mask: net.CIDRMask(24, 32),
-						},
-					},
-					NICType: cns.DelegatedVMNIC,
-					SkipDefaultRoutes: false,
-				}
 			},
 			want:    "azure",
 			wantErr: false,

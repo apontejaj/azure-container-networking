@@ -241,11 +241,11 @@ func (nm *networkManager) deleteNetwork(networkID string) error {
 	return nil
 }
 
-func (nm *networkManager) GetNetworkSecondaryInterfaceInfo(endpointId string) (*InterfaceInfo, error) {
+func (nm *networkManager) GetNetworkSecondaryInterfaceInfo(endpointID string) (*InterfaceInfo, error) {
 	for _, extIf := range nm.ExternalInterfaces {
 		for _, nw := range extIf.Networks {
 			for _, epID := range nw.Endpoints {
-				if interfaceInfo := epID.SecondaryInterfaces[endpointId]; interfaceInfo != nil {
+				if interfaceInfo := epID.SecondaryInterfaces[endpointID]; interfaceInfo != nil {
 					return interfaceInfo, nil
 				}
 			}
