@@ -336,10 +336,12 @@ func TestDSRPolciy(t *testing.T) {
 
 func TestGetNetworkNameSwiftv2FromCNS(t *testing.T) {
 	plugin, _ := cni.NewPlugin("name", "0.3.0")
+	macAddress := "00:00:5e:00:53:01"
+	parsedMacAddress, _ := net.ParseMAC(macAddress)
 	swiftv2L1VHSecondaryInterfacesInfo := []network.InterfaceInfo{}
 	swiftv2L1VHInterfaceInfo := network.InterfaceInfo{
 		Name:       "swiftv2L1VHinterface",
-		MacAddress: net.HardwareAddr("00:00:5e:00:53:01"),
+		MacAddress: parsedMacAddress,
 		NICType:    cns.DelegatedVMNIC,
 	}
 
@@ -350,7 +352,7 @@ func TestGetNetworkNameSwiftv2FromCNS(t *testing.T) {
 		netNs         string
 		nwCfg         *cni.NetworkConfig
 		ipamAddResult *IPAMAddResult
-		want          string
+		want          net.HardwareAddr
 		wantErr       bool
 	}{
 		{
@@ -374,7 +376,7 @@ func TestGetNetworkNameSwiftv2FromCNS(t *testing.T) {
 				},
 				secondaryInterfacesInfo: swiftv2L1VHSecondaryInterfacesInfo,
 			},
-			want:    "azure-00:00:5e:00:53:01",
+			want:    parsedMacAddress,
 			wantErr: false,
 		},
 	}
@@ -384,12 +386,12 @@ func TestGetNetworkNameSwiftv2FromCNS(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Log(tt.ipamAddResult.secondaryInterfacesInfo[0])
 			networkName, err := tt.plugin.getNetworkName(tt.netNs, tt.ipamAddResult, tt.nwCfg)
-			t.Log(networkName)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
+				expectedMacAddress := "azure-" + tt.want.String()
 				require.NoError(t, err)
-				require.Equal(t, tt.want, networkName)
+				require.Equal(t, expectedMacAddress, networkName)
 			}
 		})
 	}

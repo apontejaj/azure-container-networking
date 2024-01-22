@@ -422,6 +422,7 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 		addResult.defaultInterfaceInfo.SkipDefaultRoutes = info.skipDefaultRoutes
 	}
 
+	fmt.Println("info macaddress is", info.macAddress)
 	// get the name of the primary IP address
 	_, hostIPNet, err := net.ParseCIDR(info.hostSubnet)
 	if err != nil {
