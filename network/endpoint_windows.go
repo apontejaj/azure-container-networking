@@ -420,9 +420,15 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 
 	ep.MacAddress, _ = net.ParseMAC(hnsResponse.MacAddress)
 
+	ipconfigs := make([]*IPConfig, len(epInfo.IPAddresses))
+	for i, ipconfig := range epInfo.IPAddresses {
+		ipconfigs[i] = &IPConfig{Address: ipconfig}
+	}
+
 	ep.SecondaryInterfaces[ep.Id] = &InterfaceInfo{
 		Name:       ep.Id,
 		MacAddress: ep.MacAddress,
+		IPConfigs:  ipconfigs,
 		Routes:     ep.Routes,
 		NICType:    cns.DelegatedVMNIC,
 	}

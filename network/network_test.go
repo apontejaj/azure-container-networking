@@ -75,7 +75,7 @@ var _ = Describe("Test Network", func() {
 	})
 
 	Describe("Test findExternalInterfaceByName", func() {
-		Context("When ifName found or nor found", func() {
+		Context("When ifName found or not found", func() {
 			It("Should return the external interface when found and nil when not found", func() {
 				nm := &networkManager{
 					ExternalInterfaces: map[string]*externalInterface{},
@@ -94,9 +94,52 @@ var _ = Describe("Test Network", func() {
 		})
 	})
 
+	Describe("Test GetNetworkSecondaryInterfaceInfo", func() {
+		Context("When endpointID found or not found", func() {
+			It("Should return the InterfaceInfo when found and nil/error when not found", func() {
+				netNs := "989c079b-45a6-485f-8f9e-88b05d6c55c4"
+				networkID := "byovnetbridge-10-128-8-0_23"
+				endpointID := "azure-12:34:56:78:90:ab"
+				invalidEndpointID := "azure-12:34:56:78:90:cd"
+				nm := &networkManager{
+					ExternalInterfaces: map[string]*externalInterface{
+						networkID: {
+							Name: networkID,
+							Networks: map[string]*network{
+								"byovnetbridge-10-128-8-0_23": {
+									Id: "byovnetbridge-10-128-8-0_23",
+									Endpoints: map[string]*endpoint{
+										"a591be2a-eth2": {
+											Id:     "a591be2a-eth2",
+											NetNs:  netNs,
+											IfName: "eth2",
+											SecondaryInterfaces: map[string]*InterfaceInfo{
+												"azure-12:34:56:78:90:ab": {
+													Name:       endpointID,
+													MacAddress: net.HardwareAddr("12:34:56:78:90:ab"),
+													NICType:    "DelegatedVMNIC",
+												},
+											},
+										},
+									},
+									NetNs: "aaac079b-45a6-485f-8f9e-88b05d6c55c4",
+								},
+							},
+						},
+					},
+				}
+				_, err := nm.GetNetworkSecondaryInterfaceInfo(endpointID)
+				Expect(err).To(BeNil())
+
+				_, err = nm.GetNetworkSecondaryInterfaceInfo(invalidEndpointID)
+				Expect(err).To(Equal(errSecondaryInterfaceNotFound))
+			})
+		})
+	})
+
 	Describe("Test newNetwork", func() {
 		Context("When nwInfo.Mode is empty", func() {
-			It("Should set as defalut mode", func() {
+			It("Should set as default mode", func() {
 				nm := &networkManager{
 					ExternalInterfaces: map[string]*externalInterface{},
 				}

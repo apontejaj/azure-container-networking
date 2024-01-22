@@ -344,7 +344,6 @@ func TestGetNetworkNameSwiftv2FromCNS(t *testing.T) {
 	}
 
 	swiftv2L1VHSecondaryInterfacesInfo = append(swiftv2L1VHSecondaryInterfacesInfo, swiftv2L1VHInterfaceInfo)
-
 	tests := []struct {
 		name          string
 		plugin        *NetPlugin
@@ -385,6 +384,7 @@ func TestGetNetworkNameSwiftv2FromCNS(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Log(tt.ipamAddResult.secondaryInterfacesInfo[0])
 			networkName, err := tt.plugin.getNetworkName(tt.netNs, tt.ipamAddResult, tt.nwCfg)
+			t.Log(networkName)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {

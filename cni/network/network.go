@@ -1113,7 +1113,7 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 		// cleanup interfaces usage map fot swiftv2
 		if &ipamAddResult != nil {
 			logger.Info("deleting hnsNetwork")
-			err := plugin.nm.DeleteNetwork(networkID)
+			err = plugin.nm.DeleteNetwork(networkID)
 			if err != nil {
 				logger.Error("Failed to delete hnsNetwork", zap.Error(err), zap.String("hnsNetwork id", networkID))
 			}
