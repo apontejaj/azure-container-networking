@@ -170,7 +170,7 @@ var _ = Describe("Test Endpoint", func() {
 	})
 
 	Describe("Test endpointImpl Swiftv2 L1VH", func() {
-		Context("When endpoint add/delete succeed", func() {
+		Context("When endpoint add succeed", func() {
 			nw := &network{
 				Endpoints: map[string]*endpoint{},
 			}

@@ -1341,10 +1341,6 @@ func Test_setHostOptions(t *testing.T) {
 func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 	require := require.New(t) //nolint further usage of require without passing t
 
-	// set new CNS API is not supported
-	unsupportedAPIs := make(map[cnsAPIName]struct{})
-	unsupportedAPIs["RequestIPs"] = struct{}{}
-
 	macAddress := "12:34:56:78:9a:bc"
 	parsedMacAddress, _ := net.ParseMAC(macAddress)
 
