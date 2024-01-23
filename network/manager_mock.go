@@ -7,9 +7,10 @@ import (
 
 // MockNetworkManager is a mock structure for Network Manager
 type MockNetworkManager struct {
-	TestNetworkInfoMap  map[string]*NetworkInfo
-	TestEndpointInfoMap map[string]*EndpointInfo
-	TestEndpointClient  *MockEndpointClient
+	TestNetworkInfoMap   map[string]*NetworkInfo
+	TestEndpointInfoMap  map[string]*EndpointInfo
+	TestSecondaryInfoMap map[string]*InterfaceInfo
+	TestEndpointClient   *MockEndpointClient
 }
 
 // NewMockNetworkmanager returns a new mock
@@ -123,7 +124,10 @@ func (nm *MockNetworkManager) DetachEndpoint(networkID string, endpointID string
 
 // GetNetworkSecondaryInterfaceInfo mock
 func (nm *MockNetworkManager) GetNetworkSecondaryInterfaceInfo(endpointID string) (*InterfaceInfo, error) {
-	return &InterfaceInfo{}, nil
+	if interfaceInfo, exists := nm.TestSecondaryInfoMap[endpointID]; exists {
+		return interfaceInfo, nil
+	}
+	return &InterfaceInfo{}, errSecondaryInterfaceNotFound
 }
 
 // UpdateEndpoint mock

@@ -653,7 +653,11 @@ func (plugin *NetPlugin) createNetworkInternal(
 	}
 
 	// Find the master interface.
-	macAddress := ipamAddResult.secondaryInterfacesInfo[0].MacAddress.String()
+	var macAddress string
+	if ipamAddResult.secondaryInterfacesInfo != nil {
+		macAddress = ipamAddResult.secondaryInterfacesInfo[0].MacAddress.String()
+	}
+
 	masterIfName := plugin.findMasterInterface(ipamAddConfig.nwCfg, &ipnet)
 	if masterIfName == "" {
 		// check if masterInterface is in masterInterfaces map
