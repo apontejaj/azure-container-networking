@@ -1,0 +1,38 @@
+pr:
+  branches:
+    include:
+      - master
+trigger:
+  branches:
+    include:
+      - master
+variables:
+
+  WindowsContainerImage: onebranch.azurecr.io/windows/ltsc2019/vse2022:latest # for Windows jobs
+  LinuxContainerImage: mcr.microsoft.com/onebranch/cbl-mariner/build:2.0 # for Linux jobs
+name: '$(TeamProject)_$(Build.DefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd)$(Rev:.r)'
+resources:
+  repositories:
+  - repository: templates
+    type: git
+    name: OneBranch.Pipelines/GovernedTemplates
+    ref: refs/heads/main
+extends:
+  template: v2/OneBranch.Official.CrossPlat.yml@templates
+  parameters:
+    stages:
+    - template: pipeline.yml
+    globalSdl:
+      codeql: # https://eng.ms/docs/cloud-ai-platform/devdiv/one-engineering-system-1es/1es-docs/codeql/one-branch-codeql
+        compiled:
+          enabled: true
+      cg:
+        failOnAlert: false
+      tsa:
+        enabled: false
+      suppression:
+        suppressionFile: $(Build.SourcesDirectory)\.gdn\.gdnsuppress
+        suppressionSet: default
+      credscan:
+        enabled: true
+        suppressionsFileForArtifacts: $(Build.SourcesDirectory)/.config/CredScanSuppressions.json
