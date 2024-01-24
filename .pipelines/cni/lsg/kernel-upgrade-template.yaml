@@ -75,7 +75,7 @@ stages:
                 make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(commitID)
                 kubectl cluster-info
                 kubectl get po -owide -A
-                sudo -E env "PATH=$PATH" make test-integration CNS_VERSION=$(cnsVersion) CNI_VERSION=$(cniVersion) INSTALL_CNS=true INSTALL_AZURE_CNI_OVERLAY=true CNS_IMAGE_REPO=MCR
+                sudo -E env "PATH=$PATH" make test-integration CNS_VERSION=$(cnsVersion) CNI_VERSION=$(cniVersion) INSTALL_CNS=true INSTALL_AZURE_CNI_OVERLAY=true CNS_IMAGE_REPO=MCR CNI_IMAGE_REPO=MCR
             name: "overlaye2e"
             displayName: "Overlay Integration"
       - job: kernel_upgrade
