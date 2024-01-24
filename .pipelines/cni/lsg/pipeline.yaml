@@ -4,7 +4,7 @@ trigger: none
 resources:
   pipelines:
   - pipeline: ACN-PR # Name of the pipeline resource.
-    source: Azure Container Networking PR # The name of the pipeline referenced by this pipeline resource.
+    source: \Custom\Networking\ContainerNetworking\Azure Container Networking PR # The name of the pipeline referenced by this pipeline resource.
     trigger: true # Run app-ci pipeline when any run of security-lib-ci completes
     # project: FabrikamProject # Required only if the source pipeline is in another project , Replace with LSG's project
 #  Custom\Networking\ContainerNetworking\
