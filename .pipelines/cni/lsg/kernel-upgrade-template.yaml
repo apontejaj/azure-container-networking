@@ -38,7 +38,7 @@ stages:
               scriptType: "bash"
               addSpnToEnvironment: true
               inlineScript: |
-                make -C /aks/hack ${{ parameters.clusterType }} \
+                make -C ./hack/aks ${{ parameters.clusterType }} \
                 AZCLI=az REGION=$(LOCATION) SUB=$(SUB_AZURE_NETWORK_AGENT_BUILD_VALIDATIONS) \
                 CLUSTER=${{ parameters.clusterName }}-$(commitID) \
                 VM_SIZE=${{ parameters.vmSize }} \
@@ -75,12 +75,13 @@ stages:
                 make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(commitID)
                 kubectl cluster-info
                 kubectl get po -owide -A
-                sudo -E env "PATH=$PATH" make test-integration CNS_VERSION=$(cnsVersion) CNI_VERSION=$(cniVersion) INSTALL_CNS=true INSTALL_AZURE_CNI_OVERLAY=true CNS_IMAGE_REPO=MCR CNI_IMAGE_REPO=MCR
+                sudo -E env "PATH=$PATH" make test-integration CNS_VERSION=$(cnsVersion) CNI_VERSION=$(cniVersion) INSTALL_CNS=true INSTALL_AZURE_CNI_OVERLAY=true CNS_IMAGE_REPO=$(CNS_IMAGE_REPO) CNI_IMAGE_REPO=$(CNI_IMAGE_REPO)
             name: "overlaye2e"
             displayName: "Overlay Integration"
+            retryCountOnTaskFailure: 2
       - job: kernel_upgrade
-        displayName: "Scale Test"
-        dependsOn: npm_k8se2e
+        displayName: "Kernel Node Upgrade"
+        dependsOn: integration
         steps:
           - task: AzureCLI@1
             inputs:
@@ -120,7 +121,6 @@ stages:
             name: "Ubuntu_Setup"
             displayName: "Ubuntu Setup"
           - script: |
-              set -e
               echo "-- Update kernel through daemonset --"
               kubectl get pods -n kube-system -l os=linux,app=privileged-daemonset -owide
               privList=`kubectl get pods -n kube-system -l os=linux,app=privileged-daemonset -owide --no-headers | awk '{print $1}'`
@@ -137,26 +137,30 @@ stages:
                 kubectl get node -owide
               done
 
-              temp=`apt-cache madison linux-azure-edge | grep proposed | awk '{print $3}'`
-              for t in $temp; do
-                if [[ $t =~ ${KERNEL_VERSION} ]]; then
-                  echo "$t - looking for ${KERNEL_VERSION}"
-                  flag1=true
-                fi
-                if [[ $t =~ ${KERNEL_VERSION2} ]]; then
-                  echo "$t - looking for ${KERNEL_VERSION2}"
-                  flag2=true
+              for pod in $privList; do
+                flag1=""
+                flag2=""
+                echo "-- Confirm Proposed Repository --"
+                temp=`kubectl exec -i -n kube-system $pod -- bash -c "apt-cache madison linux-azure-edge" | grep proposed | awk '{print $3}'`
+                for t in $temp; do
+                  if [[ $t =~ ${KERNEL_VERSION} ]]; then
+                    echo "$t - looking for ${KERNEL_VERSION}"
+                    flag1=true
+                  fi
+                  if [[ $t =~ ${KERNEL_VERSION2} ]]; then
+                    echo "$t - looking for ${KERNEL_VERSION2}"
+                    flag2=true
+                  fi
+                done
+                if [ -z $flag1 ] || [ -z $flag2 ]; then
+                  echo "Missing required proposed repos"
+                  exit 1
                 fi
               done
-              if [ -z $flag1 ] || [ -z $flag2 ]; then
-                echo "Missing required proposed repos"
-                exit 1
-              fi
             retryCountOnTaskFailure: 3
             name: "Kernel_Setup"
             displayName: "Kernel Setup"
           - script: |
-              set -e
               echo "-- Update kernel through daemonset --"
               kubectl get pods -n kube-system -l os=linux,app=privileged-daemonset -owide
               privList=`kubectl get pods -n kube-system -l os=linux,app=privileged-daemonset -owide --no-headers | awk '{print $1}'`
@@ -171,12 +175,12 @@ stages:
                 if [ -z $installed ]; then
                   echo $pod needs to reinstall kernel
                   exit 1
+                fi
               done
             retryCountOnTaskFailure: 3
             name: "Kernel_Install"
             displayName: "Kernel Install"
           - script: |
-              set -e
               echo "-- Restart Nodes to Finalize Upgrade Kernel --"
               kubectl get pods -n kube-system -l os=linux,app=privileged-daemonset -owide
 
@@ -203,7 +207,7 @@ stages:
 
               for pod in $privList; do
                 echo "-- Confirm Ubuntu Kernel --"
-                confirm=`kubectl exec -i -n kube-system $pod -- bash -c "uname -r"
+                confirm=`kubectl exec -i -n kube-system $pod -- bash -c "uname -r"`
                 if [[ ! $confirm =~ ${KERNEL_VERSION} ]]; then
                   echo $pod kernel version - $confirm, expected - ${KERNEL_VERSION}
                   exit 1
