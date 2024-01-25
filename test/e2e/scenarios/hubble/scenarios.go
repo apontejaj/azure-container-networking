@@ -20,8 +20,8 @@ const (
 	Delay = 30 * time.Second
 )
 
-func ValidateDropMetric() []types.StepWrapper {
-	return []types.StepWrapper{
+func ValidateDropMetric() *types.Scenario {
+	Steps := []*types.StepWrapper{
 		{
 			Step: &k8s.CreateKapingerDeployment{
 				KapingerNamespace: "kube-system",
@@ -76,4 +76,10 @@ func ValidateDropMetric() []types.StepWrapper {
 			},
 		},
 	}
+
+	scenario := &types.Scenario{
+		Steps: Steps,
+	}
+
+	return scenario
 }

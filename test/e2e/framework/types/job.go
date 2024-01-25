@@ -14,15 +14,22 @@ var (
 	ErrParameterAlreadySet = fmt.Errorf("parameter already set")
 )
 
+// A Job is a logical grouping of steps, options and values
 type Job struct {
 	Values      *JobValues
 	Description string
 	Steps       []*StepWrapper
 }
 
+// A StepWrapper is a coupling of a step and it's options
 type StepWrapper struct {
 	Step Step
 	Opts *StepOptions
+}
+
+// A Scenario is a logical grouping of steps
+type Scenario struct {
+	Steps []*StepWrapper
 }
 
 func responseDivider(jobname string) {
@@ -49,8 +56,8 @@ func NewJob(description string) *Job {
 	}
 }
 
-func (j *Job) AddScenario(steps ...StepWrapper) {
-	for _, step := range steps {
+func (j *Job) AddScenario(scenario *Scenario) {
+	for _, step := range scenario.Steps {
 		j.AddStep(step.Step, step.Opts)
 	}
 }

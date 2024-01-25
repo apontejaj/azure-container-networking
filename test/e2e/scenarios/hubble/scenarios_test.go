@@ -56,7 +56,7 @@ func TestE2EDropHubbleMetrics(t *testing.T) {
 		KubeConfigFilePath: "./test.pem",
 	}, nil)
 
-	job.AddScenario(ValidateDropMetric()...)
+	job.AddScenario(ValidateDropMetric())
 
 	job.AddStep(&azure.DeleteResourceGroup{}, nil)
 }

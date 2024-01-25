@@ -236,7 +236,7 @@ func TestEndpoints(t *testing.T) {
 
 		portForwardFn := func() error {
 			t.Logf("attempting port forward to a pod with label %s, in namespace %s...", labelSelector, namespace)
-			if err = pf.Forward(portForwardCtx); err != nil {
+			if err = pf.ForwardRandomPodWithOptsLabelSelector(portForwardCtx); err != nil {
 				return fmt.Errorf("could not start port forward: %w", err)
 			}
 			return nil
