@@ -63,6 +63,10 @@ func (c *CreateVNet) Postvalidate() error {
 	return nil
 }
 
+func (c *CreateVNet) Stop() error {
+	return nil
+}
+
 type CreateSubnet struct {
 	SubscriptionID     string
 	ResourceGroupName  string
@@ -106,5 +110,9 @@ func (c *CreateSubnet) Prevalidate() error {
 }
 
 func (c *CreateSubnet) Postvalidate() error {
+	return nil
+}
+
+func (c *CreateSubnet) Stop() error {
 	return nil
 }

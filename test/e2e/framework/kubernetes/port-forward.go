@@ -161,6 +161,11 @@ func (p *PortForward) Postvalidate() error {
 	return nil
 }
 
+func (p *PortForward) Stop() error {
+	p.pf.Stop()
+	return nil
+}
+
 type logger struct{}
 
 func (l *logger) Logf(format string, args ...interface{}) {

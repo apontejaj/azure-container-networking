@@ -74,6 +74,10 @@ func (c *CreateKapingerDeployment) Postvalidate() error {
 	return nil
 }
 
+func (c *CreateKapingerDeployment) Stop() error {
+	return nil
+}
+
 func (c *CreateKapingerDeployment) GetKapingerDeployment() *appsv1.Deployment {
 	replicas, err := strconv.ParseInt(c.KapingerReplicas, 10, 32)
 	if err != nil {

@@ -50,3 +50,7 @@ func (d *DeleteResourceGroup) Prevalidate() error {
 func (d *DeleteResourceGroup) Postvalidate() error {
 	return nil
 }
+
+func (d *DeleteResourceGroup) Stop() error {
+	return nil
+}

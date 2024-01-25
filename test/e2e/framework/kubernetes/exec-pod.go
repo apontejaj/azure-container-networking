@@ -43,6 +43,10 @@ func (e *ExecInPod) Postvalidate() error {
 	return nil
 }
 
+func (e *ExecInPod) Stop() error {
+	return nil
+}
+
 func ExecPod(ctx context.Context, kubeConfigFilePath, namespace, podName, command string) error {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigFilePath)
 	if err != nil {

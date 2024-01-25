@@ -76,6 +76,10 @@ func (c *CreateDenyAllNetworkPolicy) Postvalidate() error {
 	return nil
 }
 
+func (c *CreateDenyAllNetworkPolicy) Stop() error {
+	return nil
+}
+
 type DeleteDenyAllNetworkPolicy struct {
 	NetworkPolicyNamespace string
 	KubeConfigFilePath     string

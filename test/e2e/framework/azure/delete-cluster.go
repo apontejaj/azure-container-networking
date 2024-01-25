@@ -46,3 +46,7 @@ func (d *DeleteCluster) Prevalidate() error {
 func (d *DeleteCluster) Postvalidate() error {
 	return nil
 }
+
+func (d *DeleteCluster) Stop() error {
+	return nil
+}

@@ -118,3 +118,7 @@ func (v *ValidateHubbleDropMetric) Prevalidate() error {
 func (v *ValidateHubbleDropMetric) Postvalidate() error {
 	return nil
 }
+
+func (v *ValidateHubbleDropMetric) Stop() error {
+	return nil
+}

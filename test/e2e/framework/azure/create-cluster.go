@@ -113,3 +113,7 @@ func (c *CreateCluster) Prevalidate() error {
 func (c *CreateCluster) Postvalidate() error {
 	return nil
 }
+
+func (c *CreateCluster) Stop() error {
+	return nil
+}

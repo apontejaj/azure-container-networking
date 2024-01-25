@@ -70,6 +70,10 @@ func (c *CreateAgnhostStatefulSet) Postvalidate() error {
 	return nil
 }
 
+func (c *CreateAgnhostStatefulSet) Stop() error {
+	return nil
+}
+
 func (c *CreateAgnhostStatefulSet) getAgnhostDeployment() *appsv1.StatefulSet {
 	reps := int32(AgnhostReplicas)
 

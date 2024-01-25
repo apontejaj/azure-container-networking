@@ -51,3 +51,7 @@ func (c *GetAKSKubeConfig) Prevalidate() error {
 func (c *GetAKSKubeConfig) Postvalidate() error {
 	return nil
 }
+
+func (c *GetAKSKubeConfig) Stop() error {
+	return nil
+}

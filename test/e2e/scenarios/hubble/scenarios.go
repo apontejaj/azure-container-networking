@@ -54,9 +54,6 @@ func ValidateDropMetric() *types.Scenario {
 			Step: &types.Sleep{
 				Duration: Delay,
 			},
-			Opts: &types.StepOptions{
-				SaveParametersToJob: false,
-			},
 		},
 		{
 			Step: &k8s.PortForward{
@@ -66,6 +63,9 @@ func ValidateDropMetric() *types.Scenario {
 				RemotePort:            "9965",
 				OptionalLabelAffinity: "app=agnhost-a", // port forward to a pod on a node that also has this pod with this label, assuming same namespace
 			},
+			Opts: &types.StepOptions{
+				RunInBackgroundWithID: "hubble-drop-port-forward",
+			},
 		},
 		{
 			Step: &steps.ValidateHubbleDropMetric{
@@ -73,6 +73,11 @@ func ValidateDropMetric() *types.Scenario {
 				Source:                  "agnhost-a",
 				Reason:                  PolicyDenied,
 				Protocol:                UDP,
+			},
+		},
+		{
+			Step: &types.Stop{
+				BackgroundID: "hubble-drop-port-forward",
 			},
 		},
 	}

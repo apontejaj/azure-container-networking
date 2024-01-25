@@ -46,3 +46,7 @@ func (c *CreateResourceGroup) Prevalidate() error {
 func (c *CreateResourceGroup) Postvalidate() error {
 	return nil
 }
+
+func (c *CreateResourceGroup) Stop() error {
+	return nil
+}

@@ -14,6 +14,7 @@ var (
 	ErrParameterAlreadySet = fmt.Errorf("parameter already set")
 	ErrOrphanSteps         = fmt.Errorf("background steps with no corresponding stop")
 	ErrCannotStopStep      = fmt.Errorf("cannot stop step")
+	ErrMissingBackroundID  = fmt.Errorf("missing background id")
 )
 
 // A Job is a logical grouping of steps, options and values
@@ -137,6 +138,10 @@ func (j *Job) validateBackgroundSteps() error {
 	for _, stepw := range j.Steps {
 		switch s := stepw.Step.(type) {
 		case *Stop:
+			if s.BackgroundID == "" {
+				return fmt.Errorf("cannot stop step with empty background id; %w", ErrMissingBackroundID)
+			}
+
 			if j.BackgroundSteps[s.BackgroundID] == nil {
 				return fmt.Errorf("cannot stop step %s, as it won't be started by this time; %w", s.BackgroundID, ErrCannotStopStep)
 			}
