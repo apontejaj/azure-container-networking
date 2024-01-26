@@ -78,7 +78,7 @@ func (nw *network) newEndpointImpl(
 
 	endpointInfo := epInfo[0]
 	for _, ep := range epInfo {
-		if ep.NICType == cns.DelegatedVMNIC || ep.NICType == cns.BackendNIC {
+		if ep.NICType != cns.InfraNIC {
 			endpointInfo = epInfo[1]
 		}
 	}
@@ -230,7 +230,7 @@ func (nw *network) configureHcnEndpoint(epInfo *EndpointInfo) (*hcn.HostComputeE
 	}
 
 	macAddress := epInfo.MacAddress.String()
-	if epInfo.NICType == cns.DelegatedVMNIC {
+	if epInfo.NICType != cns.InfraNIC {
 		macAddress = strings.Join(strings.Split(macAddress, ":"), "-")
 	}
 	hcnEndpoint.MacAddress = macAddress
@@ -430,7 +430,7 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 		MacAddress: ep.MacAddress,
 		IPConfigs:  ipconfigs,
 		Routes:     ep.Routes,
-		NICType:    cns.DelegatedVMNIC,
+		NICType:    ep.NICType,
 	}
 
 	return ep, nil
