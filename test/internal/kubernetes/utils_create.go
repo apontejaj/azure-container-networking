@@ -52,6 +52,7 @@ const (
 	envAzureIPAMVersion     = "AZURE_IPAM_VERSION"
 	envCNIVersion           = "CNI_VERSION"
 	envCNSVersion           = "CNS_VERSION"
+	envAzureIPAMImageRepo   = "IPAM_IMAGE_REPO"
 	envCNIImageRepo         = "CNI_IMAGE_REPO"
 	envCNSImageRepo         = "CNS_IMAGE_REPO"
 	EnvInstallCNS           = "INSTALL_CNS"
@@ -337,14 +338,20 @@ func initCNSScenarioVars() (map[CNSScenario]map[corev1.OSName]cnsDetails, error)
 	cnsRoleBindingPath := cnsManifestFolder + "/rolebinding.yaml"
 	cnsServiceAccountPath := cnsManifestFolder + "/serviceaccount.yaml"
 
-	url, key := imageRepoURL[os.Getenv(string(envCNIImageRepo))]
+	cniUrl, key := imageRepoURL[os.Getenv(string(envCNIImageRepo))]
 	if !key {
 		log.Printf("%s not set to expected value \"ACN\", \"MCR\". Default to %s", envCNIImageRepo, imageRepoURL["ACN"])
-		url = imageRepoURL["ACN"]
+		cniUrl = imageRepoURL["ACN"]
 	}
-	initContainerNameCNI := path.Join(url, "azure-cni:") + os.Getenv(envCNIVersion)
+	initContainerNameCNI := path.Join(cniUrl, "azure-cni:") + os.Getenv(envCNIVersion)
 	log.Printf("CNI init container image - %v", initContainerNameCNI)
-	initContainerNameIPAM := "acnpublic.azurecr.io/azure-ipam:" + os.Getenv(envAzureIPAMVersion)
+
+	ipamUrl, key := imageRepoURL[os.Getenv(string(envAzureIPAMImageRepo))]
+	if !key {
+		log.Printf("%s not set to expected value \"ACN\", \"MCR\". Default to %s", envAzureIPAMImageRepo, imageRepoURL["ACN"])
+		ipamUrl = imageRepoURL["ACN"]
+	}
+	initContainerNameIPAM := path.Join(ipamUrl, "azure-ipam:") + os.Getenv(envAzureIPAMVersion)
 
 	// cns scenario map
 	cnsScenarioMap := map[CNSScenario]map[corev1.OSName]cnsDetails{
