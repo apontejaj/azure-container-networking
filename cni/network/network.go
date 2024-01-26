@@ -641,11 +641,11 @@ func (plugin *NetPlugin) createNetworkInternal(
 	interfaceInfo := network.InterfaceInfo{}
 	if hasSecondaryInterface(ipamAddResult) {
 		interfaceInfo = ipamAddResult.secondaryInterfacesInfo[0]
-		_, net, err := net.ParseCIDR(ipamAddResult.secondaryInterfacesInfo[0].IPConfigs[0].Address.String())
+		_, subnet, err := net.ParseCIDR(ipamAddResult.secondaryInterfacesInfo[0].IPConfigs[0].Address.String())
 		if err != nil {
 			logger.Error("Failed to parse secondary interface ipnet", zap.Error(err))
 		}
-		ipnet = *net
+		ipnet = *subnet
 	} else {
 		interfaceInfo = ipamAddResult.defaultInterfaceInfo
 		ipnet = ipamAddResult.hostSubnetPrefix
@@ -1114,8 +1114,8 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 			return err
 		}
 
-		// cleanup interfaces usage map fot swiftv2
-		if &ipamAddResult != nil {
+		// cleanup interfaces usage map for swiftv2
+		if &ipamAddResult != nil && ipamAddResult.secondaryInterfacesInfo != nil {
 			logger.Info("deleting hnsNetwork")
 			err = plugin.nm.DeleteNetwork(networkID)
 			if err != nil {
