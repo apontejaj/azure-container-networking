@@ -13,25 +13,23 @@ import (
 )
 
 const (
-	defaultTimeoutSeconds = 300
-	defaultRetryDelay     = 5 * time.Second
-	defaultRetryAttempts  = 60
+
+	// eventually should be scoped per test, but avoiding magic number complaints for the moment
+	defaultTimeout    = 300 * time.Second
+	defaultRetryDelay = 5 * time.Second
 )
 
-var (
-	requiredMetrics = []string{
-		"hubble_flows_processed_total",
-		"hubble_tcp_flags_total",
-	}
-
-	defaultRetrier = retry.Retrier{Attempts: defaultRetryAttempts, Delay: defaultRetryDelay}
-)
+var requiredMetrics = []string{
+	"hubble_flows_processed_total",
+	"hubble_tcp_flags_total",
+}
 
 type ValidateHubbleFlowMetric struct {
 	LocalPort string
 }
 
 func (v *ValidateHubbleFlowMetric) Run() error {
+	defaultRetrier := retry.Retrier{Attempts: defaultRetryAttempts, Delay: defaultRetryDelay}
 	promAddress := fmt.Sprintf("http://localhost:%s/metrics", v.LocalPort)
 	log.Printf("require all metrics to be present: %+v\n", requiredMetrics)
 	ctx := context.Background()
@@ -47,11 +45,11 @@ func (v *ValidateHubbleFlowMetric) Run() error {
 		return nil
 	}
 
-	portForwardCtx, cancel := context.WithTimeout(ctx, defaultTimeoutSeconds*time.Second)
+	portForwardCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 
 	if err := defaultRetrier.Do(portForwardCtx, scrapeMetricsFn); err != nil {
-		return fmt.Errorf("could not start port forward within %ds: %w	", defaultTimeoutSeconds, err)
+		return fmt.Errorf("could not start port forward within %ds: %w	", defaultTimeout, err)
 	}
 
 	for _, reqMetric := range requiredMetrics {

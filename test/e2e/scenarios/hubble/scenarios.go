@@ -17,74 +17,111 @@ const (
 	TCP = "TCP"
 	UDP = "UDP"
 
-	Delay = 30 * time.Second
+	Delay = 5 * time.Second
 )
 
+func ValidateAMATargets() *types.Scenario {
+	return &types.Scenario{
+		Steps: []*types.StepWrapper{
+			{
+				Step: &k8s.PortForward{
+					Namespace:     "kube-system",
+					LabelSelector: "k8s-app=cilium",
+					LocalPort:     "9965",
+					RemotePort:    "9965",
+				},
+				Opts: &types.StepOptions{
+					RunInBackgroundWithID: "validate-ama-targets",
+				},
+			},
+			{
+				Step: &steps.VerifyPrometheusMetrics{
+					Address: "http://localhost:9090",
+				},
+			},
+			{
+				Step: &types.Stop{
+					BackgroundID: "validate-ama-targets",
+				},
+			},
+		},
+	}
+}
+
 func ValidateDropMetric() *types.Scenario {
-	Steps := []*types.StepWrapper{
-		{
-			Step: &k8s.CreateKapingerDeployment{
-				KapingerNamespace: "kube-system",
-				KapingerReplicas:  "1",
+	return &types.Scenario{
+		Steps: []*types.StepWrapper{
+			{
+				Step: &k8s.CreateKapingerDeployment{
+					KapingerNamespace: "kube-system",
+					KapingerReplicas:  "1",
+				},
 			},
-		},
-		{
-			Step: &k8s.CreateDenyAllNetworkPolicy{
-				NetworkPolicyNamespace: "kube-system",
-				DenyAllLabelSelector:   "app=agnhost-a",
+			{
+				Step: &k8s.CreateDenyAllNetworkPolicy{
+					NetworkPolicyNamespace: "kube-system",
+					DenyAllLabelSelector:   "app=agnhost-a",
+				},
 			},
-		},
-		{
-			Step: &k8s.CreateAgnhostStatefulSet{
-				AgnhostName:      "agnhost-a",
-				AgnhostNamespace: "kube-system",
+			{
+				Step: &k8s.CreateAgnhostStatefulSet{
+					AgnhostName:      "agnhost-a",
+					AgnhostNamespace: "kube-system",
+				},
 			},
-		},
-		{
-			Step: &k8s.ExecInPod{
-				PodName:      "agnhost-a-0",
-				PodNamespace: "kube-system",
-				Command:      "curl -s -m 5 bing.com",
+			{
+				Step: &k8s.ExecInPod{
+					PodName:      "agnhost-a-0",
+					PodNamespace: "kube-system",
+					Command:      "curl -s -m 5 bing.com",
+				},
+				Opts: &types.StepOptions{
+					ExpectError:               true,
+					SkipSavingParamatersToJob: true,
+				},
 			},
-			Opts: &types.StepOptions{
-				ExpectError: true,
+			{
+				Step: &types.Sleep{
+					Duration: Delay,
+				},
 			},
-		},
-		{ // metrics take some time to show up, so sleep for a bit
-			Step: &types.Sleep{
-				Duration: Delay,
+			// run curl again
+			{
+				Step: &k8s.ExecInPod{
+					PodName:      "agnhost-a-0",
+					PodNamespace: "kube-system",
+					Command:      "curl -s -m 5 bing.com",
+				},
+				Opts: &types.StepOptions{
+					ExpectError:               true,
+					SkipSavingParamatersToJob: true,
+				},
 			},
-		},
-		{
-			Step: &k8s.PortForward{
-				Namespace:             "kube-system",
-				LabelSelector:         "k8s-app=cilium",
-				LocalPort:             "9965",
-				RemotePort:            "9965",
-				OptionalLabelAffinity: "app=agnhost-a", // port forward to a pod on a node that also has this pod with this label, assuming same namespace
+			{
+				Step: &k8s.PortForward{
+					Namespace:             "kube-system",
+					LabelSelector:         "k8s-app=cilium",
+					LocalPort:             "9965",
+					RemotePort:            "9965",
+					OptionalLabelAffinity: "app=agnhost-a", // port forward to a pod on a node that also has this pod with this label, assuming same namespace
+				},
+				Opts: &types.StepOptions{
+					RunInBackgroundWithID: "hubble-drop-port-forward",
+				},
 			},
-			Opts: &types.StepOptions{
-				RunInBackgroundWithID: "hubble-drop-port-forward",
+			{
+				Step: &steps.ValidateHubbleDropMetric{
+					PortForwardedHubblePort: "9965",
+					Source:                  "agnhost-a",
+					Reason:                  PolicyDenied,
+					Protocol:                UDP,
+				},
 			},
-		},
-		{
-			Step: &steps.ValidateHubbleDropMetric{
-				PortForwardedHubblePort: "9965",
-				Source:                  "agnhost-a",
-				Reason:                  PolicyDenied,
-				Protocol:                UDP,
-			},
-		},
-		{
-			Step: &types.Stop{
-				BackgroundID: "hubble-drop-port-forward",
+			{
+				Step: &types.Stop{
+					BackgroundID: "hubble-drop-port-forward",
+				},
 			},
 		},
 	}
-
-	scenario := &types.Scenario{
-		Steps: Steps,
-	}
-
-	return scenario
 }

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"reflect"
 
+	"github.com/Azure/azure-container-networking/test/internal/retry"
 	promclient "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 )
@@ -19,6 +20,8 @@ const (
 	sourceKey      = "source"
 	protcolKey     = "protocol"
 	reason         = "reason"
+
+	defaultRetryAttempts = 20
 )
 
 type ValidateHubbleDropMetric struct {
@@ -29,6 +32,8 @@ type ValidateHubbleDropMetric struct {
 }
 
 func (v *ValidateHubbleDropMetric) Run() error {
+	defaultRetrier := retry.Retrier{Attempts: defaultRetryAttempts, Delay: defaultRetryDelay}
+
 	promAddress := fmt.Sprintf("http://localhost:%s/metrics", v.PortForwardedHubblePort)
 	ctx := context.Background()
 	pctx, cancel := context.WithCancel(ctx)
@@ -43,11 +48,16 @@ func (v *ValidateHubbleDropMetric) Run() error {
 
 	metrics := map[string]*promclient.MetricFamily{}
 	scrapeMetricsFn := func() error {
-		log.Printf("attempting scrape metrics on %s", promAddress)
+		log.Printf("checking for drop metrics on %s", promAddress)
 		var err error
 		metrics, err = getPrometheusDropMetrics(promAddress)
 		if err != nil {
-			return fmt.Errorf("failed to get prometheus metrics: %w", err)
+			return fmt.Errorf("could not start port forward within %ds: %w	", defaultTimeout, err)
+		}
+
+		err = verifyLabelsPresent(metrics, validMetric)
+		if err != nil {
+			return fmt.Errorf("failed to find metric matching %+v: %w", validMetric, ErrNoMetricFound)
 		}
 
 		return nil
@@ -55,18 +65,14 @@ func (v *ValidateHubbleDropMetric) Run() error {
 
 	err := defaultRetrier.Do(pctx, scrapeMetricsFn)
 	if err != nil {
-		return fmt.Errorf("could not start port forward within %ds: %w	", defaultTimeoutSeconds, err)
-	}
-
-	if !verifyLabelsPresent(metrics, validMetric) {
-		return fmt.Errorf("failed to find metric matching %+v: %w", validMetric, ErrNoMetricFound)
+		return fmt.Errorf("failed to get prometheus metrics: %w", err)
 	}
 
 	log.Printf("found metric matching %+v\n", validMetric)
 	return nil
 }
 
-func verifyLabelsPresent(data map[string]*promclient.MetricFamily, validMetric map[string]string) bool {
+func verifyLabelsPresent(data map[string]*promclient.MetricFamily, validMetric map[string]string) error {
 	for _, metric := range data {
 		if metric.GetName() == "hubble_drop_total" {
 			for _, metric := range metric.GetMetric() {
@@ -77,13 +83,13 @@ func verifyLabelsPresent(data map[string]*promclient.MetricFamily, validMetric m
 					metricLabels[label.GetName()] = label.GetValue()
 				}
 				if reflect.DeepEqual(metricLabels, validMetric) {
-					return true
+					return nil
 				}
 			}
 		}
 	}
 
-	return false
+	return fmt.Errorf("failed to find metric matching %+v: %w", validMetric, ErrNoMetricFound)
 }
 
 func getPrometheusDropMetrics(url string) (map[string]*promclient.MetricFamily, error) {

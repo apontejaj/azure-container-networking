@@ -1,15 +1,10 @@
-//go:build e2e
-// +build e2e
-
-package hubble
+package steps
 
 import (
 	"context"
 	"fmt"
 	"log"
-	"testing"
 
-	"github.com/Azure/azure-container-networking/test/e2e/framework/types"
 	"github.com/prometheus/client_golang/api"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 )
@@ -20,16 +15,6 @@ var (
 	ErrHubbleTargetNotUp = fmt.Errorf("hubble target not up")
 	ErrNoActiveTargets   = fmt.Errorf("no active targets found")
 )
-
-func TestE2EPrometheusTargets(t *testing.T) {
-	job := types.NewJob("Verify Prometheus targets are up")
-	runner := types.NewRunner(t, job)
-	defer runner.Run()
-
-	job.AddStep(&VerifyPrometheusMetrics{
-		Address: "http://localhost:9090",
-	}, nil)
-}
 
 type VerifyPrometheusMetrics struct {
 	Address string
@@ -81,5 +66,6 @@ func (v *VerifyPrometheusMetrics) Postvalidate() error {
 	return nil
 }
 
-func (v *VerifyPrometheusMetrics) Stop() {
+func (v *VerifyPrometheusMetrics) Stop() error {
+	return nil
 }

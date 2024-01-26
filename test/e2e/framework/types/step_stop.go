@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 )
 
@@ -11,9 +12,10 @@ type Stop struct {
 }
 
 func (c *Stop) Run() error {
+	stepName := reflect.TypeOf(c.Step).Elem().Name()
+	log.Println("stopping step:", stepName)
 	err := c.Step.Stop()
 	if err != nil {
-		stepName := reflect.TypeOf(c.Step).Elem().Name()
 		return fmt.Errorf("failed to stop step: %s with err %w", stepName, err)
 	}
 	return nil

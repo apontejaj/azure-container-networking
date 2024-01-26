@@ -95,7 +95,6 @@ func (j *Job) Run() error {
 
 	for _, wrapper := range j.Steps {
 		responseDivider(reflect.TypeOf(wrapper.Step).Elem().Name())
-		log.Printf("INFO: step options provided: %+v\n", wrapper.Opts)
 		err := wrapper.Step.Run()
 		if wrapper.Opts.ExpectError && err == nil {
 			return fmt.Errorf("expected error from step %s but got nil: %w", reflect.TypeOf(wrapper.Step).Elem().Name(), ErrNilError)
@@ -209,13 +208,14 @@ func (j *Job) validateStep(stepw *StepWrapper) error {
 				storedValue := j.Values.Get(parameter)
 
 				if storedValue == "" {
-					if value != "" {
-
-						fmt.Printf("%s setting parameter %s in job context to %s\n", stepName, parameter, value)
+					if stepw.Opts.SkipSavingParamatersToJob {
+						continue
+					} else if value != "" {
+						fmt.Printf("\"%s\" setting parameter \"%s\" in job context to \"%s\"\n", stepName, parameter, value)
 						j.Values.Set(parameter, value)
 
 					} else {
-						return fmt.Errorf("missing parameter %s for step %s: %w", parameter, stepName, ErrMissingParameter)
+						return fmt.Errorf("missing parameter \"%s\" for step \"%s\": %w", parameter, stepName, ErrMissingParameter)
 					}
 					continue
 				}
