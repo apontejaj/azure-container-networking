@@ -31,7 +31,8 @@ type StepWrapper struct {
 	Opts *StepOptions
 }
 
-// A Scenario is a logical grouping of steps
+// A Scenario is a logical grouping of steps, used to describe a scenario such as "test drop metrics"
+// which will require port forwarding, exec'ing, scraping, etc.
 type Scenario struct {
 	Steps []*StepWrapper
 }
@@ -103,12 +104,6 @@ func (j *Job) Run() error {
 		}
 	}
 
-	for _, wrapper := range j.Steps {
-		err := wrapper.Step.Postvalidate()
-		if err != nil {
-			return err //nolint:wrapcheck // don't wrap error, wouldn't provide any more context than the error itself
-		}
-	}
 	return nil
 }
 
@@ -208,13 +203,14 @@ func (j *Job) validateStep(stepw *StepWrapper) error {
 				storedValue := j.Values.Get(parameter)
 
 				if storedValue == "" {
-					if stepw.Opts.SkipSavingParamatersToJob {
+
+					switch {
+					case stepw.Opts.SkipSavingParamatersToJob:
 						continue
-					} else if value != "" {
+					case value != "":
 						fmt.Printf("\"%s\" setting parameter \"%s\" in job context to \"%s\"\n", stepName, parameter, value)
 						j.Values.Set(parameter, value)
-
-					} else {
+					default:
 						return fmt.Errorf("missing parameter \"%s\" for step \"%s\": %w", parameter, stepName, ErrMissingParameter)
 					}
 					continue

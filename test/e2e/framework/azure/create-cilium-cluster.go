@@ -68,10 +68,6 @@ func (c *CreateBYOCiliumCluster) Prevalidate() error {
 	return nil
 }
 
-func (c *CreateBYOCiliumCluster) Postvalidate() error {
-	return nil
-}
-
 func (c *CreateBYOCiliumCluster) Stop() error {
 	return nil
 }

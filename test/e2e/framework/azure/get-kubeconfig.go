@@ -48,10 +48,6 @@ func (c *GetAKSKubeConfig) Prevalidate() error {
 	return nil
 }
 
-func (c *GetAKSKubeConfig) Postvalidate() error {
-	return nil
-}
-
 func (c *GetAKSKubeConfig) Stop() error {
 	return nil
 }

@@ -1,4 +1,4 @@
-package steps
+package azuremonitor
 
 import (
 	"context"
@@ -59,10 +59,6 @@ func (v *VerifyPrometheusMetrics) Run() error {
 }
 
 func (v *VerifyPrometheusMetrics) Prevalidate() error {
-	return nil
-}
-
-func (v *VerifyPrometheusMetrics) Postvalidate() error {
 	return nil
 }
 

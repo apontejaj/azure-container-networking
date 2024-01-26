@@ -112,10 +112,6 @@ func (c *CreateAzureMonitor) Prevalidate() error {
 	return nil
 }
 
-func (c *CreateAzureMonitor) Postvalidate() error {
-	return nil
-}
-
 func (c *CreateAzureMonitor) Stop() error {
 	return nil
 }

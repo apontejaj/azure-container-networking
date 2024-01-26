@@ -59,10 +59,6 @@ func (c *CreateVNet) Prevalidate() error {
 	return nil
 }
 
-func (c *CreateVNet) Postvalidate() error {
-	return nil
-}
-
 func (c *CreateVNet) Stop() error {
 	return nil
 }
@@ -106,10 +102,6 @@ func (c *CreateSubnet) Run() error {
 }
 
 func (c *CreateSubnet) Prevalidate() error {
-	return nil
-}
-
-func (c *CreateSubnet) Postvalidate() error {
 	return nil
 }
 

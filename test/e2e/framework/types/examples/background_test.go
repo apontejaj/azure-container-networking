@@ -60,10 +60,6 @@ func (t *TestBackground) Prevalidate() error {
 	return nil
 }
 
-func (t *TestBackground) Postvalidate() error {
-	return nil
-}
-
 type counter struct {
 	ticker *time.Ticker
 	count  int

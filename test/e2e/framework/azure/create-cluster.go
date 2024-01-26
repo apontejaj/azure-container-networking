@@ -13,7 +13,7 @@ import (
 const (
 	MaxNumberOfNodes = 3
 	MaxPodsPerNode   = 250
-	AgentSKU         = "Standard_D4s_v3"
+	AgentSKU         = "Standard_DS4_v2"
 )
 
 var defaultClusterCreateTimeout = 30 * time.Minute
@@ -107,10 +107,6 @@ func GetStarterClusterTemplate(location string) armcontainerservice.ManagedClust
 }
 
 func (c *CreateCluster) Prevalidate() error {
-	return nil
-}
-
-func (c *CreateCluster) Postvalidate() error {
 	return nil
 }
 

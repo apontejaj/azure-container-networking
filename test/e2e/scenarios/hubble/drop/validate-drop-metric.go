@@ -1,4 +1,4 @@
-package steps
+package drop
 
 import (
 	"context"
@@ -118,10 +118,6 @@ func parseReaderPrometheusMetrics(input io.Reader) (map[string]*promclient.Metri
 }
 
 func (v *ValidateHubbleDropMetric) Prevalidate() error {
-	return nil
-}
-
-func (v *ValidateHubbleDropMetric) Postvalidate() error {
 	return nil
 }
 

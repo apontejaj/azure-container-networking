@@ -9,6 +9,7 @@ import (
 
 	"github.com/Azure/azure-container-networking/test/e2e/framework/azure"
 	"github.com/Azure/azure-container-networking/test/e2e/framework/types"
+	"github.com/Azure/azure-container-networking/test/e2e/scenarios/hubble/drop"
 )
 
 const (
@@ -32,7 +33,7 @@ func TestE2EDropHubbleMetrics(t *testing.T) {
 	job.AddStep(&azure.CreateResourceGroup{
 		SubscriptionID:    sub,
 		ResourceGroupName: testName,
-		Location:          "westus2",
+		Location:          "eastus",
 	}, nil)
 
 	job.AddStep(&azure.CreateVNet{
@@ -56,7 +57,7 @@ func TestE2EDropHubbleMetrics(t *testing.T) {
 		KubeConfigFilePath: "./test.pem",
 	}, nil)
 
-	job.AddScenario(ValidateDropMetric())
+	job.AddScenario(drop.ValidateDropMetric())
 
 	job.AddStep(&azure.DeleteResourceGroup{}, nil)
 }

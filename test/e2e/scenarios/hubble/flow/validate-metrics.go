@@ -1,4 +1,4 @@
-package steps
+package flow
 
 import (
 	"context"
@@ -13,10 +13,9 @@ import (
 )
 
 const (
-
-	// eventually should be scoped per test, but avoiding magic number complaints for the moment
-	defaultTimeout    = 300 * time.Second
-	defaultRetryDelay = 5 * time.Second
+	defaultRetryAttempts = 20
+	defaultTimeout       = 300 * time.Second
+	defaultRetryDelay    = 5 * time.Second
 )
 
 var requiredMetrics = []string{
@@ -67,7 +66,7 @@ func (v *ValidateHubbleFlowMetric) Prevalidate() error {
 	return nil
 }
 
-func (v *ValidateHubbleFlowMetric) Postvalidate() error {
+func (v *ValidateHubbleFlowMetric) Stop() error {
 	return nil
 }
 

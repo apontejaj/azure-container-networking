@@ -28,7 +28,3 @@ func (c *Stop) Stop() error {
 func (c *Stop) Prevalidate() error {
 	return nil
 }
-
-func (c *Stop) Postvalidate() error {
-	return nil
-}

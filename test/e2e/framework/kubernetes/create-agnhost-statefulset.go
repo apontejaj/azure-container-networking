@@ -66,10 +66,6 @@ func (c *CreateAgnhostStatefulSet) Prevalidate() error {
 	return nil
 }
 
-func (c *CreateAgnhostStatefulSet) Postvalidate() error {
-	return nil
-}
-
 func (c *CreateAgnhostStatefulSet) Stop() error {
 	return nil
 }

@@ -1,11 +1,10 @@
-package hubble
+package drop
 
 import (
 	"time"
 
 	k8s "github.com/Azure/azure-container-networking/test/e2e/framework/kubernetes"
 	"github.com/Azure/azure-container-networking/test/e2e/framework/types"
-	"github.com/Azure/azure-container-networking/test/e2e/scenarios/hubble/steps"
 )
 
 const (
@@ -17,36 +16,10 @@ const (
 	TCP = "TCP"
 	UDP = "UDP"
 
-	Delay = 5 * time.Second
+	sleepDelay        = 5
+	defaultTimeout    = 300 * time.Second
+	defaultRetryDelay = 5 * time.Second
 )
-
-func ValidateAMATargets() *types.Scenario {
-	return &types.Scenario{
-		Steps: []*types.StepWrapper{
-			{
-				Step: &k8s.PortForward{
-					Namespace:     "kube-system",
-					LabelSelector: "k8s-app=cilium",
-					LocalPort:     "9965",
-					RemotePort:    "9965",
-				},
-				Opts: &types.StepOptions{
-					RunInBackgroundWithID: "validate-ama-targets",
-				},
-			},
-			{
-				Step: &steps.VerifyPrometheusMetrics{
-					Address: "http://localhost:9090",
-				},
-			},
-			{
-				Step: &types.Stop{
-					BackgroundID: "validate-ama-targets",
-				},
-			},
-		},
-	}
-}
 
 func ValidateDropMetric() *types.Scenario {
 	return &types.Scenario{
@@ -82,7 +55,7 @@ func ValidateDropMetric() *types.Scenario {
 			},
 			{
 				Step: &types.Sleep{
-					Duration: Delay,
+					Duration: sleepDelay,
 				},
 			},
 			// run curl again
@@ -110,7 +83,7 @@ func ValidateDropMetric() *types.Scenario {
 				},
 			},
 			{
-				Step: &steps.ValidateHubbleDropMetric{
+				Step: &ValidateHubbleDropMetric{
 					PortForwardedHubblePort: "9965",
 					Source:                  "agnhost-a",
 					Reason:                  PolicyDenied,

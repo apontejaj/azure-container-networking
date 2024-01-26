@@ -156,11 +156,6 @@ func (p *PortForward) Prevalidate() error {
 	return nil
 }
 
-func (p *PortForward) Postvalidate() error {
-	p.pf.Stop()
-	return nil
-}
-
 func (p *PortForward) Stop() error {
 	p.pf.Stop()
 	return nil
