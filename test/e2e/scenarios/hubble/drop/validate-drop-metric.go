@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"reflect"
+	"time"
 
 	"github.com/Azure/azure-container-networking/test/internal/retry"
 	promclient "github.com/prometheus/client_model/go"
@@ -21,7 +22,10 @@ const (
 	protcolKey     = "protocol"
 	reason         = "reason"
 
-	defaultRetryAttempts = 20
+	sleepDelay           = 5 * time.Second
+	defaultTimeout       = 300 * time.Second
+	defaultRetryDelay    = 5 * time.Second
+	defaultRetryAttempts = 60
 )
 
 type ValidateHubbleDropMetric struct {

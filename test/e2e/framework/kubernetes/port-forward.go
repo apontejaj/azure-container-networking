@@ -64,6 +64,7 @@ func (p *PortForward) Run() error {
 	targetPodName := ""
 	if p.OptionalLabelAffinity != "" {
 		// get all pods with label
+		log.Printf("attempting to find pod with label \"%s\", on a node with a pod with label \"%s\"\n", p.LabelSelector, p.OptionalLabelAffinity)
 		targetPodName, err = p.findPodsWithAffinity(pctx, clientset)
 		if err != nil {
 			return fmt.Errorf("could not find pod with affinity: %w", err)
@@ -71,7 +72,6 @@ func (p *PortForward) Run() error {
 	}
 
 	portForwardFn := func() error {
-		log.Printf("attempting port forward to a pod with label \"%s\", in namespace \"%s\"...\n", p.LabelSelector, p.Namespace)
 
 		// if we have a pod name (likely from affinity above), use it, otherwise use label selector
 		opts := k8s.PortForwardingOpts{
@@ -84,6 +84,8 @@ func (p *PortForward) Run() error {
 		if targetPodName != "" {
 			opts.PodName = targetPodName
 		}
+
+		log.Printf("attempting port forward to pod name \"%s\" with label \"%s\", in namespace \"%s\"...\n", targetPodName, p.LabelSelector, p.Namespace)
 
 		p.pf, err = k8s.NewPortForwarder(config, &logger{}, opts)
 		if err != nil {

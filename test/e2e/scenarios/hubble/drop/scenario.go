@@ -1,8 +1,6 @@
 package drop
 
 import (
-	"time"
-
 	k8s "github.com/Azure/azure-container-networking/test/e2e/framework/kubernetes"
 	"github.com/Azure/azure-container-networking/test/e2e/framework/types"
 )
@@ -15,10 +13,6 @@ const (
 	// L4 protocols
 	TCP = "TCP"
 	UDP = "UDP"
-
-	sleepDelay        = 5
-	defaultTimeout    = 300 * time.Second
-	defaultRetryDelay = 5 * time.Second
 )
 
 func ValidateDropMetric() *types.Scenario {

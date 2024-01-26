@@ -10,7 +10,7 @@ type Sleep struct {
 }
 
 func (c *Sleep) Run() error {
-	log.Printf("sleeping for %s...\n", c.Duration)
+	log.Printf("sleeping for %s...\n", c.Duration.String())
 	time.Sleep(c.Duration)
 	return nil
 }
