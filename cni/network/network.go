@@ -581,7 +581,6 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		}
 
 		natInfo := getNATInfo(nwCfg, options[network.SNATIPKey], enableSnatForDNS)
-
 		createEndpointInternalOpt := createEndpointInternalOpt{
 			nwCfg:            nwCfg,
 			cnsNetworkConfig: ipamAddResult.ncResponse,
@@ -879,6 +878,7 @@ func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt) 
 				MacAddress:        secondaryCniResult.MacAddress,
 				NICType:           secondaryCniResult.NICType,
 				SkipDefaultRoutes: secondaryCniResult.SkipDefaultRoutes,
+				Policies:          opt.policies,
 			})
 	}
 
