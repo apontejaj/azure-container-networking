@@ -75,7 +75,7 @@ func NewPortForwarder(restConfig *rest.Config, logger logger, opts PortForwardin
 
 func (p *PortForwarder) Forward(ctx context.Context) error {
 	var podName string
-	if p.opts.PodName != "" {
+	if p.opts.PodName == "" {
 		pods, err := p.clientset.CoreV1().Pods(p.opts.Namespace).List(ctx, metav1.ListOptions{LabelSelector: p.opts.LabelSelector, FieldSelector: "status.phase=Running"})
 		if err != nil {
 			return fmt.Errorf("could not list pods in %q with label %q: %w", p.opts.Namespace, p.opts.LabelSelector, err)
