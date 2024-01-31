@@ -5,4 +5,4 @@ generate:
 .PHONY: acndev
 acndev: 
 	mkdir -p ./bin
-	go build -o ./bin/acndev ./cmd/
+		CGO_ENABLED=0 go build -o ./bin/acndev ./cmd/

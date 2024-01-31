@@ -8,8 +8,8 @@ import (
 
 var (
 	ErrEmptyDescription    = fmt.Errorf("job description is empty")
-	ErrNonNilError         = fmt.Errorf("expected error to be non-nil")
-	ErrNilError            = fmt.Errorf("expected error to be nil")
+	ErrExpectToBeNotNil    = fmt.Errorf("expected error to be non-nil")
+	ErrExpectToBeNil       = fmt.Errorf("expected error to be nil")
 	ErrMissingParameter    = fmt.Errorf("missing parameter")
 	ErrParameterAlreadySet = fmt.Errorf("parameter already set")
 )
@@ -84,7 +84,7 @@ func (j *Job) Run() error {
 		log.Printf("INFO: step options provided: %+v\n", wrapper.Opts)
 		err := wrapper.Step.Run()
 		if wrapper.Opts.ExpectError && err == nil {
-			return fmt.Errorf("expected error from step %s but got nil: %w", reflect.TypeOf(wrapper.Step).Elem().Name(), ErrNilError)
+			return fmt.Errorf("expected error from step %s but got nil: %w", reflect.TypeOf(wrapper.Step).Elem().Name(), ErrExpectToBeNotNil)
 		} else if !wrapper.Opts.ExpectError && err != nil {
 			return fmt.Errorf("did not expect error from step %s but got error: %w", reflect.TypeOf(wrapper.Step).Elem().Name(), err)
 		}
