@@ -18,7 +18,6 @@ import (
 // +kubebuilder:metadata:labels=owner=
 // +kubebuilder:printcolumn:name="PodNetworkInstance",type=string,JSONPath=`.spec.podNetworkInstance`
 // +kubebuilder:printcolumn:name="PodNetwork",type=string,JSONPath=`.spec.podNetwork`
-// +kubebuilder:printcolumn:name="PodName",type=string,JSONPath=`.spec.podName`
 // +kubebuilder:printcolumn:name="NCID",type=string,JSONPath=`.status.ncID`
 // +kubebuilder:printcolumn:name="PrimaryIP",type=string,JSONPath=`.status.primaryIP`
 // +kubebuilder:printcolumn:name="MacAddress",type=string,JSONPath=`.status.macAddress`
@@ -47,8 +46,6 @@ type MultitenantPodNetworkConfigSpec struct {
 	PodNetworkInstance string `json:"podNetworkInstance,omitempty"`
 	// name of PN object from requesting cx pod
 	PodNetwork string `json:"podNetwork"`
-	// name of the requesting cx pod
-	PodName string `json:"podName"`
 }
 
 // MultitenantPodNetworkConfigStatus defines the observed state of PodNetworkConfig

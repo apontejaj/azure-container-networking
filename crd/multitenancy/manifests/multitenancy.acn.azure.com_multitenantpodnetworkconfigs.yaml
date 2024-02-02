@@ -26,9 +26,6 @@ spec:
     - jsonPath: .spec.podNetwork
       name: PodNetwork
       type: string
-    - jsonPath: .spec.podName
-      name: PodName
-      type: string
     - jsonPath: .status.ncID
       name: NCID
       type: string
@@ -63,9 +60,6 @@ spec:
             description: MultitenantPodNetworkConfigSpec defines the desired state
               of PodNetworkConfig
             properties:
-              podName:
-                description: name of the requesting cx pod
-                type: string
               podNetwork:
                 description: name of PN object from requesting cx pod
                 type: string
@@ -73,7 +67,6 @@ spec:
                 description: name of PNI object from requesting cx pod
                 type: string
             required:
-            - podName
             - podNetwork
             type: object
           status:
