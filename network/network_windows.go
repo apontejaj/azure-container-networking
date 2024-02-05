@@ -294,7 +294,8 @@ func (nm *networkManager) configureHcnNetwork(nwInfo *NetworkInfo, extIf *extern
 		return nil, errNetworkModeInvalid
 	}
 
-	// set hnsNetwork for L1VH
+	// set hnsNetwork for secondary interfaces
+	// TODO: find a way to set flags from CNS goal states
 	if hcnNetwork.Name == "azure-"+extIf.MacAddress.String() {
 		hcnNetwork.Type = hcn.Transparent
 		hcnNetwork.Flags = hcn.DisableHostPort
