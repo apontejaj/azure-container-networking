@@ -430,7 +430,6 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 		MacAddress: ep.MacAddress,
 		IPConfigs:  ipconfigs,
 		Routes:     ep.Routes,
-		NICType:    ep.NICType,
 	}
 
 	return ep, nil

@@ -290,11 +290,14 @@ func (nm *networkManager) configureHcnNetwork(nwInfo *NetworkInfo, extIf *extern
 		hcnNetwork.Type = hcn.L2Bridge
 	case opModeTunnel:
 		hcnNetwork.Type = hcn.L2Tunnel
-	case opModeTransparent:
-		hcnNetwork.Type = hcn.Transparent
-		hcnNetwork.Flags = hcn.DisableHostPort
 	default:
 		return nil, errNetworkModeInvalid
+	}
+
+	// set hnsNetwork for L1VH
+	if hcnNetwork.Name == "azure-"+extIf.MacAddress.String() {
+		hcnNetwork.Type = hcn.Transparent
+		hcnNetwork.Flags = hcn.DisableHostPort
 	}
 
 	// Populate subnets.
