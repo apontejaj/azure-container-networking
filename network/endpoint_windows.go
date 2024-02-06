@@ -79,6 +79,7 @@ func (nw *network) newEndpointImpl(
 	endpointInfo := epInfo[0]
 	for _, ep := range epInfo {
 		if ep.NICType != cns.InfraNIC {
+			// use second endpointInfo if endpoint does not use infra NIC
 			endpointInfo = epInfo[1]
 		}
 	}
@@ -229,6 +230,7 @@ func (nw *network) configureHcnEndpoint(epInfo *EndpointInfo) (*hcn.HostComputeE
 		},
 	}
 
+	// convert the format of macAddress that HNS can accept, i.e, "60-45-bd-12-45-65"
 	macAddress := epInfo.MacAddress.String()
 	if epInfo.NICType != cns.InfraNIC {
 		macAddress = strings.Join(strings.Split(macAddress, ":"), "-")
@@ -425,6 +427,7 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 		ipconfigs[i] = &IPConfig{Address: ipconfig}
 	}
 
+	// Add secondary interfaces info to CNI state file
 	ep.SecondaryInterfaces[ep.Id] = &InterfaceInfo{
 		Name:       ep.Id,
 		MacAddress: ep.MacAddress,

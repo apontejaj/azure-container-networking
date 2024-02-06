@@ -241,6 +241,7 @@ func (nm *networkManager) deleteNetwork(networkID string) error {
 	return nil
 }
 
+// Get secondary interfaceInfo from CNI state file by endpointID
 func (nm *networkManager) GetNetworkSecondaryInterfaceInfo(endpointID string) (*InterfaceInfo, error) {
 	for _, extIf := range nm.ExternalInterfaces {
 		for _, nw := range extIf.Networks {

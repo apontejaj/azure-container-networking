@@ -166,11 +166,12 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 		//nolint:exhaustive // ignore exhaustive types check
 		switch info.nicType {
 		case cns.DelegatedVMNIC, cns.BackendNIC:
-			// only handling single v4 PodIPInfo for DelegatedVMNICs at the moment, will have to update once v6 gets added
+			// only handling single v4 PodIPInfo for DelegatedVMNIC and BackendNIC at the moment, will have to update once v6 gets added
 			if !info.skipDefaultRoutes {
 				numInterfacesWithDefaultRoutes++
 			}
 
+			// Add secondary interface info from podIPInfo to ipamAddResult
 			info.hostSubnet = response.PodIPInfo[i].HostSecondaryIPInfo.Subnet
 			info.hostPrimaryIP = response.PodIPInfo[i].HostSecondaryIPInfo.PrimaryIP
 			info.hostGateway = response.PodIPInfo[i].HostSecondaryIPInfo.Gateway

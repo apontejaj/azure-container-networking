@@ -81,6 +81,7 @@ type NetPlugin struct {
 	multitenancyClient MultitenancyClient
 }
 
+// save secondary interface usage with ipNet and macAddress properties
 var SecondaryInterfaces map[string]SecondaryInterfaceProperty
 
 type SecondaryInterfaceProperty struct {
@@ -324,6 +325,7 @@ func addNatIPV6SubnetInfo(nwCfg *cni.NetworkConfig,
 	}
 }
 
+// check if seconday interface info exists or not from ipamAddResult based on NIC type
 func hasSecondaryInterface(ipamAddResult IPAMAddResult) bool {
 	if ipamAddResult.secondaryInterfacesInfo != nil {
 		for _, interfaceNICType := range secondaryInterfaceNICType {
@@ -385,6 +387,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 		// Add Interfaces to result.
 		cniResult := cniTypesCurr.Result{}
+		// Add secondaryInterface info to result if it exists; otherwise add default primary interface info to result
 		if hasSecondaryInterface(ipamAddResult) {
 			cniResult = *convertInterfaceInfoToCniResult(ipamAddResult.secondaryInterfacesInfo[0], args.IfName)
 		} else {
@@ -639,6 +642,7 @@ func (plugin *NetPlugin) createNetworkInternal(
 
 	ipnet := net.IPNet{}
 	interfaceInfo := network.InterfaceInfo{}
+	// find ipnet from secondaryInterfaceInfo if it exists;
 	if hasSecondaryInterface(ipamAddResult) {
 		interfaceInfo = ipamAddResult.secondaryInterfacesInfo[0]
 		_, subnet, err := net.ParseCIDR(ipamAddResult.secondaryInterfacesInfo[0].IPConfigs[0].Address.String())
@@ -659,7 +663,7 @@ func (plugin *NetPlugin) createNetworkInternal(
 
 	masterIfName := plugin.findMasterInterface(ipamAddConfig.nwCfg, &ipnet)
 	if masterIfName == "" {
-		// check if masterInterface is in masterInterfaces map
+		// check if masterInterface is in SecondaryInterfaces map
 		// if not, then no master interface is found
 		if SecondaryInterfaces != nil {
 			for name, secondaryInterface := range SecondaryInterfaces {
@@ -679,6 +683,7 @@ func (plugin *NetPlugin) createNetworkInternal(
 
 	SecondaryInterfaces = make(map[string]SecondaryInterfaceProperty)
 	SecondaryInterfaces[masterIfName] = secondaryInterfaceProperty
+
 	// Add the master as an external interface.
 	err := plugin.nm.AddExternalInterface(masterIfName, ipamAddResult.hostSubnetPrefix.String())
 	if err != nil {
@@ -1091,16 +1096,18 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 
 	endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
 
-	netInfo, err := plugin.nm.GetNetworkSecondaryInterfaceInfo(endpointID)
+	// Get secondary interface info from CNI state file and save them to ipamAddResult in CNI Delete call
+	secondaryInterfaceInfo, err := plugin.nm.GetNetworkSecondaryInterfaceInfo(endpointID)
 	if err != nil {
-		logger.Error("Failed to get netInfo", zap.Error(err))
+		logger.Error("Failed to get secondaryInterfaceInfo", zap.Error(err))
 	}
 
 	ipamAddResult.secondaryInterfacesInfo = []network.InterfaceInfo{}
-	ipamAddResult.secondaryInterfacesInfo = append(ipamAddResult.secondaryInterfacesInfo, *netInfo)
+	ipamAddResult.secondaryInterfacesInfo = append(ipamAddResult.secondaryInterfacesInfo, *secondaryInterfaceInfo)
 
 	logger.Info("Endpoints to be deleted", zap.Int("count", numEndpointsToDelete))
 	for i := 0; i < numEndpointsToDelete; i++ {
+		// Initialize values from network config
 		networkID, err = plugin.getNetworkName(args.Netns, &ipamAddResult, nwCfg)
 		if err != nil {
 			// If error is not found error, then we ignore it, to comply with CNI SPEC.
@@ -1114,7 +1121,7 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 			return err
 		}
 
-		// cleanup interfaces usage map for swiftv2
+		// cleanup interfaces usage map for swiftv2 L1VH and delete hnsNetwork associated with this networkID
 		if &ipamAddResult != nil && ipamAddResult.secondaryInterfacesInfo != nil {
 			logger.Info("deleting hnsNetwork")
 			err = plugin.nm.DeleteNetwork(networkID)

@@ -145,18 +145,19 @@ func addSnatInterface(nwCfg *cni.NetworkConfig, result *cniTypesCurr.Result) {
 func (plugin *NetPlugin) getNetworkName(netNs string, ipamAddResult *IPAMAddResult, nwCfg *cni.NetworkConfig) (string, error) {
 	determineWinVer()
 
-	// check if it's swiftv2 mode
+	// set hasSecondaryInterfaceNIC flag
 	hasSecondaryInterfaceNIC := false
 	if hasSecondaryInterface(*ipamAddResult) {
 		hasSecondaryInterfaceNIC = true
 	}
 
 	// For singletenancy, the network name is simply the nwCfg.Name
+	// For Swiftv2 L1VH, the network name should not use nwCfg.Name
 	if !nwCfg.MultiTenancy && !hasSecondaryInterfaceNIC {
 		return nwCfg.Name, nil
 	}
 
-	// if it's swiftv2 secondaryInterfaceNIC, then use "azure-macAddres" format networkName
+	// if it's swiftv2 L1VH, then use "azure-macAddres" format networkName
 	// swiftv2NetworkName will look like ~ azure-01:23:ab:f4:ac:95
 	if ipamAddResult != nil && hasSecondaryInterfaceNIC {
 		swiftv2NetworkName := "azure-" + ipamAddResult.secondaryInterfacesInfo[0].MacAddress.String()
