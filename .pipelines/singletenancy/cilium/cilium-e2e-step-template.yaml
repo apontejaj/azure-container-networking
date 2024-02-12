@@ -38,6 +38,8 @@ steps:
         pwd
         kubectl cluster-info
         kubectl get po -owide -A
+        
+
         echo "install Cilium ${CILIUM_VERSION_TAG}"
         export DIR=${CILIUM_VERSION_TAG%.*}
         echo "installing files from ${DIR}"
