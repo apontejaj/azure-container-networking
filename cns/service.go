@@ -25,15 +25,16 @@ import (
 
 const (
 	// Default CNS server URL.
-	defaultAPIServerURL = "tcp://localhost:10090"
-	genericData         = "com.microsoft.azure.network.generic"
+	defaultAPIServerURL  = "tcp://localhost:10090"
+	defaultAPIServerPort = "10090"
+	genericData          = "com.microsoft.azure.network.generic"
 )
 
 // Service defines Container Networking Service.
 type Service struct {
 	*common.Service
 	EndpointType string
-	Listener     *acn.Listener
+	Listeners    *[]acn.Listener
 }
 
 // NewService creates a new Service object.
@@ -48,18 +49,64 @@ func NewService(name, version, channelMode string, store store.KeyValueStore) (*
 	}, nil
 }
 
-// GetAPIServerURL returns the API server URL.
-func (service *Service) getAPIServerURL() string {
-	urls, _ := service.GetOption(acn.OptCnsURL).(string)
-	if urls == "" {
-		urls = defaultAPIServerURL
+// AddListeners adds two listeners(nodeListener and localListener) for connection on the given address
+func (service *Service) AddListeners(config *common.ServiceConfig, primaryIP string) error {
+	var url *url.URL
+
+	// Fetch and parse the API server URL.
+	if service.GetOption(acn.OptCnsURL).(string) == "" {
+		// get VM primary interface's private IP
+		url, _ = url.Parse(fmt.Sprintf("tcp://%s:%s", primaryIP, defaultAPIServerPort))
+	} else {
+		url, _ = url.Parse(service.GetOption(acn.OptCnsURL).(string))
 	}
 
-	return urls
+	// construct url
+	nodeListener, err := acn.NewListener(url)
+	if err != nil {
+		return err
+	}
+
+	// only use TLS connection for DNC/CNS listener:
+	if config.TlsSettings.TLSPort != "" {
+		// listener.URL.Host will always be hostname:port, passed in to CNS via CNS command
+		// else it will default to localhost
+		// extract hostname and override tls port.
+		hostParts := strings.Split(nodeListener.URL.Host, ":")
+		tlsAddress := net.JoinHostPort(hostParts[0], config.TlsSettings.TLSPort)
+
+		// Start the listener and HTTP and HTTPS server.
+		tlsConfig, err := getTLSConfig(config.TlsSettings, config.ErrChan)
+		if err != nil {
+			log.Printf("Failed to compose Tls Configuration with error: %+v", err)
+			return errors.Wrap(err, "could not get tls config")
+		}
+
+		if err := nodeListener.StartTLS(config.ErrChan, tlsConfig, tlsAddress); err != nil {
+			return err
+		}
+	}
+
+	nodeListener.ListenerType = "nodeListener"
+	*config.Listeners = append(*config.Listeners, *nodeListener)
+
+	// bind on localhost ip for CNI listener
+	localURL, _ := url.Parse(defaultAPIServerURL)
+	localListener, err := acn.NewListener(localURL)
+	if err != nil {
+		return err
+	}
+	localListener.ListenerType = "localListener"
+
+	logger.Printf("HTTP listeners will be started later after CNS state has been reconciled")
+	*config.Listeners = append(*config.Listeners, *localListener)
+
+	*service.Listeners = *config.Listeners
+	return nil
 }
 
 // Initialize initializes the service and starts the listener.
-func (service *Service) Initialize(config *common.ServiceConfig) error {
+func (service *Service) Initialize(config *common.ServiceConfig, primaryIP string) error {
 	log.Debugf("[Azure CNS] Going to initialize a service with config: %+v", config)
 
 	// Initialize the base service.
@@ -68,42 +115,9 @@ func (service *Service) Initialize(config *common.ServiceConfig) error {
 	}
 
 	// Initialize the listener.
-	if config.Listener == nil {
-		// Fetch and parse the API server URL.
-		u, err := url.Parse(service.getAPIServerURL())
-		if err != nil {
-			return err
-		}
-
-		listener, err := acn.NewListener(u)
-		if err != nil {
-			return err
-		}
-
-		if config.TlsSettings.TLSPort != "" {
-			// listener.URL.Host will always be hostname:port, passed in to CNS via CNS command
-			// else it will default to localhost
-			// extract hostname and override tls port.
-			hostParts := strings.Split(listener.URL.Host, ":")
-			tlsAddress := net.JoinHostPort(hostParts[0], config.TlsSettings.TLSPort)
-
-			// Start the listener and HTTP and HTTPS server.
-			tlsConfig, err := getTLSConfig(config.TlsSettings, config.ErrChan)
-			if err != nil {
-				log.Printf("Failed to compose Tls Configuration with error: %+v", err)
-				return errors.Wrap(err, "could not get tls config")
-			}
-
-			if err := listener.StartTLS(config.ErrChan, tlsConfig, tlsAddress); err != nil {
-				return err
-			}
-		}
-
-		logger.Printf("HTTP listener will be started later after CNS state has been reconciled")
-		config.Listener = listener
+	if config.Listeners == nil {
+		service.AddListeners(config, primaryIP)
 	}
-
-	service.Listener = config.Listener
 
 	log.Debugf("[Azure CNS] Successfully initialized a service with config: %+v", config)
 	return nil
@@ -195,17 +209,19 @@ func getTLSConfigFromKeyVault(tlsSettings localtls.TlsSettings, errChan chan<- e
 func (service *Service) StartListener(config *common.ServiceConfig) error {
 	log.Debugf("[Azure CNS] Going to start listener: %+v", config)
 
-	// Initialize the listener.
-	if service.Listener != nil {
-		log.Debugf("[Azure CNS] Starting listener: %+v", config)
-		// Start the listener.
-		// continue to listen on the normal endpoint for http traffic, this will be supported
-		// for sometime until partners migrate fully to https
-		if err := service.Listener.Start(config.ErrChan); err != nil {
-			return err
+	// Initialize the listeners.
+	for _, listener := range *service.Listeners {
+		if &listener != nil {
+			log.Debugf("[Azure CNS] Starting listener: %+v", config)
+			// Start the listener.
+			// continue to listen on the normal endpoint for http traffic, this will be supported
+			// for sometime until partners migrate fully to https
+			if err := listener.Start(config.ErrChan); err != nil {
+				return err
+			}
+		} else {
+			return fmt.Errorf("Failed to start a listener, it is not initialized, config %+v", config)
 		}
-	} else {
-		return fmt.Errorf("Failed to start a listener, it is not initialized, config %+v", config)
 	}
 
 	return nil
@@ -213,7 +229,9 @@ func (service *Service) StartListener(config *common.ServiceConfig) error {
 
 // Uninitialize cleans up the plugin.
 func (service *Service) Uninitialize() {
-	service.Listener.Stop()
+	for _, s := range *service.Listeners {
+		s.Stop()
+	}
 	service.Service.Uninitialize()
 }
 
@@ -226,6 +244,6 @@ func (service *Service) ParseOptions(options OptionMap) OptionMap {
 // SendErrorResponse sends and logs an error response.
 func (service *Service) SendErrorResponse(w http.ResponseWriter, errMsg error) {
 	resp := errorResponse{errMsg.Error()}
-	err := service.Listener.Encode(w, &resp)
+	err := acn.Encode(w, &resp)
 	log.Errorf("[%s] %+v %s.", service.Name, &resp, err.Error())
 }
