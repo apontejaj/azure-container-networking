@@ -81,6 +81,14 @@ stages:
                   export DIR=${CILIUM_VERSION_TAG%.*}
                   echo "installing files from ${DIR}"
 
+                  if [ ! -z ${{ parameters.dualstackVersion }} ]; then
+                    echo "Use dualstack version of Cilium"
+                    export CILIUM_VERSION_TAG=${{ parameters.dualstackVersion }}
+                  fi
+
+                  echo "install Cilium ${CILIUM_VERSION_TAG}"
+                  export DIR=${CILIUM_VERSION_TAG%.*}
+                  echo "installing files from ${DIR}"
                   echo "deploy Cilium ConfigMap"
                   if [ ! -z ${{ parameters.dualstackVersion }} ]; then
                     echo "Use dualstack configmap for Cilium"
