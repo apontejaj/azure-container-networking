@@ -236,7 +236,7 @@ func (service *HTTPRestService) Init(config *common.ServiceConfig) error {
 
 	// Add handlers.
 	listeners := *service.Listeners
-	for _, listener := range listeners {
+	for _, listener := range listeners { //nolint
 		if listener.ListenerType == "nodeListener" {
 			listener.AddHandler(cns.SetEnvironmentPath, service.setEnvironment)
 			listener.AddHandler(cns.ReserveIPAddressPath, service.reserveIPAddress)

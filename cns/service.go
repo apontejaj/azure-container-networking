@@ -51,17 +51,18 @@ func NewService(name, version, channelMode string, store store.KeyValueStore) (*
 
 // AddListeners is to add two listeners(nodeListener and localListener) for connections on the given address
 func (service *Service) AddListeners(config *common.ServiceConfig, primaryIP string) error {
-	var url *url.URL
+	var nodeAPIServerURL *url.URL
+
 	// Fetch and parse the API server URL.
 	if service.GetOption(acn.OptCnsURL).(string) == "" {
 		// get VM primary interface's private IP
-		url, _ = url.Parse(fmt.Sprintf("tcp://%s:%s", primaryIP, defaultAPIServerPort))
+		nodeAPIServerURL, _ = url.Parse(fmt.Sprintf("tcp://%s:%s", primaryIP, defaultAPIServerPort))
 	} else {
-		url, _ = url.Parse(service.GetOption(acn.OptCnsURL).(string))
+		nodeAPIServerURL, _ = url.Parse(service.GetOption(acn.OptCnsURL).(string))
 	}
 
 	// construct url
-	nodeListener, err := acn.NewListener(url)
+	nodeListener, err := acn.NewListener(nodeAPIServerURL)
 	if err != nil {
 		return errors.Wrap(err, "Failed to construct url for node listener")
 	}
@@ -75,7 +76,7 @@ func (service *Service) AddListeners(config *common.ServiceConfig, primaryIP str
 		tlsAddress := net.JoinHostPort(hostParts[0], config.TlsSettings.TLSPort)
 
 		// Start the listener and HTTP and HTTPS server.
-		tlsConfig, err := getTLSConfig(config.TlsSettings, config.ErrChan)
+		tlsConfig, err := getTLSConfig(config.TlsSettings, config.ErrChan) //nolint:errcheck
 		if err != nil {
 			log.Printf("Failed to compose Tls Configuration with error: %+v", err)
 			return errors.Wrap(err, "could not get tls config")
