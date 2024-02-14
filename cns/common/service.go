@@ -35,7 +35,7 @@ type ServiceAPI interface {
 type ServiceConfig struct {
 	Name        string
 	Version     string
-	Listeners   *[]acn.Listener
+	Listeners   []*acn.Listener
 	ErrChan     chan<- error
 	Store       store.KeyValueStore
 	ChannelMode string

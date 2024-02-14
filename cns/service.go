@@ -34,7 +34,7 @@ const (
 type Service struct {
 	*common.Service
 	EndpointType string
-	Listeners    *[]acn.Listener
+	Listeners    []*acn.Listener
 }
 
 // NewService creates a new Service object.
@@ -88,7 +88,7 @@ func (service *Service) AddListeners(config *common.ServiceConfig, primaryIP str
 	}
 
 	nodeListener.ListenerType = "nodeListener"
-	*config.Listeners = append(*config.Listeners, *nodeListener)
+	config.Listeners = append(config.Listeners, nodeListener)
 
 	// bind on localhost ip for CNI listener
 	localURL, _ := url.Parse(defaultAPIServerURL)
@@ -98,10 +98,10 @@ func (service *Service) AddListeners(config *common.ServiceConfig, primaryIP str
 	}
 
 	localListener.ListenerType = "localListener"
-	*config.Listeners = append(*config.Listeners, *localListener)
+	config.Listeners = append(config.Listeners, localListener)
 
 	logger.Printf("HTTP listeners will be started later after CNS state has been reconciled")
-	*service.Listeners = *config.Listeners
+	service.Listeners = config.Listeners
 
 	return nil
 }
@@ -116,7 +116,7 @@ func (service *Service) Initialize(config *common.ServiceConfig, primaryIP strin
 	}
 
 	// Initialize listeners.
-	if config.Listeners == nil {
+	if len(config.Listeners) == 0 {
 		if err := service.AddListeners(config, primaryIP); err != nil {
 			return errors.Wrap(err, "failed to initialize listener")
 		}
@@ -213,13 +213,13 @@ func (service *Service) StartListener(config *common.ServiceConfig) error {
 	log.Debugf("[Azure CNS] Going to start listeners: %+v", config)
 
 	// Initialize listeners.
-	for _, listener := range *service.Listeners { //nolint
-		if &listener != nil {
+	for i := range service.Listeners {
+		if service.Listeners[i] != nil {
 			log.Debugf("[Azure CNS] Starting listener: %+v", config)
 			// Start the listener.
 			// continue to listen on the normal endpoint for http traffic, this will be supported
 			// for sometime until partners migrate fully to https
-			if err := listener.Start(config.ErrChan); err != nil {
+			if err := service.Listeners[i].Start(config.ErrChan); err != nil {
 				return errors.Wrap(err, "Failed to create a listener socket and starts the HTTP server")
 			}
 		} else {
@@ -233,8 +233,8 @@ func (service *Service) StartListener(config *common.ServiceConfig) error {
 
 // Uninitialize cleans up the plugin.
 func (service *Service) Uninitialize() {
-	for _, listener := range *service.Listeners { //nolint
-		listener.Stop()
+	for i := range service.Listeners { //nolint
+		service.Listeners[i].Stop()
 	}
 	service.Service.Uninitialize()
 }
