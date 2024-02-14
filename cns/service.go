@@ -28,6 +28,8 @@ const (
 	defaultAPIServerURL  = "tcp://localhost:10090"
 	defaultAPIServerPort = "10090"
 	genericData          = "com.microsoft.azure.network.generic"
+	LocalListener        = "localListener"
+	NodeListener         = "nodeListener"
 )
 
 // Service defines Container Networking Service.
@@ -87,7 +89,7 @@ func (service *Service) AddListeners(config *common.ServiceConfig, primaryIP str
 		}
 	}
 
-	nodeListener.ListenerType = "nodeListener"
+	nodeListener.ListenerType = NodeListener
 	config.Listeners = append(config.Listeners, nodeListener)
 
 	// bind on localhost ip for CNI listener
@@ -97,7 +99,7 @@ func (service *Service) AddListeners(config *common.ServiceConfig, primaryIP str
 		return errors.Wrap(err, "Failed to construct url for local listener")
 	}
 
-	localListener.ListenerType = "localListener"
+	localListener.ListenerType = LocalListener
 	config.Listeners = append(config.Listeners, localListener)
 
 	logger.Printf("HTTP listeners will be started later after CNS state has been reconciled")
@@ -233,7 +235,7 @@ func (service *Service) StartListener(config *common.ServiceConfig) error {
 
 // Uninitialize cleans up the plugin.
 func (service *Service) Uninitialize() {
-	for i := range service.Listeners { //nolint
+	for i := range service.Listeners {
 		service.Listeners[i].Stop()
 	}
 	service.Service.Uninitialize()

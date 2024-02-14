@@ -228,7 +228,6 @@ func (service *HTTPRestService) getPrimaryInterfaceIP() (string, error) {
 func (service *HTTPRestService) Init(config *common.ServiceConfig) error {
 	primaryInterfaceIP, _ := service.getPrimaryInterfaceIP()
 	err := service.Initialize(config, primaryInterfaceIP)
-
 	if err != nil {
 		logger.Errorf("[Azure CNS]  Failed to initialize base service, err:%v.", err)
 		return err
@@ -287,7 +286,7 @@ func (service *HTTPRestService) Init(config *common.ServiceConfig) error {
 			listener.AddHandler(cns.V2Prefix+cns.NmAgentSupportedApisPath, service.nmAgentSupportedApisHandler)
 			listener.AddHandler(cns.V2Prefix+cns.GetHomeAz, service.getHomeAz)
 			listener.AddHandler(cns.V2Prefix+cns.EndpointPath, service.EndpointHandlerAPI)
-		} else if listener.ListenerType == "localListener" {
+		} else if listener.ListenerType == cns.LocalListener {
 			listener.AddHandler(cns.CreateNetworkPath, service.createNetwork)
 			listener.AddHandler(cns.DeleteNetworkPath, service.deleteNetwork)
 			listener.AddHandler(cns.CreateHnsNetworkPath, service.createHnsNetwork)
@@ -320,24 +319,23 @@ func (service *HTTPRestService) Init(config *common.ServiceConfig) error {
 }
 
 func (service *HTTPRestService) RegisterPProfEndpoints() {
-	if len(service.Listeners) != 0 {
-		for i := range service.Listeners { //nolint
-			if service.Listeners[i].ListenerType == "localListener" {
-				mux := service.Listeners[i].GetMux()
-				mux.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
-				mux.Handle("/debug/pprof/block", pprof.Handler("block"))
-				mux.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
-				mux.Handle("/debug/pprof/heap", pprof.Handler("heap"))
-				mux.Handle("/debug/pprof/mutex", pprof.Handler("mutex"))
-				mux.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
-				mux.HandleFunc("/debug/pprof/", pprof.Index)
-				mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-				mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-				mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-				mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-			}
+	for i := range service.Listeners {
+		if service.Listeners[i].ListenerType == cns.LocalListener {
+			mux := service.Listeners[i].GetMux()
+			mux.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
+			mux.Handle("/debug/pprof/block", pprof.Handler("block"))
+			mux.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+			mux.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+			mux.Handle("/debug/pprof/mutex", pprof.Handler("mutex"))
+			mux.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+			mux.HandleFunc("/debug/pprof/", pprof.Index)
+			mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+			mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+			mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+			mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 		}
 	}
+
 }
 
 // Start starts the CNS listener.
