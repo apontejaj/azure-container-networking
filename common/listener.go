@@ -23,6 +23,7 @@ type Listener struct {
 	endpoints    []string
 	active       bool
 	listener     net.Listener
+	ListenerType string
 	tlsListener  net.Listener
 	mux          *http.ServeMux
 }
@@ -133,7 +134,7 @@ func (l *Listener) AddHandler(path string, handler http.HandlerFunc) {
 // todo: Decode and Encode below should not be methods, just functions. They make no use of Listener fields.
 
 // Decode receives and decodes JSON payload to a request.
-func (l *Listener) Decode(w http.ResponseWriter, r *http.Request, request interface{}) error {
+func Decode(w http.ResponseWriter, r *http.Request, request interface{}) error {
 	var err error
 	if r.Body == nil {
 		err = errors.New("request body is empty")
@@ -149,7 +150,7 @@ func (l *Listener) Decode(w http.ResponseWriter, r *http.Request, request interf
 }
 
 // Encode encodes and sends a response as JSON payload.
-func (l *Listener) Encode(w http.ResponseWriter, response interface{}) error {
+func Encode(w http.ResponseWriter, response interface{}) error {
 	// Set the content type as application json
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	err := json.NewEncoder(w).Encode(response)
