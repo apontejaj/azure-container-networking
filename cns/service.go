@@ -222,14 +222,14 @@ func (service *Service) StartListener(config *common.ServiceConfig) error {
 	log.Debugf("[Azure CNS] Going to start listeners: %+v", config)
 
 	// Initialize listeners.
-	for _, listener := range *service.Listeners {
+	for _, listener := range *service.Listeners { //nolint
 		if &listener != nil {
 			log.Debugf("[Azure CNS] Starting listener: %+v", config)
 			// Start the listener.
 			// continue to listen on the normal endpoint for http traffic, this will be supported
 			// for sometime until partners migrate fully to https
 			if err := listener.Start(config.ErrChan); err != nil {
-				return err
+				return errors.Wrap(err, "Failed to create a listener socket and starts the HTTP server")
 			}
 		} else {
 			err := errors.Errorf("the listener is not initialized, config %+v", config)
@@ -242,7 +242,7 @@ func (service *Service) StartListener(config *common.ServiceConfig) error {
 
 // Uninitialize cleans up the plugin.
 func (service *Service) Uninitialize() {
-	for _, listener := range *service.Listeners {
+	for _, listener := range *service.Listeners { //nolint
 		listener.Stop()
 	}
 	service.Service.Uninitialize()

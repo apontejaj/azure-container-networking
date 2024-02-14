@@ -315,7 +315,7 @@ func (service *HTTPRestService) Init(config *common.ServiceConfig) error {
 
 func (service *HTTPRestService) RegisterPProfEndpoints() {
 	if service.Listeners != nil {
-		for _, listener := range *service.Listeners {
+		for _, listener := range *service.Listeners { //nolint
 			mux := listener.GetMux()
 			mux.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
 			mux.Handle("/debug/pprof/block", pprof.Handler("block"))
