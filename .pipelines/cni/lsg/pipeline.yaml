@@ -25,6 +25,13 @@ stages:
               echo "##vso[task.setvariable variable=commitID;isOutput=true]$(echo $(make revision)-$(date "+%d%H%M"))"
               echo "##vso[task.setvariable variable=cnsVersion;isOutput=true]$(CNS_VERSION)"
               echo "##vso[task.setvariable variable=cniVersion;isOutput=true]$(CNI_VERSION)"
+
+              echo "------"
+              echo Queued by $(Build.QueuedBy)
+              echo "Runtime Parameters passed"
+              echo "KernelType : $(KernelType)"
+              echo "KernelVersion : $(KernelVersion)"
+              echo "ProposedRepoVersion : $(ProposedRepoVersion)"
             name: "SetEnvVars"
             displayName: "Set Environment Variables"
             condition: always()
