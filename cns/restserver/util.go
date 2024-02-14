@@ -16,7 +16,6 @@ import (
 	"github.com/Azure/azure-container-networking/cns/networkcontainers"
 	"github.com/Azure/azure-container-networking/cns/types"
 	"github.com/Azure/azure-container-networking/cns/wireserver"
-	"github.com/Azure/azure-container-networking/common"
 	acn "github.com/Azure/azure-container-networking/common"
 	"github.com/Azure/azure-container-networking/platform"
 	"github.com/Azure/azure-container-networking/store"
@@ -932,7 +931,7 @@ func (service *HTTPRestService) handleGetNetworkContainers(w http.ResponseWriter
 			ReturnCode: types.Success,
 		},
 	}
-	err := common.Encode(w, &response)
+	err := acn.Encode(w, &response)
 	logger.Response(service.Name, response, response.Response.ReturnCode, err)
 }
 
@@ -940,7 +939,7 @@ func (service *HTTPRestService) handleGetNetworkContainers(w http.ResponseWriter
 func (service *HTTPRestService) handlePostNetworkContainers(w http.ResponseWriter, r *http.Request) {
 	logger.Printf("[Azure CNS] handlePostNetworkContainers")
 	var req cns.PostNetworkContainersRequest
-	err := common.Decode(w, r, &req)
+	err := acn.Decode(w, r, &req)
 	logger.Request(service.Name, &req, err)
 	if err != nil {
 		response := cns.PostNetworkContainersResponse{
@@ -949,7 +948,7 @@ func (service *HTTPRestService) handlePostNetworkContainers(w http.ResponseWrite
 				Message:    fmt.Sprintf("[Azure CNS] handlePostNetworkContainers failed with error: %s", err.Error()),
 			},
 		}
-		err = common.Encode(w, &response)
+		err = acn.Encode(w, &response)
 		logger.Response(service.Name, response, response.Response.ReturnCode, err)
 		return
 	}
@@ -963,7 +962,7 @@ func (service *HTTPRestService) handlePostNetworkContainers(w http.ResponseWrite
 	response := cns.PostNetworkContainersResponse{
 		Response: createNCsResp,
 	}
-	err = common.Encode(w, &response)
+	err = acn.Encode(w, &response)
 	logger.Response(service.Name, response, response.Response.ReturnCode, err)
 }
 
@@ -1001,7 +1000,7 @@ func (service *HTTPRestService) createNetworkContainers(createNetworkContainerRe
 
 // setResponse encodes the http response
 func (service *HTTPRestService) setResponse(w http.ResponseWriter, returnCode types.ResponseCode, response interface{}) {
-	serviceErr := common.Encode(w, &response)
+	serviceErr := acn.Encode(w, &response)
 	logger.Response(service.Name, response, returnCode, serviceErr)
 }
 

@@ -82,7 +82,7 @@ func (service *Service) AddListeners(config *common.ServiceConfig, primaryIP str
 		}
 
 		if err := nodeListener.StartTLS(config.ErrChan, tlsConfig, tlsAddress); err != nil {
-			return err
+			return errors.Wrap(err, "could not start tls")
 		}
 	}
 
