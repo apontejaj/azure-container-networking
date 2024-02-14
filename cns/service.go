@@ -76,7 +76,7 @@ func (service *Service) AddListeners(config *common.ServiceConfig, primaryIP str
 		tlsAddress := net.JoinHostPort(hostParts[0], config.TlsSettings.TLSPort)
 
 		// Start the listener and HTTP and HTTPS server.
-		tlsConfig, err := getTLSConfig(config.TlsSettings, config.ErrChan) //nolint:errcheck
+		tlsConfig, err := getTLSConfig(config.TlsSettings, config.ErrChan) //nolint
 		if err != nil {
 			log.Printf("Failed to compose Tls Configuration with error: %+v", err)
 			return errors.Wrap(err, "could not get tls config")
@@ -104,16 +104,6 @@ func (service *Service) AddListeners(config *common.ServiceConfig, primaryIP str
 	*service.Listeners = *config.Listeners
 
 	return nil
-}
-
-// GetAPIServerURL returns the API server URL.
-func (service *Service) getAPIServerURL() string {
-	urls, _ := service.GetOption(acn.OptCnsURL).(string)
-	if urls == "" {
-		urls = defaultAPIServerURL
-	}
-
-	return urls
 }
 
 // Initialize initializes the service and starts the listener.
