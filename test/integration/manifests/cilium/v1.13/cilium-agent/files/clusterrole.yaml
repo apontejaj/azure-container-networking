@@ -45,8 +45,8 @@ rules:
 - apiGroups:
   - cilium.io
   resources:
-  - ciliumnodeconfigs.cilium.io
-  - ciliumloadbalancerippools.cilium.io
+  - ciliumnodeconfigs
+  - ciliumloadbalancerippools
   - ciliumbgppeeringpolicies
   - ciliumclusterwideenvoyconfigs
   - ciliumclusterwidenetworkpolicies
