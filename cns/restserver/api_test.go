@@ -1740,7 +1740,9 @@ func startService() error {
 	}
 
 	// Get the internal http mux as test hook.
-	mux = service.(*HTTPRestService).Listeners.GetMux()
+	for _, listener := range *service.(*HTTPRestService).Listeners {
+		mux = listener.GetMux()
+	}
 
 	return nil
 }
