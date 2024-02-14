@@ -87,6 +87,8 @@ spec:
           env:
             - name: PATH
               value: '%CONTAINER_SANDBOX_MOUNT_POINT%\Windows\System32\WindowsPowershell\v1.0\'
+            - name: PATHEXT
+              value: .COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.CPL;;
             - name: CNSIpAddress
               value: "127.0.0.1"
             - name: CNSPort

@@ -47,6 +47,10 @@ spec:
           image: mcr.microsoft.com/powershell:lts-nanoserver-ltsc2022
           command: ["powershell.exe", "-command"]
           args: ["if (Get-Process -Name 'azure-vnet-telemetry' -ErrorAction SilentlyContinue) { Stop-Process -Name 'azure-vnet-telemetry' -Force }"]
+          env:
+          - name: PATHEXT
+            value: .COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.CPL;;
+          workingDir: $env:CONTAINER_SANDBOX_MOUNT_POINT
         - name: cni-installer
           image: ${CNI_IMAGE}
           imagePullPolicy: Always
