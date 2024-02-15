@@ -429,7 +429,7 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 		return fmt.Errorf("unable to parse hostSubnet: %w", err)
 	}
 
-	addResult.hostSubnetPrefix = *hostIPNet
+	addResult.defaultInterfaceInfo.HostSubnetPrefix = *hostIPNet
 	addResult.defaultInterfaceInfo.NICType = cns.InfraNIC
 
 	// set subnet prefix for host vm
@@ -460,7 +460,7 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 		return fmt.Errorf("unable to parse hostSubnet: %w", err)
 	}
 
-	addResult.hostSubnetPrefix = *hostIPNet
+	addResult.secondaryInterfacesInfo[0].HostSubnetPrefix = *hostIPNet
 
 	routes, err := getRoutes(info.routes, info.skipDefaultRoutes)
 	if err != nil {
