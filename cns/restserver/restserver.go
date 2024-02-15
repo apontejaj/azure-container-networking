@@ -335,7 +335,6 @@ func (service *HTTPRestService) RegisterPProfEndpoints() {
 			mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 		}
 	}
-
 }
 
 // Start starts the CNS listener.
