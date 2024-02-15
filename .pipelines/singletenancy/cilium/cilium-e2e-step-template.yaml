@@ -82,6 +82,35 @@ steps:
     retryCountOnTaskFailure: 3
     name: "aziliumTest"
     displayName: "Run Azilium E2E"
+  
+  - script: |
+      echo "Redeploy cilium using v1.13.10"
+      export CILIUM_VERSION_TAG=1.13.10
+      echo "install Cilium ${CILIUM_VERSION_TAG}"
+      export DIR=${CILIUM_VERSION_TAG%.*}
+      echo "installing files from ${DIR}"
+      echo "deploy Cilium ConfigMap"
+      kubectl apply -f test/integration/manifests/cilium/v${DIR}/cilium-config/cilium-config.yaml
+      # Passes Cilium image to daemonset and deployment
+      kubectl apply -f test/integration/manifests/cilium/v${DIR}/cilium-agent/files
+      kubectl apply -f test/integration/manifests/cilium/v${DIR}/cilium-operator/files
+                  
+      envsubst '${CILIUM_VERSION_TAG},${CILIUM_IMAGE_REGISTRY}' < test/integration/manifests/cilium/v${DIR}/cilium-agent/templates/daemonset.yaml | kubectl apply -f -
+      envsubst '${CILIUM_VERSION_TAG},${CILIUM_IMAGE_REGISTRY}' < test/integration/manifests/cilium/v${DIR}/cilium-operator/templates/deployment.yaml | kubectl apply -f -
+      kubectl get po -owide -A
+      echo "Waiting < 2 minutes for cilium to be ready"
+      # Ensure Cilium is ready Xm\Xs
+      cilium status --wait --wait-duration 2m
+    name: "redeployCilium"
+    displayName: "Redploy cilium using v1.13.10"
+  
+  - script: |
+      echo "Start Azilium E2E Tests with new Cilium version"
+      kubectl get po -owide -A
+      sudo -E env "PATH=$PATH" make test-load SCALE_UP=32 OS_TYPE=linux VALIDATE_STATEFILE=true CLEANUP=true
+    retryCountOnTaskFailure: 3
+    name: "aziliumTest"
+    displayName: "Run Azilium E2E with new cilium version"
 
   - script: |
       kubectl get po -owide -A
