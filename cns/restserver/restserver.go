@@ -320,7 +320,7 @@ func (service *HTTPRestService) Init(config *common.ServiceConfig) error {
 
 func (service *HTTPRestService) RegisterPProfEndpoints() {
 	for i := range service.Listeners {
-		if service.Listeners[i].ListenerType == cns.LocalListener {
+		if service.Listeners[i].ListenerType == cns.LocalListener { //nolint
 			mux := service.Listeners[i].GetMux()
 			mux.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
 			mux.Handle("/debug/pprof/block", pprof.Handler("block"))
