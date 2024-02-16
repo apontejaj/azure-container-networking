@@ -56,11 +56,10 @@ func (service *Service) AddListeners(config *common.ServiceConfig, primaryIP str
 	var nodeAPIServerURL *url.URL
 
 	// Fetch and parse the API server URL.
-	if service.GetOption(acn.OptCnsURL).(string) == "" {
+	cnsURL, _ := service.GetOption(acn.OptCnsURL).(string)
+	if cnsURL == "" {
 		// get VM primary interface's private IP
 		nodeAPIServerURL, _ = url.Parse(fmt.Sprintf("tcp://%s:%s", primaryIP, defaultAPIServerPort))
-	} else {
-		nodeAPIServerURL, _ = url.Parse(service.GetOption(acn.OptCnsURL).(string))
 	}
 
 	// construct url
