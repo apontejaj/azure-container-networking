@@ -68,12 +68,8 @@ steps:
             echo "$t - looking for ${KernelVersion}"
             flag1="true"
           fi
-          # if [[ $t =~ ${KERNEL_VERSION2} ]]; then
-          #   echo "$t - looking for ${KERNEL_VERSION2}"
-          #   flag2="true"
-          # fi
         done
-        if [ -z $flag1 ] || [ -z $flag2 ]; then
+        if [ -z $flag1 ]; then
           echo "Missing required proposed repos"
           exit 1
         fi
