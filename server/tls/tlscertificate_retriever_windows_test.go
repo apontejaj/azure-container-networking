@@ -30,7 +30,7 @@ func TestPemConsumptionWindows(t *testing.T) {
 	os.WriteFile(pemLocation, []byte(encryptedPem), 0o644)
 	defer os.Remove(pemLocation)
 
-	config := TLSSettings{
+	config := TlsSettings{
 		TLSCertificatePath: pemLocation,
 		TLSSubjectName:     commonName,
 	}
