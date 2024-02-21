@@ -51,7 +51,7 @@ steps:
         kubectl exec -i -n kube-system $pod -- bash -c "add-apt-repository ppa:canonical-kernel-team/proposed2 -y"
 
         echo "-- Check apt-cache --"
-        kubectl exec -i -n kube-system $pod -- bash -c "apt-cache madison ${KernelType}"
+        kubectl exec -i -n kube-system $pod -- bash -c "apt-cache madison $(KernelType)"
 
         echo "-- Check current Ubuntu kernel --"
         kubectl exec -i -n kube-system $pod -- bash -c "uname -r"
@@ -62,10 +62,10 @@ steps:
         flag1=""
         flag2=""
         echo "-- Confirm Proposed Repository --"
-        temp=`kubectl exec -i -n kube-system $pod -- bash -c "apt-cache madison ${KernelType}" | grep proposed | awk '{print $3}'`
+        temp=`kubectl exec -i -n kube-system $pod -- bash -c "apt-cache madison $(KernelType)" | grep proposed | awk '{print $3}'`
         for t in $temp; do
-          if [[ $t =~ ${KernelVersion} ]]; then
-            echo "$t - looking for ${KernelVersion}"
+          if [[ $t =~ $(KernelVersion) ]]; then
+            echo "$t - looking for $(KernelVersion)"
             flag1="true"
           fi
         done
@@ -84,12 +84,12 @@ steps:
       privList=`kubectl get pods -n kube-system -l os=linux,app=privileged-daemonset -owide --no-headers | awk '{print $1}'`
       for pod in $privList; do
         echo "-- Install Proposed Kernel --"
-        kubectl exec -i -n kube-system $pod -- bash -c "apt install -y ${KernelType}"
+        kubectl exec -i -n kube-system $pod -- bash -c "apt install -y $(KernelType)"
       done
 
       for pod in $privList; do
         echo "-- Check for Installed Kernel --"
-        installed=`kubectl exec -i -n kube-system $pod -- bash -c "apt list ${KernelType} --installed" | grep installed | awk '{print $4}'`
+        installed=`kubectl exec -i -n kube-system $pod -- bash -c "apt list $(KernelType) --installed" | grep installed | awk '{print $4}'`
         if [ -z $installed ]; then
           echo $pod needs to reinstall kernel
           exit 1
@@ -127,8 +127,8 @@ steps:
       for pod in $privList; do
         echo "-- Confirm Ubuntu Kernel --"
         confirm=`kubectl exec -i -n kube-system $pod -- bash -c "uname -r"`
-        if [[ ! $confirm =~ ${KernelVersion} ]]; then
-          echo $pod kernel version - $confirm, expected - ${KernelVersion}
+        if [[ ! $confirm =~ $(KernelVersion) ]]; then
+          echo $pod kernel version - $confirm, expected - $(KernelVersion)
           exit 1
         fi
       done
