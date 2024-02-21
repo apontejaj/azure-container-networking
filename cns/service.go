@@ -52,14 +52,14 @@ func NewService(name, version, channelMode string, store store.KeyValueStore) (*
 }
 
 // AddListeners is to add two listeners(nodeListener and localListener) for connections on the given address
-func (service *Service) AddListeners(config *common.ServiceConfig, primaryIP string) error {
+func (service *Service) AddListeners(config *common.ServiceConfig) error {
 	var nodeAPIServerURL *url.URL
 
 	// Fetch and parse the API server URL.
 	cnsURL, _ := service.GetOption(acn.OptCnsURL).(string)
 	if cnsURL == "" {
 		// get VM primary interface's private IP
-		nodeAPIServerURL, _ = url.Parse(fmt.Sprintf("tcp://%s:%s", primaryIP, defaultAPIServerPort))
+		nodeAPIServerURL, _ = url.Parse(fmt.Sprintf("tcp://%s:%s", config.PrimaryInterfaceIP, defaultAPIServerPort))
 	}
 
 	// construct url
@@ -108,7 +108,7 @@ func (service *Service) AddListeners(config *common.ServiceConfig, primaryIP str
 }
 
 // Initialize initializes the service and starts the listener.
-func (service *Service) Initialize(config *common.ServiceConfig, primaryIP string) error {
+func (service *Service) Initialize(config *common.ServiceConfig) error {
 	log.Debugf("[Azure CNS] Going to initialize a service with config: %+v", config)
 
 	// Initialize the base service.
@@ -118,7 +118,7 @@ func (service *Service) Initialize(config *common.ServiceConfig, primaryIP strin
 
 	// Initialize listeners.
 	if len(config.Listeners) == 0 {
-		if err := service.AddListeners(config, primaryIP); err != nil {
+		if err := service.AddListeners(config); err != nil {
 			return errors.Wrap(err, "failed to initialize listener")
 		}
 	}
@@ -216,7 +216,6 @@ func (service *Service) StartListener(config *common.ServiceConfig) error {
 	// Initialize listeners.
 	for i := range service.Listeners {
 		if service.Listeners[i] != nil {
-			log.Debugf("[Azure CNS] Starting listener: %+v", config)
 			// Start the listener.
 			// continue to listen on the normal endpoint for http traffic, this will be supported
 			// for sometime until partners migrate fully to https

@@ -180,6 +180,7 @@ func TestMain(m *testing.M) {
 
 	// Setup mock nmagent server
 	u, err := url.Parse("tcp://" + nmagentEndpoint)
+
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -1727,10 +1728,10 @@ func startService() error {
 			return err
 		}
 
+		// UT can only bind local host
 		err = service.Start(&config)
 		if err != nil {
 			logger.Errorf("Failed to start CNS, err:%v.\n", err)
-			return err
 		}
 
 		if _, err := os.Stat(cnsJsonFileName); err == nil || !os.IsNotExist(err) {

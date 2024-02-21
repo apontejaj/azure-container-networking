@@ -226,8 +226,15 @@ func (service *HTTPRestService) getPrimaryInterfaceIP() (string, error) {
 
 // Init starts the CNS listener.
 func (service *HTTPRestService) Init(config *common.ServiceConfig) error {
-	primaryInterfaceIP, _ := service.getPrimaryInterfaceIP()
-	err := service.Initialize(config, primaryInterfaceIP)
+	primaryInterfaceIP, err := service.getPrimaryInterfaceIP()
+	if err != nil {
+		logger.Errorf("[Azure CNS] Failed to get primary interface IP, err:%v", err)
+		return err
+	} else {
+		config.PrimaryInterfaceIP = primaryInterfaceIP
+	}
+
+	err = service.Initialize(config)
 	if err != nil {
 		logger.Errorf("[Azure CNS]  Failed to initialize base service, err:%v.", err)
 		return err
