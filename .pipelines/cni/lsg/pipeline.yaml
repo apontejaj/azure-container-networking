@@ -1,3 +1,14 @@
+parameters:
+- name: KernelVersion
+  type: string
+  default: 1000
+- name: KernelType
+  type: string
+  default: linux-azure-edge
+- name: ProposedRepoVersion
+  type: string
+  default: proposed
+
 pr: none
 trigger: none
 
@@ -28,10 +39,15 @@ stages:
 
               echo "------"
               echo Queued by $(Build.QueuedBy)
-              echo "Runtime Parameters passed"
+              echo "Runtime Variables passed"
               echo "KernelType : $(KernelType)"
               echo "KernelVersion : $(KernelVersion)"
               echo "ProposedRepoVersion : $(ProposedRepoVersion)"
+              echo "------"
+              echo "Runtime Parameters passed"
+              echo "KernelType : ${{ parameters.KernelType }}"
+              echo "KernelVersion : ${{ parameters.KernelVersion }}"
+              echo "ProposedRepoVersion : ${{ parameters.ProposedRepoVersion }}"
             name: "SetEnvVars"
             displayName: "Set Environment Variables"
             condition: always()
@@ -45,6 +61,21 @@ stages:
       vmSize: Standard_B2ms
       arch: amd64
       cni: cniv2
+      test: var
+
+  - template: lsg-cni-intergration-template.yaml
+    parameters:
+      name: linux_over_par
+      clusterType: overlay-byocni-up
+      clusterName: "kup-over-par"
+      nodeCount: 2
+      vmSize: Standard_B2ms
+      arch: amd64
+      cni: cniv2
+      test: par
+      KernelType : ${{ parameters.KernelType }}
+      KernelVersion : ${{ parameters.KernelVersion }}
+      ProposedRepoVersion : ${{ parameters.ProposedRepoVersion }}
 
   - stage: delete_resources
     displayName: "Delete Resources"
@@ -53,6 +84,7 @@ stages:
     condition: always()
     dependsOn:
       - linux_overlay
+      - linux_over_par
       - setup
     variables:
       commitID: $[ stagedependencies.setup.env.outputs['SetEnvVars.commitID'] ]
@@ -66,6 +98,9 @@ stages:
             linux_overlay:
               name: linux_overlay
               clusterName: "kup-overlay"
+            linux_over_par:
+              name: linux_over_par
+              clusterName: "kup-over-par"
         steps:
           - template: ../../templates/delete-cluster.yaml
             parameters:
