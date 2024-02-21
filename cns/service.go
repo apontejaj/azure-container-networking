@@ -60,6 +60,8 @@ func (service *Service) AddListeners(config *common.ServiceConfig) error {
 	if cnsURL == "" {
 		// get VM primary interface's private IP
 		nodeAPIServerURL, _ = url.Parse(fmt.Sprintf("tcp://%s:%s", config.PrimaryInterfaceIP, defaultAPIServerPort))
+	} else {
+		nodeAPIServerURL, _ = url.Parse(cnsURL)
 	}
 
 	// construct url
