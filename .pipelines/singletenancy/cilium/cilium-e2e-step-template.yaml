@@ -108,7 +108,7 @@ steps:
       echo "Start Azilium E2E Tests with new Cilium version"
       kubectl get po -owide -A
       CNS=$(make cns-version) IPAM=$(make azure-ipam-version)
-      sudo -E env "PATH=$PATH" make test-load SCALE_UP=32 OS_TYPE=linux VALIDATE_STATEFILE=true INSTALL_CNS=true AZURE_IPAM_VERSION=${IPAM} CNS_VERSION=${CNS} CLEANUP=true
+      sudo -E env "PATH=$PATH" make test-load SCALE_UP=32 OS_TYPE=linux VALIDATE_STATEFILE=true INSTALL_CNS=true INSTALL_AZILIUM=true AZURE_IPAM_VERSION=${IPAM} CNS_VERSION=${CNS} CLEANUP=true
     retryCountOnTaskFailure: 3
     name: "aziliumTest2"
     displayName: "Run Azilium E2E with new cilium version"
