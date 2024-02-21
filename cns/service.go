@@ -127,7 +127,7 @@ func (service *Service) Initialize(config *common.ServiceConfig) error {
 	return nil
 }
 
-func getTLSConfig(tlsSettings localtls.TLSSettings, errChan chan<- error) (*tls.Config, error) {
+func getTLSConfig(tlsSettings localtls.TlsSettings, errChan chan<- error) (*tls.Config, error) {
 	if tlsSettings.TLSCertificatePath != "" {
 		return getTLSConfigFromFile(tlsSettings)
 	}
@@ -139,8 +139,8 @@ func getTLSConfig(tlsSettings localtls.TLSSettings, errChan chan<- error) (*tls.
 	return nil, errors.Errorf("invalid tls settings: %+v", tlsSettings)
 }
 
-func getTLSConfigFromFile(tlsSettings localtls.TLSSettings) (*tls.Config, error) {
-	tlsCertRetriever, err := localtls.GetTlsCertificateRetriever(tlsSettings)
+func getTLSConfigFromFile(tlsSettings localtls.TlsSettings) (*tls.Config, error) {
+	tlsCertRetriever, err := localtls.GetTLSCertificateRetriever(tlsSettings)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get certificate retriever")
 	}
@@ -176,7 +176,7 @@ func getTLSConfigFromFile(tlsSettings localtls.TLSSettings) (*tls.Config, error)
 	return tlsConfig, nil
 }
 
-func getTLSConfigFromKeyVault(tlsSettings localtls.TLSSettings, errChan chan<- error) (*tls.Config, error) {
+func getTLSConfigFromKeyVault(tlsSettings localtls.TlsSettings, errChan chan<- error) (*tls.Config, error) {
 	credOpts := azidentity.ManagedIdentityCredentialOptions{ID: azidentity.ResourceID(tlsSettings.MSIResourceID)}
 	cred, err := azidentity.NewManagedIdentityCredential(&credOpts)
 	if err != nil {

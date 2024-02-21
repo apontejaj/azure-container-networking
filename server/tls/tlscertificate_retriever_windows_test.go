@@ -35,7 +35,7 @@ func TestPemConsumptionWindows(t *testing.T) {
 		TLSSubjectName:     commonName,
 	}
 
-	fileCertRetriever, err := NewTlsCertificateRetriever(config)
+	fileCertRetriever, err := NewTLSCertificateRetriever(config)
 	if err != nil {
 		t.Fatalf("Failed to open file certificate retriever %+v", err)
 	}

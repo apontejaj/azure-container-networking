@@ -15,7 +15,7 @@ import (
 
 type windowsTlsCertificateRetriever struct {
 	pemBlock []*pem.Block
-	settings TLSSettings
+	settings TlsSettings
 }
 
 const (
@@ -114,7 +114,7 @@ func formatDecryptedPemString(s string) string {
 // NewWindowsTlsCertificateRetriever creates a TlsCertificateRetriever
 // NewFileTlsCertificateRetriever depends on the pem being available on the windows file
 // and encrypted with the DPAPI libraries
-func NewTlsCertificateRetriever(settings TLSSettings) (TlsCertificateRetriever, error) {
+func NewTLSCertificateRetriever(settings TlsSettings) (TlsCertificateRetriever, error) {
 	windowsCertStoreRetriever := &windowsTlsCertificateRetriever{
 		settings: settings,
 	}

@@ -230,9 +230,8 @@ func (service *HTTPRestService) Init(config *common.ServiceConfig) error {
 	if err != nil {
 		logger.Errorf("[Azure CNS] Failed to get primary interface IP, err:%v", err)
 		return err
-	} else {
-		config.PrimaryInterfaceIP = primaryInterfaceIP
 	}
+	config.PrimaryInterfaceIP = primaryInterfaceIP
 
 	err = service.Initialize(config)
 	if err != nil {

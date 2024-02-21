@@ -39,7 +39,7 @@ type ServiceConfig struct {
 	ErrChan            chan<- error
 	Store              store.KeyValueStore
 	ChannelMode        string
-	TLSSettings        tls.TLSSettings
+	TLSSettings        tls.TlsSettings
 	PrimaryInterfaceIP string
 }
 

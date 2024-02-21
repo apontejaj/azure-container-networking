@@ -765,7 +765,7 @@ func main() {
 	logger.Printf("[Azure CNS] Initialize HTTPRestService")
 	if httpRestService != nil {
 		if cnsconfig.UseHTTPS {
-			config.TLSSettings = localtls.TLSSettings{
+			config.TLSSettings = localtls.TlsSettings{
 				TLSSubjectName:                     cnsconfig.TLSSubjectName,
 				TLSCertificatePath:                 cnsconfig.TLSCertificatePath,
 				TLSPort:                            cnsconfig.TLSPort,

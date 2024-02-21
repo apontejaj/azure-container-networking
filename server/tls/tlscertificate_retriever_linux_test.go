@@ -27,12 +27,12 @@ func TestPemConsumptionLinux(t *testing.T) {
 	os.WriteFile(pemLocation, pemContent, 0o644)
 	defer os.Remove(pemLocation)
 
-	config := TLSSettings{
+	config := TlsSettings{
 		TLSCertificatePath: pemLocation,
 		TLSSubjectName:     commonName,
 	}
 
-	fileCertRetriever, err := NewTlsCertificateRetriever(config)
+	fileCertRetriever, err := NewTLSCertificateRetriever(config)
 	if err != nil {
 		t.Fatalf("Failed to open file certificate retriever %+v", err)
 	}
