@@ -69,15 +69,15 @@ func (service *Service) AddListeners(config *common.ServiceConfig) error {
 	}
 
 	// only use TLS connection for DNC/CNS listener:
-	if config.TlsSettings.TLSPort != "" {
+	if config.TLSSettings.TLSPort != "" {
 		// listener.URL.Host will always be hostname:port, passed in to CNS via CNS command
 		// else it will default to localhost
 		// extract hostname and override tls port.
 		hostParts := strings.Split(nodeListener.URL.Host, ":")
-		tlsAddress := net.JoinHostPort(hostParts[0], config.TlsSettings.TLSPort)
+		tlsAddress := net.JoinHostPort(hostParts[0], config.TLSSettings.TLSPort)
 
 		// Start the listener and HTTP and HTTPS server.
-		tlsConfig, err := getTLSConfig(config.TlsSettings, config.ErrChan) //nolint
+		tlsConfig, err := getTLSConfig(config.TLSSettings, config.ErrChan) //nolint
 		if err != nil {
 			log.Printf("Failed to compose Tls Configuration with error: %+v", err)
 			return errors.Wrap(err, "could not get tls config")
@@ -127,7 +127,7 @@ func (service *Service) Initialize(config *common.ServiceConfig) error {
 	return nil
 }
 
-func getTLSConfig(tlsSettings localtls.TlsSettings, errChan chan<- error) (*tls.Config, error) {
+func getTLSConfig(tlsSettings localtls.TLSSettings, errChan chan<- error) (*tls.Config, error) {
 	if tlsSettings.TLSCertificatePath != "" {
 		return getTLSConfigFromFile(tlsSettings)
 	}
@@ -139,7 +139,7 @@ func getTLSConfig(tlsSettings localtls.TlsSettings, errChan chan<- error) (*tls.
 	return nil, errors.Errorf("invalid tls settings: %+v", tlsSettings)
 }
 
-func getTLSConfigFromFile(tlsSettings localtls.TlsSettings) (*tls.Config, error) {
+func getTLSConfigFromFile(tlsSettings localtls.TLSSettings) (*tls.Config, error) {
 	tlsCertRetriever, err := localtls.GetTlsCertificateRetriever(tlsSettings)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get certificate retriever")
@@ -176,7 +176,7 @@ func getTLSConfigFromFile(tlsSettings localtls.TlsSettings) (*tls.Config, error)
 	return tlsConfig, nil
 }
 
-func getTLSConfigFromKeyVault(tlsSettings localtls.TlsSettings, errChan chan<- error) (*tls.Config, error) {
+func getTLSConfigFromKeyVault(tlsSettings localtls.TLSSettings, errChan chan<- error) (*tls.Config, error) {
 	credOpts := azidentity.ManagedIdentityCredentialOptions{ID: azidentity.ResourceID(tlsSettings.MSIResourceID)}
 	cred, err := azidentity.NewManagedIdentityCredential(&credOpts)
 	if err != nil {

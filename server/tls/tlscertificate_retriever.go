@@ -4,8 +4,8 @@ package tls
 
 import "time"
 
-// TlsSettings - Details related to the TLS certificate.
-type TlsSettings struct {
+// TLSSettings - Details related to the TLS certificate.
+type TLSSettings struct {
 	TLSSubjectName                     string
 	TLSCertificatePath                 string
 	TLSPort                            string
@@ -15,7 +15,7 @@ type TlsSettings struct {
 	KeyVaultCertificateRefreshInterval time.Duration
 }
 
-func GetTlsCertificateRetriever(settings TlsSettings) (TlsCertificateRetriever, error) {
+func GetTlsCertificateRetriever(settings TLSSettings) (TlsCertificateRetriever, error) {
 	// if Windows build flag is set, the below will return a windows implementation
 	// if Linux build flag is set, the below will return a Linux implementation
 	// tls certificate parsed from disk.

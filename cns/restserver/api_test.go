@@ -180,7 +180,6 @@ func TestMain(m *testing.M) {
 
 	// Setup mock nmagent server
 	u, err := url.Parse("tcp://" + nmagentEndpoint)
-
 	if err != nil {
 		fmt.Println(err.Error())
 	}

@@ -17,7 +17,7 @@ const (
 
 type linuxTlsCertificateRetriever struct {
 	pemBlock []*pem.Block
-	settings TlsSettings
+	settings TLSSettings
 }
 
 // GetCertificate Returns the certificate associated with the pem
@@ -86,7 +86,7 @@ func (fcert *linuxTlsCertificateRetriever) parsePEMFile(content []byte) error {
 // NewTlsCertificateRetriever creates a TlsCertificateRetriever
 // NewTlsCertificateRetriever depends on the pem being available
 // linux users generally store certificates at /etc/ssl/certs/
-func NewTlsCertificateRetriever(settings TlsSettings) (TlsCertificateRetriever, error) {
+func NewTlsCertificateRetriever(settings TLSSettings) (TlsCertificateRetriever, error) {
 	linuxCertStoreRetriever := &linuxTlsCertificateRetriever{
 		settings: settings,
 	}
