@@ -99,9 +99,6 @@ func (service *Service) AddListeners(config *common.ServiceConfig) error {
 	}
 
 	if config.ChannelMode != CRD {
-		nodeListener.ListenerType = NodeListener
-		config.Listeners = append(config.Listeners, nodeListener)
-
 		// bind on localhost ip for CNI listener
 		localURL, _ := url.Parse(defaultAPIServerURL)
 		localListener, err := acn.NewListener(localURL)
