@@ -59,7 +59,7 @@ func (service *Service) AddListeners(config *common.ServiceConfig) error {
 	cnsURL, _ := service.GetOption(acn.OptCnsURL).(string)
 	if cnsURL == "" {
 		if config.ChannelMode == CRD {
-			nodeAPIServerURL, _ = url.Parse(fmt.Sprintf(defaultAPIServerURL))
+			nodeAPIServerURL, _ = url.Parse(defaultAPIServerURL)
 		} else {
 			// get VM primary interface's private IP
 			nodeAPIServerURL, _ = url.Parse(fmt.Sprintf("tcp://%s:%s", config.PrimaryInterfaceIP, defaultAPIServerPort))
