@@ -191,7 +191,6 @@ func TestMain(m *testing.M) {
 
 	nmAgentServer.AddHandler("/getInterface", getInterfaceInfo)
 	nmAgentServer.AddHandler("/", nmagentHandler)
-
 	err = nmAgentServer.Start(make(chan error, 1))
 	if err != nil {
 		fmt.Printf("Failed to start agent, err:%v.\n", err)
@@ -1721,16 +1720,18 @@ func startService() error {
 		file, _ := os.Create(cnsJsonFileName)
 		file.Close()
 
+		config.ChannelMode = cns.CRD
 		err = service.Init(&config)
 		if err != nil {
 			logger.Errorf("Failed to Init CNS, err:%v.\n", err)
 			return err
 		}
 
-		// UT can only bind local host
+		// UT can only bind local host; Run UT on CRD (AKS) mode
 		err = service.Start(&config)
 		if err != nil {
 			logger.Errorf("Failed to start CNS, err:%v.\n", err)
+			return err
 		}
 
 		if _, err := os.Stat(cnsJsonFileName); err == nil || !os.IsNotExist(err) {
@@ -1742,7 +1743,7 @@ func startService() error {
 	// Get the internal http mux as test hook.
 	listeners := service.(*HTTPRestService).Listeners
 	for i := range listeners {
-		if listeners[i].ListenerType == cns.LocalListener {
+		if listeners[i].ListenerType == cns.NodeListener {
 			mux = service.(*HTTPRestService).Listeners[0].GetMux()
 		}
 	}

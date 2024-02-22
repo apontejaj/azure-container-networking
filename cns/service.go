@@ -58,9 +58,14 @@ func (service *Service) AddListeners(config *common.ServiceConfig) error {
 	// Fetch and parse the API server URL.
 	cnsURL, _ := service.GetOption(acn.OptCnsURL).(string)
 	if cnsURL == "" {
-		// get VM primary interface's private IP
-		nodeAPIServerURL, _ = url.Parse(fmt.Sprintf("tcp://%s:%s", config.PrimaryInterfaceIP, defaultAPIServerPort))
+		if config.ChannelMode == CRD {
+			nodeAPIServerURL, _ = url.Parse(fmt.Sprintf(defaultAPIServerURL))
+		} else {
+			// get VM primary interface's private IP
+			nodeAPIServerURL, _ = url.Parse(fmt.Sprintf("tcp://%s:%s", config.PrimaryInterfaceIP, defaultAPIServerPort))
+		}
 	} else {
+		// use the URL that customer provides
 		nodeAPIServerURL, _ = url.Parse(cnsURL)
 	}
 
@@ -69,6 +74,9 @@ func (service *Service) AddListeners(config *common.ServiceConfig) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to construct url for node listener")
 	}
+
+	nodeListener.ListenerType = NodeListener
+	config.Listeners = append(config.Listeners, nodeListener)
 
 	// only use TLS connection for DNC/CNS listener:
 	if config.TLSSettings.TLSPort != "" {
@@ -90,20 +98,23 @@ func (service *Service) AddListeners(config *common.ServiceConfig) error {
 		}
 	}
 
-	nodeListener.ListenerType = NodeListener
-	config.Listeners = append(config.Listeners, nodeListener)
+	if config.ChannelMode != CRD {
+		nodeListener.ListenerType = NodeListener
+		config.Listeners = append(config.Listeners, nodeListener)
 
-	// bind on localhost ip for CNI listener
-	localURL, _ := url.Parse(defaultAPIServerURL)
-	localListener, err := acn.NewListener(localURL)
-	if err != nil {
-		return errors.Wrap(err, "Failed to construct url for local listener")
+		// bind on localhost ip for CNI listener
+		localURL, _ := url.Parse(defaultAPIServerURL)
+		localListener, err := acn.NewListener(localURL)
+		if err != nil {
+			return errors.Wrap(err, "Failed to construct url for local listener")
+		}
+
+		localListener.ListenerType = LocalListener
+		config.Listeners = append(config.Listeners, localListener)
+
+		logger.Printf("HTTP listeners will be started later after CNS state has been reconciled")
 	}
 
-	localListener.ListenerType = LocalListener
-	config.Listeners = append(config.Listeners, localListener)
-
-	logger.Printf("HTTP listeners will be started later after CNS state has been reconciled")
 	service.Listeners = config.Listeners
 
 	return nil
