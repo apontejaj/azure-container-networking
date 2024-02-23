@@ -34,27 +34,6 @@
                             "10.0.0.0/8"
                         ]
                     }
-                },
-                {
-                    "Name": "EndpointPolicy",
-                    "Value": {
-                        "Type": "ROUTE",
-                        "DestinationPrefix": "10.0.0.0/8",
-                        "NeedEncap": true
-                    }
-                },
-                {
-                    "Name": "EndpointPolicy",
-                    "Value": {
-                        "Type": "ACL",
-                        "Protocols": "6",
-                        "Action": "Block",
-                        "Direction": "Out",
-                        "RemoteAddresses": "168.63.129.16",
-                        "RemotePorts": "80",
-                        "Priority": 200,
-                        "RuleType": "Switch"
-                    }
                 }
             ],
              "windowsSettings": {
