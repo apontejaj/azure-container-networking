@@ -33,14 +33,13 @@ type ServiceAPI interface {
 
 // ServiceConfig specifies common configuration.
 type ServiceConfig struct {
-	Name               string
-	Version            string
-	Listeners          []*acn.Listener
-	ErrChan            chan<- error
-	Store              store.KeyValueStore
-	ChannelMode        string
-	TLSSettings        tls.TlsSettings
-	PrimaryInterfaceIP string
+	Name        string
+	Version     string
+	Listeners   []*acn.Listener
+	ErrChan     chan<- error
+	Store       store.KeyValueStore
+	ChannelMode string
+	TLSSettings tls.TlsSettings
 }
 
 // NewService creates a new Service object.

@@ -23,7 +23,6 @@ type Listener struct {
 	endpoints    []string
 	active       bool
 	listener     net.Listener
-	ListenerType string
 	tlsListener  net.Listener
 	mux          *http.ServeMux
 }

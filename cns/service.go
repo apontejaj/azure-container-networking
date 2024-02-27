@@ -32,11 +32,16 @@ const (
 	NodeListener         = "nodeListener"
 )
 
+type cnsListener struct {
+	Listener     acn.Listener
+	ListenerType string
+}
+
 // Service defines Container Networking Service.
 type Service struct {
 	*common.Service
 	EndpointType string
-	Listeners    []*acn.Listener
+	Listeners    []*cnsListener
 }
 
 // NewService creates a new Service object.
@@ -53,66 +58,70 @@ func NewService(name, version, channelMode string, store store.KeyValueStore) (*
 
 // AddListeners is to add two listeners(nodeListener and localListener) for connections on the given address
 func (service *Service) AddListeners(config *common.ServiceConfig) error {
-	var nodeAPIServerURL *url.URL
 
 	// Fetch and parse the API server URL.
+	var nodeURL *url.URL
 	cnsURL, _ := service.GetOption(acn.OptCnsURL).(string)
 	if cnsURL == "" {
-		if config.ChannelMode == CRD {
-			nodeAPIServerURL, _ = url.Parse(defaultAPIServerURL)
-		} else {
-			// get VM primary interface's private IP
-			nodeAPIServerURL, _ = url.Parse(fmt.Sprintf("tcp://%s:%s", config.PrimaryInterfaceIP, defaultAPIServerPort))
-		}
+		// get VM primary interface's private IP
+		// primaryInterfaceIP, err := service.GetPrimaryInterfaceIP()
+		// if err != nil {
+		// 	logger.Errorf("[Azure CNS] Failed to get primary interface IP, err:%v", err)
+		// 	return err
+		// }
+		nodeURL, _ = url.Parse(fmt.Sprintf("tcp://%s:%s", "127.0.0.1", defaultAPIServerPort))
 	} else {
 		// use the URL that customer provides
-		nodeAPIServerURL, _ = url.Parse(cnsURL)
+		nodeURL, _ = url.Parse(cnsURL)
 	}
 
-	// construct url
-	nodeListener, err := acn.NewListener(nodeAPIServerURL)
-	if err != nil {
-		return errors.Wrap(err, "Failed to construct url for node listener")
-	}
-
-	nodeListener.ListenerType = NodeListener
-	config.Listeners = append(config.Listeners, nodeListener)
-
-	// only use TLS connection for DNC/CNS listener:
-	if config.TLSSettings.TLSPort != "" {
-		// listener.URL.Host will always be hostname:port, passed in to CNS via CNS command
-		// else it will default to localhost
-		// extract hostname and override tls port.
-		hostParts := strings.Split(nodeListener.URL.Host, ":")
-		tlsAddress := net.JoinHostPort(hostParts[0], config.TLSSettings.TLSPort)
-
-		// Start the listener and HTTP and HTTPS server.
-		tlsConfig, err := getTLSConfig(config.TLSSettings, config.ErrChan) //nolint
-		if err != nil {
-			log.Printf("Failed to compose Tls Configuration with error: %+v", err)
-			return errors.Wrap(err, "could not get tls config")
-		}
-
-		if err := nodeListener.StartTLS(config.ErrChan, tlsConfig, tlsAddress); err != nil {
-			return errors.Wrap(err, "could not start tls")
-		}
-	}
+	cnsListener := cnsListener{}
 
 	if config.ChannelMode != CRD {
-		// bind on localhost ip for CNI listener
-		localURL, _ := url.Parse(defaultAPIServerURL)
-		localListener, err := acn.NewListener(localURL)
+		// construct url
+		nodeListener, err := acn.NewListener(nodeURL)
 		if err != nil {
-			return errors.Wrap(err, "Failed to construct url for local listener")
+			return errors.Wrap(err, "Failed to construct url for node listener")
 		}
 
-		localListener.ListenerType = LocalListener
-		config.Listeners = append(config.Listeners, localListener)
+		// only use TLS connection for DNC/CNS listener:
+		if config.TLSSettings.TLSPort != "" {
+			// listener.URL.Host will always be hostname:port, passed in to CNS via CNS command
+			// else it will default to localhost
+			// extract hostname and override tls port.
+			hostParts := strings.Split(nodeListener.URL.Host, ":")
+			tlsAddress := net.JoinHostPort(hostParts[0], config.TLSSettings.TLSPort)
 
-		logger.Printf("HTTP listeners will be started later after CNS state has been reconciled")
+			// Start the listener and HTTP and HTTPS server.
+			tlsConfig, err := getTLSConfig(config.TLSSettings, config.ErrChan) //nolint
+			if err != nil {
+				log.Printf("Failed to compose Tls Configuration with error: %+v", err)
+				return errors.Wrap(err, "could not get tls config")
+			}
+
+			if err := nodeListener.StartTLS(config.ErrChan, tlsConfig, tlsAddress); err != nil {
+				return errors.Wrap(err, "could not start tls")
+			}
+		}
+		config.Listeners = append(config.Listeners, nodeListener)
+
+		cnsListener.Listener = *nodeListener
+		cnsListener.ListenerType = NodeListener
+
+		service.Listeners = append(service.Listeners, &cnsListener)
 	}
 
-	service.Listeners = config.Listeners
+	// bind on localhost ip for CNI listener
+	localURL, _ := url.Parse(defaultAPIServerURL)
+	localListener, err := acn.NewListener(localURL)
+	if err != nil {
+		return errors.Wrap(err, "Failed to construct url for local listener")
+	}
+	cnsListener.Listener = *localListener
+	cnsListener.ListenerType = NodeListener
+	service.Listeners = append(service.Listeners, &cnsListener)
+
+	logger.Printf("HTTP listeners will be started later after CNS state has been reconciled")
 
 	return nil
 }
@@ -224,12 +233,13 @@ func (service *Service) StartListener(config *common.ServiceConfig) error {
 	log.Debugf("[Azure CNS] Going to start listeners: %+v", config)
 
 	// Initialize listeners.
-	for i := range service.Listeners {
-		if service.Listeners[i] != nil {
+	for _, listener := range service.Listeners { //nolint
+		if listener != nil {
+			log.Debugf("[Azure CNS] Starting listener: %+v", config)
 			// Start the listener.
 			// continue to listen on the normal endpoint for http traffic, this will be supported
 			// for sometime until partners migrate fully to https
-			if err := service.Listeners[i].Start(config.ErrChan); err != nil {
+			if err := listener.Listener.Start(config.ErrChan); err != nil {
 				return errors.Wrap(err, "Failed to create a listener socket and starts the HTTP server")
 			}
 		} else {
@@ -243,8 +253,8 @@ func (service *Service) StartListener(config *common.ServiceConfig) error {
 
 // Uninitialize cleans up the plugin.
 func (service *Service) Uninitialize() {
-	for i := range service.Listeners {
-		service.Listeners[i].Stop()
+	for _, listener := range service.Listeners { //nolint
+		listener.Listener.Stop()
 	}
 	service.Service.Uninitialize()
 }
