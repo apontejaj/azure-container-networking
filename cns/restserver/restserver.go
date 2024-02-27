@@ -175,6 +175,9 @@ func NewHTTPRestService(config *common.ServiceConfig, wscli interfaceGetter, wsp
 		return nil, errors.Wrap(err, "failed to get primary interface from IMDS response")
 	}
 
+	// add primaryInterfaceIP to cns config
+	config.PrimaryInterfaceIP = primaryInterface.PrimaryIP
+
 	serviceState := &httpRestServiceState{
 		Networks:         make(map[string]*networkInfo),
 		joinedNetworks:   make(map[string]struct{}),
@@ -281,33 +284,29 @@ func (service *HTTPRestService) Init(config *common.ServiceConfig) error {
 			listener.Listener.AddHandler(cns.V2Prefix+cns.NmAgentSupportedApisPath, service.nmAgentSupportedApisHandler)
 			listener.Listener.AddHandler(cns.V2Prefix+cns.GetHomeAz, service.getHomeAz)
 			listener.Listener.AddHandler(cns.V2Prefix+cns.EndpointPath, service.EndpointHandlerAPI)
-			listener.Listener.AddHandler(cns.CreateHostNCApipaEndpointPath, service.createHostNCApipaEndpoint)
-			listener.Listener.AddHandler(cns.DeleteHostNCApipaEndpointPath, service.deleteHostNCApipaEndpoint)
-			listener.Listener.AddHandler(cns.GetNetworkContainerByOrchestratorContext, service.getNetworkContainerByOrchestratorContext)
-			listener.Listener.AddHandler(cns.GetAllNetworkContainers, service.getAllNetworkContainers)
-			// handlers for v0.2
-			listener.Listener.AddHandler(cns.V2Prefix+cns.CreateHostNCApipaEndpointPath, service.createHostNCApipaEndpoint)
-			listener.Listener.AddHandler(cns.V2Prefix+cns.DeleteHostNCApipaEndpointPath, service.deleteHostNCApipaEndpoint)
-			listener.Listener.AddHandler(cns.V2Prefix+cns.GetNetworkContainerByOrchestratorContext, service.getNetworkContainerByOrchestratorContext)
-			listener.Listener.AddHandler(cns.V2Prefix+cns.GetAllNetworkContainers, service.getAllNetworkContainers)
-			listener.Listener.AddHandler(cns.RequestIPConfig, newHandlerFuncWithHistogram(service.requestIPConfigHandler, httpRequestLatency))
-			listener.Listener.AddHandler(cns.RequestIPConfigs, newHandlerFuncWithHistogram(service.requestIPConfigsHandler, httpRequestLatency))
-			listener.Listener.AddHandler(cns.ReleaseIPConfig, newHandlerFuncWithHistogram(service.releaseIPConfigHandler, httpRequestLatency))
-			listener.Listener.AddHandler(cns.ReleaseIPConfigs, newHandlerFuncWithHistogram(service.releaseIPConfigsHandler, httpRequestLatency))
+
 		} else if listener.ListenerType == cns.LocalListener {
 			listener.Listener.AddHandler(cns.CreateNetworkPath, service.createNetwork)
 			listener.Listener.AddHandler(cns.DeleteNetworkPath, service.deleteNetwork)
 			listener.Listener.AddHandler(cns.CreateHnsNetworkPath, service.createHnsNetwork)
 			listener.Listener.AddHandler(cns.DeleteHnsNetworkPath, service.deleteHnsNetwork)
+			listener.Listener.AddHandler(cns.CreateHostNCApipaEndpointPath, service.createHostNCApipaEndpoint)
+			listener.Listener.AddHandler(cns.DeleteHostNCApipaEndpointPath, service.deleteHostNCApipaEndpoint)
+			listener.Listener.AddHandler(cns.GetNetworkContainerByOrchestratorContext, service.getNetworkContainerByOrchestratorContext)
+			listener.Listener.AddHandler(cns.GetAllNetworkContainers, service.getAllNetworkContainers)
 			// handlers for v0.2
 			listener.Listener.AddHandler(cns.V2Prefix+cns.CreateNetworkPath, service.createNetwork)
 			listener.Listener.AddHandler(cns.V2Prefix+cns.DeleteNetworkPath, service.deleteNetwork)
 			listener.Listener.AddHandler(cns.V2Prefix+cns.CreateHnsNetworkPath, service.createHnsNetwork)
 			listener.Listener.AddHandler(cns.V2Prefix+cns.DeleteHnsNetworkPath, service.deleteHnsNetwork)
+			listener.Listener.AddHandler(cns.V2Prefix+cns.CreateHostNCApipaEndpointPath, service.createHostNCApipaEndpoint)
+			listener.Listener.AddHandler(cns.V2Prefix+cns.DeleteHostNCApipaEndpointPath, service.deleteHostNCApipaEndpoint)
 			listener.Listener.AddHandler(cns.RequestIPConfig, newHandlerFuncWithHistogram(service.requestIPConfigHandler, httpRequestLatency))
 			listener.Listener.AddHandler(cns.RequestIPConfigs, newHandlerFuncWithHistogram(service.requestIPConfigsHandler, httpRequestLatency))
 			listener.Listener.AddHandler(cns.ReleaseIPConfig, newHandlerFuncWithHistogram(service.releaseIPConfigHandler, httpRequestLatency))
 			listener.Listener.AddHandler(cns.ReleaseIPConfigs, newHandlerFuncWithHistogram(service.releaseIPConfigsHandler, httpRequestLatency))
+			listener.Listener.AddHandler(cns.V2Prefix+cns.GetNetworkContainerByOrchestratorContext, service.getNetworkContainerByOrchestratorContext)
+			listener.Listener.AddHandler(cns.V2Prefix+cns.GetAllNetworkContainers, service.getAllNetworkContainers)
 		}
 	}
 

@@ -58,18 +58,12 @@ func NewService(name, version, channelMode string, store store.KeyValueStore) (*
 
 // AddListeners is to add two listeners(nodeListener and localListener) for connections on the given address
 func (service *Service) AddListeners(config *common.ServiceConfig) error {
-
 	// Fetch and parse the API server URL.
 	var nodeURL *url.URL
 	cnsURL, _ := service.GetOption(acn.OptCnsURL).(string)
 	if cnsURL == "" {
 		// get VM primary interface's private IP
-		// primaryInterfaceIP, err := service.GetPrimaryInterfaceIP()
-		// if err != nil {
-		// 	logger.Errorf("[Azure CNS] Failed to get primary interface IP, err:%v", err)
-		// 	return err
-		// }
-		nodeURL, _ = url.Parse(fmt.Sprintf("tcp://%s:%s", "127.0.0.1", defaultAPIServerPort))
+		nodeURL, _ = url.Parse(fmt.Sprintf("tcp://%s:%s", config.PrimaryInterfaceIP, defaultAPIServerPort))
 	} else {
 		// use the URL that customer provides
 		nodeURL, _ = url.Parse(cnsURL)
@@ -118,7 +112,7 @@ func (service *Service) AddListeners(config *common.ServiceConfig) error {
 		return errors.Wrap(err, "Failed to construct url for local listener")
 	}
 	cnsListener.Listener = *localListener
-	cnsListener.ListenerType = NodeListener
+	cnsListener.ListenerType = LocalListener
 	service.Listeners = append(service.Listeners, &cnsListener)
 
 	logger.Printf("HTTP listeners will be started later after CNS state has been reconciled")
