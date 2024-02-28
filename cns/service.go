@@ -69,7 +69,7 @@ func (service *Service) AddListeners(config *common.ServiceConfig) error {
 		nodeURL, _ = url.Parse(cnsURL)
 	}
 
-	var cnsListener cnsListener
+	cnsListener := cnsListener{} //nolint
 
 	if config.ChannelMode != CRD {
 		// construct url
