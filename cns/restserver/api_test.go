@@ -1665,6 +1665,35 @@ func setEnv(t *testing.T) *httptest.ResponseRecorder {
 	return w
 }
 
+// Since UT can only run with localhost, to mock all api test cases, add nodeListener service handlers
+func addHandlersToListener(service *HTTPRestService) {
+	// Add handlers for UT
+	for _, listener := range service.Listeners { //nolint
+		listener.Listener.AddHandler(cns.SetEnvironmentPath, service.setEnvironment)
+		listener.Listener.AddHandler(cns.ReserveIPAddressPath, service.reserveIPAddress)
+		listener.Listener.AddHandler(cns.ReleaseIPAddressPath, service.releaseIPAddress)
+		listener.Listener.AddHandler(cns.GetHostLocalIPPath, service.getHostLocalIP)
+		listener.Listener.AddHandler(cns.GetIPAddressUtilizationPath, service.getIPAddressUtilization)
+		listener.Listener.AddHandler(cns.GetUnhealthyIPAddressesPath, service.getUnhealthyIPAddresses)
+		listener.Listener.AddHandler(cns.CreateOrUpdateNetworkContainer, service.createOrUpdateNetworkContainer)
+		listener.Listener.AddHandler(cns.GetInterfaceForContainer, service.getInterfaceForContainer)
+		listener.Listener.AddHandler(cns.DeleteNetworkContainer, service.deleteNetworkContainer)
+		listener.Listener.AddHandler(cns.SetOrchestratorType, service.setOrchestratorType)
+		listener.Listener.AddHandler(cns.AttachContainerToNetwork, service.attachNetworkContainerToNetwork)
+		listener.Listener.AddHandler(cns.DetachContainerFromNetwork, service.detachNetworkContainerFromNetwork)
+		listener.Listener.AddHandler(cns.NumberOfCPUCoresPath, service.getNumberOfCPUCores)
+		listener.Listener.AddHandler(cns.PublishNetworkContainer, service.publishNetworkContainer)
+		listener.Listener.AddHandler(cns.UnpublishNetworkContainer, service.unpublishNetworkContainer)
+		listener.Listener.AddHandler(cns.NmAgentSupportedApisPath, service.nmAgentSupportedApisHandler)
+		listener.Listener.AddHandler(cns.PathDebugIPAddresses, service.handleDebugIPAddresses)
+		listener.Listener.AddHandler(cns.PathDebugPodContext, service.handleDebugPodContext)
+		listener.Listener.AddHandler(cns.PathDebugRestData, service.handleDebugRestData)
+		listener.Listener.AddHandler(cns.NetworkContainersURLPath, service.getOrRefreshNetworkContainers)
+		listener.Listener.AddHandler(cns.GetHomeAz, service.getHomeAz)
+		listener.Listener.AddHandler(cns.V2Prefix+cns.SetEnvironmentPath, service.setEnvironment)
+	}
+}
+
 func startService() error {
 	// Create the service.
 	config := common.ServiceConfig{}
@@ -1726,6 +1755,9 @@ func startService() error {
 			logger.Errorf("Failed to Init CNS, err:%v.\n", err)
 			return err
 		}
+
+		service := service.(*HTTPRestService)
+		addHandlersToListener(service)
 
 		// UT can only bind local host; Run UT on CRD (AKS) mode
 		err = service.Start(&config)
