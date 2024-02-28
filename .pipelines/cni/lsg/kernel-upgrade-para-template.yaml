@@ -47,9 +47,7 @@ steps:
       privList=`kubectl get pods -n kube-system -l os=linux,app=privileged-daemonset -owide --no-headers | awk '{print $1}'`
       for pod in $privList; do
         echo "-- Add proposed repository --"
-        kubectl exec -i -n kube-system $pod -- bash -c "add-apt-repository ppa:canonical-kernel-team/proposed -y"
-        kubectl exec -i -n kube-system $pod -- bash -c "add-apt-repository ppa:canonical-kernel-team/proposed2 -y"
-
+        kubectl exec -i -n kube-system $pod -- bash -c "add-apt-repository ppa:canonical-kernel-team/${{ parameters.ProposedRepoVersion }} -y"
         echo "-- Check apt-cache --"
         kubectl exec -i -n kube-system $pod -- bash -c "apt-cache madison ${{ parameters.KernelType }}"
 
@@ -101,11 +99,11 @@ steps:
 
   - script: |
       echo "-- Restart Nodes to Finalize Upgrade Kernel --"
+      kubectl get node -owide
       kubectl get pods -n kube-system -l os=linux,app=privileged-daemonset -owide
 
       privArray=(`kubectl get pods -n kube-system -l os=linux,app=privileged-daemonset -owide --no-headers | awk '{print $1}'`)
       nodeArray=(`kubectl get pods -n kube-system -l os=linux,app=privileged-daemonset -owide --no-headers | awk '{print $7}'`)
-      kubectl get pods -n kube-system -l os=linux,app=privileged-daemonset -owide
 
       i=0
       for _ in ${privArray[@]}; do
