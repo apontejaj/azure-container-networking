@@ -7,7 +7,6 @@ import (
 	"errors"
 
 	"github.com/Azure/azure-container-networking/cns/logger"
-	acn "github.com/Azure/azure-container-networking/common"
 	"github.com/Azure/azure-container-networking/server/tls"
 	"github.com/Azure/azure-container-networking/store"
 )
@@ -35,7 +34,6 @@ type ServiceAPI interface {
 type ServiceConfig struct {
 	Name               string
 	Version            string
-	Listeners          []*acn.Listener
 	ErrChan            chan<- error
 	Store              store.KeyValueStore
 	ChannelMode        string

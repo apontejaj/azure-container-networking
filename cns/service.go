@@ -69,7 +69,7 @@ func (service *Service) AddListeners(config *common.ServiceConfig) error {
 		nodeURL, _ = url.Parse(cnsURL)
 	}
 
-	cnsListener := cnsListener{}
+	var cnsListener cnsListener
 
 	if config.ChannelMode != CRD {
 		// construct url
@@ -97,7 +97,6 @@ func (service *Service) AddListeners(config *common.ServiceConfig) error {
 				return errors.Wrap(err, "could not start tls")
 			}
 		}
-		config.Listeners = append(config.Listeners, nodeListener)
 
 		cnsListener.Listener = *nodeListener
 		cnsListener.ListenerType = NodeListener
@@ -130,7 +129,7 @@ func (service *Service) Initialize(config *common.ServiceConfig) error {
 	}
 
 	// Initialize listeners.
-	if len(config.Listeners) == 0 {
+	if len(service.Listeners) == 0 {
 		if err := service.AddListeners(config); err != nil {
 			return errors.Wrap(err, "failed to initialize listener")
 		}

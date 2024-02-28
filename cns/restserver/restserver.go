@@ -212,21 +212,6 @@ func NewHTTPRestService(config *common.ServiceConfig, wscli interfaceGetter, wsp
 	}, nil
 }
 
-// get primary interface IP
-func (service *HTTPRestService) GetPrimaryInterfaceIP() (string, error) {
-	res, err := service.wscli.GetInterfaces(context.TODO())
-	if err != nil {
-		return "", errors.Wrap(err, "failed to get interfaces from IMDS")
-	}
-
-	primaryInterface, err := wireserver.GetPrimaryInterfaceFromResult(res)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to get primary interface from IMDS response")
-	}
-
-	return primaryInterface.PrimaryIP, nil
-}
-
 // Init starts the CNS listener.
 func (service *HTTPRestService) Init(config *common.ServiceConfig) error {
 	err := service.Initialize(config)
@@ -244,7 +229,8 @@ func (service *HTTPRestService) Init(config *common.ServiceConfig) error {
 
 	// Add handlers.
 	for _, listener := range service.Listeners { //nolint
-		if listener.ListenerType == cns.NodeListener {
+		switch listener.ListenerType {
+		case cns.NodeListener:
 			listener.Listener.AddHandler(cns.SetEnvironmentPath, service.setEnvironment)
 			listener.Listener.AddHandler(cns.ReserveIPAddressPath, service.reserveIPAddress)
 			listener.Listener.AddHandler(cns.ReleaseIPAddressPath, service.releaseIPAddress)
@@ -284,8 +270,7 @@ func (service *HTTPRestService) Init(config *common.ServiceConfig) error {
 			listener.Listener.AddHandler(cns.V2Prefix+cns.NmAgentSupportedApisPath, service.nmAgentSupportedApisHandler)
 			listener.Listener.AddHandler(cns.V2Prefix+cns.GetHomeAz, service.getHomeAz)
 			listener.Listener.AddHandler(cns.V2Prefix+cns.EndpointPath, service.EndpointHandlerAPI)
-
-		} else if listener.ListenerType == cns.LocalListener {
+		case cns.LocalListener:
 			listener.Listener.AddHandler(cns.CreateNetworkPath, service.createNetwork)
 			listener.Listener.AddHandler(cns.DeleteNetworkPath, service.deleteNetwork)
 			listener.Listener.AddHandler(cns.CreateHnsNetworkPath, service.createHnsNetwork)
