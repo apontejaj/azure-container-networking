@@ -857,7 +857,6 @@ func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt) 
 				MacAddress:        secondaryCniResult.MacAddress,
 				NICType:           secondaryCniResult.NICType,
 				SkipDefaultRoutes: secondaryCniResult.SkipDefaultRoutes,
-				Policies:          opt.policies,
 			})
 	}
 
