@@ -102,6 +102,7 @@ type NetworkManager interface {
 	DeleteEndpoint(networkID string, endpointID string, epInfo *EndpointInfo) error
 	GetEndpointInfo(networkID string, endpointID string) (*EndpointInfo, error)
 	GetAllEndpoints(networkID string) (map[string]*EndpointInfo, error)
+	GetNetworkSecondaryInterfaceInfo(endpointID string) (*InterfaceInfo, error)
 	GetEndpointInfoBasedOnPODDetails(networkID string, podName string, podNameSpace string, doExactMatchForPodName bool) (*EndpointInfo, error)
 	AttachEndpoint(networkID string, endpointID string, sandboxKey string) (*endpoint, error)
 	DetachEndpoint(networkID string, endpointID string) error
