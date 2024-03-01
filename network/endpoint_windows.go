@@ -423,8 +423,8 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 
 	ep.MacAddress, _ = net.ParseMAC(hnsResponse.MacAddress)
 
-	ipconfigs := make([]*IPConfig, len(epInfo.IPAddresses))
-	for i, ipconfig := range epInfo.IPAddresses {
+	ipconfigs := make([]*IPConfig, len(ep.IPAddresses))
+	for i, ipconfig := range ep.IPAddresses {
 		ipconfigs[i] = &IPConfig{Address: ipconfig}
 	}
 

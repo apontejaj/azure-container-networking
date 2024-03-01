@@ -206,8 +206,8 @@ func (plugin *NetPlugin) Stop() {
 	logger.Info("Plugin stopped")
 }
 
-// FindMasterInterfaceByMac returns the name of the master interface
-func (plugin *NetPlugin) findMasterInterfaceByMac(macAddress string) string {
+// findMasterInterfaceByMAC returns the name of the master interface
+func (plugin *NetPlugin) findMasterInterfaceByMAC(macAddress string) string {
 	interfaces, _ := net.Interfaces()
 	for _, iface := range interfaces {
 		// find master interface by macAddress for Swiftv2 L1VH
@@ -655,7 +655,7 @@ func (plugin *NetPlugin) createNetworkInternal(
 
 	if len(ipamAddResult.secondaryInterfacesInfo) > 0 {
 		interfaceInfo = ipamAddResult.secondaryInterfacesInfo[0]
-		masterIfName = plugin.findMasterInterfaceByMac(interfaceInfo.MacAddress.String())
+		masterIfName = plugin.findMasterInterfaceByMAC(interfaceInfo.MacAddress.String())
 	}
 
 	if masterIfName == "" {

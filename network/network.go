@@ -245,8 +245,8 @@ func (nm *networkManager) deleteNetwork(networkID string) error {
 func (nm *networkManager) GetNetworkSecondaryInterfaceInfo(endpointID string) (*InterfaceInfo, error) {
 	for _, extIf := range nm.ExternalInterfaces {
 		for _, nw := range extIf.Networks {
-			for _, epID := range nw.Endpoints {
-				if interfaceInfo := epID.SecondaryInterfaces[endpointID]; interfaceInfo != nil {
+			for _, endpoint := range nw.Endpoints {
+				if interfaceInfo := endpoint.SecondaryInterfaces[endpointID]; interfaceInfo != nil {
 					return interfaceInfo, nil
 				}
 			}
