@@ -157,13 +157,6 @@ func (plugin *NetPlugin) getNetworkName(netNs string, ipamAddResult *IPAMAddResu
 		return nwCfg.Name, nil
 	}
 
-	// swiftv2NetworkName will look like ~ azure-01:23:ab:f4:ac:95
-	if ipamAddResult != nil && hasSecondaryInterfaceNIC {
-		swiftv2NetworkName := "azure-" + ipamAddResult.secondaryInterfacesInfo[0].MacAddress.String()
-		logger.Info("swiftv2 network name is", zap.String("swiftv2NetworkName", swiftv2NetworkName))
-		return swiftv2NetworkName, nil
-	}
-
 	// in multitenancy case, the network name will be in the state file or can be built from cnsResponse
 	if len(strings.TrimSpace(netNs)) == 0 {
 		return "", fmt.Errorf("NetNs cannot be empty")
