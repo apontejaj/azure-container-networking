@@ -34,6 +34,14 @@
                             "10.0.0.0/8"
                         ]
                     }
+                },
+                {
+                    "Name": "EndpointPolicy",
+                    "Value": {
+                        "Type": "ROUTE",
+                        "DestinationPrefix": "10.0.0.0/8",
+                        "NeedEncap": true
+                    }
                 }
             ],
              "windowsSettings": {
