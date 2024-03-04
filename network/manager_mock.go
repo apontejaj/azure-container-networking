@@ -105,6 +105,13 @@ func (nm *MockNetworkManager) GetEndpointInfo(_, endpointID string) (*EndpointIn
 	return nil, errEndpointNotFound
 }
 
+// GetNetworkSecondaryInterfaceInfo mock
+func (nm *MockNetworkManager) GetNetworkSecondaryInterfaceInfo(endpointID string) (*InterfaceInfo, error) {
+	// TODO
+	// Test to see if build works
+	return nil, errSecondaryInterfaceNotFound
+}
+
 // GetEndpointInfoBasedOnPODDetails mock
 func (nm *MockNetworkManager) GetEndpointInfoBasedOnPODDetails(networkID string, podName string, podNameSpace string, doExactMatchForPodName bool) (*EndpointInfo, error) {
 	return &EndpointInfo{}, nil
