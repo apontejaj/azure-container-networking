@@ -211,10 +211,8 @@ func (plugin *NetPlugin) findMasterInterfaceByMAC(macAddress string) string {
 	interfaces, _ := net.Interfaces()
 	for _, iface := range interfaces {
 		// find master interface by macAddress for Swiftv2 L1VH
-		for _, hardwareAddr := range iface.HardwareAddr {
-			if string(hardwareAddr) == macAddress {
-				return iface.Name
-			}
+		if string(iface.HardwareAddr) == macAddress {
+			return iface.Name
 		}
 	}
 
@@ -655,6 +653,7 @@ func (plugin *NetPlugin) createNetworkInternal(
 
 	if len(ipamAddResult.secondaryInterfacesInfo) > 0 {
 		interfaceInfo = ipamAddResult.secondaryInterfacesInfo[0]
+		logger.Info("interfaceInfo.MacAddress.String() is", zap.String("interfaceInfo.MacAddress.String()", interfaceInfo.MacAddress.String()))
 		masterIfName = plugin.findMasterInterfaceByMAC(interfaceInfo.MacAddress.String())
 	}
 
