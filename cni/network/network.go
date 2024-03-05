@@ -343,9 +343,10 @@ func (plugin *NetPlugin) addIpamInvoker(ipamAddConfig IPAMAddConfig) (IPAMAddRes
 }
 
 // get network info
-func (plugin *NetPlugin) getNwInfo(netNs string, ipamAddResult IPAMAddResult, nwCfg *cni.NetworkConfig) (network.NetworkInfo, error) {
+func (plugin *NetPlugin) getNwInfo(netNs string, ipamAddResult IPAMAddResult, nwCfg *cni.NetworkConfig) (network.NetworkInfo, string, error) {
 	networkID, _ := plugin.getNetworkName(netNs, &ipamAddResult, nwCfg)
-	return plugin.nm.GetNetworkInfo(networkID)
+	nwInfo, nwError := plugin.nm.GetNetworkInfo(networkID)
+	return nwInfo, networkID, nwError
 }
 
 // CNI implementation
@@ -517,6 +518,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 		var (
 			nwInfo    network.NetworkInfo
+			networkID string
 			nwInfoErr error
 		)
 
@@ -532,10 +534,10 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 				if !nwCfg.MultiTenancy {
 					ipamAddResult, _ = plugin.addIpamInvoker(ipamAddConfig)
 				}
-				nwInfo, nwInfoErr = plugin.getNwInfo(args.Netns, ipamAddResult, nwCfg)
+				nwInfo, networkID, nwInfoErr = plugin.getNwInfo(args.Netns, ipamAddResult, nwCfg)
 
 			default:
-				nwInfo, nwInfoErr = plugin.getNwInfo(args.Netns, ipamAddResult, nwCfg)
+				nwInfo, networkID, nwInfoErr = plugin.getNwInfo(args.Netns, ipamAddResult, nwCfg)
 				plugin.ipamInvoker = NewAzureIpamInvoker(plugin, &nwInfo)
 				if !nwCfg.MultiTenancy {
 					ipamAddResult, _ = plugin.addIpamInvoker(ipamAddConfig)
@@ -543,7 +545,6 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			}
 		}
 
-		networkID := nwInfo.Id
 		if nwInfoErr == nil {
 			logger.Info("Found network with subnet",
 				zap.String("network", networkID),
