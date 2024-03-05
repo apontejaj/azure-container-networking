@@ -206,12 +206,12 @@ func (plugin *NetPlugin) Stop() {
 	logger.Info("Plugin stopped")
 }
 
-// findMasterInterfaceByMAC returns the name of the master interface
-func (plugin *NetPlugin) findMasterInterfaceByMAC(macAddress string) string {
+// findInterfaceByMAC returns the name of the master interface
+func (plugin *NetPlugin) findInterfaceByMAC(macAddress string) string {
 	interfaces, _ := net.Interfaces()
 	for _, iface := range interfaces {
 		// find master interface by macAddress for Swiftv2 L1VH
-		if string(iface.HardwareAddr) == macAddress {
+		if iface.HardwareAddr.String() == macAddress {
 			return iface.Name
 		}
 	}
@@ -220,8 +220,8 @@ func (plugin *NetPlugin) findMasterInterfaceByMAC(macAddress string) string {
 	return ""
 }
 
-// FindMasterInterfaceBySubnet returns the name of the master interface.
-func (plugin *NetPlugin) findMasterInterfaceBySubnet(nwCfg *cni.NetworkConfig, subnetPrefix *net.IPNet) string {
+// FindInterfaceBySubnet returns the name of the master interface.
+func (plugin *NetPlugin) findInterfaceBySubnet(nwCfg *cni.NetworkConfig, subnetPrefix *net.IPNet) string {
 	// An explicit master configuration wins. Explicitly specifying a master is
 	// useful if host has multiple interfaces with addresses in the same subnet.
 	if nwCfg.Master != "" {
@@ -345,9 +345,7 @@ func (plugin *NetPlugin) addIpamInvoker(ipamAddConfig IPAMAddConfig) (IPAMAddRes
 // get network info
 func (plugin *NetPlugin) getNwInfo(netNs string, ipamAddResult IPAMAddResult, nwCfg *cni.NetworkConfig) (network.NetworkInfo, error) {
 	networkID, _ := plugin.getNetworkName(netNs, &ipamAddResult, nwCfg)
-	// Check whether the network already exists.
-	nwInfo, nwInfoErr := plugin.nm.GetNetworkInfo(networkID)
-	return nwInfo, nwInfoErr
+	return plugin.nm.GetNetworkInfo(networkID)
 }
 
 // CNI implementation
@@ -400,12 +398,16 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 		// Add Interfaces to result.
 		cniResult := convertInterfaceInfoToCniResult(ipamAddResult.defaultInterfaceInfo, args.IfName)
-		// if defaultInterfaceInfo does not exist, then try to use secondaryInterfaceInfo
-		if cniResult == nil && hasSecondaryInterface(ipamAddResult) {
-			cniResult = convertInterfaceInfoToCniResult(ipamAddResult.secondaryInterfacesInfo[0], args.IfName)
+		if cniResult != nil {
+			addSnatInterface(nwCfg, cniResult)
 		}
 
-		addSnatInterface(nwCfg, cniResult)
+		// if defaultInterfaceInfo does not exist, then try to use secondaryInterfaceInfo
+		if hasSecondaryInterface(ipamAddResult) {
+			for _, secondaryInterface := range ipamAddResult.secondaryInterfacesInfo { //nolint
+				addSnatInterface(nwCfg, convertInterfaceInfoToCniResult(secondaryInterface, args.IfName))
+			}
+		}
 
 		// Convert result to the requested CNI version.
 		res, vererr := cniResult.GetAsVersion(nwCfg.CNIVersion)
@@ -649,12 +651,12 @@ func (plugin *NetPlugin) createNetworkInternal(
 	interfaceInfo := ipamAddResult.defaultInterfaceInfo
 
 	hostSubetPrefix := ipamAddResult.hostSubnetPrefix
-	masterIfName := plugin.findMasterInterfaceBySubnet(ipamAddConfig.nwCfg, &hostSubetPrefix)
+	masterIfName := plugin.findInterfaceBySubnet(ipamAddConfig.nwCfg, &hostSubetPrefix)
 
 	if len(ipamAddResult.secondaryInterfacesInfo) > 0 {
 		interfaceInfo = ipamAddResult.secondaryInterfacesInfo[0]
 		logger.Info("interfaceInfo.MacAddress.String() is", zap.String("interfaceInfo.MacAddress.String()", interfaceInfo.MacAddress.String()))
-		masterIfName = plugin.findMasterInterfaceByMAC(interfaceInfo.MacAddress.String())
+		masterIfName = plugin.findInterfaceByMAC(interfaceInfo.MacAddress.String())
 	}
 
 	if masterIfName == "" {

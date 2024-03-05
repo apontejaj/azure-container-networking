@@ -77,23 +77,27 @@ func (nw *network) newEndpointImpl(
 	epInfo []*EndpointInfo,
 ) (*endpoint, error) {
 
-	endpointInfo := epInfo[0]
-	for _, ep := range epInfo {
-		if ep.NICType != cns.InfraNIC {
-			// use second endpointInfo if endpoint does not use infra NIC
-			endpointInfo = epInfo[1]
+	for _, ep := range epInfo { //nolint
+		if useHnsV2, err := UseHnsV2(ep.NetNsPath); useHnsV2 {
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nw.newEndpointImplHnsV1(ep, plc)
+		}
+
+		switch ep.NICType {
+		case cns.InfraNIC:
+			return nw.newEndpointImplHnsV2(cli, ep)
+		case cns.DelegatedVMNIC: //TODO: add AccelnetNIC type when it's supported
+			return nw.newEndpointImplHnsV2(cli, ep)
+		case cns.BackendNIC: // return if nic type is infinite band
+			return nil, nil
 		}
 	}
 
-	if useHnsV2, err := UseHnsV2(endpointInfo.NetNsPath); useHnsV2 {
-		if err != nil {
-			return nil, err
-		}
-
-		return nw.newEndpointImplHnsV2(cli, endpointInfo)
-	}
-
-	return nw.newEndpointImplHnsV1(endpointInfo, plc)
+	err := fmt.Errorf("No CNS NIC type is found from endpoint")
+	return nil, errors.Wrap(err, "Failed to create a new endpoint")
 }
 
 // newEndpointImplHnsV1 creates a new endpoint in the network using HnsV1
@@ -232,10 +236,7 @@ func (nw *network) configureHcnEndpoint(epInfo *EndpointInfo) (*hcn.HostComputeE
 	}
 
 	// convert the format of macAddress that HNS can accept, i.e, "60-45-bd-12-45-65"
-	macAddress := epInfo.MacAddress.String()
-	if epInfo.NICType != cns.InfraNIC {
-		macAddress = strings.Join(strings.Split(macAddress, ":"), "-")
-	}
+	macAddress := strings.Join(strings.Split(epInfo.MacAddress.String(), ":"), "-")
 	hcnEndpoint.MacAddress = macAddress
 
 	if endpointPolicies, err := policy.GetHcnEndpointPolicies(policy.EndpointPolicy, epInfo.Policies, epInfo.Data, epInfo.EnableSnatForDns, epInfo.EnableMultiTenancy, epInfo.NATInfo); err == nil {
@@ -429,8 +430,7 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 	}
 
 	// Add secondary interfaces info to CNI state file
-	ep.SecondaryInterfaces[ep.Id] = &InterfaceInfo{
-		Name:       ep.Id,
+	ep.SecondaryInterfaces[ep.IfName] = &InterfaceInfo{
 		MacAddress: ep.MacAddress,
 		IPConfigs:  ipconfigs,
 		Routes:     ep.Routes,
