@@ -145,11 +145,7 @@ func addSnatInterface(nwCfg *cni.NetworkConfig, result *cniTypesCurr.Result) {
 func (plugin *NetPlugin) getNetworkName(netNs string, ipamAddResult *IPAMAddResult, nwCfg *cni.NetworkConfig) (string, error) {
 	determineWinVer()
 
-	// set hasSecondaryInterfaceNIC flag
-	hasSecondaryInterfaceNIC := false
-	if hasSecondaryInterface(*ipamAddResult) {
-		hasSecondaryInterfaceNIC = true
-	}
+	hasSecondaryInterfaceNIC := hasSecondaryInterface(*ipamAddResult)
 
 	// For singletenancy, the network name is simply the nwCfg.Name
 	// For Swiftv2 L1VH, the network name should not use nwCfg.Name

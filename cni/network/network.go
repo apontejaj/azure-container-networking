@@ -189,7 +189,6 @@ func (plugin *NetPlugin) GetAllEndpointState(networkid string) (*api.AzureCNISta
 			PodNamespace:  ep.PODNameSpace,
 			PodEndpointId: ep.Id,
 			ContainerID:   ep.ContainerID,
-			MacAddress:    ep.MacAddress.String(),
 			IPAddresses:   ep.IPAddresses,
 		}
 
@@ -637,6 +636,7 @@ func (plugin *NetPlugin) cleanupAllocationOnError(
 	}
 }
 
+// createNetworkInternal will return a networkInfo with defaultInterfaceInfo and a list of networkInfo with secondaryInterfacesInfo
 func (plugin *NetPlugin) createNetworkInternal(
 	networkID string,
 	policies []policy.Policy,
@@ -971,15 +971,14 @@ func (plugin *NetPlugin) Get(args *cniSkel.CmdArgs) error {
 // Delete handles CNI delete commands.
 func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 	var (
-		err           error
-		nwCfg         *cni.NetworkConfig
-		k8sPodName    string
-		k8sNamespace  string
-		networkID     string
-		nwInfo        network.NetworkInfo
-		epInfo        *network.EndpointInfo
-		cniMetric     telemetry.AIMetric
-		ipamAddResult *IPAMAddResult
+		err          error
+		nwCfg        *cni.NetworkConfig
+		k8sPodName   string
+		k8sNamespace string
+		networkID    string
+		nwInfo       network.NetworkInfo
+		epInfo       *network.EndpointInfo
+		cniMetric    telemetry.AIMetric
 	)
 
 	startTime := time.Now()
@@ -1069,19 +1068,10 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 		numEndpointsToDelete = plugin.nm.GetNumEndpointsByContainerID(args.ContainerID)
 	}
 
-	endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
-
-	// Get secondary interface info from CNI state file and save them to ipamAddResult in CNI Delete call
-	secondaryInterfaceInfo, err := plugin.nm.GetNetworkSecondaryInterfaceInfo(endpointID)
-	if err == nil {
-		ipamAddResult.secondaryInterfacesInfo = []network.InterfaceInfo{}
-		ipamAddResult.secondaryInterfacesInfo = append(ipamAddResult.secondaryInterfacesInfo, *secondaryInterfaceInfo)
-	}
-
 	logger.Info("Endpoints to be deleted", zap.Int("count", numEndpointsToDelete))
 	for i := 0; i < numEndpointsToDelete; i++ {
 		// Initialize values from network config
-		networkID, err = plugin.getNetworkName(args.Netns, ipamAddResult, nwCfg)
+		networkID, err = plugin.getNetworkName(args.Netns, nil, nwCfg)
 		if err != nil {
 			// If error is not found error, then we ignore it, to comply with CNI SPEC.
 			if network.IsNetworkNotFoundError(err) {
@@ -1094,15 +1084,7 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 			return err
 		}
 
-		// cleanup interfaces usage map for swiftv2 L1VH and delete hnsNetwork associated with this networkID
-		if ipamAddResult != nil && len(ipamAddResult.secondaryInterfacesInfo) > 0 {
-			logger.Info("deleting hnsNetwork")
-			err = plugin.nm.DeleteNetwork(networkID)
-			if err != nil {
-				logger.Error("Failed to delete hnsNetwork", zap.Error(err), zap.String("hnsNetwork id", networkID))
-			}
-		}
-
+		endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
 		// Query the network.
 		if nwInfo, err = plugin.nm.GetNetworkInfo(networkID); err != nil {
 			if !nwCfg.MultiTenancy {
@@ -1151,11 +1133,6 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 		sendEvent(plugin, fmt.Sprintf("Deleting endpoint:%v", endpointID))
 		// Delete the endpoint.
 		if err = plugin.nm.DeleteEndpoint(networkID, endpointID, epInfo); err != nil {
-			// delete hnsNetwork in delegatedVMNIC scenario
-			err = plugin.nm.DeleteNetwork(networkID)
-			if err != nil {
-				logger.Error("Failed to delete hnsNetwork", zap.Error(err))
-			}
 			// return a retriable error so the container runtime will retry this DEL later
 			// the implementation of this function returns nil if the endpoint doens't exist, so
 			// we don't have to check that here

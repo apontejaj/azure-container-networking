@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Azure/azure-container-networking/cns"
 	cnsclient "github.com/Azure/azure-container-networking/cns/client"
 	"github.com/Azure/azure-container-networking/common"
 	"github.com/Azure/azure-container-networking/log"
@@ -102,7 +103,6 @@ type NetworkManager interface {
 	DeleteEndpoint(networkID string, endpointID string, epInfo *EndpointInfo) error
 	GetEndpointInfo(networkID string, endpointID string) (*EndpointInfo, error)
 	GetAllEndpoints(networkID string) (map[string]*EndpointInfo, error)
-	GetNetworkSecondaryInterfaceInfo(endpointID string) (*InterfaceInfo, error)
 	GetEndpointInfoBasedOnPODDetails(networkID string, podName string, podNameSpace string, doExactMatchForPodName bool) (*EndpointInfo, error)
 	AttachEndpoint(networkID string, endpointID string, sandboxKey string) (*endpoint, error)
 	DetachEndpoint(networkID string, endpointID string) error
@@ -470,7 +470,15 @@ func (nm *networkManager) DeleteEndpoint(networkID, endpointID string, epInfo *E
 	defer nm.Unlock()
 
 	if nm.IsStatelessCNIMode() {
-		return nm.DeleteEndpointState(networkID, epInfo)
+		err := nm.DeleteEndpointState(networkID, epInfo)
+		// if it's swiftv2 L1VH mode, delete hnsNetwork as well
+		if err == nil && (epInfo.NICType == cns.DelegatedVMNIC || epInfo.NICType == cns.BackendNIC) {
+			if err = nm.DeleteNetwork(networkID); err != nil {
+				return errors.Wrapf(err, "Failed to delete hnsNetwork %s", networkID)
+			}
+		}
+
+		return err
 	}
 
 	nw, err := nm.getNetwork(networkID)

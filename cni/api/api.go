@@ -16,7 +16,6 @@ type PodNetworkInterfaceInfo struct {
 	PodNamespace  string
 	PodEndpointId string
 	ContainerID   string
-	MacAddress    string
 	IPAddresses   []net.IPNet
 }
 
