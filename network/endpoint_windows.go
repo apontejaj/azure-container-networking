@@ -87,9 +87,7 @@ func (nw *network) newEndpointImpl(
 		}
 
 		switch ep.NICType {
-		case cns.InfraNIC:
-			return nw.newEndpointImplHnsV2(cli, ep)
-		case cns.DelegatedVMNIC: //TODO: add AccelnetNIC type when it's supported
+		case cns.InfraNIC, cns.DelegatedVMNIC:
 			return nw.newEndpointImplHnsV2(cli, ep)
 		case cns.BackendNIC: // return if nic type is infinite band
 			return nil, nil
