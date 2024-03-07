@@ -82,10 +82,16 @@ steps:
     retryCountOnTaskFailure: 3
     name: "aziliumTest"
     displayName: "Run Azilium E2E"
+
+  - script: |
+      echo "upgrade k8s version to 1.29"
+      az aks upgrade --resource-group ${{ parameters.clusterName }} --name ${{ parameters.clusterName }} --kubernetes-version 1.29.0
+    name: "upgradek8s"
+    displayName: "Upgrade k8s version"
   
   - script: |
-      echo "Redeploy cilium using v1.13.10"
-      export CILIUM_VERSION_TAG=1.13.10
+      echo "Redeploy cilium using v1.14.4"
+      export CILIUM_VERSION_TAG=1.14.4
       echo "install Cilium ${CILIUM_VERSION_TAG}"
       export DIR=${CILIUM_VERSION_TAG%.*}
       echo "installing files from ${DIR}"
@@ -102,7 +108,7 @@ steps:
       # Ensure Cilium is ready Xm\Xs
       cilium status --wait --wait-duration 2m
     name: "redeployCilium"
-    displayName: "Redploy cilium using v1.13.10"
+    displayName: "Redploy cilium using v1.14.4"
   
   - script: |
       echo "Start Azilium E2E Tests with new Cilium version"
