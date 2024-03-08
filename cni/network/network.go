@@ -209,7 +209,7 @@ func (plugin *NetPlugin) Stop() {
 func (plugin *NetPlugin) findInterfaceByMAC(macAddress string) string {
 	interfaces, _ := net.Interfaces()
 	for _, iface := range interfaces {
-		// find master interface by macAddress for Swiftv2 L1VH
+		// find master interface by macAddress for Swiftv2
 		if iface.HardwareAddr.String() == macAddress {
 			return iface.Name
 		}
@@ -589,25 +589,27 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 		natInfo := getNATInfo(nwCfg, options[network.SNATIPKey], enableSnatForDNS)
 
-		// need a for loop to create a list of createEndpointInternalOpt
-		createEndpointInternalOpt := createEndpointInternalOpt{
-			nwCfg:            nwCfg,
-			cnsNetworkConfig: ipamAddResult.ncResponse,
-			ipamAddResult:    ipamAddResult,
-			azIpamResult:     azIpamResult,
-			args:             args,
-			nwInfos:          &nwInfos,
-			policies:         policies,
-			endpointID:       endpointID,
-			k8sPodName:       k8sPodName,
-			k8sNamespace:     k8sNamespace,
-			enableInfraVnet:  enableInfraVnet,
-			enableSnatForDNS: enableSnatForDNS,
-			natInfo:          natInfo,
+		createEndpointInternalOpts := []createEndpointInternalOpt{}
+		for _, nwInfo := range nwInfos {
+			createEndpointInternalOpts = append(createEndpointInternalOpts, createEndpointInternalOpt{
+				nwCfg:            nwCfg,
+				cnsNetworkConfig: ipamAddResult.ncResponse,
+				ipamAddResult:    ipamAddResult,
+				azIpamResult:     azIpamResult,
+				args:             args,
+				nwInfo:           &nwInfo,
+				policies:         policies,
+				endpointID:       endpointID,
+				k8sPodName:       k8sPodName,
+				k8sNamespace:     k8sNamespace,
+				enableInfraVnet:  enableInfraVnet,
+				enableSnatForDNS: enableSnatForDNS,
+				natInfo:          natInfo,
+			})
 		}
 
 		var epInfo network.EndpointInfo
-		epInfo, err = plugin.createEndpointInternal(&createEndpointInternalOpt)
+		epInfo, err = plugin.createEndpointInternal(createEndpointInternalOpts)
 		if err != nil {
 			logger.Error("Endpoint creation failed", zap.Error(err))
 			return err
@@ -689,6 +691,7 @@ func (plugin *NetPlugin) createNetworks(
 		IPAMType:                      ipamAddConfig.nwCfg.IPAM.Type,
 		ServiceCidrs:                  ipamAddConfig.nwCfg.ServiceCidrs,
 		IsIPv6Enabled:                 ipamAddResult.ipv6Enabled,
+		NICType:                       string(ipamAddResult.defaultInterfaceInfo.NICType),
 	}
 
 	if err := addSubnetToNetworkInfo(ipamAddResult.defaultInterfaceInfo, &nwInfo); err != nil {
@@ -738,6 +741,7 @@ func (plugin *NetPlugin) createNetworks(
 				IPAMType:                      ipamAddConfig.nwCfg.IPAM.Type,
 				ServiceCidrs:                  ipamAddConfig.nwCfg.ServiceCidrs,
 				IsIPv6Enabled:                 ipamAddResult.ipv6Enabled,
+				NICType:                       string(result.NICType),
 			}
 
 			if err := addSubnetToNetworkInfo(result, &nwInfo); err != nil {
@@ -805,7 +809,7 @@ type createEndpointInternalOpt struct {
 	ipamAddResult    IPAMAddResult
 	azIpamResult     *cniTypesCurr.Result
 	args             *cniSkel.CmdArgs
-	nwInfos          *[]network.NetworkInfo
+	nwInfo           *network.NetworkInfo
 	policies         []policy.Policy
 	endpointID       string
 	k8sPodName       string
@@ -815,128 +819,137 @@ type createEndpointInternalOpt struct {
 	natInfo          []policy.NATInfo
 }
 
-func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt) (network.EndpointInfo, error) {
-	epInfo := network.EndpointInfo{}
-
-	defaultNwInfo := *opt.nwInfos
-	defaultInterfaceInfo := opt.ipamAddResult.defaultInterfaceInfo
-	epDNSInfo, err := getEndpointDNSSettings(opt.nwCfg, defaultInterfaceInfo.DNS, opt.k8sNamespace)
-	if err != nil {
-		err = plugin.Errorf("Failed to getEndpointDNSSettings: %v", err)
-		return epInfo, err
-	}
+// only add policies to the endpoint that uses defaultInterfaceInfo
+func (plugin *NetPlugin) addEndpointPolicies(opt createEndpointInternalOpt) error {
 	policyArgs := PolicyArgs{
-		nwInfo:    &defaultNwInfo[0],
+		nwInfo:    opt.nwInfo,
 		nwCfg:     opt.nwCfg,
-		ipconfigs: defaultInterfaceInfo.IPConfigs,
+		ipconfigs: opt.ipamAddResult.defaultInterfaceInfo.IPConfigs,
 	}
+
 	endpointPolicies, err := getEndpointPolicies(policyArgs)
 	if err != nil {
 		logger.Error("Failed to get endpoint policies", zap.Error(err))
-		return epInfo, err
+		return err
 	}
 
 	opt.policies = append(opt.policies, endpointPolicies...)
+	return nil
+}
 
-	vethName := fmt.Sprintf("%s.%s", opt.k8sNamespace, opt.k8sPodName)
-	if opt.nwCfg.Mode != OpModeTransparent {
-		// this mechanism of using only namespace and name is not unique for different incarnations of POD/container.
-		// IT will result in unpredictable behavior if API server decides to
-		// reorder DELETE and ADD call for new incarnation of same POD.
-		vethName = fmt.Sprintf("%s%s%s", defaultNwInfo[0].Id, opt.args.ContainerID, opt.args.IfName)
-	}
-
-	epInfo = network.EndpointInfo{
-		Id:                 opt.endpointID,
-		ContainerID:        opt.args.ContainerID,
-		NetNsPath:          opt.args.Netns,
-		IfName:             opt.args.IfName,
-		Data:               make(map[string]interface{}),
-		DNS:                epDNSInfo,
-		Policies:           opt.policies,
-		IPsToRouteViaHost:  opt.nwCfg.IPsToRouteViaHost,
-		EnableSnatOnHost:   opt.nwCfg.EnableSnatOnHost,
-		EnableMultiTenancy: opt.nwCfg.MultiTenancy,
-		EnableInfraVnet:    opt.enableInfraVnet,
-		EnableSnatForDns:   opt.enableSnatForDNS,
-		PODName:            opt.k8sPodName,
-		PODNameSpace:       opt.k8sNamespace,
-		SkipHotAttachEp:    false, // Hot attach at the time of endpoint creation
-		IPV6Mode:           opt.nwCfg.IPV6Mode,
-		VnetCidrs:          opt.nwCfg.VnetCidrs,
-		ServiceCidrs:       opt.nwCfg.ServiceCidrs,
-		NATInfo:            opt.natInfo,
-		NICType:            cns.InfraNIC,
-		SkipDefaultRoutes:  opt.ipamAddResult.defaultInterfaceInfo.SkipDefaultRoutes,
-		Routes:             defaultInterfaceInfo.Routes,
-	}
-
-	epPolicies, err := getPoliciesFromRuntimeCfg(opt.nwCfg, opt.ipamAddResult.ipv6Enabled)
-	if err != nil {
-		logger.Error("failed to get policies from runtime configurations", zap.Error(err))
-		return epInfo, plugin.Errorf(err.Error())
-	}
-	epInfo.Policies = append(epInfo.Policies, epPolicies...)
-
-	// Populate addresses.
-	for _, ipconfig := range defaultInterfaceInfo.IPConfigs {
-		epInfo.IPAddresses = append(epInfo.IPAddresses, ipconfig.Address)
-	}
-
-	if opt.ipamAddResult.ipv6Enabled {
-		epInfo.IPV6Mode = string(util.IpamMode(opt.nwCfg.IPAM.Mode)) // TODO: check IPV6Mode field can be deprecated and can we add IsIPv6Enabled flag for generic working
-	}
-
-	if opt.azIpamResult != nil && opt.azIpamResult.IPs != nil {
-		epInfo.InfraVnetIP = opt.azIpamResult.IPs[0].Address
-	}
-
-	if opt.nwCfg.MultiTenancy {
-		plugin.multitenancyClient.SetupRoutingForMultitenancy(opt.nwCfg, opt.cnsNetworkConfig, opt.azIpamResult, &epInfo, &defaultInterfaceInfo)
-	}
-
-	setEndpointOptions(opt.cnsNetworkConfig, &epInfo, vethName)
-
-	cnsclient, err := cnscli.New(opt.nwCfg.CNSUrl, defaultRequestTimeout)
-	if err != nil {
-		logger.Error("failed to initialized cns client", zap.String("url", opt.nwCfg.CNSUrl),
-			zap.String("error", err.Error()))
-		return epInfo, plugin.Errorf(err.Error())
-	}
-
+func (plugin *NetPlugin) createEndpointInternal(opts []createEndpointInternalOpt) (network.EndpointInfo, error) {
+	epInfo := network.EndpointInfo{}
 	epInfos := []*network.EndpointInfo{&epInfo}
-	// get secondary interface info
 
-	for _, secondaryCniResult := range opt.ipamAddResult.secondaryInterfacesInfo {
-		var addresses []net.IPNet
-		for _, ipconfig := range secondaryCniResult.IPConfigs {
-			addresses = append(addresses, ipconfig.Address)
+	for _, opt := range opts {
+		if opt.ipamAddResult.defaultInterfaceInfo.NICType == cns.InfraNIC {
+			plugin.addEndpointPolicies(opt)
 		}
 
-		epInfos = append(epInfos,
-			&network.EndpointInfo{
-				IfName:            epInfo.IfName,
-				ContainerID:       epInfo.ContainerID,
-				NetNsPath:         epInfo.NetNsPath,
-				IPAddresses:       addresses,
-				Routes:            secondaryCniResult.Routes,
-				MacAddress:        secondaryCniResult.MacAddress,
-				NICType:           secondaryCniResult.NICType,
-				SkipDefaultRoutes: secondaryCniResult.SkipDefaultRoutes,
-			})
-	}
+		interfaceInfo := opt.ipamAddResult.defaultInterfaceInfo
+		epDNSInfo, err := getEndpointDNSSettings(opt.nwCfg, interfaceInfo.DNS, opt.k8sNamespace)
+		if err != nil {
+			err = plugin.Errorf("Failed to getEndpointDNSSettings: %v", err)
+			return epInfo, err
+		}
 
-	// Create the endpoint.
-	logger.Info("Creating endpoint", zap.String("endpointInfo", epInfo.PrettyString()))
-	sendEvent(plugin, fmt.Sprintf("[cni-net] Creating endpoint %s.", epInfo.PrettyString()))
-	for _, nwInfo := range *opt.nwInfos { // nolint
-		err = plugin.nm.CreateEndpoint(cnsclient, nwInfo.Id, epInfos)
+		vethName := fmt.Sprintf("%s.%s", opt.k8sNamespace, opt.k8sPodName)
+		if opt.nwCfg.Mode != OpModeTransparent {
+			// this mechanism of using only namespace and name is not unique for different incarnations of POD/container.
+			// IT will result in unpredictable behavior if API server decides to
+			// reorder DELETE and ADD call for new incarnation of same POD.
+			vethName = fmt.Sprintf("%s%s%s", opt.nwInfo.Id, opt.args.ContainerID, opt.args.IfName)
+		}
+
+		epInfo = network.EndpointInfo{
+			Id:                 opt.endpointID,
+			ContainerID:        opt.args.ContainerID,
+			NetNsPath:          opt.args.Netns,
+			IfName:             opt.args.IfName,
+			Data:               make(map[string]interface{}),
+			DNS:                epDNSInfo,
+			Policies:           opt.policies,
+			IPsToRouteViaHost:  opt.nwCfg.IPsToRouteViaHost,
+			EnableSnatOnHost:   opt.nwCfg.EnableSnatOnHost,
+			EnableMultiTenancy: opt.nwCfg.MultiTenancy,
+			EnableInfraVnet:    opt.enableInfraVnet,
+			EnableSnatForDns:   opt.enableSnatForDNS,
+			PODName:            opt.k8sPodName,
+			PODNameSpace:       opt.k8sNamespace,
+			SkipHotAttachEp:    false, // Hot attach at the time of endpoint creation
+			IPV6Mode:           opt.nwCfg.IPV6Mode,
+			VnetCidrs:          opt.nwCfg.VnetCidrs,
+			ServiceCidrs:       opt.nwCfg.ServiceCidrs,
+			NATInfo:            opt.natInfo,
+			NICType:            cns.InfraNIC,
+			SkipDefaultRoutes:  opt.ipamAddResult.defaultInterfaceInfo.SkipDefaultRoutes,
+			Routes:             interfaceInfo.Routes,
+		}
+
+		epPolicies, err := getPoliciesFromRuntimeCfg(opt.nwCfg, opt.ipamAddResult.ipv6Enabled)
+		if err != nil {
+			logger.Error("failed to get policies from runtime configurations", zap.Error(err))
+			return epInfo, plugin.Errorf(err.Error())
+		}
+		epInfo.Policies = append(epInfo.Policies, epPolicies...)
+
+		// Populate addresses.
+		for _, ipconfig := range interfaceInfo.IPConfigs {
+			epInfo.IPAddresses = append(epInfo.IPAddresses, ipconfig.Address)
+		}
+
+		if opt.ipamAddResult.ipv6Enabled {
+			epInfo.IPV6Mode = string(util.IpamMode(opt.nwCfg.IPAM.Mode)) // TODO: check IPV6Mode field can be deprecated and can we add IsIPv6Enabled flag for generic working
+		}
+
+		if opt.azIpamResult != nil && opt.azIpamResult.IPs != nil {
+			epInfo.InfraVnetIP = opt.azIpamResult.IPs[0].Address
+		}
+
+		if opt.nwCfg.MultiTenancy {
+			plugin.multitenancyClient.SetupRoutingForMultitenancy(opt.nwCfg, opt.cnsNetworkConfig, opt.azIpamResult, &epInfo, &interfaceInfo)
+		}
+
+		setEndpointOptions(opt.cnsNetworkConfig, &epInfo, vethName)
+
+		cnsclient, err := cnscli.New(opt.nwCfg.CNSUrl, defaultRequestTimeout)
+		if err != nil {
+			logger.Error("failed to initialized cns client", zap.String("url", opt.nwCfg.CNSUrl),
+				zap.String("error", err.Error()))
+			return epInfo, plugin.Errorf(err.Error())
+		}
+
+		// get secondary interface info
+		for _, secondaryCniResult := range opt.ipamAddResult.secondaryInterfacesInfo {
+			var addresses []net.IPNet
+			for _, ipconfig := range secondaryCniResult.IPConfigs {
+				addresses = append(addresses, ipconfig.Address)
+			}
+
+			epInfos = append(epInfos,
+				&network.EndpointInfo{
+					IfName:            epInfo.IfName,
+					ContainerID:       epInfo.ContainerID,
+					NetNsPath:         epInfo.NetNsPath,
+					IPAddresses:       addresses,
+					Routes:            secondaryCniResult.Routes,
+					MacAddress:        secondaryCniResult.MacAddress,
+					NICType:           secondaryCniResult.NICType,
+					SkipDefaultRoutes: secondaryCniResult.SkipDefaultRoutes,
+				})
+		}
+
+		// Create the endpoint.
+		logger.Info("Creating endpoint", zap.String("endpointInfo", epInfo.PrettyString()))
+		sendEvent(plugin, fmt.Sprintf("[cni-net] Creating endpoint %s.", epInfo.PrettyString()))
+
+		err = plugin.nm.CreateEndpoint(cnsclient, opt.nwInfo.Id, epInfos)
 		if err != nil {
 			err = plugin.Errorf("Failed to create endpoint: %v", err)
 		}
 	}
 
-	return epInfo, err
+	return epInfo, nil
 }
 
 // Get handles CNI Get commands.

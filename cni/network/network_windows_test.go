@@ -356,7 +356,7 @@ func TestGetNetworkNameSwiftv2FromCNS(t *testing.T) {
 		wantErr       bool
 	}{
 		{
-			name: "Get Network Name from CNS for swiftv2 L1VH",
+			name: "Get Network Name from CNS for swiftv2",
 			plugin: &NetPlugin{
 				Plugin:      plugin,
 				nm:          network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),

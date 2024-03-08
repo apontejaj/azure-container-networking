@@ -1365,7 +1365,7 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 		wantErr                     bool
 	}{
 		{
-			name: "Test happy CNI add with swiftv2 L1VH multitenant result",
+			name: "Test happy CNI add with swiftv2 multitenant result",
 			fields: fields{
 				podName:      testPodInfo.PodName,
 				podNamespace: testPodInfo.PodNamespace,

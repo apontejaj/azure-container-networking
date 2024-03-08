@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/network/hnswrapper"
 	"github.com/Azure/azure-container-networking/network/policy"
 	"github.com/Microsoft/hcsshim"
@@ -294,9 +295,8 @@ func (nm *networkManager) configureHcnNetwork(nwInfo *NetworkInfo, extIf *extern
 		return nil, errNetworkModeInvalid
 	}
 
-	// set hnsNetwork for secondary interfaces
-	// TODO: find a way to set flags from CNS goal states
-	if hcnNetwork.Name == "azure-"+extIf.MacAddress.String() {
+	// set hnsNetwork type and flag if NIC type is delegated or accelnet
+	if nwInfo.NICType == string(cns.DelegatedVMNIC) {
 		hcnNetwork.Type = hcn.Transparent
 		hcnNetwork.Flags = hcn.DisableHostPort
 	}

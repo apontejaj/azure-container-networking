@@ -471,8 +471,8 @@ func (nm *networkManager) DeleteEndpoint(networkID, endpointID string, epInfo *E
 
 	if nm.IsStatelessCNIMode() {
 		err := nm.DeleteEndpointState(networkID, epInfo)
-		// if it's swiftv2 L1VH mode, delete hnsNetwork as well
-		if err == nil && (epInfo.NICType == cns.DelegatedVMNIC || epInfo.NICType == cns.BackendNIC) {
+		// if it's swiftv2 mode, delete hnsNetwork as well
+		if err == nil && (epInfo.NICType == cns.DelegatedVMNIC) {
 			if err = nm.DeleteNetwork(networkID); err != nil {
 				return errors.Wrapf(err, "Failed to delete hnsNetwork %s", networkID)
 			}

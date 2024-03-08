@@ -148,7 +148,7 @@ func (plugin *NetPlugin) getNetworkName(netNs string, ipamAddResult *IPAMAddResu
 	hasSecondaryInterfaceNIC := hasSecondaryInterface(*ipamAddResult)
 
 	// For singletenancy, the network name is simply the nwCfg.Name
-	// For Swiftv2 L1VH, the network name should not use nwCfg.Name
+	// For Swiftv2, the network name should not use nwCfg.Name
 	if !nwCfg.MultiTenancy && !hasSecondaryInterfaceNIC {
 		return nwCfg.Name, nil
 	}
