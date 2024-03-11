@@ -572,6 +572,13 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			}
 		}()
 
+		// seriallize network and endpoint. Single for loop.
+		// move createNetwork into createEndpoint
+		// only InfraNic needs IPv6 flags ect. + handle common options + policies
+		// look into having a single struct. May not need an endpoint struct and a nw struct
+
+		// have a single interface info field. Not default and secondary.
+
 		// Create network
 		if nwInfoErr != nil {
 			// Network does not exist.
@@ -591,6 +598,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		natInfo := getNATInfo(nwCfg, options[network.SNATIPKey], enableSnatForDNS)
 
 		createEndpointInternalOpts := []createEndpointInternalOpt{}
+		// Cannot create multiple networks in linux, this only works for windows atm
 		for _, nwInfo := range nwInfos {
 			createEndpointInternalOpts = append(createEndpointInternalOpts, createEndpointInternalOpt{
 				nwCfg:            nwCfg,
@@ -646,9 +654,7 @@ func (plugin *NetPlugin) createNetworks(
 	ipamAddConfig IPAMAddConfig,
 	ipamAddResult IPAMAddResult,
 ) ([]network.NetworkInfo, error) {
-	var (
-		nwInfos []network.NetworkInfo
-	)
+	var nwInfos []network.NetworkInfo
 
 	ipamAddResult.hostSubnetPrefix.IP = ipamAddResult.hostSubnetPrefix.IP.Mask(ipamAddResult.hostSubnetPrefix.Mask)
 	ipamAddConfig.nwCfg.IPAM.Subnet = ipamAddResult.hostSubnetPrefix.String()
@@ -766,7 +772,6 @@ func (plugin *NetPlugin) createNetworkInternal(
 	ipamAddConfig IPAMAddConfig,
 	ipamAddResult IPAMAddResult,
 ) ([]network.NetworkInfo, error) {
-
 	// createNetworks returns nwInfos
 	nwInfos, err := plugin.createNetworks(networkID, policies, ipamAddConfig, ipamAddResult)
 	if err == nil {
