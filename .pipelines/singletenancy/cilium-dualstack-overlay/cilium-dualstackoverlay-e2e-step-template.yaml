@@ -77,10 +77,16 @@ steps:
     displayName: "Run Azilium E2E on AKS Overlay"
 
   - task: AzureCLI@1
-      echo "upgrade k8s version to 1.29"
-      set -e
-      make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}
-      az aks upgrade --resource-group ${{ parameters.clusterName }} --name ${{ parameters.clusterName }} --kubernetes-version 1.29.0
+    inputs:
+      azureSubscription: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
+      scriptLocation: "inlineScript"
+      scriptType: "bash"
+      addSpnToEnvironment: true
+      inlineScript: |
+        echo "upgrade k8s version to 1.29"
+        set -e
+        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}
+        az aks upgrade --resource-group ${{ parameters.clusterName }} --name ${{ parameters.clusterName }} --kubernetes-version 1.29.0
     name: "upgradek8s"
     displayName: "Upgrade k8s version"
 
