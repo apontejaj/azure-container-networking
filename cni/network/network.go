@@ -335,7 +335,7 @@ func hasSecondaryInterface(ipamAddResult IPAMAddResult) bool {
 func (plugin *NetPlugin) addIpamInvoker(ipamAddConfig IPAMAddConfig) (IPAMAddResult, error) {
 	ipamAddResult, err := plugin.ipamInvoker.Add(ipamAddConfig)
 	if err != nil {
-		return IPAMAddResult{}, fmt.Errorf("IPAM Invoker Add failed with error: %w", err)
+		return IPAMAddResult{}, err
 	}
 	sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.defaultInterfaceInfo, ipamAddResult.secondaryInterfacesInfo))
 	return ipamAddResult, nil
@@ -524,21 +524,17 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		// Initialize azureipam/cns ipam
 		options := make(map[string]any)
 		ipamAddConfig := IPAMAddConfig{nwCfg: nwCfg, args: args, options: options}
+		nwInfo, networkID, nwInfoErr = plugin.getNetworkInfo(args.Netns, ipamAddResult, nwCfg)
+
 		if plugin.ipamInvoker == nil {
 			switch nwCfg.IPAM.Type {
 			case network.AzureCNS:
 				plugin.ipamInvoker = NewCNSInvoker(k8sPodName, k8sNamespace, cnsClient, util.ExecutionMode(nwCfg.ExecutionMode), util.IpamMode(nwCfg.IPAM.Mode))
-				if !nwCfg.MultiTenancy {
-					ipamAddResult, _ = plugin.addIpamInvoker(ipamAddConfig)
-				}
 				nwInfo, networkID, nwInfoErr = plugin.getNetworkInfo(args.Netns, ipamAddResult, nwCfg)
 
 			default:
 				nwInfo, networkID, nwInfoErr = plugin.getNetworkInfo(args.Netns, ipamAddResult, nwCfg)
 				plugin.ipamInvoker = NewAzureIpamInvoker(plugin, &nwInfo)
-				if !nwCfg.MultiTenancy {
-					ipamAddResult, _ = plugin.addIpamInvoker(ipamAddConfig)
-				}
 			}
 		}
 
@@ -559,6 +555,13 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			if resultSecondAdd != nil {
 				ipamAddResult.defaultInterfaceInfo = convertCniResultToInterfaceInfo(resultSecondAdd)
 				return nil
+			}
+		}
+
+		if !nwCfg.MultiTenancy {
+			ipamAddResult, err = plugin.addIpamInvoker(ipamAddConfig)
+			if err != nil {
+				return fmt.Errorf("IPAM Invoker Add failed with error: %w", err)
 			}
 		}
 
