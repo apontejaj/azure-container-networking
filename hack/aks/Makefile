@@ -129,7 +129,7 @@ overlay-byocni-nokubeproxy-up: rg-up overlay-net-up ## Brings up an Overlay BYO 
 		--vnet-subnet-id /subscriptions/$(SUB)/resourceGroups/$(GROUP)/providers/Microsoft.Network/virtualNetworks/$(VNET)/subnets/nodenet \
 		--no-ssh-key \
 		--kube-proxy-config ./kube-proxy.json \
-		--kubernetes-version 1.27.7 \
+		--kubernetes-version 1.28.3 \
 		--yes
 	@$(MAKE) set-kubeconf
 
@@ -199,7 +199,7 @@ swift-byocni-nokubeproxy-up: rg-up swift-net-up ## Bring up a SWIFT BYO CNI clus
 		--no-ssh-key \
 		--os-sku $(OS_SKU) \
 		--kube-proxy-config ./kube-proxy.json \
-		--kubernetes-version 1.27.7 \
+		--kubernetes-version 1.28.3 \
 		--yes
 	@$(MAKE) set-kubeconf
 
