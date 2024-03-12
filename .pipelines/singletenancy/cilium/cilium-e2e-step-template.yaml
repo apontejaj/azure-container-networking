@@ -93,7 +93,7 @@ steps:
         echo "upgrade k8s version to 1.29"
         set -e
         make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}
-        az aks upgrade --resource-group ${{ parameters.clusterName }} --name ${{ parameters.clusterName }} --kubernetes-version 1.29.0
+        az aks upgrade --resource-group ${{ parameters.clusterName }} --name ${{ parameters.clusterName }} --kubernetes-version 1.29.0 --yes
     name: "upgradek8s"
     displayName: "Upgrade k8s version"
   
