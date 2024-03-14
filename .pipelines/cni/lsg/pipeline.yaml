@@ -39,41 +39,36 @@ stages:
 
               echo "------"
               echo Queued by $(Build.QueuedBy)
-              echo "Runtime Variables passed"
-              echo "KernelType : $(KernelType)"
-              echo "KernelVersion : $(KernelVersion)"
-              echo "ProposedRepoVersion : $(ProposedRepoVersion)"
-              echo "------"
               echo "Runtime Parameters passed"
               echo "KernelType : ${{ parameters.KernelType }}"
               echo "KernelVersion : ${{ parameters.KernelVersion }}"
               echo "ProposedRepoVersion : ${{ parameters.ProposedRepoVersion }}"
+              echo "------"
+              echo "KernelType Check"
+              KernelType=${{ parameters.KernelType }}
+              if [ $KernelType = 'proposed-azure' ]; then
+                echo "KernelType is $KernelType , change to linux-azure"
+                KernelType=linux-azure
+              fi
+              if [ $KernelType = 'proposed-edge' ]; then
+                echo "KernelType is $KernelType , change to linux-azure-edge"
+                KernelType=linux-azure-edge
+              fi
+              echo "##vso[task.setvariable variable=kernelType;isOutput=true]$KernelType"
             name: "SetEnvVars"
             displayName: "Set Environment Variables"
             condition: always()
 
   - template: lsg-cni-intergration-template.yaml
     parameters:
-      name: linux_overlay
+      name: linux_over
       clusterType: overlay-byocni-up
-      clusterName: "kup-overlay"
-      nodeCount: 2
-      vmSize: Standard_B2ms
-      arch: amd64
-      cni: cniv2
-      test: var
-
-  - template: lsg-cni-intergration-template.yaml
-    parameters:
-      name: linux_over_par
-      clusterType: overlay-byocni-up
-      clusterName: "kup-over-par"
+      clusterName: "kup-over"
       nodeCount: 2
       vmSize: Standard_B2ms
       arch: amd64
       cni: cniv2
       test: par
-      KernelType : ${{ parameters.KernelType }}
       KernelVersion : ${{ parameters.KernelVersion }}
       ProposedRepoVersion : ${{ parameters.ProposedRepoVersion }}
 
@@ -83,8 +78,7 @@ stages:
       name: "$(BUILD_POOL_NAME_DEFAULT)"
     condition: always()
     dependsOn:
-      - linux_overlay
-      - linux_over_par
+      - linux_over
       - setup
     variables:
       commitID: $[ stagedependencies.setup.env.outputs['SetEnvVars.commitID'] ]
@@ -96,11 +90,8 @@ stages:
         strategy:
           matrix:
             linux_overlay:
-              name: linux_overlay
-              clusterName: "kup-overlay"
-            linux_over_par:
-              name: linux_over_par
-              clusterName: "kup-over-par"
+              name: linux_over
+              clusterName: "kup-over"
         steps:
           - template: ../../templates/delete-cluster.yaml
             parameters:

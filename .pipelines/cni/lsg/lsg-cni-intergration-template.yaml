@@ -48,6 +48,7 @@ stages:
       commitID: $[ stagedependencies.setup.env.outputs['SetEnvVars.commitID'] ]
       cnsVersion: $[ stagedependencies.setup.env.outputs['SetEnvVars.cnsVersion'] ]
       cniVersion: $[ stagedependencies.setup.env.outputs['SetEnvVars.cniVersion'] ]
+      kernelType: $[ stagedependencies.setup.env.outputs['SetEnvVars.kernelType'] ]
     pool:
       name: $(BUILD_POOL_NAME_DEFAULT)
     dependsOn:
@@ -76,25 +77,15 @@ stages:
             name: "overlaye2e"
             displayName: "Overlay Integration"
             retryCountOnTaskFailure: 2
-      - ${{ if eq(parameters.test, 'var') }}:
-        - job: kernel_upgrade
-          displayName: "Kernel Node Upgrade"
-          dependsOn: integration
-          steps:
-            - template: kernel-upgrade-template.yaml
-              parameters:
-                clusterName: ${{ parameters.clusterName }}-$(commitID)
-      - ${{ if eq(parameters.test, 'par') }}:
-        - job: kernel_upgrade
-          displayName: "Kernel Node Upgrade"
-          dependsOn: integration
-          steps:
-            - template: kernel-upgrade-para-template.yaml
-              parameters:
-                clusterName: ${{ parameters.clusterName }}-$(commitID)
-                KernelType : ${{ parameters.KernelType }}
-                KernelVersion : ${{ parameters.KernelVersion }}
-                ProposedRepoVersion : ${{ parameters.ProposedRepoVersion }}
+      - job: kernel_upgrade
+        displayName: "Kernel Node Upgrade"
+        dependsOn: integration
+        steps:
+          - template: kernel-upgrade-template.yaml
+            parameters:
+              clusterName: ${{ parameters.clusterName }}-$(commitID)
+              KernelVersion : ${{ parameters.KernelVersion }}
+              ProposedRepoVersion : ${{ parameters.ProposedRepoVersion }}
       - job: deploy_pods
         displayName: "Scale Test"
         dependsOn: kernel_upgrade
