@@ -93,8 +93,8 @@ func CreateNCRequestFromStaticNC(nc v1alpha.NetworkContainer) (*cns.CreateNetwor
 	}
 
 	if nc.Type == v1alpha.VNETBlock {
-		nodeIP, err := netip.ParsePrefix(nc.NodeIP)
-		if err != nil {
+		nodeIP, nerr := netip.ParsePrefix(nc.NodeIP)
+		if nerr != nil {
 			return nil, errors.Wrapf(err, "IP: %s", nc.NodeIP)
 		}
 		subnet.IPAddress = nodeIP.Addr().String()
