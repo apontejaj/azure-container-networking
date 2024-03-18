@@ -384,15 +384,15 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 		}
 	}
 
+	result := network.InterfaceInfo{}
 	if ip := net.ParseIP(info.podIPAddress); ip != nil {
-		defaultInterfaceInfo := &addResult.defaultInterfaceInfo
 		defaultRouteDstPrefix := network.Ipv4DefaultRouteDstPrefix
 		if ip.To4() == nil {
 			defaultRouteDstPrefix = network.Ipv6DefaultRouteDstPrefix
 			addResult.ipv6Enabled = true
 		}
 
-		defaultInterfaceInfo.IPConfigs = append(defaultInterfaceInfo.IPConfigs,
+		result.IPConfigs = append(result.IPConfigs,
 			&network.IPConfig{
 				Address: net.IPNet{
 					IP:   ip,
@@ -407,15 +407,15 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 		}
 
 		if len(routes) > 0 {
-			defaultInterfaceInfo.Routes = append(defaultInterfaceInfo.Routes, routes...)
+			result.Routes = append(result.Routes, routes...)
 		} else { // add default routes if none are provided
-			defaultInterfaceInfo.Routes = append(defaultInterfaceInfo.Routes, network.RouteInfo{
+			result.Routes = append(result.Routes, network.RouteInfo{
 				Dst: defaultRouteDstPrefix,
 				Gw:  ncgw,
 			})
 		}
 
-		addResult.defaultInterfaceInfo.SkipDefaultRoutes = info.skipDefaultRoutes
+		result.SkipDefaultRoutes = info.skipDefaultRoutes
 	}
 
 	// get the name of the primary IP address
@@ -425,7 +425,7 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 	}
 
 	addResult.hostSubnetPrefix = *hostIPNet
-	addResult.defaultInterfaceInfo.NICType = cns.InfraNIC
+	result.NICType = cns.InfraNIC
 
 	// set subnet prefix for host vm
 	// setHostOptions will execute if IPAM mode is not v4 overlay and not dualStackOverlay mode
@@ -436,6 +436,7 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 		}
 	}
 
+	addResult.interfaceInfo = append(addResult.interfaceInfo, result)
 	return nil
 }
 
@@ -470,7 +471,7 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 		SkipDefaultRoutes: info.skipDefaultRoutes,
 	}
 
-	addResult.secondaryInterfacesInfo = append(addResult.secondaryInterfacesInfo, result)
+	addResult.interfaceInfo = append(addResult.interfaceInfo, result)
 
 	return nil
 }
