@@ -457,7 +457,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		if len(ipamAddResults) > 1 && !plugin.isDualNicFeatureSupported(args.Netns) {
 			errMsg := fmt.Sprintf("received multiple NC results %+v from CNS while dualnic feature is not supported", ipamAddResults)
 			logger.Error("received multiple NC results from CNS while dualnic feature is not supported",
-				zap.Any("results", ipamAddResult))
+				zap.Any("results", ipamAddResult)) // <- should this be Result(S)?
 			return plugin.Errorf(errMsg)
 		}
 	} else {
@@ -471,6 +471,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	for i := 0; i < len(ipamAddResults); i++ {
 		var networkID string
 		ipamAddResult = ipamAddResults[i]
+		defaultIndex := findDefaultInterface(ipamAddResult)
 
 		options := make(map[string]any)
 		networkID, err = plugin.getNetworkName(args.Netns, &ipamAddResult, nwCfg)
@@ -500,7 +501,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			}
 
 			if resultSecondAdd != nil {
-				ipamAddResult.defaultInterfaceInfo = convertCniResultToInterfaceInfo(resultSecondAdd)
+				ipamAddResult.interfaceInfo[defaultIndex] = convertCniResultToInterfaceInfo(resultSecondAdd)
 				return nil
 			}
 		}
@@ -518,18 +519,20 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 		ipamAddConfig := IPAMAddConfig{nwCfg: nwCfg, args: args, options: options}
 		if !nwCfg.MultiTenancy {
+			// what does this .Add() do?
 			ipamAddResult, err = plugin.ipamInvoker.Add(ipamAddConfig)
 			if err != nil {
 				return fmt.Errorf("IPAM Invoker Add failed with error: %w", err)
 			}
-			sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.defaultInterfaceInfo, ipamAddResult.secondaryInterfacesInfo))
+			// This proably needs to be changed as we return all interfaces...
+			sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.interfaceInfo[defaultIndex], ipamAddResult.interfaceInfo))
 		}
 
 		defer func() { //nolint:gocritic
 			if err != nil {
 				// for multi-tenancies scenario, CNI is not supposed to invoke CNS for cleaning Ips
 				if !(nwCfg.MultiTenancy && nwCfg.IPAM.Type == network.AzureCNS) {
-					plugin.cleanupAllocationOnError(ipamAddResult.defaultInterfaceInfo.IPConfigs, nwCfg, args, options)
+					plugin.cleanupAllocationOnError(ipamAddResult.interfaceInfo[defaultIndex].IPConfigs, nwCfg, args, options)
 				}
 			}
 		}()
@@ -540,7 +543,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			logger.Info("Creating network", zap.String("networkID", networkID))
 			sendEvent(plugin, fmt.Sprintf("[cni-net] Creating network %v.", networkID))
 			// opts map needs to get passed in here
-			if nwInfo, err = plugin.createNetworkInternal(networkID, policies, ipamAddConfig, ipamAddResult); err != nil {
+			if nwInfo, err = plugin.createNetworkInternal(networkID, policies, ipamAddConfig, ipamAddResult, defaultIndex); err != nil {
 				logger.Error("Create network failed", zap.Error(err))
 				return err
 			}
@@ -603,6 +606,7 @@ func (plugin *NetPlugin) createNetworkInternal(
 	policies []policy.Policy,
 	ipamAddConfig IPAMAddConfig,
 	ipamAddResult IPAMAddResult,
+	defaultIndex int,
 ) (network.NetworkInfo, error) {
 	nwInfo := network.NetworkInfo{}
 	ipamAddResult.hostSubnetPrefix.IP = ipamAddResult.hostSubnetPrefix.IP.Mask(ipamAddResult.hostSubnetPrefix.Mask)
@@ -649,7 +653,7 @@ func (plugin *NetPlugin) createNetworkInternal(
 		IsIPv6Enabled:                 ipamAddResult.ipv6Enabled,
 	}
 
-	if err = addSubnetToNetworkInfo(ipamAddResult, &nwInfo); err != nil {
+	if err = addSubnetToNetworkInfo(ipamAddResult, &nwInfo, defaultIndex); err != nil {
 		logger.Info("Failed to add subnets to networkInfo",
 			zap.Error(err))
 		return nwInfo, err
@@ -665,8 +669,8 @@ func (plugin *NetPlugin) createNetworkInternal(
 }
 
 // construct network info with ipv4/ipv6 subnets
-func addSubnetToNetworkInfo(ipamAddResult IPAMAddResult, nwInfo *network.NetworkInfo) error {
-	for _, ipConfig := range ipamAddResult.defaultInterfaceInfo.IPConfigs {
+func addSubnetToNetworkInfo(ipamAddResult IPAMAddResult, nwInfo *network.NetworkInfo, defaultIndex int) error {
+	for _, ipConfig := range ipamAddResult.interfaceInfo[defaultIndex].IPConfigs {
 		ip, podSubnetPrefix, err := net.ParseCIDR(ipConfig.Address.String())
 		if err != nil {
 			return fmt.Errorf("Failed to ParseCIDR for pod subnet prefix: %w", err)
@@ -1403,4 +1407,16 @@ func convertCniResultToInterfaceInfo(result *cniTypesCurr.Result) network.Interf
 	}
 
 	return interfaceInfo
+}
+
+func findDefaultInterface(ipamAddResult IPAMAddResult) int {
+	// defaultIf := network.InterfaceInfo{}
+	for i, ifInfo := range ipamAddResult.interfaceInfo {
+		if ifInfo.NICType == cns.InfraNIC {
+			return i
+		}
+	}
+
+	// error or nil here
+	return 0
 }
