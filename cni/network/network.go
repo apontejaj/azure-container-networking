@@ -572,7 +572,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		}
 
 		var epInfo network.EndpointInfo
-		epInfo, err = plugin.createEndpointInternal(&createEndpointInternalOpt)
+		epInfo, err = plugin.createEndpointInternal(&createEndpointInternalOpt, defaultIndex)
 		if err != nil {
 			logger.Error("Endpoint creation failed", zap.Error(err))
 			return err
@@ -707,10 +707,10 @@ type createEndpointInternalOpt struct {
 	natInfo          []policy.NATInfo
 }
 
-func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt) (network.EndpointInfo, error) {
+func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt, defaultIndex int) (network.EndpointInfo, error) {
 	epInfo := network.EndpointInfo{}
 
-	defaultInterfaceInfo := opt.ipamAddResult.defaultInterfaceInfo
+	defaultInterfaceInfo := opt.ipamAddResult.interfaceInfo[defaultIndex] // can also call function, but this will be faster
 	epDNSInfo, err := getEndpointDNSSettings(opt.nwCfg, defaultInterfaceInfo.DNS, opt.k8sNamespace)
 	if err != nil {
 		err = plugin.Errorf("Failed to getEndpointDNSSettings: %v", err)
@@ -758,7 +758,7 @@ func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt) 
 		ServiceCidrs:       opt.nwCfg.ServiceCidrs,
 		NATInfo:            opt.natInfo,
 		NICType:            cns.InfraNIC,
-		SkipDefaultRoutes:  opt.ipamAddResult.defaultInterfaceInfo.SkipDefaultRoutes,
+		SkipDefaultRoutes:  opt.ipamAddResult.interfaceInfo[defaultIndex].SkipDefaultRoutes,
 		Routes:             defaultInterfaceInfo.Routes,
 	}
 
@@ -797,22 +797,31 @@ func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt) 
 
 	epInfos := []*network.EndpointInfo{&epInfo}
 	// get secondary interface info
-	for _, secondaryCniResult := range opt.ipamAddResult.secondaryInterfacesInfo {
-		var addresses []net.IPNet
-		for _, ipconfig := range secondaryCniResult.IPConfigs {
-			addresses = append(addresses, ipconfig.Address)
-		}
+	for _, secondaryCniResult := range opt.ipamAddResult.interfaceInfo {
+		switch secondaryCniResult.NICType {
+		case cns.DelegatedVMNIC:
+			// secondary
+			var addresses []net.IPNet
+			for _, ipconfig := range secondaryCniResult.IPConfigs {
+				addresses = append(addresses, ipconfig.Address)
+			}
 
-		epInfos = append(epInfos,
-			&network.EndpointInfo{
-				ContainerID:       epInfo.ContainerID,
-				NetNsPath:         epInfo.NetNsPath,
-				IPAddresses:       addresses,
-				Routes:            secondaryCniResult.Routes,
-				MacAddress:        secondaryCniResult.MacAddress,
-				NICType:           secondaryCniResult.NICType,
-				SkipDefaultRoutes: secondaryCniResult.SkipDefaultRoutes,
-			})
+			epInfos = append(epInfos,
+				&network.EndpointInfo{
+					ContainerID:       epInfo.ContainerID,
+					NetNsPath:         epInfo.NetNsPath,
+					IPAddresses:       addresses,
+					Routes:            secondaryCniResult.Routes,
+					MacAddress:        secondaryCniResult.MacAddress,
+					NICType:           secondaryCniResult.NICType,
+					SkipDefaultRoutes: secondaryCniResult.SkipDefaultRoutes,
+				})
+		case cns.BackendNIC:
+			// todo
+		default:
+			// InfraNic
+			continue
+		}
 	}
 
 	// Create the endpoint.

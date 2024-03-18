@@ -372,7 +372,7 @@ func (nm *networkManager) GetNetworkInfo(networkId string) (NetworkInfo, error) 
 }
 
 // CreateEndpoint creates a new container endpoint.
-func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epInfo []*EndpointInfo) error {
+func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epInfo []*EndpointInfo, defaultIndex int) error {
 	nm.Lock()
 	defer nm.Unlock()
 
@@ -382,10 +382,10 @@ func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epIn
 	}
 
 	if nw.VlanId != 0 {
-		// the first entry in epInfo is InfraNIC type
-		if epInfo[0].Data[VlanIDKey] == nil {
+		// leverage passing default index, if failed, call function to find default
+		if epInfo[defaultIndex].Data[VlanIDKey] == nil {
 			logger.Info("overriding endpoint vlanid with network vlanid")
-			epInfo[0].Data[VlanIDKey] = nw.VlanId
+			epInfo[defaultIndex].Data[VlanIDKey] = nw.VlanId
 		}
 	}
 
