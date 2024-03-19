@@ -417,6 +417,10 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		res, err = plugin.nnsClient.AddContainerNetworking(context.Background(), k8sPodName, args.Netns)
 
 		if err == nil {
+			// Need to figure out what the NICtype is. Currently there is defer() code that has a -1 index error as part of logic if an infraNic does not exist.
+			// ipamAddResult.interfaceInfo = append(ipamAddResult.interfaceInfo, network.InterfaceInfo{
+			// 	IPConfigs: convertNnsToIPConfigs(res, args.IfName, k8sPodName, "AddContainerNetworking"),
+			// })
 			ipamAddResult.defaultInterfaceInfo.IPConfigs = convertNnsToIPConfigs(res, args.IfName, k8sPodName, "AddContainerNetworking")
 		}
 
@@ -586,7 +590,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		}
 
 		sendEvent(plugin, fmt.Sprintf("CNI ADD succeeded: IP:%+v, VlanID: %v, podname %v, namespace %v numendpoints:%d",
-			ipamAddResult.defaultInterfaceInfo.IPConfigs, epInfo.Data[network.VlanIDKey], k8sPodName, k8sNamespace, plugin.nm.GetNumberOfEndpoints("", nwCfg.Name)))
+			ipamAddResult.interfaceInfo[defaultIndex].IPConfigs, epInfo.Data[network.VlanIDKey], k8sPodName, k8sNamespace, plugin.nm.GetNumberOfEndpoints("", nwCfg.Name)))
 	}
 
 	return nil
@@ -633,7 +637,7 @@ func (plugin *NetPlugin) createNetworkInternal(
 		return nwInfo, err
 	}
 
-	nwDNSInfo, err := getNetworkDNSSettings(ipamAddConfig.nwCfg, ipamAddResult.defaultInterfaceInfo.DNS)
+	nwDNSInfo, err := getNetworkDNSSettings(ipamAddConfig.nwCfg, ipamAddResult.interfaceInfo[defaultIndex].DNS)
 	if err != nil {
 		err = plugin.Errorf("Failed to getDNSSettings: %v", err)
 		return nwInfo, err
@@ -717,8 +721,8 @@ type createEndpointInternalOpt struct {
 func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt, defaultIndex int) (network.EndpointInfo, error) {
 	epInfo := network.EndpointInfo{}
 
-	defaultInterfaceInfo := opt.ipamAddResult.interfaceInfo[defaultIndex] // can also call function, but this will be faster
-	epDNSInfo, err := getEndpointDNSSettings(opt.nwCfg, defaultInterfaceInfo.DNS, opt.k8sNamespace)
+	ifInfo := opt.ipamAddResult.interfaceInfo[defaultIndex] // can also call function, but this will be faster
+	epDNSInfo, err := getEndpointDNSSettings(opt.nwCfg, ifInfo.DNS, opt.k8sNamespace)
 	if err != nil {
 		err = plugin.Errorf("Failed to getEndpointDNSSettings: %v", err)
 		return epInfo, err
@@ -726,7 +730,7 @@ func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt, 
 	policyArgs := PolicyArgs{
 		nwInfo:    opt.nwInfo,
 		nwCfg:     opt.nwCfg,
-		ipconfigs: defaultInterfaceInfo.IPConfigs,
+		ipconfigs: ifInfo.IPConfigs,
 	}
 	endpointPolicies, err := getEndpointPolicies(policyArgs)
 	if err != nil {
@@ -766,7 +770,7 @@ func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt, 
 		NATInfo:            opt.natInfo,
 		NICType:            cns.InfraNIC,
 		SkipDefaultRoutes:  opt.ipamAddResult.interfaceInfo[defaultIndex].SkipDefaultRoutes,
-		Routes:             defaultInterfaceInfo.Routes,
+		Routes:             ifInfo.Routes,
 	}
 
 	epPolicies, err := getPoliciesFromRuntimeCfg(opt.nwCfg, opt.ipamAddResult.ipv6Enabled)
@@ -777,7 +781,7 @@ func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt, 
 	epInfo.Policies = append(epInfo.Policies, epPolicies...)
 
 	// Populate addresses.
-	for _, ipconfig := range defaultInterfaceInfo.IPConfigs {
+	for _, ipconfig := range ifInfo.IPConfigs {
 		epInfo.IPAddresses = append(epInfo.IPAddresses, ipconfig.Address)
 	}
 
@@ -790,7 +794,7 @@ func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt, 
 	}
 
 	if opt.nwCfg.MultiTenancy {
-		plugin.multitenancyClient.SetupRoutingForMultitenancy(opt.nwCfg, opt.cnsNetworkConfig, opt.azIpamResult, &epInfo, &defaultInterfaceInfo)
+		plugin.multitenancyClient.SetupRoutingForMultitenancy(opt.nwCfg, opt.cnsNetworkConfig, opt.azIpamResult, &epInfo, &ifInfo)
 	}
 
 	setEndpointOptions(opt.cnsNetworkConfig, &epInfo, vethName)
