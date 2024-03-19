@@ -485,10 +485,20 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 				require.NoError(err)
 			}
 
-			fmt.Printf("want:%+v\nrest:%+v\n", tt.wantSecondaryInterfacesInfo, ipamAddResult.secondaryInterfacesInfo)
-			require.Equalf(tt.wantDefaultResult, ipamAddResult.defaultInterfaceInfo, "incorrect default response")
-			if len(tt.wantSecondaryInterfacesInfo.IPConfigs) > 0 {
-				require.EqualValues(tt.wantSecondaryInterfacesInfo, ipamAddResult.secondaryInterfacesInfo[0], "incorrect multitenant response")
+			for _, ifInfo := range ipamAddResult.interfaceInfo {
+				switch ifInfo.NICType {
+				case cns.DelegatedVMNIC:
+					// Secondary
+					fmt.Printf("want:%+v\nrest:%+v\n", tt.wantSecondaryInterfacesInfo, ifInfo)
+					if len(tt.wantSecondaryInterfacesInfo.IPConfigs) > 0 {
+						require.EqualValues(tt.wantSecondaryInterfacesInfo, ifInfo, "incorrect multitenant response")
+					}
+				case cns.BackendNIC:
+					// todo
+				default:
+					// Default | InfraNIC
+					require.Equalf(tt.wantDefaultResult, ifInfo, "incorrect default response")
+				}
 			}
 		})
 	}
@@ -713,10 +723,20 @@ func TestCNSIPAMInvoker_Add(t *testing.T) {
 				require.NoError(err)
 			}
 
-			fmt.Printf("want:%+v\nrest:%+v\n", tt.wantMultitenantResult, ipamAddResult.secondaryInterfacesInfo)
-			require.Equalf(tt.wantDefaultResult, ipamAddResult.defaultInterfaceInfo, "incorrect default response")
-			if len(tt.wantMultitenantResult.IPConfigs) > 0 {
-				require.Equalf(tt.wantMultitenantResult, ipamAddResult.secondaryInterfacesInfo[0], "incorrect multitenant response")
+			for _, ifInfo := range ipamAddResult.interfaceInfo {
+				switch ifInfo.NICType {
+				case cns.DelegatedVMNIC:
+					// Secondary
+					fmt.Printf("want:%+v\nrest:%+v\n", tt.wantMultitenantResult, ifInfo)
+					if len(tt.wantMultitenantResult.IPConfigs) > 0 {
+						require.Equalf(tt.wantMultitenantResult, ifInfo, "incorrect multitenant response")
+					}
+				case cns.BackendNIC:
+					// todo
+				default:
+					// Default | InfraNIC
+					require.Equalf(tt.wantDefaultResult, ifInfo, "incorrect default response")
+				}
 			}
 		})
 	}

@@ -98,7 +98,7 @@ type NetworkManager interface {
 	FindNetworkIDFromNetNs(netNs string) (string, error)
 	GetNumEndpointsByContainerID(containerID string) int
 
-	CreateEndpoint(client apipaClient, networkID string, epInfo []*EndpointInfo) error
+	CreateEndpoint(client apipaClient, networkID string, epInfo []*EndpointInfo, defaultIndex int) error
 	DeleteEndpoint(networkID string, endpointID string, epInfo *EndpointInfo) error
 	GetEndpointInfo(networkID string, endpointID string) (*EndpointInfo, error)
 	GetAllEndpoints(networkID string) (map[string]*EndpointInfo, error)

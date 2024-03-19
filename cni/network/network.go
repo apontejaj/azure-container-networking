@@ -827,7 +827,7 @@ func (plugin *NetPlugin) createEndpointInternal(opt *createEndpointInternalOpt, 
 	// Create the endpoint.
 	logger.Info("Creating endpoint", zap.String("endpointInfo", epInfo.PrettyString()))
 	sendEvent(plugin, fmt.Sprintf("[cni-net] Creating endpoint %s.", epInfo.PrettyString()))
-	err = plugin.nm.CreateEndpoint(cnsclient, opt.nwInfo.Id, epInfos)
+	err = plugin.nm.CreateEndpoint(cnsclient, opt.nwInfo.Id, epInfos, defaultIndex)
 	if err != nil {
 		err = plugin.Errorf("Failed to create endpoint: %v", err)
 	}
@@ -1427,5 +1427,5 @@ func findDefaultInterface(ipamAddResult IPAMAddResult) int {
 	}
 
 	// error or nil here
-	return 0
+	return -1
 }
