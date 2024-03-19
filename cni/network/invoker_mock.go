@@ -21,6 +21,8 @@ var (
 	errV4             = errors.New("v4 fail")
 	errV6             = errors.New("v6 Fail")
 	errDelegatedVMNIC = errors.New("delegatedVMNIC fail")
+	errNoInfraNIC     = errors.New("no InfraNIC fail")
+	errInvalidNIC     = errors.New("no test case for this NIC")
 	errDeleteIpam     = errors.New("delete fail")
 )
 
@@ -71,7 +73,11 @@ func (invoker *MockIpamInvoker) Add(opt IPAMAddConfig) (ipamAddResult IPAMAddRes
 		return ipamAddResult, errV6
 	}
 
-	defaultIndex := findDefaultInterface(ipamAddResult)
+	ifIndex, err := findDefaultInterface(ipamAddResult)
+	if err != nil {
+		return IPAMAddResult{}, errNoInfraNIC
+	}
+
 	if invoker.isIPv6 {
 		ipv6Str := "fc00::2"
 		if _, ok := invoker.ipMap["fc00::2/128"]; ok {
@@ -81,7 +87,7 @@ func (invoker *MockIpamInvoker) Add(opt IPAMAddConfig) (ipamAddResult IPAMAddRes
 		ip := net.ParseIP(ipv6Str)
 		ipnet := net.IPNet{IP: ip, Mask: net.CIDRMask(subnetv6Bits, ipv6Bits)}
 		gwIP := net.ParseIP("fc00::1")
-		ipamAddResult.interfaceInfo[defaultIndex].IPConfigs = append(ipamAddResult.interfaceInfo[defaultIndex].IPConfigs, &network.IPConfig{Address: ipnet, Gateway: gwIP})
+		ipamAddResult.interfaceInfo[ifIndex].IPConfigs = append(ipamAddResult.interfaceInfo[ifIndex].IPConfigs, &network.IPConfig{Address: ipnet, Gateway: gwIP})
 		invoker.ipMap[ipnet.String()] = true
 	}
 

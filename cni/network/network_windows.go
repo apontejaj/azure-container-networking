@@ -158,9 +158,14 @@ func (plugin *NetPlugin) getNetworkName(netNs string, ipamAddResult *IPAMAddResu
 	// This will happen during ADD call
 	if ipamAddResult != nil && ipamAddResult.ncResponse != nil {
 		// find defaultInterface within AddResult
-		defaultIndex := findDefaultInterface(ipamAddResult)
+		ifIndex, err := findDefaultInterface(*ipamAddResult)
+		if err != nil {
+			logger.Error("Error finding InfraNIC interface",
+				zap.Error(err))
+			return "", errors.Wrap(err, "cns did not return an InfraNIC")
+		}
 		// networkName will look like ~ azure-vlan1-172-28-1-0_24
-		ipAddrNet := ipamAddResult.interfaceInfo[defaultIndex].IPConfigs[0].Address
+		ipAddrNet := ipamAddResult.interfaceInfo[ifIndex].IPConfigs[0].Address
 		prefix, err := netip.ParsePrefix(ipAddrNet.String())
 		if err != nil {
 			logger.Error("Error parsing network CIDR",

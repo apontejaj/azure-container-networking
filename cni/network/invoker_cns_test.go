@@ -488,16 +488,17 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 			for _, ifInfo := range ipamAddResult.interfaceInfo {
 				switch ifInfo.NICType {
 				case cns.DelegatedVMNIC:
-					// Secondary
 					fmt.Printf("want:%+v\nrest:%+v\n", tt.wantSecondaryInterfacesInfo, ifInfo)
 					if len(tt.wantSecondaryInterfacesInfo.IPConfigs) > 0 {
 						require.EqualValues(tt.wantSecondaryInterfacesInfo, ifInfo, "incorrect multitenant response")
 					}
 				case cns.BackendNIC:
-					// todo
-				default:
-					// Default | InfraNIC
+					fmt.Print(errInvalidNIC)
+					require.FailNow("No coverage for this NICType")
+				case cns.InfraNIC:
 					require.Equalf(tt.wantDefaultResult, ifInfo, "incorrect default response")
+				default:
+					require.FailNow("Unsupported NICType")
 				}
 			}
 		})
@@ -726,16 +727,17 @@ func TestCNSIPAMInvoker_Add(t *testing.T) {
 			for _, ifInfo := range ipamAddResult.interfaceInfo {
 				switch ifInfo.NICType {
 				case cns.DelegatedVMNIC:
-					// Secondary
 					fmt.Printf("want:%+v\nrest:%+v\n", tt.wantMultitenantResult, ifInfo)
 					if len(tt.wantMultitenantResult.IPConfigs) > 0 {
 						require.Equalf(tt.wantMultitenantResult, ifInfo, "incorrect multitenant response")
 					}
 				case cns.BackendNIC:
-					// todo
-				default:
-					// Default | InfraNIC
+					fmt.Print(errInvalidNIC)
+					require.FailNow("No coverage for this NICType")
+				case cns.InfraNIC:
 					require.Equalf(tt.wantDefaultResult, ifInfo, "incorrect default response")
+				default:
+					require.FailNow("Unsupported NICType")
 				}
 			}
 		})
@@ -856,13 +858,13 @@ func TestCNSIPAMInvoker_Add_UnsupportedAPI(t *testing.T) {
 
 			for _, ifInfo := range ipamAddResult.interfaceInfo {
 				switch ifInfo.NICType {
-				case cns.DelegatedVMNIC:
-					// Secondary
-				case cns.BackendNIC:
-					// todo
-				default:
-					// Default | InfraNIC
+				case cns.DelegatedVMNIC, cns.BackendNIC:
+					fmt.Print(errInvalidNIC)
+					require.FailNow("No coverage for this NICType")
+				case cns.InfraNIC:
 					require.Equalf(tt.want, ifInfo, "incorrect ipv4 response")
+				default:
+					require.FailNow("Unsupported NICType")
 				}
 			}
 		})

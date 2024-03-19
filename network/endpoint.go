@@ -143,21 +143,20 @@ func (nw *network) newEndpoint(
 	nsc NamespaceClientInterface,
 	iptc ipTablesClient,
 	epInfo []*EndpointInfo,
-	defaultIndex int,
+	epIndex int,
 ) (*endpoint, error) {
 	var ep *endpoint
 	var err error
 
 	defer func() {
 		if err != nil {
-			// this log is hardcoded for default
-			logger.Error("Failed to create endpoint with err", zap.String("id", epInfo[defaultIndex].Id), zap.Error(err))
+			logger.Error("Failed to create endpoint with err", zap.String("id", epInfo[epIndex].Id), zap.Error(err))
 		}
 	}()
 
 	// Call the platform implementation.
 	// Pass nil for epClient and will be initialized in newendpointImpl
-	ep, err = nw.newEndpointImpl(apipaCli, nl, plc, netioCli, nil, nsc, iptc, epInfo, defaultIndex)
+	ep, err = nw.newEndpointImpl(apipaCli, nl, plc, netioCli, nil, nsc, iptc, epInfo, epIndex)
 	if err != nil {
 		return nil, err
 	}
