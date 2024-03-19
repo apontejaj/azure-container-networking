@@ -417,11 +417,10 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		res, err = plugin.nnsClient.AddContainerNetworking(context.Background(), k8sPodName, args.Netns)
 
 		if err == nil {
-			// Need to figure out what the NICtype is. Currently there is defer() code that has a -1 index error as part of logic if an infraNic does not exist.
-			// ipamAddResult.interfaceInfo = append(ipamAddResult.interfaceInfo, network.InterfaceInfo{
-			// 	IPConfigs: convertNnsToIPConfigs(res, args.IfName, k8sPodName, "AddContainerNetworking"),
-			// })
-			ipamAddResult.defaultInterfaceInfo.IPConfigs = convertNnsToIPConfigs(res, args.IfName, k8sPodName, "AddContainerNetworking")
+			ipamAddResult.interfaceInfo = append(ipamAddResult.interfaceInfo, network.InterfaceInfo{
+				IPConfigs: convertNnsToIPConfigs(res, args.IfName, k8sPodName, "AddContainerNetworking"),
+				NICType:   cns.InfraNIC,
+			})
 		}
 
 		return err
