@@ -362,7 +362,11 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		telemetry.SendCNIMetric(&cniMetric, plugin.tb)
 
 		// Add Interfaces to result.
-		defaultCniResult := convertInterfaceInfoToCniResult(ipamAddResult.defaultInterfaceInfo, args.IfName)
+		if len(ipamAddResult.interfaceInfo) < 1 {
+			ipamAddResult.interfaceInfo = append(ipamAddResult.interfaceInfo, network.InterfaceInfo{NICType: cns.InfraNIC})
+		}
+		defaultIndex := findDefaultInterface(ipamAddResult)
+		defaultCniResult := convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[defaultIndex], args.IfName)
 
 		addSnatInterface(nwCfg, defaultCniResult)
 
@@ -523,6 +527,9 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			ipamAddResult, err = plugin.ipamInvoker.Add(ipamAddConfig)
 			if err != nil {
 				return fmt.Errorf("IPAM Invoker Add failed with error: %w", err)
+			}
+			if defaultIndex == -1 {
+				defaultIndex = findDefaultInterface(ipamAddResult)
 			}
 			// This proably needs to be changed as we return all interfaces...
 			sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.interfaceInfo[defaultIndex], ipamAddResult.interfaceInfo))

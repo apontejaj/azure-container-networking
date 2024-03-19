@@ -767,7 +767,7 @@ func TestCNSIPAMInvoker_Add_UnsupportedAPI(t *testing.T) {
 		fields  fields
 		args    args
 		want    network.InterfaceInfo
-		want1   network.InterfaceInfo
+		want1   network.InterfaceInfo // We dont use this anywhere..? Dead Code potentially, ask jaeryn
 		wantErr bool
 	}{
 		{
@@ -853,7 +853,18 @@ func TestCNSIPAMInvoker_Add_UnsupportedAPI(t *testing.T) {
 				t.Fatalf("expected an error %+v but none received", err)
 			}
 			require.NoError(err)
-			require.Equalf(tt.want, ipamAddResult.defaultInterfaceInfo, "incorrect ipv4 response")
+
+			for _, ifInfo := range ipamAddResult.interfaceInfo {
+				switch ifInfo.NICType {
+				case cns.DelegatedVMNIC:
+					// Secondary
+				case cns.BackendNIC:
+					// todo
+				default:
+					// Default | InfraNIC
+					require.Equalf(tt.want, ifInfo, "incorrect ipv4 response")
+				}
+			}
 		})
 	}
 }
