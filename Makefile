@@ -34,7 +34,7 @@ endif
 # Interrogate the git repo and set some variables
 REPO_ROOT				 = $(shell git rev-parse --show-toplevel)
 REVISION				?= $(shell git rev-parse --short HEAD)
-ACN_VERSION				?= $(shell git describe --exclude "azure-ipam*" --exclude "dropgz*" --exclude "zapai*" --tags --always)-asn
+ACN_VERSION				?= $(shell git describe --exclude "azure-ipam*" --exclude "dropgz*" --exclude "zapai*" --tags --always)
 AZURE_IPAM_VERSION		?= $(notdir $(shell git describe --match "azure-ipam*" --tags --always))
 CNI_VERSION				?= $(ACN_VERSION)
 CNI_DROPGZ_VERSION		?= $(notdir $(shell git describe --match "dropgz*" --tags --always))

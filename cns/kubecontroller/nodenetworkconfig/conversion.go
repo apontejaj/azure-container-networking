@@ -92,15 +92,6 @@ func CreateNCRequestFromStaticNC(nc v1alpha.NetworkContainer) (*cns.CreateNetwor
 		PrefixLength: uint8(subnetPrefix.Bits()),
 	}
 
-	// if nc.Type == v1alpha.VNETBlock {
-	// 	nodeIP, nerr := netip.ParsePrefix(nc.NodeIP)
-	// 	if nerr != nil {
-	// 		return nil, errors.Wrapf(err, "IP: %s", nc.NodeIP)
-	// 	}
-	// 	subnet.IPAddress = nodeIP.Addr().String()
-	// 	subnet.PrefixLength = uint8(nodeIP.Bits())
-	// }
-
 	req, err := createNCRequestFromStaticNCHelper(nc, primaryPrefix, subnet)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error while creating NC request from static NC")
