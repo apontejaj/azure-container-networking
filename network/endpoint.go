@@ -93,6 +93,25 @@ type EndpointInfo struct {
 	SkipDefaultRoutes        bool
 	HNSEndpointID            string
 	HostIfName               string
+
+	MasterIfName string // related to HostIfName?
+	AdapterName  string
+	NetworkId    string // referred to as Id in NetworkInfo
+	Mode         string
+	Subnets      []SubnetInfo
+	PodSubnet    SubnetInfo
+	// DNS omitted
+	// Policies omitted
+	BridgeName string
+	// EnableSnatOnHost omitted
+	NetNs                         string                 // related to NetNsPath?
+	Options                       map[string]interface{} // related to Data?
+	DisableHairpinOnHostInterface bool
+	// IPV6Mode omitted
+	IPAMType string
+	// ServiceCidrs omitted
+	IsIPv6Enabled bool
+	// NICType omitted
 }
 
 // RouteInfo contains information about an IP route.

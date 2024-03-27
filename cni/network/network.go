@@ -476,6 +476,8 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	}
 
 	// iterate ipamAddResults and program the endpoint
+	// GOAL: We should have a populated ipamAddResult by this point so we can do the following:
+	// for _, ifInfo := range ipamAddResult.interfaceInfo {
 	for i := 0; i < len(ipamAddResults); i++ {
 		var networkID string
 		ipamAddResult = ipamAddResults[i]
@@ -600,6 +602,138 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			ipamAddResult.interfaceInfo[ifIndex].IPConfigs, epInfo.Data[network.VlanIDKey], k8sPodName, k8sNamespace, plugin.nm.GetNumberOfEndpoints("", nwCfg.Name)))
 	}
 
+	return nil
+}
+
+// loop over each interface info and call createEndpoint with it
+// you don't have access to a list of interface infos here
+// no need for default index because we only trigger the default index code when the type is the infra nic
+/**
+Overview:
+Create endpoint info
+Pass pointer to endpoint info to a new function to populate endpoint info fields (right now we don't separate the populating code into functions)
+Pass pointer to endpoint info to another new function to populate network info fields (or we can just do it in one big switch statement)
+  To populate network info, use Paul's code which should get the network info fields from various things passed in (we should pass those things in here too)
+  Potentially problematic getting the network id because plugin.getNetworkName seems to just always return nwCfg.Name (NEED ASSISTANCE)
+  But if we do get the network id correctly, just pass to Paul's code to get the network info fields which we can populate epInfo with
+After both sections are done, we can call createNetworkInternal (pass in epInfo) and createEndpointInternal (pass in epInfo)
+  Will need to modify those two functions as code from createEndpointInternal, for example, was pulled out into this function below
+*/
+// maybe create a createEndpointOpt struct for all the things we need to pass in
+func (plugin *NetPlugin) createEndpoint(opt *createEndpointInternalOpt, ifInfo *network.InterfaceInfo) error { // you can modify to pass in whatever else you need
+	var (
+		epInfo network.EndpointInfo
+	)
+	// taken from createEndpointInternal function
+	// populate endpoint info fields code is below
+	// did not move cns client code because we don't need it here
+	switch ifInfo.NICType {
+	case cns.DelegatedVMNIC:
+		// secondary
+		var addresses []net.IPNet
+		for _, ipconfig := range ifInfo.IPConfigs {
+			addresses = append(addresses, ipconfig.Address)
+		}
+
+		epInfo = network.EndpointInfo{
+			ContainerID:       epInfo.ContainerID,
+			NetNsPath:         epInfo.NetNsPath,
+			IPAddresses:       addresses,
+			Routes:            ifInfo.Routes,
+			MacAddress:        ifInfo.MacAddress,
+			NICType:           ifInfo.NICType,
+			SkipDefaultRoutes: ifInfo.SkipDefaultRoutes,
+		}
+	case cns.BackendNIC:
+		// todo
+	default:
+		// InfraNic
+		// taken from create endpoint internal function
+		// TODO: does this change the behavior (we moved the infra nic code into here rather than above the switch statement)? (it shouldn't)
+		// at this point you are 100% certain that the interface passed in is the infra nic, and thus, the default interface info
+		defaultInterfaceInfo := ifInfo
+		epDNSInfo, err := getEndpointDNSSettings(opt.nwCfg, defaultInterfaceInfo.DNS, opt.k8sNamespace)
+		if err != nil {
+			err = plugin.Errorf("Failed to getEndpointDNSSettings: %v", err)
+			return err
+		}
+		policyArgs := PolicyArgs{
+			nwInfo:    opt.nwInfo,
+			nwCfg:     opt.nwCfg,
+			ipconfigs: defaultInterfaceInfo.IPConfigs,
+		}
+		endpointPolicies, err := getEndpointPolicies(policyArgs)
+		if err != nil {
+			logger.Error("Failed to get endpoint policies", zap.Error(err))
+			return err
+		}
+
+		opt.policies = append(opt.policies, endpointPolicies...)
+
+		vethName := fmt.Sprintf("%s.%s", opt.k8sNamespace, opt.k8sPodName)
+		if opt.nwCfg.Mode != OpModeTransparent {
+			// this mechanism of using only namespace and name is not unique for different incarnations of POD/container.
+			// IT will result in unpredictable behavior if API server decides to
+			// reorder DELETE and ADD call for new incarnation of same POD.
+			vethName = fmt.Sprintf("%s%s%s", opt.nwInfo.Id, opt.args.ContainerID, opt.args.IfName)
+		}
+
+		epInfo = network.EndpointInfo{
+			Id:                 opt.endpointID,
+			ContainerID:        opt.args.ContainerID,
+			NetNsPath:          opt.args.Netns,
+			IfName:             opt.args.IfName,
+			Data:               make(map[string]interface{}),
+			DNS:                epDNSInfo,
+			Policies:           opt.policies,
+			IPsToRouteViaHost:  opt.nwCfg.IPsToRouteViaHost,
+			EnableSnatOnHost:   opt.nwCfg.EnableSnatOnHost,
+			EnableMultiTenancy: opt.nwCfg.MultiTenancy,
+			EnableInfraVnet:    opt.enableInfraVnet,
+			EnableSnatForDns:   opt.enableSnatForDNS,
+			PODName:            opt.k8sPodName,
+			PODNameSpace:       opt.k8sNamespace,
+			SkipHotAttachEp:    false, // Hot attach at the time of endpoint creation
+			IPV6Mode:           opt.nwCfg.IPV6Mode,
+			VnetCidrs:          opt.nwCfg.VnetCidrs,
+			ServiceCidrs:       opt.nwCfg.ServiceCidrs,
+			NATInfo:            opt.natInfo,
+			NICType:            cns.InfraNIC,
+			SkipDefaultRoutes:  ifInfo.SkipDefaultRoutes, // we know we are the default interface at this point
+			Routes:             defaultInterfaceInfo.Routes,
+		}
+
+		epPolicies, err := getPoliciesFromRuntimeCfg(opt.nwCfg, opt.ipamAddResult.ipv6Enabled)
+		if err != nil {
+			logger.Error("failed to get policies from runtime configurations", zap.Error(err))
+			return plugin.Errorf(err.Error())
+		}
+		epInfo.Policies = append(epInfo.Policies, epPolicies...)
+
+		// Populate addresses.
+		for _, ipconfig := range defaultInterfaceInfo.IPConfigs {
+			epInfo.IPAddresses = append(epInfo.IPAddresses, ipconfig.Address)
+		}
+
+		if opt.ipamAddResult.ipv6Enabled {
+			epInfo.IPV6Mode = string(util.IpamMode(opt.nwCfg.IPAM.Mode)) // TODO: check IPV6Mode field can be deprecated and can we add IsIPv6Enabled flag for generic working
+		}
+
+		if opt.azIpamResult != nil && opt.azIpamResult.IPs != nil {
+			epInfo.InfraVnetIP = opt.azIpamResult.IPs[0].Address
+		}
+
+		if opt.nwCfg.MultiTenancy {
+			plugin.multitenancyClient.SetupRoutingForMultitenancy(opt.nwCfg, opt.cnsNetworkConfig, opt.azIpamResult, &epInfo, defaultInterfaceInfo)
+		}
+
+		setEndpointOptions(opt.cnsNetworkConfig, &epInfo, vethName)
+	}
+	// now need to populate the network info section of the ep info struct here (or you can do it in the switch statement above)
+	// TODO: add network info populating code
+	// now our ep info should have the full combined information from both the network and endpoint structs
+	// call create network internal (need to change function signature)
+	// call create endpoint internal (need to change function signature)
 	return nil
 }
 
