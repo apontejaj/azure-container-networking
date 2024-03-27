@@ -43,11 +43,24 @@ stages:
               echo "KernelType : $(KernelType)"
               echo "KernelVersion : $(KernelVersion)"
               echo "ProposedRepoVersion : $(ProposedRepoVersion)"
+              # echo "------"
+              # echo "Runtime Parameters passed"
+              # echo "KernelType : ${{ parameters.KernelType }}"
+              # echo "KernelVersion : ${{ parameters.KernelVersion }}"
+              # echo "ProposedRepoVersion : ${{ parameters.ProposedRepoVersion }}"
+
               echo "------"
-              echo "Runtime Parameters passed"
-              echo "KernelType : ${{ parameters.KernelType }}"
-              echo "KernelVersion : ${{ parameters.KernelVersion }}"
-              echo "ProposedRepoVersion : ${{ parameters.ProposedRepoVersion }}"
+              echo "KernelType Check"
+              Kernel=$(KernelType)
+              if [ $Kernel = 'proposed-azure' ]; then
+                echo "KernelType is $Kernel , change to linux-azure"
+                Kernel=linux-azure
+              fi
+              if [ $Kernel = 'proposed-edge' ]; then
+                echo "KernelType is $Kernel , change to linux-azure-edge"
+                Kernel=linux-azure-edge
+              fi
+              echo "##vso[task.setvariable variable=kernelType;isOutput=true]$Kernel"
             name: "SetEnvVars"
             displayName: "Set Environment Variables"
             condition: always()
@@ -63,19 +76,19 @@ stages:
       cni: cniv2
       test: var
 
-  - template: lsg-cni-intergration-template.yaml
-    parameters:
-      name: linux_over_par
-      clusterType: overlay-byocni-up
-      clusterName: "kup-over-par"
-      nodeCount: 2
-      vmSize: Standard_B2ms
-      arch: amd64
-      cni: cniv2
-      test: par
-      KernelType : ${{ parameters.KernelType }}
-      KernelVersion : ${{ parameters.KernelVersion }}
-      ProposedRepoVersion : ${{ parameters.ProposedRepoVersion }}
+  # - template: lsg-cni-intergration-template.yaml
+  #   parameters:
+  #     name: linux_over_par
+  #     clusterType: overlay-byocni-up
+  #     clusterName: "kup-over-par"
+  #     nodeCount: 2
+  #     vmSize: Standard_B2ms
+  #     arch: amd64
+  #     cni: cniv2
+  #     test: par
+  #     KernelType : ${{ parameters.KernelType }}
+  #     KernelVersion : ${{ parameters.KernelVersion }}
+  #     ProposedRepoVersion : ${{ parameters.ProposedRepoVersion }}
 
   - stage: delete_resources
     displayName: "Delete Resources"
@@ -84,7 +97,7 @@ stages:
     condition: always()
     dependsOn:
       - linux_overlay
-      - linux_over_par
+      # - linux_over_par
       - setup
     variables:
       commitID: $[ stagedependencies.setup.env.outputs['SetEnvVars.commitID'] ]
@@ -98,9 +111,9 @@ stages:
             linux_overlay:
               name: linux_overlay
               clusterName: "kup-overlay"
-            linux_over_par:
-              name: linux_over_par
-              clusterName: "kup-over-par"
+            # linux_over_par:
+            #   name: linux_over_par
+            #   clusterName: "kup-over-par"
         steps:
           - template: ../../templates/delete-cluster.yaml
             parameters:
