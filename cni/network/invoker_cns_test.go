@@ -140,7 +140,8 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 						Gw:  getTestOverlayGateway(),
 					},
 				},
-				NICType: cns.InfraNIC,
+				NICType:          cns.InfraNIC,
+				HostSubnetPrefix: *getCIDRNotationForAddress("10.224.0.0/16"),
 			},
 			wantErr: false,
 		},
@@ -496,6 +497,7 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 					fmt.Print(errInvalidNIC)
 					require.FailNow("No coverage for this NICType")
 				case cns.InfraNIC:
+					t.Logf("%s", &ifInfo.HostSubnetPrefix)
 					require.Equalf(tt.wantDefaultResult, ifInfo, "incorrect default response")
 				default:
 					require.FailNow("Unsupported NICType")

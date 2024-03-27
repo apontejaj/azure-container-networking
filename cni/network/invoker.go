@@ -4,7 +4,6 @@ import (
 	"net"
 
 	"github.com/Azure/azure-container-networking/cni"
-	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/network"
 	cniSkel "github.com/containernetworking/cni/pkg/skel"
 )
@@ -30,7 +29,7 @@ type IPAMAddResult struct {
 	// Splitting defaultInterfaceInfo from secondaryInterfacesInfo so we don't need to loop for default CNI result every time
 	interfaceInfo []network.InterfaceInfo
 	// ncResponse is used for Swift 1.0 multitenancy
-	ncResponse       *cns.GetNetworkContainerResponse
-	hostSubnetPrefix net.IPNet
+	// ncResponse       *cns.GetNetworkContainerResponse
+	hostSubnetPrefix net.IPNet // Duplicated field for now
 	ipv6Enabled      bool
 }

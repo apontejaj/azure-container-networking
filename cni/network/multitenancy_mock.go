@@ -88,9 +88,9 @@ func (m *MockMultitenancy) GetAllNetworkContainers(
 	podName string,
 	podNamespace string,
 	ifName string,
-) ([]IPAMAddResult, error) {
+) (IPAMAddResult, error) {
 	if m.fail {
-		return nil, errMockMulAdd
+		return IPAMAddResult{}, errMockMulAdd
 	}
 
 	var cnsResponses []cns.GetNetworkContainerResponse
@@ -154,17 +154,19 @@ func (m *MockMultitenancy) GetAllNetworkContainers(
 	ipNets = append(ipNets, *firstIPnet)
 	cnsResponses = append(cnsResponses, *cnsResponseOne)
 
-	ipamResults := make([]IPAMAddResult, len(cnsResponses))
+	ipamResult := IPAMAddResult{}
 	// Can use hard coded 0 as ipamResults is empty and we are creating the first interface
 	for i := 0; i < len(cnsResponses); i++ {
-		ipamResults[i].ncResponse = &cnsResponses[i]
-		ipamResults[i].hostSubnetPrefix = ipNets[i]
-		ipconfig, routes := convertToIPConfigAndRouteInfo(ipamResults[i].ncResponse)
-		ipamResults[i].interfaceInfo = append(ipamResults[i].interfaceInfo, network.InterfaceInfo{})
-		ipamResults[i].interfaceInfo[0].IPConfigs = []*network.IPConfig{ipconfig}
-		ipamResults[i].interfaceInfo[0].Routes = routes
-		ipamResults[i].interfaceInfo[0].NICType = cns.InfraNIC
+		ipamResult.interfaceInfo = append(ipamResult.interfaceInfo, network.InterfaceInfo{
+			NCResponse: &cnsResponses[i],
+		})
+
+		ipconfig, routes := convertToIPConfigAndRouteInfo(ipamResult.interfaceInfo[i].NCResponse)
+		ipamResult.interfaceInfo[i].IPConfigs = []*network.IPConfig{ipconfig}
+		ipamResult.interfaceInfo[i].Routes = routes
+		ipamResult.interfaceInfo[i].NICType = cns.InfraNIC
+
 	}
 
-	return ipamResults, nil
+	return ipamResult, nil
 }

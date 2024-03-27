@@ -436,7 +436,7 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 		return fmt.Errorf("unable to parse hostSubnet: %w", err)
 	}
 
-	addResult.hostSubnetPrefix = *hostIPNet
+	addResult.interfaceInfo[ifIndex].HostSubnetPrefix = *hostIPNet
 	addResult.interfaceInfo[ifIndex].NICType = cns.InfraNIC // This can be removed
 
 	// set subnet prefix for host vm

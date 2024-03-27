@@ -43,7 +43,7 @@ type MultitenancyClient interface {
 		nwCfg *cni.NetworkConfig,
 		podName string,
 		podNamespace string,
-		ifName string) ([]IPAMAddResult, error)
+		ifName string) (IPAMAddResult, error)
 	Init(cnsclient cnsclient, netioshim netioshim)
 }
 
@@ -189,7 +189,7 @@ func (m *Multitenancy) SetupRoutingForMultitenancy(
 // get all network container configuration(s) for given orchestratorContext
 func (m *Multitenancy) GetAllNetworkContainers(
 	ctx context.Context, nwCfg *cni.NetworkConfig, podName, podNamespace, ifName string,
-) ([]IPAMAddResult, error) {
+) (IPAMAddResult, error) {
 	var podNameWithoutSuffix string
 
 	if !nwCfg.EnableExactMatchForPodName {
@@ -202,7 +202,7 @@ func (m *Multitenancy) GetAllNetworkContainers(
 
 	ncResponses, hostSubnetPrefixes, err := m.getNetworkContainersInternal(ctx, podNamespace, podNameWithoutSuffix)
 	if err != nil {
-		return []IPAMAddResult{}, fmt.Errorf("%w", err)
+		return IPAMAddResult{}, fmt.Errorf("%w", err)
 	}
 
 	for i := 0; i < len(ncResponses); i++ {
@@ -210,24 +210,29 @@ func (m *Multitenancy) GetAllNetworkContainers(
 			if ncResponses[i].LocalIPConfiguration.IPSubnet.IPAddress == "" {
 				logger.Info("Snat IP is not populated for ncs. Got empty string",
 					zap.Any("response", ncResponses))
-				return []IPAMAddResult{}, errSnatIP
+				return IPAMAddResult{}, errSnatIP
 			}
 		}
 	}
 
-	ipamResults := make([]IPAMAddResult, len(ncResponses))
+	ipamResult := IPAMAddResult{}
+	ipamResult.interfaceInfo = []network.InterfaceInfo{}
+
+	// ipamResults := make([]IPAMAddResult, len(ncResponses))
 	// Can use hard coded 0 as ipamResults is empty and we are creating the first interface
 	for i := 0; i < len(ncResponses); i++ {
-		ipamResults[i].ncResponse = &ncResponses[i]
-		ipamResults[i].hostSubnetPrefix = hostSubnetPrefixes[i]
-		ipconfig, routes := convertToIPConfigAndRouteInfo(ipamResults[i].ncResponse)
-		ipamResults[i].interfaceInfo = append(ipamResults[i].interfaceInfo, network.InterfaceInfo{})
-		ipamResults[i].interfaceInfo[0].IPConfigs = []*network.IPConfig{ipconfig}
-		ipamResults[i].interfaceInfo[0].Routes = routes
-		ipamResults[i].interfaceInfo[0].NICType = cns.InfraNIC
+		ipamResult.interfaceInfo = append(ipamResult.interfaceInfo, network.InterfaceInfo{
+			NCResponse:       &ncResponses[i],
+			HostSubnetPrefix: hostSubnetPrefixes[i],
+		})
+
+		ipconfig, routes := convertToIPConfigAndRouteInfo(ipamResult.interfaceInfo[i].NCResponse)
+		ipamResult.interfaceInfo[i].IPConfigs = []*network.IPConfig{ipconfig}
+		ipamResult.interfaceInfo[i].Routes = routes
+		ipamResult.interfaceInfo[i].NICType = cns.InfraNIC
 	}
 
-	return ipamResults, err
+	return ipamResult, err
 }
 
 // get all network containers configuration for given orchestratorContext

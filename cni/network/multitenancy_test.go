@@ -548,9 +548,9 @@ func TestGetMultiTenancyCNIResult(t *testing.T) {
 				require.Error(err)
 			}
 			require.NoError(err)
-			require.Exactly(tt.want1, got[0].ncResponse)
-			require.Exactly(tt.want2, got[1].ncResponse)
-			require.Exactly(tt.want3, got[0].hostSubnetPrefix)
+			require.Exactly(tt.want1, got.interfaceInfo[0].NCResponse)
+			require.Exactly(tt.want2, got.interfaceInfo[1].NCResponse)
+			require.Exactly(tt.want3, got.interfaceInfo[0].HostSubnetPrefix)
 
 			// check multiple responses
 			tt.want5 = append(tt.want5, *tt.want1, *tt.want2)
@@ -691,7 +691,7 @@ func TestGetMultiTenancyCNIResultUnsupportedAPI(t *testing.T) {
 				t.Fatalf("expected an error %+v but none received", err)
 			}
 			require.NoError(err)
-			require.Exactly(tt.want, got[0].ncResponse)
+			require.Exactly(tt.want, got.interfaceInfo[0].NCResponse)
 		})
 	}
 }

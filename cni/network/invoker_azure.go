@@ -70,7 +70,7 @@ func (invoker *AzureIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, er
 		return addResult, err
 	}
 	if len(result.IPs) > 0 {
-		addResult.hostSubnetPrefix = result.IPs[0].Address
+		addResult.hostSubnetPrefix = result.IPs[0].Address // Duplicated field for hostSubnetPrefix
 	}
 
 	defer func() {
