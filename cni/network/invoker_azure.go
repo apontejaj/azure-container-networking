@@ -69,8 +69,14 @@ func (invoker *AzureIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, er
 		err = invoker.plugin.Errorf("Failed to allocate pool: %v", err)
 		return addResult, err
 	}
+
+	addResult.interfaceInfo = []network.InterfaceInfo{}
+	addResult.interfaceInfo = append(addResult.interfaceInfo, network.InterfaceInfo{
+		HostSubnetPrefix: net.IPNet{},
+	})
+
 	if len(result.IPs) > 0 {
-		addResult.hostSubnetPrefix = result.IPs[0].Address // Duplicated field for hostSubnetPrefix
+		addResult.interfaceInfo[0].HostSubnetPrefix = result.IPs[0].Address
 	}
 
 	defer func() {

@@ -52,8 +52,6 @@ func (invoker *MockIpamInvoker) Add(opt IPAMAddConfig) (ipamAddResult IPAMAddRes
 		return ipamAddResult, errV4
 	}
 
-	ipamAddResult.hostSubnetPrefix = net.IPNet{}
-
 	ipv4Str := "10.240.0.5"
 	if _, ok := invoker.ipMap["10.240.0.5/24"]; ok {
 		ipv4Str = "10.240.0.6"
@@ -66,7 +64,8 @@ func (invoker *MockIpamInvoker) Add(opt IPAMAddConfig) (ipamAddResult IPAMAddRes
 		IPConfigs: []*network.IPConfig{
 			{Address: ipnet, Gateway: gwIP},
 		},
-		NICType: cns.InfraNIC,
+		NICType:          cns.InfraNIC,
+		HostSubnetPrefix: net.IPNet{},
 	})
 	invoker.ipMap[ipnet.String()] = true
 	if invoker.v6Fail {

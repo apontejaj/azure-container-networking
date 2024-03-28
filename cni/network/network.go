@@ -326,6 +326,22 @@ func addNatIPV6SubnetInfo(nwCfg *cni.NetworkConfig,
 	}
 }
 
+func (plugin *NetPlugin) addIpamInvoker(ipamAddConfig IPAMAddConfig) (IPAMAddResult, error) {
+	ipamAddResult, err := plugin.ipamInvoker.Add(ipamAddConfig)
+	if err != nil {
+		return IPAMAddResult{}, err
+	}
+	sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam interfaces: %+v", ipamAddResult.interfaceInfo))
+	return ipamAddResult, nil
+}
+
+// get network info
+func (plugin *NetPlugin) getNetworkInfo(netNs string, ipamAddResult IPAMAddResult, nwCfg *cni.NetworkConfig) (network.NetworkInfo, string, error) {
+	networkID, _ := plugin.getNetworkName(netNs, &ipamAddResult, nwCfg)
+	nwInfo, nwError := plugin.nm.GetNetworkInfo(networkID)
+	return nwInfo, networkID, nwError
+}
+
 // CNI implementation
 // https://github.com/containernetworking/cni/blob/master/SPEC.md
 
@@ -375,31 +391,26 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		telemetry.SendCNIMetric(&cniMetric, plugin.tb)
 
 		// Add Interfaces to result.
-		ifIndex, _ := findDefaultInterface(ipamAddResult)
-		if ifIndex < 0 {
-			ipamAddResult.interfaceInfo = append(ipamAddResult.interfaceInfo, network.InterfaceInfo{})
-			ifIndex = len(ipamAddResult.interfaceInfo) - 1
+		for _, intfInfo := range ipamAddResult.interfaceInfo {
+			cniResult := convertInterfaceInfoToCniResult(intfInfo, args.IfName)
+			addSnatInterface(nwCfg, cniResult)
+			// Convert result to the requested CNI version.
+			res, vererr := cniResult.GetAsVersion(nwCfg.CNIVersion)
+			if vererr != nil {
+				logger.Error("GetAsVersion failed", zap.Error(vererr))
+				plugin.Error(vererr)
+			}
+
+			if err == nil && res != nil {
+				// Output the result to stdout.
+				res.Print()
+			}
+
+			logger.Info("ADD command completed for",
+				zap.String("pod", k8sPodName),
+				zap.Any("IPs", cniResult.IPs),
+				zap.Error(err))
 		}
-		defaultCniResult := convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[ifIndex], args.IfName)
-
-		addSnatInterface(nwCfg, defaultCniResult)
-
-		// Convert result to the requested CNI version.
-		res, vererr := defaultCniResult.GetAsVersion(nwCfg.CNIVersion)
-		if vererr != nil {
-			logger.Error("GetAsVersion failed", zap.Error(vererr))
-			plugin.Error(vererr)
-		}
-
-		if err == nil && res != nil {
-			// Output the result to stdout.
-			res.Print()
-		}
-
-		logger.Info("ADD command completed for",
-			zap.String("pod", k8sPodName),
-			zap.Any("IPs", defaultCniResult.IPs),
-			zap.Error(err))
 	}()
 
 	// Parse Pod arguments.
@@ -482,28 +493,46 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			return plugin.Errorf(errMsg)
 		}
 	}
-	// else {
-	// 	// TODO: refactor this code for simplification
-	// 	// Add dummy ipamAddResult nil object for single tenancy mode
-	// 	// this will be used for: ipamAddResult, err = plugin.ipamInvoker.Add(ipamAddConfig)
-	// 	ipamAddResults = append(ipamAddResults, ipamAddResult)
-	// }
 
-	// iterate ipamAddResults and program the endpoint
-	// GOAL: We should have a populated ipamAddResult by this point so we can do the following:
-	// for _, ifInfo := range ipamAddResult.interfaceInfo {
-	// for i := 0; i < len(ipamAddResults); i++ {
-	var networkID string
+	var (
+		nwInfo    network.NetworkInfo
+		networkID string
+		nwInfoErr error
+	)
+
 	ifIndex, _ := findDefaultInterface(ipamAddResult)
-
-	options := make(map[string]any)
-	networkID, err = plugin.getNetworkName(args.Netns, &ipamAddResult, nwCfg)
 
 	endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
 	policies := cni.GetPoliciesFromNwCfg(nwCfg.AdditionalArgs)
 
+	options := make(map[string]any)
+	ipamAddConfig := IPAMAddConfig{nwCfg: nwCfg, args: args, options: options}
+
+	if plugin.ipamInvoker == nil {
+		switch nwCfg.IPAM.Type {
+		case network.AzureCNS:
+			plugin.ipamInvoker = NewCNSInvoker(k8sPodName, k8sNamespace, cnsClient, util.ExecutionMode(nwCfg.ExecutionMode), util.IpamMode(nwCfg.IPAM.Mode))
+		default:
+			nwInfo, networkID, nwInfoErr = plugin.getNetworkInfo(args.Netns, ipamAddResult, nwCfg)
+			plugin.ipamInvoker = NewAzureIpamInvoker(plugin, &nwInfo)
+		}
+	}
+
+	if !nwCfg.MultiTenancy {
+		ipamAddResult, err = plugin.addIpamInvoker(ipamAddConfig)
+		if err != nil {
+			return fmt.Errorf("IPAM Invoker Add failed with error: %w", err)
+		}
+		if ifIndex == -1 {
+			ifIndex, _ = findDefaultInterface(ipamAddResult)
+		}
+		// This proably needs to be changed as we return all interfaces...
+		sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.interfaceInfo[ifIndex], ipamAddResult.interfaceInfo))
+	}
+
 	// Check whether the network already exists.
-	nwInfo, nwInfoErr := plugin.nm.GetNetworkInfo(networkID)
+	nwInfo, networkID, nwInfoErr = plugin.getNetworkInfo(args.Netns, ipamAddResult, nwCfg)
+
 	// Handle consecutive ADD calls for infrastructure containers.
 	// This is a temporary work around for issue #57253 of Kubernetes.
 	// We can delete this if statement once they fix it.
@@ -532,33 +561,6 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			ipamAddResult.interfaceInfo[ifIndex] = convertCniResultToInterfaceInfo(resultSecondAdd)
 			return nil
 		}
-	}
-
-	// Initialize azureipam/cns ipam
-	if plugin.ipamInvoker == nil {
-		switch nwCfg.IPAM.Type {
-		case network.AzureCNS:
-			plugin.ipamInvoker = NewCNSInvoker(k8sPodName, k8sNamespace, cnsClient, util.ExecutionMode(nwCfg.ExecutionMode), util.IpamMode(nwCfg.IPAM.Mode))
-
-		default:
-			plugin.ipamInvoker = NewAzureIpamInvoker(plugin, &nwInfo)
-		}
-	}
-
-	ipamAddConfig := IPAMAddConfig{nwCfg: nwCfg, args: args, options: options}
-	if !nwCfg.MultiTenancy {
-		ipamAddResult, err = plugin.ipamInvoker.Add(ipamAddConfig)
-		if err != nil {
-			return fmt.Errorf("IPAM Invoker Add failed with error: %w", err)
-		}
-
-		ifIndex, err = findDefaultInterface(ipamAddResult)
-		if err != nil {
-			logger.Error("Error finding InfraNIC interface",
-				zap.Error(err))
-			return errors.Wrap(err, "error finding InfraNIC interface")
-		}
-		sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.interfaceInfo[ifIndex], ipamAddResult.interfaceInfo))
 	}
 
 	defer func() { //nolint:gocritic
