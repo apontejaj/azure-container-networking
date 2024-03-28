@@ -361,11 +361,6 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 				MultiTenancy: true,
 			},
 			ipamAddResult: &IPAMAddResult{
-				ncResponse: &cns.GetNetworkContainerResponse{
-					MultiTenancyInfo: cns.MultiTenancyInfo{
-						ID: 1,
-					},
-				},
 				interfaceInfo: []network.InterfaceInfo{
 					{
 						IPConfigs: []*network.IPConfig{
@@ -374,6 +369,11 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 									IP:   net.ParseIP("10.240.0.5"),
 									Mask: net.CIDRMask(24, 32),
 								},
+							},
+						},
+						NCResponse: &cns.GetNetworkContainerResponse{
+							MultiTenancyInfo: cns.MultiTenancyInfo{
+								ID: 1,
 							},
 						},
 					},
@@ -398,11 +398,6 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 				MultiTenancy: true,
 			},
 			ipamAddResult: &IPAMAddResult{
-				ncResponse: &cns.GetNetworkContainerResponse{
-					MultiTenancyInfo: cns.MultiTenancyInfo{
-						ID: 1,
-					},
-				},
 				interfaceInfo: []network.InterfaceInfo{
 					{
 						IPConfigs: []*network.IPConfig{
@@ -411,6 +406,11 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 									IP:   net.ParseIP(""),
 									Mask: net.CIDRMask(24, 32),
 								},
+							},
+						},
+						NCResponse: &cns.GetNetworkContainerResponse{
+							MultiTenancyInfo: cns.MultiTenancyInfo{
+								ID: 1,
 							},
 						},
 					},
@@ -435,11 +435,6 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 				MultiTenancy: true,
 			},
 			ipamAddResult: &IPAMAddResult{
-				ncResponse: &cns.GetNetworkContainerResponse{
-					MultiTenancyInfo: cns.MultiTenancyInfo{
-						ID: 1,
-					},
-				},
 				interfaceInfo: []network.InterfaceInfo{
 					{
 						IPConfigs: []*network.IPConfig{
@@ -448,6 +443,11 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 									IP:   net.ParseIP("10.0.00.6"),
 									Mask: net.CIDRMask(24, 32),
 								},
+							},
+						},
+						NCResponse: &cns.GetNetworkContainerResponse{
+							MultiTenancyInfo: cns.MultiTenancyInfo{
+								ID: 1,
 							},
 						},
 					},
@@ -472,11 +472,6 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 				MultiTenancy: true,
 			},
 			ipamAddResult: &IPAMAddResult{
-				ncResponse: &cns.GetNetworkContainerResponse{
-					MultiTenancyInfo: cns.MultiTenancyInfo{
-						ID: 1,
-					},
-				},
 				interfaceInfo: []network.InterfaceInfo{
 					{
 						IPConfigs: []*network.IPConfig{
@@ -485,6 +480,11 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 									IP:   net.ParseIP("10.0.0.6"),
 									Mask: net.CIDRMask(24, 32),
 								},
+							},
+						},
+						NCResponse: &cns.GetNetworkContainerResponse{
+							MultiTenancyInfo: cns.MultiTenancyInfo{
+								ID: 1,
 							},
 						},
 					},
@@ -509,7 +509,6 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 				MultiTenancy: false,
 			},
 			ipamAddResult: &IPAMAddResult{
-				ncResponse: &cns.GetNetworkContainerResponse{},
 				interfaceInfo: []network.InterfaceInfo{
 					{
 						IPConfigs: []*network.IPConfig{
@@ -520,6 +519,7 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 								},
 							},
 						},
+						NCResponse: &cns.GetNetworkContainerResponse{},
 					},
 				},
 			},
