@@ -466,6 +466,15 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		return fmt.Errorf("failed to create cns client with error: %w", err)
 	}
 
+	options := make(map[string]any)
+	ipamAddConfig := IPAMAddConfig{nwCfg: nwCfg, args: args, options: options}
+
+	var (
+		nwInfo    network.NetworkInfo
+		networkID string
+		nwInfoErr error
+	)
+
 	if nwCfg.MultiTenancy {
 		plugin.report.Context = "AzureCNIMultitenancy"
 		plugin.multitenancyClient.Init(cnsClient, AzureNetIOShim{})
@@ -492,43 +501,34 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 				zap.Any("results", ipamAddResult))
 			return plugin.Errorf(errMsg)
 		}
-	}
-
-	var (
-		nwInfo    network.NetworkInfo
-		networkID string
-		nwInfoErr error
-	)
-
-	ifIndex, _ := findDefaultInterface(ipamAddResult)
-
-	endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
-	policies := cni.GetPoliciesFromNwCfg(nwCfg.AdditionalArgs)
-
-	options := make(map[string]any)
-	ipamAddConfig := IPAMAddConfig{nwCfg: nwCfg, args: args, options: options}
-
-	if plugin.ipamInvoker == nil {
-		switch nwCfg.IPAM.Type {
-		case network.AzureCNS:
-			plugin.ipamInvoker = NewCNSInvoker(k8sPodName, k8sNamespace, cnsClient, util.ExecutionMode(nwCfg.ExecutionMode), util.IpamMode(nwCfg.IPAM.Mode))
-		default:
-			nwInfo, networkID, nwInfoErr = plugin.getNetworkInfo(args.Netns, ipamAddResult, nwCfg)
-			plugin.ipamInvoker = NewAzureIpamInvoker(plugin, &nwInfo)
+	} else {
+		if plugin.ipamInvoker == nil {
+			switch nwCfg.IPAM.Type {
+			case network.AzureCNS:
+				plugin.ipamInvoker = NewCNSInvoker(k8sPodName, k8sNamespace, cnsClient, util.ExecutionMode(nwCfg.ExecutionMode), util.IpamMode(nwCfg.IPAM.Mode))
+			default:
+				nwInfo, networkID, nwInfoErr = plugin.getNetworkInfo(args.Netns, ipamAddResult, nwCfg)
+				plugin.ipamInvoker = NewAzureIpamInvoker(plugin, &nwInfo)
+			}
 		}
-	}
 
-	if !nwCfg.MultiTenancy {
 		ipamAddResult, err = plugin.addIpamInvoker(ipamAddConfig)
 		if err != nil {
 			return fmt.Errorf("IPAM Invoker Add failed with error: %w", err)
 		}
+		ifIndex, _ := findDefaultInterface(ipamAddResult)
+
 		if ifIndex == -1 {
 			ifIndex, _ = findDefaultInterface(ipamAddResult)
 		}
 		// This proably needs to be changed as we return all interfaces...
 		sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.interfaceInfo[ifIndex], ipamAddResult.interfaceInfo))
+
 	}
+
+	ifIndex, _ := findDefaultInterface(ipamAddResult)
+	endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
+	policies := cni.GetPoliciesFromNwCfg(nwCfg.AdditionalArgs)
 
 	// Check whether the network already exists.
 	nwInfo, networkID, nwInfoErr = plugin.getNetworkInfo(args.Netns, ipamAddResult, nwCfg)

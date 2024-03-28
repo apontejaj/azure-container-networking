@@ -156,9 +156,9 @@ func (plugin *NetPlugin) getNetworkName(netNs string, ipamAddResult *IPAMAddResu
 
 	// First try to build the network name from the cnsResponse if present
 	// This will happen during ADD call
-	if ipamAddResult != nil && ipamAddResult.ncResponse != nil {
+	ifIndex, err := findDefaultInterface(*ipamAddResult)
+	if ipamAddResult != nil && ipamAddResult.interfaceInfo[ifIndex].NCResponse != nil {
 		// find defaultInterface within AddResult
-		ifIndex, err := findDefaultInterface(*ipamAddResult)
 		if err != nil {
 			logger.Error("Error finding InfraNIC interface",
 				zap.Error(err))
@@ -175,7 +175,7 @@ func (plugin *NetPlugin) getNetworkName(netNs string, ipamAddResult *IPAMAddResu
 		}
 		networkName := strings.ReplaceAll(prefix.Masked().String(), ".", "-")
 		networkName = strings.ReplaceAll(networkName, "/", "_")
-		networkName = fmt.Sprintf("%s-vlan%v-%v", nwCfg.Name, ipamAddResult.ncResponse.MultiTenancyInfo.ID, networkName)
+		networkName = fmt.Sprintf("%s-vlan%v-%v", nwCfg.Name, ipamAddResult.interfaceInfo[ifIndex].NCResponse.MultiTenancyInfo.ID, networkName)
 		return networkName, nil
 	}
 
