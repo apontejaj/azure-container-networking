@@ -32,7 +32,7 @@ func TestNewAndDeleteEndpointImplHnsV2(t *testing.T) {
 		NetNsPath:   "fakeNameSpace",
 		IfName:      "eth0",
 		Data:        make(map[string]interface{}),
-		DNS: DNSInfo{
+		EndpointDNS: DNSInfo{
 			Suffix:  "10.0.0.0",
 			Servers: []string{"10.0.0.1, 10.0.0.2"},
 			Options: nil,
@@ -76,7 +76,7 @@ func TestNewEndpointImplHnsv2Timesout(t *testing.T) {
 		NetNsPath:   "fakeNameSpace",
 		IfName:      "eth0",
 		Data:        make(map[string]interface{}),
-		DNS: DNSInfo{
+		EndpointDNS: DNSInfo{
 			Suffix:  "10.0.0.0",
 			Servers: []string{"10.0.0.1, 10.0.0.2"},
 			Options: nil,
@@ -103,7 +103,7 @@ func TestDeleteEndpointImplHnsv2Timeout(t *testing.T) {
 		NetNsPath:   "fakeNameSpace",
 		IfName:      "eth0",
 		Data:        make(map[string]interface{}),
-		DNS: DNSInfo{
+		EndpointDNS: DNSInfo{
 			Suffix:  "10.0.0.0",
 			Servers: []string{"10.0.0.1, 10.0.0.2"},
 			Options: nil,
@@ -152,7 +152,7 @@ func TestCreateEndpointImplHnsv1Timeout(t *testing.T) {
 		NetNsPath:   "fakeNameSpace",
 		IfName:      "eth0",
 		Data:        make(map[string]interface{}),
-		DNS: DNSInfo{
+		EndpointDNS: DNSInfo{
 			Suffix:  "10.0.0.0",
 			Servers: []string{"10.0.0.1, 10.0.0.2"},
 			Options: nil,
@@ -179,7 +179,7 @@ func TestDeleteEndpointImplHnsv1Timeout(t *testing.T) {
 		NetNsPath:   "fakeNameSpace",
 		IfName:      "eth0",
 		Data:        make(map[string]interface{}),
-		DNS: DNSInfo{
+		EndpointDNS: DNSInfo{
 			Suffix:  "10.0.0.0",
 			Servers: []string{"10.0.0.1, 10.0.0.2"},
 			Options: nil,

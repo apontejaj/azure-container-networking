@@ -66,7 +66,8 @@ type EndpointInfo struct {
 	SandboxKey               string
 	IfIndex                  int
 	MacAddress               net.HardwareAddr
-	DNS                      DNSInfo
+	EndpointDNS              DNSInfo
+	NetworkDNS               DNSInfo
 	IPAddresses              []net.IPNet
 	IPsToRouteViaHost        []string
 	InfraVnetIP              net.IPNet
@@ -278,7 +279,7 @@ func (ep *endpoint) getInfo() *EndpointInfo {
 		MacAddress:               ep.MacAddress,
 		SandboxKey:               ep.SandboxKey,
 		IfIndex:                  0, // Azure CNI supports only one interface
-		DNS:                      ep.DNS,
+		EndpointDNS:              ep.DNS,
 		EnableSnatOnHost:         ep.EnableSnatOnHost,
 		EnableInfraVnet:          ep.EnableInfraVnet,
 		EnableMultiTenancy:       ep.EnableMultitenancy,

@@ -106,7 +106,7 @@ func (nw *network) newEndpointImpl(
 		InfraVnetIP:              defaultEpInfo.InfraVnetIP,
 		LocalIP:                  localIP,
 		IPAddresses:              defaultEpInfo.IPAddresses,
-		DNS:                      defaultEpInfo.DNS,
+		DNS:                      defaultEpInfo.EndpointDNS,
 		VlanID:                   vlanid,
 		EnableSnatOnHost:         defaultEpInfo.EnableSnatOnHost,
 		EnableInfraVnet:          defaultEpInfo.EnableInfraVnet,

@@ -104,8 +104,8 @@ func (nw *network) newEndpointImplHnsV1(epInfo *EndpointInfo, plc platform.ExecC
 	hnsEndpoint := &hcsshim.HNSEndpoint{
 		Name:           infraEpName,
 		VirtualNetwork: nw.HnsId,
-		DNSSuffix:      epInfo.DNS.Suffix,
-		DNSServerList:  strings.Join(epInfo.DNS.Servers, ","),
+		DNSSuffix:      epInfo.EndpointDNS.Suffix,
+		DNSServerList:  strings.Join(epInfo.EndpointDNS.Servers, ","),
 		Policies:       policy.SerializePolicies(policy.EndpointPolicy, epInfo.Policies, epInfo.Data, epInfo.EnableSnatForDns, epInfo.EnableMultiTenancy),
 	}
 
@@ -165,7 +165,7 @@ func (nw *network) newEndpointImplHnsV1(epInfo *EndpointInfo, plc platform.ExecC
 		IfName:           epInfo.IfName,
 		IPAddresses:      epInfo.IPAddresses,
 		Gateways:         []net.IP{net.ParseIP(hnsResponse.GatewayAddress)},
-		DNS:              epInfo.DNS,
+		DNS:              epInfo.EndpointDNS,
 		VlanID:           vlanid,
 		EnableSnatOnHost: epInfo.EnableSnatOnHost,
 		NetNs:            epInfo.NetNsPath,
@@ -213,9 +213,9 @@ func (nw *network) configureHcnEndpoint(epInfo *EndpointInfo) (*hcn.HostComputeE
 		Name:               infraEpName,
 		HostComputeNetwork: nw.HnsId,
 		Dns: hcn.Dns{
-			Search:     strings.Split(epInfo.DNS.Suffix, ","),
-			ServerList: epInfo.DNS.Servers,
-			Options:    epInfo.DNS.Options,
+			Search:     strings.Split(epInfo.EndpointDNS.Suffix, ","),
+			ServerList: epInfo.EndpointDNS.Servers,
+			Options:    epInfo.EndpointDNS.Options,
 		},
 		SchemaVersion: hcn.SchemaVersion{
 			Major: hcnSchemaVersionMajor,
@@ -390,7 +390,7 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 		IfName:                   epInfo.IfName,
 		IPAddresses:              epInfo.IPAddresses,
 		Gateways:                 []net.IP{gateway},
-		DNS:                      epInfo.DNS,
+		DNS:                      epInfo.EndpointDNS,
 		VlanID:                   vlanid,
 		EnableSnatOnHost:         epInfo.EnableSnatOnHost,
 		NetNs:                    epInfo.NetNsPath,
