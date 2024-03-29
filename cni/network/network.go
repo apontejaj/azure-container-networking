@@ -597,13 +597,14 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			ipamAddConfig: &ipamAddConfig,
 			ipv6Enabled:   ipamAddResult.ipv6Enabled,
 		}
-		epInfo, err := plugin.createEpInfo(&createEpInfoOpt)
+		var epInfo *network.EndpointInfo
+		epInfo, err = plugin.createEpInfo(&createEpInfoOpt)
 		if err != nil {
-			return errors.Wrap(err, "failed to populate endpoint info struct")
+			return err
 		}
 		err = plugin.createEndpoint(epInfo, nwCfg.CNSUrl)
 		if err != nil {
-			return errors.Wrap(err, "failed to create endpoint")
+			return err
 		}
 		// TODO: should this statement be based on the current iteration instead of the constant ifIndex?
 		sendEvent(plugin, fmt.Sprintf("CNI ADD succeeded: IP:%+v, VlanID: %v, podname %v, namespace %v numendpoints:%d",
