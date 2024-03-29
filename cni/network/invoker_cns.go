@@ -141,9 +141,8 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 		}
 	}
 
-	addResult := IPAMAddResult{}
+	addResult := IPAMAddResult{interfaceInfo: make(map[string]network.InterfaceInfo)}
 	numInterfacesWithDefaultRoutes := 0
-	ifIndex := -1
 	for i := 0; i < len(response.PodIPInfo); i++ {
 		info := IPResultInfo{
 			podIPAddress:       response.PodIPInfo[i].PodIPConfig.IPAddress,
@@ -164,6 +163,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 			zap.Any("podInfo", podInfo))
 
 		//nolint:exhaustive // ignore exhaustive types check
+		// Do we want to leverage this lint skip in other places of our code?
 		switch info.nicType {
 		case cns.DelegatedVMNIC:
 			// only handling single v4 PodIPInfo for DelegatedVMNICs at the moment, will have to update once v6 gets added
@@ -174,17 +174,11 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 			if err := configureSecondaryAddResult(&info, &addResult, &response.PodIPInfo[i].PodIPConfig); err != nil {
 				return IPAMAddResult{}, err
 			}
-		default:
-			// Assign default index
-			if ifIndex == -1 {
-				// add a default Interface
-				// would put within configureDefaultAddResult() but we have a dependency on numInterfacesWithDefaultRoutes
-				addResult.interfaceInfo = append(addResult.interfaceInfo, network.InterfaceInfo{NICType: cns.InfraNIC})
-				ifIndex = len(addResult.interfaceInfo) - 1
-			}
+		case cns.InfraNIC:
 			// only count dualstack interface once
-			if addResult.interfaceInfo[ifIndex].IPConfigs == nil {
-				addResult.interfaceInfo[ifIndex].IPConfigs = make([]*network.IPConfig, 0)
+			_, exist := addResult.interfaceInfo[string(info.nicType)]
+			if !exist {
+				addResult.interfaceInfo[string(info.nicType)] = network.InterfaceInfo{}
 				if !info.skipDefaultRoutes {
 					numInterfacesWithDefaultRoutes++
 				}
@@ -194,6 +188,8 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 			if err := configureDefaultAddResult(&info, &addConfig, &addResult, overlayMode); err != nil {
 				return IPAMAddResult{}, err
 			}
+		default:
+			// TODO Error check or continue?
 		}
 	}
 
@@ -391,12 +387,18 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 		}
 	}
 
-	ifIndex, err := findDefaultInterface(*addResult)
 	if err != nil {
 		logger.Error("Error finding InfraNIC interface",
 			zap.Error(err))
 		return errors.Wrap(err, "error finding InfraNIC interface")
 	}
+
+	// get the name of the primary IP address
+	_, hostIPNet, err := net.ParseCIDR(info.hostSubnet)
+	if err != nil {
+		return fmt.Errorf("unable to parse hostSubnet: %w", err)
+	}
+
 	if ip := net.ParseIP(info.podIPAddress); ip != nil {
 		defaultRouteDstPrefix := network.Ipv4DefaultRouteDstPrefix
 		if ip.To4() == nil {
@@ -404,7 +406,8 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 			addResult.ipv6Enabled = true
 		}
 
-		addResult.interfaceInfo[ifIndex].IPConfigs = append(addResult.interfaceInfo[ifIndex].IPConfigs,
+		ipConfigs := addResult.interfaceInfo[string(info.nicType)].IPConfigs
+		ipConfigs = append(addResult.interfaceInfo[string(info.nicType)].IPConfigs,
 			&network.IPConfig{
 				Address: net.IPNet{
 					IP:   ip,
@@ -418,26 +421,23 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 			return getRoutesErr
 		}
 
+		resRoute := addResult.interfaceInfo[string(info.nicType)].Routes
 		if len(routes) > 0 {
-			addResult.interfaceInfo[ifIndex].Routes = append(addResult.interfaceInfo[ifIndex].Routes, routes...)
+			resRoute = append(addResult.interfaceInfo[string(info.nicType)].Routes, routes...)
 		} else { // add default routes if none are provided
-			addResult.interfaceInfo[ifIndex].Routes = append(addResult.interfaceInfo[ifIndex].Routes, network.RouteInfo{
+			resRoute = append(addResult.interfaceInfo[string(info.nicType)].Routes, network.RouteInfo{
 				Dst: defaultRouteDstPrefix,
 				Gw:  ncgw,
 			})
 		}
-
-		addResult.interfaceInfo[ifIndex].SkipDefaultRoutes = info.skipDefaultRoutes
+		addResult.interfaceInfo[string(info.nicType)] = network.InterfaceInfo{
+			NICType:           cns.InfraNIC,
+			SkipDefaultRoutes: info.skipDefaultRoutes,
+			IPConfigs:         ipConfigs,
+			Routes:            resRoute,
+			HostSubnetPrefix:  *hostIPNet,
+		}
 	}
-
-	// get the name of the primary IP address
-	_, hostIPNet, err := net.ParseCIDR(info.hostSubnet)
-	if err != nil {
-		return fmt.Errorf("unable to parse hostSubnet: %w", err)
-	}
-
-	addResult.interfaceInfo[ifIndex].HostSubnetPrefix = *hostIPNet
-	addResult.interfaceInfo[ifIndex].NICType = cns.InfraNIC // This can be removed
 
 	// set subnet prefix for host vm
 	// setHostOptions will execute if IPAM mode is not v4 overlay and not dualStackOverlay mode
@@ -467,7 +467,7 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 		return err
 	}
 
-	result := network.InterfaceInfo{
+	addResult.interfaceInfo[string(info.macAddress)] = network.InterfaceInfo{
 		IPConfigs: []*network.IPConfig{
 			{
 				Address: net.IPNet{
@@ -481,8 +481,6 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 		MacAddress:        macAddress,
 		SkipDefaultRoutes: info.skipDefaultRoutes,
 	}
-
-	addResult.interfaceInfo = append(addResult.interfaceInfo, result)
 
 	return nil
 }

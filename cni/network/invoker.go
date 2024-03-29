@@ -26,6 +26,15 @@ type IPAMAddConfig struct {
 }
 
 type IPAMAddResult struct {
-	interfaceInfo []network.InterfaceInfo
-	ipv6Enabled   bool
+	interfaceInfo map[string]network.InterfaceInfo
+	// ncResponse and host subnet prefix were moved into interface info
+	ipv6Enabled bool
+}
+
+func (ipamAddResult IPAMAddResult) PrettyString() string {
+	pStr := "InterfaceInfo: "
+	for _, ifInfo := range ipamAddResult.interfaceInfo {
+		pStr += ifInfo.PrettyString()
+	}
+	return pStr
 }

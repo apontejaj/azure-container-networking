@@ -21,8 +21,6 @@ var (
 	errV4             = errors.New("v4 fail")
 	errV6             = errors.New("v6 Fail")
 	errDelegatedVMNIC = errors.New("delegatedVMNIC fail")
-	errNoInfraNIC     = errors.New("no InfraNIC fail")
-	errInvalidNIC     = errors.New("no test case for this NIC")
 	errDeleteIpam     = errors.New("delete fail")
 )
 
@@ -51,30 +49,28 @@ func (invoker *MockIpamInvoker) Add(opt IPAMAddConfig) (ipamAddResult IPAMAddRes
 	if invoker.v4Fail {
 		return ipamAddResult, errV4
 	}
+	ipamAddResult = IPAMAddResult{interfaceInfo: make(map[string]network.InterfaceInfo)}
+	// TODO: the ipam add result host subnet prefix is in the interface info and ensure that when creating interface info, the host subnet prefix is set to an empty value (may break uts)
 
 	ipv4Str := "10.240.0.5"
 	if _, ok := invoker.ipMap["10.240.0.5/24"]; ok {
 		ipv4Str = "10.240.0.6"
 	}
-
 	ip := net.ParseIP(ipv4Str)
 	ipnet := net.IPNet{IP: ip, Mask: net.CIDRMask(subnetBits, ipv4Bits)}
 	gwIP := net.ParseIP("10.240.0.1")
-	ipamAddResult.interfaceInfo = append(ipamAddResult.interfaceInfo, network.InterfaceInfo{
-		IPConfigs: []*network.IPConfig{
-			{Address: ipnet, Gateway: gwIP},
-		},
+	ipRes := []*network.IPConfig{
+		{Address: ipnet, Gateway: gwIP},
+	}
+
+	ipamAddResult.interfaceInfo[string(cns.InfraNIC)] = network.InterfaceInfo{
+		IPConfigs:        ipRes,
 		NICType:          cns.InfraNIC,
 		HostSubnetPrefix: net.IPNet{},
-	})
+	}
 	invoker.ipMap[ipnet.String()] = true
 	if invoker.v6Fail {
 		return ipamAddResult, errV6
-	}
-
-	ifIndex, err := findDefaultInterface(ipamAddResult)
-	if err != nil {
-		return IPAMAddResult{}, errNoInfraNIC
 	}
 
 	if invoker.isIPv6 {
@@ -86,7 +82,11 @@ func (invoker *MockIpamInvoker) Add(opt IPAMAddConfig) (ipamAddResult IPAMAddRes
 		ip := net.ParseIP(ipv6Str)
 		ipnet := net.IPNet{IP: ip, Mask: net.CIDRMask(subnetv6Bits, ipv6Bits)}
 		gwIP := net.ParseIP("fc00::1")
-		ipamAddResult.interfaceInfo[ifIndex].IPConfigs = append(ipamAddResult.interfaceInfo[ifIndex].IPConfigs, &network.IPConfig{Address: ipnet, Gateway: gwIP})
+		ipRes = append(ipRes, &network.IPConfig{Address: ipnet, Gateway: gwIP})
+		ipamAddResult.interfaceInfo[string(cns.InfraNIC)] = network.InterfaceInfo{
+			IPConfigs: ipRes,
+			NICType:   cns.InfraNIC,
+		}
 		invoker.ipMap[ipnet.String()] = true
 	}
 
@@ -97,12 +97,11 @@ func (invoker *MockIpamInvoker) Add(opt IPAMAddConfig) (ipamAddResult IPAMAddRes
 
 		ipStr := "20.20.20.20/32"
 		_, ipnet, _ := net.ParseCIDR(ipStr)
-		ipamAddResult.interfaceInfo = append(ipamAddResult.interfaceInfo, network.InterfaceInfo{
-			IPConfigs: []*network.IPConfig{
-				{Address: *ipnet},
-			},
-			NICType: cns.DelegatedVMNIC,
-		})
+		ipRes = append(ipRes, &network.IPConfig{Address: *ipnet})
+		ipamAddResult.interfaceInfo[string(cns.InfraNIC)] = network.InterfaceInfo{
+			IPConfigs: ipRes,
+			NICType:   cns.DelegatedVMNIC,
+		}
 	}
 
 	return ipamAddResult, nil

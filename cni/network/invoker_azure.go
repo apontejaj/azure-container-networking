@@ -47,7 +47,7 @@ func NewAzureIpamInvoker(plugin *NetPlugin, nwInfo *network.EndpointInfo) *Azure
 }
 
 func (invoker *AzureIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, error) {
-	addResult := IPAMAddResult{}
+	addResult := IPAMAddResult{interfaceInfo: make(map[string]network.InterfaceInfo)}
 
 	if addConfig.nwCfg == nil {
 		return addResult, invoker.plugin.Errorf("nil nwCfg passed to CNI ADD, stack: %+v", string(debug.Stack()))
@@ -72,8 +72,8 @@ func (invoker *AzureIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, er
 
 	defer func() {
 		if err != nil {
-			if len(addResult.interfaceInfo[0].IPConfigs) > 0 {
-				if er := invoker.Delete(&addResult.interfaceInfo[0].IPConfigs[0].Address, addConfig.nwCfg, nil, addConfig.options); er != nil {
+			if len(addResult.interfaceInfo) > 0 && len(addResult.interfaceInfo[string(cns.InfraNIC)].IPConfigs) > 0 {
+				if er := invoker.Delete(&addResult.interfaceInfo[string(cns.InfraNIC)].IPConfigs[0].Address, addConfig.nwCfg, nil, addConfig.options); er != nil {
 					err = invoker.plugin.Errorf("Failed to clean up IP's during Delete with error %v, after Add failed with error %w", er, err)
 				}
 			} else {
@@ -113,18 +113,20 @@ func (invoker *AzureIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, er
 		routes[i] = network.RouteInfo{Dst: route.Dst, Gw: route.GW}
 	}
 
-	addResult.interfaceInfo = append(addResult.interfaceInfo, network.InterfaceInfo{
+	// TODO: changed how host subnet prefix populated (check)
+	var hostSubnetPrefix = net.IPNet{}
+	if len(result.IPs) > 0 {
+		hostSubnetPrefix = result.IPs[0].Address
+	}
+	addResult.interfaceInfo[string(cns.InfraNIC)] = network.InterfaceInfo{
 		IPConfigs: ipconfigs,
 		Routes:    routes,
 		DNS: network.DNSInfo{
 			Suffix:  result.DNS.Domain,
 			Servers: result.DNS.Nameservers,
 		},
-		NICType: cns.InfraNIC,
-	})
-
-	if len(result.IPs) > 0 {
-		addResult.interfaceInfo[0].HostSubnetPrefix = result.IPs[0].Address
+		NICType:          cns.InfraNIC,
+		HostSubnetPrefix: hostSubnetPrefix,
 	}
 
 	return addResult, err

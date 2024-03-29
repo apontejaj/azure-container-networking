@@ -157,9 +157,30 @@ func (nm *MockNetworkManager) GetNumEndpointsByContainerID(_ string) int {
 
 // TODO: understand mock behavior
 func (nm *MockNetworkManager) SaveState(eps []*endpoint) error {
+	// TODO: Mock behavior for saving the state separate from TestEndpointInfo/NetworkInfo map maybe
 	return nil
 }
 
-func (nm *MockNetworkManager) EndpointCreate(client apipaClient, epInfo []*EndpointInfo) error {
-	return nil
+// TODO: understand mock behavior
+func (nm *MockNetworkManager) EndpointCreate(client apipaClient, epInfos []*EndpointInfo) error {
+	eps := []*endpoint{}
+	for _, epInfo := range epInfos {
+		_, nwGetErr := nm.GetNetworkInfo(epInfo.NetworkId)
+		if nwGetErr != nil {
+			err := nm.CreateNetwork(epInfo)
+			if err != nil {
+				return err
+			}
+		}
+
+		ep, err := nm.CreateEndpoint(client, epInfo.NetworkId, epInfo)
+		if err != nil {
+			// err = plugin.Errorf("Failed to create endpoint: %v", err)
+			return err //added
+		}
+		eps = append(eps, ep)
+	}
+
+	// save endpoints
+	return nm.SaveState(eps)
 }

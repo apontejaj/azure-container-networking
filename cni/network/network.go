@@ -331,7 +331,7 @@ func (plugin *NetPlugin) addIpamInvoker(ipamAddConfig IPAMAddConfig) (IPAMAddRes
 	if err != nil {
 		return IPAMAddResult{}, err
 	}
-	sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam interfaces: %+v", ipamAddResult.interfaceInfo))
+	sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam interface: %+v", ipamAddResult.PrettyString()))
 	return ipamAddResult, nil
 }
 
@@ -401,27 +401,35 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		telemetry.SendCNIMetric(&cniMetric, plugin.tb)
 
 		// Add Interfaces to result.
-		for _, intfInfo := range ipamAddResult.interfaceInfo {
-			cniResult := convertInterfaceInfoToCniResult(intfInfo, args.IfName)
-			addSnatInterface(nwCfg, cniResult)
-			// Convert result to the requested CNI version.
-			res, vererr := cniResult.GetAsVersion(nwCfg.CNIVersion)
-			if vererr != nil {
-				logger.Error("GetAsVersion failed", zap.Error(vererr))
-				plugin.Error(vererr)
+		// previously just logged the default (infra) interface so this is equivalent behavior
+		cniResult := &cniTypesCurr.Result{}
+		for _, ifInfo := range ipamAddResult.interfaceInfo {
+			if ifInfo.NICType == cns.InfraNIC {
+				cniResult = convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[string(cns.InfraNIC)], args.IfName)
 			}
-
-			if err == nil && res != nil {
-				// Output the result to stdout.
-				res.Print()
-			}
-
-			logger.Info("ADD command completed for",
-				zap.String("pod", k8sPodName),
-				zap.Any("IPs", cniResult.IPs),
-				zap.Error(err))
 		}
+
+		addSnatInterface(nwCfg, cniResult)
+
+		// Convert result to the requested CNI version.
+		res, vererr := cniResult.GetAsVersion(nwCfg.CNIVersion)
+		if vererr != nil {
+			logger.Error("GetAsVersion failed", zap.Error(vererr))
+			plugin.Error(vererr)
+		}
+
+		if err == nil && res != nil {
+			// Output the result to stdout.
+			res.Print()
+		}
+
+		logger.Info("ADD command completed for",
+			zap.String("pod", k8sPodName),
+			zap.Any("IPs", cniResult.IPs),
+			zap.Error(err))
 	}()
+
+	ipamAddResult = IPAMAddResult{interfaceInfo: make(map[string]network.InterfaceInfo)}
 
 	// Parse Pod arguments.
 	k8sPodName, k8sNamespace, err := plugin.getPodInfo(args.Args)
@@ -452,12 +460,11 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		res, err = plugin.nnsClient.AddContainerNetworking(context.Background(), k8sPodName, args.Netns)
 
 		if err == nil {
-			ipamAddResult.interfaceInfo = append(ipamAddResult.interfaceInfo, network.InterfaceInfo{
+			ipamAddResult.interfaceInfo[string(cns.InfraNIC)] = network.InterfaceInfo{
 				IPConfigs: convertNnsToIPConfigs(res, args.IfName, k8sPodName, "AddContainerNetworking"),
 				NICType:   cns.InfraNIC,
-			})
+			}
 		}
-
 		return err
 	}
 
@@ -526,15 +533,22 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		// sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.interfaceInfo[ifIndex], ipamAddResult.interfaceInfo))
 	}
 
-	ifIndex, _ := findDefaultInterface(ipamAddResult)
 	endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
 	policies := cni.GetPoliciesFromNwCfg(nwCfg.AdditionalArgs)
+	// moved to addIpamInvoker
+	// sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam interface: %+v", ipamAddResult.PrettyString()))
 
 	defer func() { //nolint:gocritic
 		if err != nil {
 			// for multi-tenancies scenario, CNI is not supposed to invoke CNS for cleaning Ips
 			if !(nwCfg.MultiTenancy && nwCfg.IPAM.Type == network.AzureCNS) {
-				plugin.cleanupAllocationOnError(ipamAddResult.interfaceInfo[ifIndex].IPConfigs, nwCfg, args, options)
+				for _, ifInfo := range ipamAddResult.interfaceInfo {
+					// This used to only be called for infraNIC, test if this breaks scenarios
+					// If it does then will have to search for infraNIC
+					if ifInfo.NICType == cns.InfraNIC {
+						plugin.cleanupAllocationOnError(ifInfo.IPConfigs, nwCfg, args, options)
+					}
+				}
 			}
 		}
 	}()
@@ -570,8 +584,8 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		}
 		epInfos = append(epInfos, epInfo)
 		// TODO: should this statement be based on the current iteration instead of the constant ifIndex?
-		sendEvent(plugin, fmt.Sprintf("CNI ADD succeeded: IP:%+v, VlanID: %v, podname %v, namespace %v numendpoints:%d",
-			ipamAddResult.interfaceInfo[ifIndex].IPConfigs, epInfo.Data[network.VlanIDKey], k8sPodName, k8sNamespace, plugin.nm.GetNumberOfEndpoints("", nwCfg.Name)))
+		// TODO figure out where to put telemetry: sendEvent(plugin, fmt.Sprintf("CNI ADD succeeded: IP:%+v, VlanID: %v, podname %v, namespace %v numendpoints:%d",
+		//	ipamAddResult.interfaceInfo[ifIndex].IPConfigs, epInfo.Data[network.VlanIDKey], k8sPodName, k8sNamespace, plugin.nm.GetNumberOfEndpoints("", nwCfg.Name)))
 
 	}
 	cnsclient, err := cnscli.New(nwCfg.CNSUrl, defaultRequestTimeout)
@@ -582,6 +596,8 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	if err != nil {
 		return err // behavior can change if you don't assign to err prior to returning
 	}
+	// telemetry added
+	sendEvent(plugin, fmt.Sprintf("CNI ADD Process succeeded for interfaces: %v", ipamAddResult.PrettyString()))
 	return nil
 
 }
@@ -623,6 +639,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		nwInfo network.EndpointInfo
 	)
 	// ensure we can find the master interface
+	// TODO: in swiftv2 with secondary interface, there won't be a host subnet prefix-- ensure this does not crash/break
 	opt.ifInfo.HostSubnetPrefix.IP = opt.ifInfo.HostSubnetPrefix.IP.Mask(opt.ifInfo.HostSubnetPrefix.Mask)
 	opt.ipamAddConfig.nwCfg.IPAM.Subnet = opt.ifInfo.HostSubnetPrefix.String()
 	// populate endpoint info section
@@ -668,8 +685,8 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 
 	// populate endpoint info
 	// populate endpoint info fields code is below
-	defaultInterfaceInfo := opt.ifInfo
-	epDNSInfo, err := getEndpointDNSSettings(opt.nwCfg, defaultInterfaceInfo.DNS, opt.k8sNamespace) // Probably won't panic if given bad values
+	//defaultInterfaceInfo := opt.ifInfo
+	epDNSInfo, err := getEndpointDNSSettings(opt.nwCfg, opt.ifInfo.DNS, opt.k8sNamespace) // Probably won't panic if given bad values
 	if err != nil {
 		// TODO: will it error out if we have a secondary endpoint that has blank DNS though? If so, problem! Discussed and answer is no.
 		err = plugin.Errorf("Failed to getEndpointDNSSettings: %v", err)
@@ -679,7 +696,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		// pass podsubnet info etc. part of epinfo
 		subnetInfos: nwInfo.Subnets, // TODO: (1/2 opt.nwInfo) we do not have the full nw info created yet-- is this okay? Discussed and answer is it's fine. getEndpointPolicies requires nwInfo.Subnets only (checked)
 		nwCfg:       opt.nwCfg,
-		ipconfigs:   defaultInterfaceInfo.IPConfigs,
+		ipconfigs:   opt.ifInfo.IPConfigs,
 	}
 	endpointPolicies, err := getEndpointPolicies(policyArgs)
 	if err != nil {
@@ -699,6 +716,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 	}
 
 	// for secondary (Populate addresses)
+	// intially only for infra nic but now applied to all nic types
 	var addresses []net.IPNet
 	for _, ipconfig := range opt.ifInfo.IPConfigs {
 		addresses = append(addresses, ipconfig.Address)
@@ -726,7 +744,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		NATInfo:            opt.natInfo,
 		NICType:            opt.ifInfo.NICType,
 		SkipDefaultRoutes:  opt.ifInfo.SkipDefaultRoutes,
-		Routes:             defaultInterfaceInfo.Routes,
+		Routes:             opt.ifInfo.Routes,
 		// added the following for delegated vm nic
 		IPAddresses: addresses,
 		MacAddress:  opt.ifInfo.MacAddress,
@@ -750,7 +768,8 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 
 	// TODO: Do I remove azIpamResult as a param from the function below? It is used in linux (changes ep info routes)!
 	if opt.nwCfg.MultiTenancy {
-		plugin.multitenancyClient.SetupRoutingForMultitenancy(opt.nwCfg, opt.cnsNetworkConfig, opt.azIpamResult, &epInfo, defaultInterfaceInfo)
+		// previously only infra nic was passed into this function but now all nics are passed in (possibly breaks swift v2)
+		plugin.multitenancyClient.SetupRoutingForMultitenancy(opt.nwCfg, opt.cnsNetworkConfig, opt.azIpamResult, &epInfo, opt.ifInfo)
 	}
 
 	setEndpointOptions(opt.cnsNetworkConfig, &epInfo, vethName)
@@ -1419,12 +1438,11 @@ func convertCniResultToInterfaceInfo(result *cniTypesCurr.Result) network.Interf
 	return interfaceInfo
 }
 
-func findDefaultInterface(ipamAddResult IPAMAddResult) (int, error) {
-	for i := 0; i < len(ipamAddResult.interfaceInfo); i++ {
-		if ipamAddResult.interfaceInfo[i].NICType == cns.InfraNIC {
-			return i, nil
-		}
-	}
-
-	return -1, errors.New("no NIC was of type InfraNIC")
-}
+// func findInfraNicInterfaceKey(ifInfos map[string]network.InterfaceInfo) network.InterfaceInfo {
+// 	for _, ifInfo := range ifInfos {
+// 		if ifInfo.NICType == cns.InfraNIC {
+// 			return &ifInfo
+// 		}
+// 	}
+// 	return nil
+// }

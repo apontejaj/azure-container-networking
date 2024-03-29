@@ -158,6 +158,11 @@ func (epInfo *EndpointInfo) PrettyString() string {
 		epInfo.Gateways, epInfo.Data)
 }
 
+func (ifInfo *InterfaceInfo) PrettyString() string {
+	return fmt.Sprintf("Name:%s NICType:%v MacAddr:%s IPConfigs:%+v Routes:%+v DNSInfo:%+v",
+		ifInfo.Name, ifInfo.NICType, ifInfo.MacAddress.String(), ifInfo.IPConfigs, ifInfo.Routes, ifInfo.DNS)
+}
+
 // NewEndpoint creates a new endpoint in the network.
 func (nw *network) newEndpoint(
 	apipaCli apipaClient,

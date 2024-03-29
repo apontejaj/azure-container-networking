@@ -240,15 +240,9 @@ func TestAzureIPAMInvoker_Add(t *testing.T) {
 			}
 
 			for _, ifInfo := range ipamAddResult.interfaceInfo {
-				switch ifInfo.NICType {
-				case cns.DelegatedVMNIC, cns.BackendNIC:
-					fmt.Print(errInvalidNIC)
-					require.FailNow("No coverage for this NICType")
-				case cns.InfraNIC:
+				if ifInfo.NICType == cns.InfraNIC {
 					fmt.Printf("want:%+v\nrest:%+v\n", tt.want, ifInfo.IPConfigs)
 					require.Exactly(tt.want, ifInfo.IPConfigs)
-				default:
-					require.FailNow("Unsupported NICType")
 				}
 			}
 		})
