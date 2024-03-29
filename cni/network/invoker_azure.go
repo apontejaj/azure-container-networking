@@ -70,15 +70,6 @@ func (invoker *AzureIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, er
 		return addResult, err
 	}
 
-	addResult.interfaceInfo = []network.InterfaceInfo{}
-	addResult.interfaceInfo = append(addResult.interfaceInfo, network.InterfaceInfo{
-		HostSubnetPrefix: net.IPNet{},
-	})
-
-	if len(result.IPs) > 0 {
-		addResult.interfaceInfo[0].HostSubnetPrefix = result.IPs[0].Address
-	}
-
 	defer func() {
 		if err != nil {
 			if len(addResult.interfaceInfo[0].IPConfigs) > 0 {
@@ -131,6 +122,11 @@ func (invoker *AzureIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, er
 		},
 		NICType: cns.InfraNIC,
 	})
+
+	if len(result.IPs) > 0 {
+		addResult.interfaceInfo[0].HostSubnetPrefix = result.IPs[0].Address
+	}
+
 	return addResult, err
 }
 
