@@ -107,6 +107,7 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 									PrimaryIP: "10.224.0.5",
 									Subnet:    "10.224.0.0/16",
 								},
+								NICType: cns.InfraNIC,
 							},
 							Response: cns.Response{
 								ReturnCode: 0,
@@ -174,6 +175,7 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 										PrimaryIP: "10.0.0.1",
 										Subnet:    "10.0.0.0/24",
 									},
+									NICType: cns.InfraNIC,
 								},
 								{
 									PodIPConfig: cns.IPSubnet{
@@ -193,6 +195,7 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 										PrimaryIP: "fe80::1234:5678:9abc",
 										Subnet:    "fd11:1234::/112",
 									},
+									NICType: cns.InfraNIC,
 								},
 							},
 							Response: cns.Response{
@@ -486,19 +489,14 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 			}
 
 			for _, ifInfo := range ipamAddResult.interfaceInfo {
-				switch ifInfo.NICType {
-				case cns.DelegatedVMNIC:
+				if ifInfo.NICType == cns.DelegatedVMNIC {
 					fmt.Printf("want:%+v\nrest:%+v\n", tt.wantSecondaryInterfacesInfo, ifInfo)
 					if len(tt.wantSecondaryInterfacesInfo.IPConfigs) > 0 {
 						require.EqualValues(tt.wantSecondaryInterfacesInfo, ifInfo, "incorrect multitenant response")
 					}
-				case cns.BackendNIC:
-					fmt.Print(errInvalidNIC)
-					require.FailNow("No coverage for this NICType")
-				case cns.InfraNIC:
+				}
+				if ifInfo.NICType == cns.InfraNIC {
 					require.Equalf(tt.wantDefaultResult, ifInfo, "incorrect default response")
-				default:
-					require.FailNow("Unsupported NICType")
 				}
 			}
 		})
@@ -557,6 +555,7 @@ func TestCNSIPAMInvoker_Add(t *testing.T) {
 										PrimaryIP: "10.0.0.1",
 										Subnet:    "10.0.0.0/24",
 									},
+									NICType: cns.InfraNIC,
 								},
 							},
 							Response: cns.Response{
@@ -624,6 +623,7 @@ func TestCNSIPAMInvoker_Add(t *testing.T) {
 										PrimaryIP: "10.0.0.1",
 										Subnet:    "10.0.0.0/24",
 									},
+									NICType: cns.InfraNIC,
 								},
 								{
 									PodIPConfig: cns.IPSubnet{
@@ -643,6 +643,7 @@ func TestCNSIPAMInvoker_Add(t *testing.T) {
 										PrimaryIP: "fe80::1234:5678:9abc",
 										Subnet:    "fd11:1234::/112",
 									},
+									NICType: cns.InfraNIC,
 								},
 							},
 							Response: cns.Response{
@@ -725,19 +726,14 @@ func TestCNSIPAMInvoker_Add(t *testing.T) {
 			}
 
 			for _, ifInfo := range ipamAddResult.interfaceInfo {
-				switch ifInfo.NICType {
-				case cns.DelegatedVMNIC:
+				if ifInfo.NICType == cns.DelegatedVMNIC {
 					fmt.Printf("want:%+v\nrest:%+v\n", tt.wantMultitenantResult, ifInfo)
 					if len(tt.wantMultitenantResult.IPConfigs) > 0 {
 						require.Equalf(tt.wantMultitenantResult, ifInfo, "incorrect multitenant response")
 					}
-				case cns.BackendNIC:
-					fmt.Print(errInvalidNIC)
-					require.FailNow("No coverage for this NICType")
-				case cns.InfraNIC:
+				}
+				if ifInfo.NICType == cns.InfraNIC {
 					require.Equalf(tt.wantDefaultResult, ifInfo, "incorrect default response")
-				default:
-					require.FailNow("Unsupported NICType")
 				}
 			}
 		})
@@ -769,7 +765,6 @@ func TestCNSIPAMInvoker_Add_UnsupportedAPI(t *testing.T) {
 		fields  fields
 		args    args
 		want    network.InterfaceInfo
-		want1   network.InterfaceInfo // We dont use this anywhere..? Dead Code potentially, ask jaeryn
 		wantErr bool
 	}{
 		{
@@ -801,6 +796,7 @@ func TestCNSIPAMInvoker_Add_UnsupportedAPI(t *testing.T) {
 									PrimaryIP: "10.0.0.1",
 									Subnet:    "10.0.0.0/24",
 								},
+								NICType: cns.InfraNIC,
 							},
 							Response: cns.Response{
 								ReturnCode: 0,
@@ -857,14 +853,8 @@ func TestCNSIPAMInvoker_Add_UnsupportedAPI(t *testing.T) {
 			require.NoError(err)
 
 			for _, ifInfo := range ipamAddResult.interfaceInfo {
-				switch ifInfo.NICType {
-				case cns.DelegatedVMNIC, cns.BackendNIC:
-					fmt.Print(errInvalidNIC)
-					require.FailNow("No coverage for this NICType")
-				case cns.InfraNIC:
+				if ifInfo.NICType == cns.InfraNIC {
 					require.Equalf(tt.want, ifInfo, "incorrect ipv4 response")
-				default:
-					require.FailNow("Unsupported NICType")
 				}
 			}
 		})

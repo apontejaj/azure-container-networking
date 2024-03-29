@@ -366,8 +366,8 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 						ID: 1,
 					},
 				},
-				interfaceInfo: []network.InterfaceInfo{
-					{
+				interfaceInfo: map[string]network.InterfaceInfo{
+					string(cns.InfraNIC): {
 						IPConfigs: []*network.IPConfig{
 							{
 								Address: net.IPNet{
@@ -403,8 +403,8 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 						ID: 1,
 					},
 				},
-				interfaceInfo: []network.InterfaceInfo{
-					{
+				interfaceInfo: map[string]network.InterfaceInfo{
+					string(cns.InfraNIC): {
 						IPConfigs: []*network.IPConfig{
 							{
 								Address: net.IPNet{
@@ -440,8 +440,8 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 						ID: 1,
 					},
 				},
-				interfaceInfo: []network.InterfaceInfo{
-					{
+				interfaceInfo: map[string]network.InterfaceInfo{
+					string(cns.InfraNIC): {
 						IPConfigs: []*network.IPConfig{
 							{
 								Address: net.IPNet{
@@ -477,8 +477,8 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 						ID: 1,
 					},
 				},
-				interfaceInfo: []network.InterfaceInfo{
-					{
+				interfaceInfo: map[string]network.InterfaceInfo{
+					string(cns.InfraNIC): {
 						IPConfigs: []*network.IPConfig{
 							{
 								Address: net.IPNet{
@@ -510,8 +510,8 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 			},
 			ipamAddResult: &IPAMAddResult{
 				ncResponse: &cns.GetNetworkContainerResponse{},
-				interfaceInfo: []network.InterfaceInfo{
-					{
+				interfaceInfo: map[string]network.InterfaceInfo{
+					string(cns.InfraNIC): {
 						IPConfigs: []*network.IPConfig{
 							{
 								Address: net.IPNet{

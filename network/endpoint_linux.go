@@ -58,7 +58,6 @@ func (nw *network) newEndpointImpl(
 	nsc NamespaceClientInterface,
 	iptc ipTablesClient,
 	epInfo []*EndpointInfo,
-	epIndex int,
 ) (*endpoint, error) {
 	var (
 		err           error
@@ -66,7 +65,7 @@ func (nw *network) newEndpointImpl(
 		contIfName    string
 		localIP       string
 		vlanid        = 0
-		defaultEpInfo = epInfo[epIndex]
+		defaultEpInfo = epInfo[0] // always first index of epinfo[]. Will be removed
 		containerIf   *net.Interface
 	)
 

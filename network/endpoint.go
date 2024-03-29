@@ -134,6 +134,11 @@ func (epInfo *EndpointInfo) PrettyString() string {
 		epInfo.Gateways, epInfo.Data)
 }
 
+func (ifInfo *InterfaceInfo) PrettyString() string {
+	return fmt.Sprintf("Name:%s NICType:%v MacAddr:%s IPConfigs:%+v Routes:%+v DNSInfo:%+v",
+		ifInfo.Name, ifInfo.NICType, ifInfo.MacAddress.String(), ifInfo.IPConfigs, ifInfo.Routes, ifInfo.DNS)
+}
+
 // NewEndpoint creates a new endpoint in the network.
 func (nw *network) newEndpoint(
 	apipaCli apipaClient,
@@ -143,20 +148,19 @@ func (nw *network) newEndpoint(
 	nsc NamespaceClientInterface,
 	iptc ipTablesClient,
 	epInfo []*EndpointInfo,
-	epIndex int,
 ) (*endpoint, error) {
 	var ep *endpoint
 	var err error
 
 	defer func() {
 		if err != nil {
-			logger.Error("Failed to create endpoint with err", zap.String("id", epInfo[epIndex].Id), zap.Error(err))
+			logger.Error("Failed to create endpoint with err", zap.String("id", epInfo[0].Id), zap.Error(err))
 		}
 	}()
 
 	// Call the platform implementation.
 	// Pass nil for epClient and will be initialized in newendpointImpl
-	ep, err = nw.newEndpointImpl(apipaCli, nl, plc, netioCli, nil, nsc, iptc, epInfo, epIndex)
+	ep, err = nw.newEndpointImpl(apipaCli, nl, plc, netioCli, nil, nsc, iptc, epInfo)
 	if err != nil {
 		return nil, err
 	}

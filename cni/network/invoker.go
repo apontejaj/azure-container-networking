@@ -27,10 +27,18 @@ type IPAMAddConfig struct {
 }
 
 type IPAMAddResult struct {
-	// Splitting defaultInterfaceInfo from secondaryInterfacesInfo so we don't need to loop for default CNI result every time
-	interfaceInfo []network.InterfaceInfo
+	// key is macAddress
+	interfaceInfo map[string]network.InterfaceInfo
 	// ncResponse is used for Swift 1.0 multitenancy
 	ncResponse       *cns.GetNetworkContainerResponse
 	hostSubnetPrefix net.IPNet
 	ipv6Enabled      bool
+}
+
+func (ipamAddResult IPAMAddResult) PrettyString() string {
+	pStr := "InterfaceInfo: "
+	for _, ifInfo := range ipamAddResult.interfaceInfo {
+		pStr += ifInfo.PrettyString()
+	}
+	return pStr
 }

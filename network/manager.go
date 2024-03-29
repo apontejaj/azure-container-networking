@@ -98,7 +98,7 @@ type NetworkManager interface {
 	FindNetworkIDFromNetNs(netNs string) (string, error)
 	GetNumEndpointsByContainerID(containerID string) int
 
-	CreateEndpoint(client apipaClient, networkID string, epInfo []*EndpointInfo, epIndex int) error
+	CreateEndpoint(client apipaClient, networkID string, epInfo []*EndpointInfo) error
 	DeleteEndpoint(networkID string, endpointID string, epInfo *EndpointInfo) error
 	GetEndpointInfo(networkID string, endpointID string) (*EndpointInfo, error)
 	GetAllEndpoints(networkID string) (map[string]*EndpointInfo, error)
@@ -372,7 +372,7 @@ func (nm *networkManager) GetNetworkInfo(networkId string) (NetworkInfo, error) 
 }
 
 // CreateEndpoint creates a new container endpoint.
-func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epInfo []*EndpointInfo, epIndex int) error {
+func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epInfo []*EndpointInfo) error {
 	nm.Lock()
 	defer nm.Unlock()
 
@@ -382,13 +382,15 @@ func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epIn
 	}
 
 	if nw.VlanId != 0 {
-		if epInfo[epIndex].Data[VlanIDKey] == nil {
+		// First epinfo is always infraNIC
+		// Future changes will pass in single epInfo removing index
+		if epInfo[0].Data[VlanIDKey] == nil {
 			logger.Info("overriding endpoint vlanid with network vlanid")
-			epInfo[epIndex].Data[VlanIDKey] = nw.VlanId
+			epInfo[0].Data[VlanIDKey] = nw.VlanId
 		}
 	}
 
-	ep, err := nw.newEndpoint(cli, nm.netlink, nm.plClient, nm.netio, nm.nsClient, nm.iptablesClient, epInfo, epIndex)
+	ep, err := nw.newEndpoint(cli, nm.netlink, nm.plClient, nm.netio, nm.nsClient, nm.iptablesClient, epInfo)
 	if err != nil {
 		return err
 	}
