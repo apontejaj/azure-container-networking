@@ -26,7 +26,6 @@ type IPAMAddConfig struct {
 }
 
 type IPAMAddResult struct {
-	// Splitting defaultInterfaceInfo from secondaryInterfacesInfo so we don't need to loop for default CNI result every time
 	interfaceInfo []network.InterfaceInfo
 	ipv6Enabled   bool
 }

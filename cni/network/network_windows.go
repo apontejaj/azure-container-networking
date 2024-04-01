@@ -142,8 +142,19 @@ func setEndpointOptions(cnsNwConfig *cns.GetNetworkContainerResponse, epInfo *ne
 func addSnatInterface(nwCfg *cni.NetworkConfig, result *cniTypesCurr.Result) {
 }
 
-func (plugin *NetPlugin) getNetworkName(netNs string, ipamAddResult *IPAMAddResult, nwCfg *cni.NetworkConfig) (string, error) {
+func (plugin *NetPlugin) getNetworkName(netNs string, interfaceInfo *network.InterfaceInfo, nwCfg *cni.NetworkConfig) (string, error) {
+	var err error
+	// Swiftv2 path => interfaceInfo.NICType = delegated NIC
+	// For singletenancy => nwCfg.Name
+	// Swiftv1 => interfaceInfo.NCResponse != nil && ipamAddResult != nil
+
 	determineWinVer()
+	// Swiftv2 L1VH Network Name
+	if interfaceInfo != nil && interfaceInfo.NICType == cns.DelegatedVMNIC {
+		logger.Info("swiftv2", zap.String("network name", interfaceInfo.MacAddress.String()))
+		return "azure-" + interfaceInfo.MacAddress.String(), nil
+	}
+
 	// For singletenancy, the network name is simply the nwCfg.Name
 	if !nwCfg.MultiTenancy {
 		return nwCfg.Name, nil
@@ -156,16 +167,15 @@ func (plugin *NetPlugin) getNetworkName(netNs string, ipamAddResult *IPAMAddResu
 
 	// First try to build the network name from the cnsResponse if present
 	// This will happen during ADD call
-	ifIndex, err := findDefaultInterface(*ipamAddResult)
-	if ipamAddResult != nil && ipamAddResult.interfaceInfo[ifIndex].NCResponse != nil {
-		// find defaultInterface within AddResult
+	// ifIndex, err := findDefaultInterface(*ipamAddResult)
+	if interfaceInfo != nil && interfaceInfo.NCResponse != nil { // swiftv1 path
 		if err != nil {
 			logger.Error("Error finding InfraNIC interface",
 				zap.Error(err))
 			return "", errors.Wrap(err, "cns did not return an InfraNIC")
 		}
 		// networkName will look like ~ azure-vlan1-172-28-1-0_24
-		ipAddrNet := ipamAddResult.interfaceInfo[ifIndex].IPConfigs[0].Address
+		ipAddrNet := interfaceInfo.IPConfigs[0].Address
 		prefix, err := netip.ParsePrefix(ipAddrNet.String())
 		if err != nil {
 			logger.Error("Error parsing network CIDR",
@@ -175,7 +185,7 @@ func (plugin *NetPlugin) getNetworkName(netNs string, ipamAddResult *IPAMAddResu
 		}
 		networkName := strings.ReplaceAll(prefix.Masked().String(), ".", "-")
 		networkName = strings.ReplaceAll(networkName, "/", "_")
-		networkName = fmt.Sprintf("%s-vlan%v-%v", nwCfg.Name, ipamAddResult.interfaceInfo[ifIndex].NCResponse.MultiTenancyInfo.ID, networkName)
+		networkName = fmt.Sprintf("%s-vlan%v-%v", nwCfg.Name, interfaceInfo.NCResponse.MultiTenancyInfo.ID, networkName)
 		return networkName, nil
 	}
 

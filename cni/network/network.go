@@ -335,11 +335,20 @@ func (plugin *NetPlugin) addIpamInvoker(ipamAddConfig IPAMAddConfig) (IPAMAddRes
 	return ipamAddResult, nil
 }
 
+// get network
+func (plugin *NetPlugin) getNetworkID(netNs string, interfaceInfo *network.InterfaceInfo, nwCfg *cni.NetworkConfig) (string, error) {
+	networkID, err := plugin.getNetworkName(netNs, interfaceInfo, nwCfg)
+	if err != nil {
+		return "", err
+	}
+	return networkID, nil
+}
+
 // get network info
-func (plugin *NetPlugin) getNetworkInfo(netNs string, ipamAddResult IPAMAddResult, nwCfg *cni.NetworkConfig) (network.NetworkInfo, string, error) {
-	networkID, _ := plugin.getNetworkName(netNs, &ipamAddResult, nwCfg)
-	nwInfo, nwError := plugin.nm.GetNetworkInfo(networkID)
-	return nwInfo, networkID, nwError
+func (plugin *NetPlugin) getNetworkInfo(netNs string, interfaceInfo *network.InterfaceInfo, nwCfg *cni.NetworkConfig) network.NetworkInfo {
+	networkID, _ := plugin.getNetworkID(netNs, interfaceInfo, nwCfg)
+	nwInfo, _ := plugin.nm.GetNetworkInfo(networkID)
+	return nwInfo
 }
 
 // CNI implementation
@@ -472,7 +481,6 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	var (
 		nwInfo    network.NetworkInfo
 		networkID string
-		nwInfoErr error
 	)
 
 	if nwCfg.MultiTenancy {
@@ -507,7 +515,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			case network.AzureCNS:
 				plugin.ipamInvoker = NewCNSInvoker(k8sPodName, k8sNamespace, cnsClient, util.ExecutionMode(nwCfg.ExecutionMode), util.IpamMode(nwCfg.IPAM.Mode))
 			default:
-				nwInfo, networkID, nwInfoErr = plugin.getNetworkInfo(args.Netns, ipamAddResult, nwCfg)
+				nwInfo = plugin.getNetworkInfo(args.Netns, nil, nwCfg)
 				plugin.ipamInvoker = NewAzureIpamInvoker(plugin, &nwInfo)
 			}
 		}
@@ -523,45 +531,47 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		}
 		// This proably needs to be changed as we return all interfaces...
 		sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.interfaceInfo[ifIndex], ipamAddResult.interfaceInfo))
-
 	}
 
 	ifIndex, _ := findDefaultInterface(ipamAddResult)
 	endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
 	policies := cni.GetPoliciesFromNwCfg(nwCfg.AdditionalArgs)
 
+	// if !nwCfg.MultiTenancy && nwCfg.IPAM.Type == network.AzureCNS {
+	// 	nwInfo, nwInfoErr = plugin.getNetworkInfo(args.Netns, ipamAddResult, nwCfg)
+	// }
+
 	// Check whether the network already exists.
-	nwInfo, networkID, nwInfoErr = plugin.getNetworkInfo(args.Netns, ipamAddResult, nwCfg)
 
 	// Handle consecutive ADD calls for infrastructure containers.
 	// This is a temporary work around for issue #57253 of Kubernetes.
 	// We can delete this if statement once they fix it.
 	// Issue link: https://github.com/kubernetes/kubernetes/issues/57253
 
-	if nwInfoErr == nil {
-		logger.Info("Found network with subnet",
-			zap.String("network", networkID),
-			zap.String("subnet", nwInfo.Subnets[0].Prefix.String()))
-		nwInfo.IPAMType = nwCfg.IPAM.Type
-		options = nwInfo.Options
+	// if nwInfoErr == nil {
+	// 	logger.Info("Found network with subnet",
+	// 		zap.String("network", networkID),
+	// 		zap.String("subnet", nwInfo.Subnets[0].Prefix.String()))
+	// 	nwInfo.IPAMType = nwCfg.IPAM.Type
+	// 	options = nwInfo.Options
 
-		var resultSecondAdd *cniTypesCurr.Result
-		resultSecondAdd, err = plugin.handleConsecutiveAdd(args, endpointID, networkID, &nwInfo, nwCfg)
-		if err != nil {
-			logger.Error("handleConsecutiveAdd failed", zap.Error(err))
-			return err
-		}
+	// 	var resultSecondAdd *cniTypesCurr.Result
+	// 	resultSecondAdd, err = plugin.handleConsecutiveAdd(args, endpointID, networkID, &nwInfo, nwCfg)
+	// 	if err != nil {
+	// 		logger.Error("handleConsecutiveAdd failed", zap.Error(err))
+	// 		return err
+	// 	}
 
-		if resultSecondAdd != nil {
-			ifIndex, err = findDefaultInterface(ipamAddResult)
-			if err != nil {
-				ipamAddResult.interfaceInfo = append(ipamAddResult.interfaceInfo, network.InterfaceInfo{})
-				ifIndex = len(ipamAddResult.interfaceInfo) - 1
-			}
-			ipamAddResult.interfaceInfo[ifIndex] = convertCniResultToInterfaceInfo(resultSecondAdd)
-			return nil
-		}
-	}
+	// 	if resultSecondAdd != nil {
+	// 		ifIndex, err = findDefaultInterface(ipamAddResult)
+	// 		if err != nil {
+	// 			ipamAddResult.interfaceInfo = append(ipamAddResult.interfaceInfo, network.InterfaceInfo{})
+	// 			ifIndex = len(ipamAddResult.interfaceInfo) - 1
+	// 		}
+	// 		ipamAddResult.interfaceInfo[ifIndex] = convertCniResultToInterfaceInfo(resultSecondAdd)
+	// 		return nil
+	// 	}
+	// }
 
 	defer func() { //nolint:gocritic
 		if err != nil {
