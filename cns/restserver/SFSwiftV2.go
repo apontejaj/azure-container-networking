@@ -37,7 +37,7 @@ func (m *SFSWIFTv2Middleware) IPConfigsRequestHandlerWrapper(_, _ cns.IPConfigsH
 		logger.Printf("[SWIFTv2Middleware] pod %s has secondary interface : %v", podInfo.Name(), req.SecondaryInterfacesExist)
 
 		// get the IPConfig for swiftv2 SF scenario by calling into cns getNC api
-		SWIFTv2PodIPInfo, err := m.getIPConfig(ctx, podInfo)
+		SWIFTv2PodsIPInfo, err := m.getIPConfig(ctx, podInfo)
 		if err != nil {
 			return &cns.IPConfigsResponse{
 				Response: cns.Response{
@@ -47,36 +47,51 @@ func (m *SFSWIFTv2Middleware) IPConfigsRequestHandlerWrapper(_, _ cns.IPConfigsH
 				PodIPInfo: []cns.PodIpInfo{},
 			}, errors.Wrapf(err, "failed to get SWIFTv2 IP config : %v", req)
 		}
-		ipConfigsResp.PodIPInfo = append(ipConfigsResp.PodIPInfo, SWIFTv2PodIPInfo)
+		ipConfigsResp.PodIPInfo = SWIFTv2PodsIPInfo
 		return ipConfigsResp, nil
 	}
 }
 
 // getIPConfig returns the pod's SWIFT V2 IP configuration.
-func (m *SFSWIFTv2Middleware) getIPConfig(ctx context.Context, podInfo cns.PodInfo) (cns.PodIpInfo, error) {
+func (m *SFSWIFTv2Middleware) getIPConfig(ctx context.Context, podInfo cns.PodInfo) ([]cns.PodIpInfo, error) {
+	// Create an array and return the same for the aboce functions
+	podsIPInfo := []cns.PodIpInfo{}
 	orchestratorContext, err := podInfo.OrchestratorContext()
 	if err != nil {
-		return cns.PodIpInfo{}, fmt.Errorf("error getting orchestrator context from PodInfo %w", err)
+		return podsIPInfo, fmt.Errorf("error getting orchestrator context from PodInfo %w", err)
 	}
 	// call getNC via CNSClient
-	resp, err := m.CnsClient.GetNetworkContainer(ctx, orchestratorContext)
+	resp, err := m.CnsClient.GetAllNetworkContainers(ctx, orchestratorContext)
 	if err != nil {
-		return cns.PodIpInfo{}, fmt.Errorf("error getNetworkContainerByOrchestrator Context %w", err)
+		return podsIPInfo, fmt.Errorf("error getNetworkContainerByOrchestrator Context %w", err)
 	}
 
-	// Check if the ncstate/ipconfig ready. If one of the fields is empty, return error
-	if resp.IPConfiguration.IPSubnet.IPAddress == "" || resp.NetworkInterfaceInfo.MACAddress == "" || resp.NetworkContainerID == "" || resp.IPConfiguration.GatewayIPAddress == "" {
-		return cns.PodIpInfo{}, fmt.Errorf("one of the fields for GetNCResponse is empty for given NC: %+v", resp) //nolint:goerr113 // return error
-	}
-	logger.Debugf("[SWIFTv2-SF] NetworkContainerResponse for pod %s is : %+v", podInfo.Name(), resp)
+	for _, containerReponse := range resp {
+		switch containerReponse.NetworkInterfaceInfo.NICType {
+		case cns.DelegatedVMNIC:
+			// Check if the ncstate/ipconfig ready. If one of the fields is empty, return error
+			if containerReponse.IPConfiguration.IPSubnet.IPAddress == "" || containerReponse.NetworkInterfaceInfo.MACAddress == "" || containerReponse.NetworkContainerID == "" || containerReponse.IPConfiguration.GatewayIPAddress == "" {
+				return podsIPInfo, fmt.Errorf("one of the fields for GetNCResponse is empty for given NC: %+v", resp) //nolint:goerr113 // return error
+			}
 
-	podIPInfo := cns.PodIpInfo{
-		PodIPConfig:                     resp.IPConfiguration.IPSubnet,
-		MacAddress:                      resp.NetworkInterfaceInfo.MACAddress,
-		NICType:                         resp.NetworkInterfaceInfo.NICType,
-		SkipDefaultRoutes:               false,
-		NetworkContainerPrimaryIPConfig: resp.IPConfiguration,
-		AddInterfacesDataToPodInfo:      true,
+		case cns.BackendNIC:
+			if containerReponse.NetworkInterfaceInfo.MACAddress == "" {
+				return podsIPInfo, fmt.Errorf("one of the fields for GetNCResponse is empty for given NC: %+v", resp)
+			}
+
+			logger.Debugf("[SWIFTv2-SF] NetworkContainerResponse for pod %s is : %+v", podInfo.Name(), resp)
+
+			podIPInfo := cns.PodIpInfo{
+				PodIPConfig:                     containerReponse.IPConfiguration.IPSubnet,
+				MacAddress:                      containerReponse.NetworkInterfaceInfo.MACAddress,
+				NICType:                         containerReponse.NetworkInterfaceInfo.NICType,
+				SkipDefaultRoutes:               false,
+				NetworkContainerPrimaryIPConfig: containerReponse.IPConfiguration,
+				AddInterfacesDataToPodInfo:      true,
+			}
+			podsIPInfo = append(podsIPInfo, podIPInfo)
+		}
 	}
-	return podIPInfo, nil
+
+	return podsIPInfo, nil
 }

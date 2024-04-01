@@ -477,6 +477,8 @@ type PodIpInfo struct {
 	Routes []Route
 	// AddInterfacesDataToPodInfo is set to true for SF SwiftV2 scenario
 	AddInterfacesDataToPodInfo bool
+	// Plug and play ID
+	PnpID string
 }
 
 type HostIPInfo struct {

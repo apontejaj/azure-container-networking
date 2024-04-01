@@ -21,7 +21,6 @@ import (
 	acn "github.com/Azure/azure-container-networking/common"
 	nma "github.com/Azure/azure-container-networking/nmagent"
 	"github.com/Azure/azure-container-networking/store"
-	"github.com/pkg/errors"
 )
 
 // This file contains the initialization of RestServer.
@@ -137,6 +136,7 @@ type httpRestServiceState struct {
 	joinedNetworks                   map[string]struct{}
 	primaryInterface                 *wireserver.InterfaceInfo
 	secondaryInterface               *wireserver.InterfaceInfo
+	PnpIDMacaddressMapping           map[string]string
 }
 
 type networkInfo struct {
@@ -166,19 +166,20 @@ func NewHTTPRestService(config *common.ServiceConfig, wscli interfaceGetter, wsp
 		return nil, err
 	}
 
-	res, err := wscli.GetInterfaces(context.TODO()) // TODO(rbtr): thread context through this client
+	/*res, err := wscli.GetInterfaces(context.TODO()) // TODO(rbtr): thread context through this client
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get interfaces from IMDS")
 	}
 	primaryInterface, err := wireserver.GetPrimaryInterfaceFromResult(res)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get primary interface from IMDS response")
-	}
+	}*/
 
 	serviceState := &httpRestServiceState{
-		Networks:         make(map[string]*networkInfo),
-		joinedNetworks:   make(map[string]struct{}),
-		primaryInterface: primaryInterface,
+		Networks:       make(map[string]*networkInfo),
+		joinedNetworks: make(map[string]struct{}),
+		// primaryInterface:       primaryInterface,
+		PnpIDMacaddressMapping: make(map[string]string),
 	}
 
 	podIPIDByPodInterfaceKey := make(map[string][]string)

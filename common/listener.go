@@ -135,6 +135,7 @@ func (l *Listener) AddHandler(path string, handler http.HandlerFunc) {
 // Decode receives and decodes JSON payload to a request.
 func (l *Listener) Decode(w http.ResponseWriter, r *http.Request, request interface{}) error {
 	var err error
+	log.Printf("value: %s", r.Body)
 	if r.Body == nil {
 		err = errors.New("request body is empty")
 	} else {

@@ -849,6 +849,9 @@ func (service *HTTPRestService) createOrUpdateNetworkContainer(w http.ResponseWr
 	if returnCode == types.Success {
 		logNCSnapshot(req)
 	}
+	if req.NetworkInterfaceInfo.NICType == cns.BackendNIC {
+		service.SetPnpIDMacaddressMapping()
+	}
 
 	logger.Response(service.Name, reserveResp, resp.ReturnCode, err)
 }

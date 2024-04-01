@@ -187,13 +187,30 @@ func (service *HTTPRestService) requestIPConfigsHandler(w http.ResponseWriter, r
 		return
 	}
 
-	if ipConfigsResp.PodIPInfo[0].AddInterfacesDataToPodInfo {
-		ipConfigsResp, err = service.updatePodInfoWithInterfaces(r.Context(), ipConfigsResp)
-		if err != nil {
-			w.Header().Set(cnsReturnCode, ipConfigsResp.Response.ReturnCode.String())
-			err = service.Listener.Encode(w, &ipConfigsResp)
-			logger.ResponseEx(service.Name+operationName, ipconfigsRequest, ipConfigsResp, ipConfigsResp.Response.ReturnCode, err)
-			return
+	for i, podIPInfo := range ipConfigsResp.PodIPInfo {
+		// Loop through the pod info, if it has add interfaces to pod info, trigger swiftv2, if it has backend nic, trigger backend nic flow
+		if podIPInfo.NICType == cns.BackendNIC {
+			logger.Printf("Inside the backend interface")
+			pnpID, err := service.getPNPIDFromMacAddress(podIPInfo.MacAddress)
+			if err != nil {
+				w.Header().Set(cnsReturnCode, ipConfigsResp.Response.ReturnCode.String())
+				err = service.Listener.Encode(w, &ipConfigsResp)
+				logger.ResponseEx(service.Name+operationName, ipconfigsRequest, ipConfigsResp, ipConfigsResp.Response.ReturnCode, err)
+				return
+			}
+			ipConfigsResp.PodIPInfo[i].PnpID = pnpID
+			logger.Printf("Pnp Id fetched:%s", ipConfigsResp.PodIPInfo[0].PnpID)
+		}
+		if podIPInfo.AddInterfacesDataToPodInfo {
+			logger.Printf("ipconfig requested for NIC type:%s", ipConfigsResp.PodIPInfo[0].NICType)
+
+			ipConfigsResp, err = service.updatePodInfoWithInterfaces(r.Context(), ipConfigsResp)
+			if err != nil {
+				w.Header().Set(cnsReturnCode, ipConfigsResp.Response.ReturnCode.String())
+				err = service.Listener.Encode(w, &ipConfigsResp)
+				logger.ResponseEx(service.Name+operationName, ipconfigsRequest, ipConfigsResp, ipConfigsResp.Response.ReturnCode, err)
+				return
+			}
 		}
 	}
 
@@ -204,32 +221,34 @@ func (service *HTTPRestService) requestIPConfigsHandler(w http.ResponseWriter, r
 
 func (service *HTTPRestService) updatePodInfoWithInterfaces(ctx context.Context, ipconfigResponse *cns.IPConfigsResponse) (*cns.IPConfigsResponse, error) {
 	podIPInfoList := make([]cns.PodIpInfo, 0, len(ipconfigResponse.PodIPInfo))
+
 	for i := range ipconfigResponse.PodIPInfo {
 		// populating podIpInfo with primary & secondary interface info & updating IpConfigsResponse
-		hostPrimaryInterface, err := service.getPrimaryHostInterface(ctx)
-		if err != nil {
-			return &cns.IPConfigsResponse{}, err
+		if ipconfigResponse.PodIPInfo[i].NICType == cns.DelegatedVMNIC {
+			hostPrimaryInterface, err := service.getPrimaryHostInterface(ctx)
+			if err != nil {
+				return &cns.IPConfigsResponse{}, err
+			}
+
+			hostSecondaryInterface, err := service.getSecondaryHostInterface(ctx, ipconfigResponse.PodIPInfo[i].MacAddress)
+			if err != nil {
+				return &cns.IPConfigsResponse{}, err
+			}
+
+			ipconfigResponse.PodIPInfo[i].HostPrimaryIPInfo = cns.HostIPInfo{
+				Gateway:   hostPrimaryInterface.Gateway,
+				PrimaryIP: hostPrimaryInterface.PrimaryIP,
+				Subnet:    hostPrimaryInterface.Subnet,
+			}
+
+			ipconfigResponse.PodIPInfo[i].HostSecondaryIPInfo = cns.HostIPInfo{
+				Gateway:     hostSecondaryInterface.Gateway,
+				SecondaryIP: hostSecondaryInterface.SecondaryIPs[0],
+				Subnet:      hostSecondaryInterface.Subnet,
+			}
+
+			podIPInfoList = append(podIPInfoList, ipconfigResponse.PodIPInfo[i])
 		}
-
-		hostSecondaryInterface, err := service.getSecondaryHostInterface(ctx, ipconfigResponse.PodIPInfo[i].MacAddress)
-		if err != nil {
-			return &cns.IPConfigsResponse{}, err
-		}
-
-		ipconfigResponse.PodIPInfo[i].HostPrimaryIPInfo = cns.HostIPInfo{
-			Gateway:   hostPrimaryInterface.Gateway,
-			PrimaryIP: hostPrimaryInterface.PrimaryIP,
-			Subnet:    hostPrimaryInterface.Subnet,
-		}
-
-		ipconfigResponse.PodIPInfo[i].HostSecondaryIPInfo = cns.HostIPInfo{
-			Gateway:     hostSecondaryInterface.Gateway,
-			SecondaryIP: hostSecondaryInterface.SecondaryIPs[0],
-			Subnet:      hostSecondaryInterface.Subnet,
-		}
-
-		podIPInfoList = append(podIPInfoList, ipconfigResponse.PodIPInfo[i])
-
 	}
 	ipconfigResponse.PodIPInfo = podIPInfoList
 	return ipconfigResponse, nil
@@ -713,7 +732,7 @@ func (service *HTTPRestService) releaseIPConfigs(podInfo cns.PodInfo) error {
 	service.Lock()
 	defer service.Unlock()
 	ipsToBeReleased := make([]cns.IPConfigurationStatus, 0)
-	logger.Printf("[releaseIPConfigs] Releasing pod with key %s", podInfo.Key())
+
 	for i, ipID := range service.PodIPIDByPodInterfaceKey[podInfo.Key()] {
 		if ipID != "" {
 			if ipconfig, isExist := service.PodIPConfigState[ipID]; isExist {
