@@ -8,6 +8,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/network/policy"
 	"github.com/Azure/azure-container-networking/platform"
 	"go.uber.org/zap"
@@ -296,4 +297,87 @@ func (nm *networkManager) GetNumEndpointsByContainerID(containerID string) int {
 	}
 
 	return numEndpoints
+}
+
+// networkID is opt.nwInfo.ID
+// cns url is opt.nwCfg.CNSUrl
+// actually creates the network and corresponding endpoint
+func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*EndpointInfo) error {
+	interfaceInfos := []*InterfaceInfo{}
+	var networkIDofChosenEndpoint string
+	var epToSave *endpoint
+	for _, epInfo := range epInfos {
+		// check if network exists
+		nwInfo, nwGetErr := nm.GetNetworkInfo(epInfo.NetworkId)
+		if nwGetErr != nil {
+			// Create the network if it is not found
+			// populate network info with fields from ep info
+			nwInfo = NetworkInfo{
+				MasterIfName:                  epInfo.MasterIfName,
+				AdapterName:                   epInfo.AdapterName,
+				Id:                            epInfo.NetworkId,
+				Mode:                          epInfo.Mode,
+				Subnets:                       epInfo.Subnets,
+				PodSubnet:                     epInfo.PodSubnet,
+				DNS:                           epInfo.NetworkDNS,
+				Policies:                      epInfo.Policies,
+				BridgeName:                    epInfo.BridgeName,
+				EnableSnatOnHost:              epInfo.EnableSnatOnHost,
+				NetNs:                         epInfo.NetNs,
+				Options:                       epInfo.Options,
+				DisableHairpinOnHostInterface: epInfo.DisableHairpinOnHostInterface,
+				IPV6Mode:                      epInfo.IPV6Mode,
+				IPAMType:                      epInfo.IPAMType,
+				ServiceCidrs:                  epInfo.ServiceCidrs,
+				IsIPv6Enabled:                 epInfo.IsIPv6Enabled,
+				NICType:                       string(epInfo.NICType),
+			}
+			err := nm.CreateNetwork(&nwInfo)
+			if err != nil {
+				// TODO: error messages/handling are different in this file
+				// err = plugin.Errorf("createNetworkInternal: Failed to create network: %v", err)
+				return err // added
+			}
+		}
+
+		// Create the endpoint.
+		logger.Info("Creating endpoint", zap.String("endpointInfo", epInfo.PrettyString()))
+		// sendEvent(plugin, fmt.Sprintf("[cni-net] Creating endpoint %s.", epInfo.PrettyString()))
+		// TODO: pass in network id, or get network id from ep info-- it makes more sense if it came from epInfo
+		// since the network is directly related to the epInfo
+		// TODO: okay to pass in a slice of epInfo this way and just say epIndex is 0, or is refactoring create endpoint needed?
+		ep, err := nm.CreateEndpoint(cnsclient, nwInfo.Id, epInfo)
+		if err != nil {
+			// err = plugin.Errorf("Failed to create endpoint: %v", err)
+			return err //added
+		}
+		// if infra nic, we will use this endpoint for its root fields, and otherwise, we collect all secondary/delegated if infos to add to the ep secondary interface slice
+		if epInfo.NICType == cns.InfraNIC {
+			epToSave = ep
+			networkIDofChosenEndpoint = epInfo.NetworkId
+		} else {
+			// taken from secondary endpoint client
+			ipconfigs := make([]*IPConfig, len(epInfo.IPAddresses))
+			for i, ipconfig := range epInfo.IPAddresses {
+				ipconfigs[i] = &IPConfig{Address: ipconfig}
+			}
+
+			interfaceInfos = append(interfaceInfos, &InterfaceInfo{
+				Name:              epInfo.IfName,
+				MacAddress:        epInfo.MacAddress,
+				IPConfigs:         ipconfigs,
+				NICType:           epInfo.NICType,
+				SkipDefaultRoutes: epInfo.SkipDefaultRoutes,
+			})
+		}
+	}
+	// convert to one endpoint
+	epToSave.SecondaryInterfaces = map[string]*InterfaceInfo{}
+	for _, ifInfo := range interfaceInfos {
+		epToSave.SecondaryInterfaces[ifInfo.Name] = ifInfo
+	}
+
+	// save
+	nm.SaveState(networkIDofChosenEndpoint, epToSave)
+	return nil
 }

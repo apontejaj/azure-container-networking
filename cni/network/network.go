@@ -524,6 +524,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		if err != nil {
 			return fmt.Errorf("IPAM Invoker Add failed with error: %w", err)
 		}
+		//TODO: remove
 		ifIndex, _ := findDefaultInterface(ipamAddResult)
 
 		if ifIndex == -1 {
@@ -584,6 +585,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 	// TODO: is it possible nwInfo is not populated? YES it seems so, in which case the nwInfo is an empty struct!
 	// TODO: This will mean when we try to do nwInfo.Id or nwInfo.Subnets in createEpInfo, we'll have problems!
+	epInfos := []*network.EndpointInfo{}
 	for _, ifInfo := range ipamAddResult.interfaceInfo {
 		// TODO: hopefully I can get natInfo here?
 		natInfo := getNATInfo(nwCfg, options[network.SNATIPKey], enableSnatForDNS)
@@ -612,15 +614,26 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		if err != nil {
 			return err
 		}
-		err = plugin.createEndpoint(epInfo, nwCfg.CNSUrl)
+		//ep, err = plugin.createEndpoint(epInfo, nwCfg.CNSUrl)
 		if err != nil {
 			return err
 		}
+		// TODO: is this how we choose which ep to use?
+		// the endpoint that is saved in the statefile is represented fully by the ep info/ep with the InfraNIC type
+		if ifInfo.NICType == cns.InfraNIC {
+			//saveEp = ep
+		}
+		epInfos = append(epInfos, epInfo)
 		// TODO: should this statement be based on the current iteration instead of the constant ifIndex?
 		sendEvent(plugin, fmt.Sprintf("CNI ADD succeeded: IP:%+v, VlanID: %v, podname %v, namespace %v numendpoints:%d",
 			ipamAddResult.interfaceInfo[ifIndex].IPConfigs, epInfo.Data[network.VlanIDKey], k8sPodName, k8sNamespace, plugin.nm.GetNumberOfEndpoints("", nwCfg.Name)))
 
 	}
+	cnsclient, err := cnscli.New(nwCfg.CNSUrl, defaultRequestTimeout)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cns client")
+	}
+	plugin.nm.EndpointCreate(cnsclient, epInfos)
 
 	// // Create network
 	// if nwInfoErr != nil {
@@ -829,6 +842,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 			return nil, err
 		}
 		policyArgs := PolicyArgs{
+			// pass podsubnet info etc. part of epinfo
 			nwInfo:    &nwInfo, // TODO: (1/2 opt.nwInfo) we do not have the full nw info created yet-- is this okay? getEndpointPolicies requires nwInfo.Subnets only (checked)
 			nwCfg:     opt.nwCfg,
 			ipconfigs: defaultInterfaceInfo.IPConfigs,
@@ -919,63 +933,6 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 
 	// now our ep info should have the full combined information from both the network and endpoint structs
 	return &epInfo, nil
-}
-
-// networkID is opt.nwInfo.ID
-// cns url is opt.nwCfg.CNSUrl
-// actually creates the network and corresponding endpoint
-func (plugin *NetPlugin) createEndpoint(epInfo *network.EndpointInfo, CNSUrl string) error {
-	// check if network exists
-	nwInfo, nwGetErr := plugin.nm.GetNetworkInfo(epInfo.NetworkId)
-	if nwGetErr != nil {
-		// Create the network if it is not found
-		// populate network info with fields from ep info
-		nwInfo = network.NetworkInfo{
-			MasterIfName:                  epInfo.MasterIfName,
-			AdapterName:                   epInfo.AdapterName,
-			Id:                            epInfo.NetworkId,
-			Mode:                          epInfo.Mode,
-			Subnets:                       epInfo.Subnets,
-			PodSubnet:                     epInfo.PodSubnet,
-			DNS:                           epInfo.NetworkDNS,
-			Policies:                      epInfo.Policies,
-			BridgeName:                    epInfo.BridgeName,
-			EnableSnatOnHost:              epInfo.EnableSnatOnHost,
-			NetNs:                         epInfo.NetNs,
-			Options:                       epInfo.Options,
-			DisableHairpinOnHostInterface: epInfo.DisableHairpinOnHostInterface,
-			IPV6Mode:                      epInfo.IPV6Mode,
-			IPAMType:                      epInfo.IPAMType,
-			ServiceCidrs:                  epInfo.ServiceCidrs,
-			IsIPv6Enabled:                 epInfo.IsIPv6Enabled,
-			NICType:                       string(epInfo.NICType),
-		}
-		err := plugin.nm.CreateNetwork(&nwInfo)
-		if err != nil {
-			err = plugin.Errorf("createNetworkInternal: Failed to create network: %v", err)
-			return err // added
-		}
-	}
-
-	cnsclient, err := cnscli.New(CNSUrl, defaultRequestTimeout)
-	if err != nil {
-		logger.Error("failed to initialized cns client", zap.String("url", CNSUrl),
-			zap.String("error", err.Error()))
-		return plugin.Errorf(err.Error())
-	}
-
-	// Create the endpoint.
-	logger.Info("Creating endpoint", zap.String("endpointInfo", epInfo.PrettyString()))
-	sendEvent(plugin, fmt.Sprintf("[cni-net] Creating endpoint %s.", epInfo.PrettyString()))
-	// TODO: pass in network id, or get network id from ep info-- it makes more sense if it came from epInfo
-	// since the network is directly related to the epInfo
-	// TODO: okay to pass in a slice of epInfo this way and just say epIndex is 0, or is refactoring create endpoint needed?
-	err = plugin.nm.CreateEndpoint(cnsclient, nwInfo.Id, []*network.EndpointInfo{epInfo}, 0)
-	if err != nil {
-		err = plugin.Errorf("Failed to create endpoint: %v", err)
-		return err //added
-	}
-	return nil
 }
 
 // cleanup allocated ipv4 and ipv6 addresses if they exist

@@ -113,6 +113,8 @@ type EndpointInfo struct {
 	// ServiceCidrs omitted
 	IsIPv6Enabled bool
 	// NICType omitted
+
+	IfInfo *InterfaceInfo // for secondary interfaces when creating endpoint struct
 }
 
 // RouteInfo contains information about an IP route.
@@ -164,26 +166,24 @@ func (nw *network) newEndpoint(
 	netioCli netio.NetIOInterface,
 	nsc NamespaceClientInterface,
 	iptc ipTablesClient,
-	epInfo []*EndpointInfo,
-	epIndex int,
+	epInfo *EndpointInfo,
 ) (*endpoint, error) {
 	var ep *endpoint
 	var err error
 
 	defer func() {
 		if err != nil {
-			logger.Error("Failed to create endpoint with err", zap.String("id", epInfo[epIndex].Id), zap.Error(err))
+			logger.Error("Failed to create endpoint with err", zap.String("id", epInfo.Id), zap.Error(err))
 		}
 	}()
 
 	// Call the platform implementation.
 	// Pass nil for epClient and will be initialized in newendpointImpl
-	ep, err = nw.newEndpointImpl(apipaCli, nl, plc, netioCli, nil, nsc, iptc, epInfo, epIndex)
+	ep, err = nw.newEndpointImpl(apipaCli, nl, plc, netioCli, nil, nsc, iptc, epInfo)
 	if err != nil {
 		return nil, err
 	}
 
-	nw.Endpoints[ep.Id] = ep
 	logger.Info("Created endpoint. Num of endpoints", zap.Any("ep", ep), zap.Int("numEndpoints", len(nw.Endpoints)))
 	return ep, nil
 }
