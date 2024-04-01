@@ -479,8 +479,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	ipamAddConfig := IPAMAddConfig{nwCfg: nwCfg, args: args, options: options}
 
 	var (
-		nwInfo    network.NetworkInfo
-		networkID string
+		nwInfo network.NetworkInfo
 	)
 
 	if nwCfg.MultiTenancy {
@@ -589,13 +588,13 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	for _, ifInfo := range ipamAddResult.interfaceInfo {
 		// TODO: hopefully I can get natInfo here?
 		natInfo := getNATInfo(nwCfg, options[network.SNATIPKey], enableSnatForDNS)
+		networkID, _ := plugin.getNetworkID(args.Netns, &ifInfo, nwCfg)
 		createEpInfoOpt := createEpInfoOpt{
 			nwCfg:            nwCfg,
 			cnsNetworkConfig: ifInfo.NCResponse,
 			ipamAddResult:    ipamAddResult,
 			azIpamResult:     azIpamResult,
 			args:             args,
-			nwInfo:           &nwInfo, // TODO: this is just like a placeholder right?
 			policies:         policies,
 			endpointID:       endpointID,
 			k8sPodName:       k8sPodName,
@@ -603,7 +602,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			enableInfraVnet:  enableInfraVnet,
 			enableSnatForDNS: enableSnatForDNS,
 			natInfo:          natInfo,
-			networkID:        networkID, // TODO: is this the right place to get the network ID, and if so, it will never change!
+			networkID:        networkID,
 
 			ifInfo:        &ifInfo,
 			ipamAddConfig: &ipamAddConfig,
@@ -614,14 +613,8 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		if err != nil {
 			return err
 		}
-		//ep, err = plugin.createEndpoint(epInfo, nwCfg.CNSUrl)
 		if err != nil {
 			return err
-		}
-		// TODO: is this how we choose which ep to use?
-		// the endpoint that is saved in the statefile is represented fully by the ep info/ep with the InfraNIC type
-		if ifInfo.NICType == cns.InfraNIC {
-			//saveEp = ep
 		}
 		epInfos = append(epInfos, epInfo)
 		// TODO: should this statement be based on the current iteration instead of the constant ifIndex?
@@ -634,50 +627,6 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		return errors.Wrap(err, "failed to create cns client")
 	}
 	plugin.nm.EndpointCreate(cnsclient, epInfos)
-
-	// // Create network
-	// if nwInfoErr != nil {
-	// 	// Network does not exist.
-	// 	logger.Info("Creating network", zap.String("networkID", networkID))
-	// 	sendEvent(plugin, fmt.Sprintf("[cni-net] Creating network %v.", networkID))
-	// 	// opts map needs to get passed in here
-	// 	if nwInfo, err = plugin.createNetworkInternal(networkID, policies, ipamAddConfig, ipamAddResult, ifIndex); err != nil {
-	// 		logger.Error("Create network failed", zap.Error(err))
-	// 		return err
-	// 	}
-	// 	logger.Info("Created network",
-	// 		zap.String("networkId", networkID),
-	// 		zap.String("subnet", ipamAddResult.hostSubnetPrefix.String()))
-	// 	sendEvent(plugin, fmt.Sprintf("[cni-net] Created network %v with subnet %v.", networkID, ipamAddResult.hostSubnetPrefix.String()))
-	// }
-
-	// natInfo := getNATInfo(nwCfg, options[network.SNATIPKey], enableSnatForDNS)
-
-	// createEndpointInternalOpt := createEndpointInternalOpt{
-	// 	nwCfg:            nwCfg,
-	// 	cnsNetworkConfig: ipamAddResult.interfaceInfo[0].NCResponse, // Alex will fix this in the for loop
-	// 	ipamAddResult:    ipamAddResult,
-	// 	azIpamResult:     azIpamResult,
-	// 	args:             args,
-	// 	nwInfo:           &nwInfo,
-	// 	policies:         policies,
-	// 	endpointID:       endpointID,
-	// 	k8sPodName:       k8sPodName,
-	// 	k8sNamespace:     k8sNamespace,
-	// 	enableInfraVnet:  enableInfraVnet,
-	// 	enableSnatForDNS: enableSnatForDNS,
-	// 	natInfo:          natInfo,
-	// }
-
-	// var epInfo network.EndpointInfo
-	// epInfo, err = plugin.createEndpointInternal(&createEndpointInternalOpt, ifIndex)
-	// if err != nil {
-	// 	logger.Error("Endpoint creation failed", zap.Error(err))
-	// 	return err
-	// }
-
-	// sendEvent(plugin, fmt.Sprintf("CNI ADD succeeded: IP:%+v, VlanID: %v, podname %v, namespace %v numendpoints:%d",
-	// 	ipamAddResult.interfaceInfo[ifIndex].IPConfigs, epInfo.Data[network.VlanIDKey], k8sPodName, k8sNamespace, plugin.nm.GetNumberOfEndpoints("", nwCfg.Name)))
 
 	return nil
 
@@ -704,7 +653,6 @@ type createEpInfoOpt struct {
 	ipamAddResult    IPAMAddResult
 	azIpamResult     *cniTypesCurr.Result
 	args             *cniSkel.CmdArgs
-	nwInfo           *network.NetworkInfo
 	policies         []policy.Policy
 	endpointID       string
 	k8sPodName       string
@@ -785,7 +733,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		}
 
 		nwInfo = network.NetworkInfo{
-			Id:                            "azure-" + opt.ifInfo.MacAddress.String(),
+			Id:                            opt.networkID,
 			Mode:                          opt.ipamAddConfig.nwCfg.Mode,
 			MasterIfName:                  masterIfName,
 			AdapterName:                   opt.ipamAddConfig.nwCfg.AdapterName,
