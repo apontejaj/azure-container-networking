@@ -41,7 +41,7 @@ func addSnatForDNS(gwIPString string, epInfo *network.EndpointInfo, result *netw
 	result.Routes = append(result.Routes, network.RouteInfo{Dst: *dnsIPNet, Gw: gwIP})
 }
 
-func setNetworkOptions(cnsNwConfig *cns.GetNetworkContainerResponse, nwInfo *network.NetworkInfo) {
+func setNetworkOptions(cnsNwConfig *cns.GetNetworkContainerResponse, nwInfo *network.EndpointInfo) {
 	if cnsNwConfig != nil && cnsNwConfig.MultiTenancyInfo.ID != 0 {
 		logger.Info("Setting Network Options")
 		vlanMap := make(map[string]interface{})

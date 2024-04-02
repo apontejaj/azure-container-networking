@@ -116,7 +116,7 @@ func addDefaultRoute(_ string, _ *network.EndpointInfo, _ *network.InterfaceInfo
 func addSnatForDNS(_ string, _ *network.EndpointInfo, _ *network.InterfaceInfo) {
 }
 
-func setNetworkOptions(cnsNwConfig *cns.GetNetworkContainerResponse, nwInfo *network.NetworkInfo) {
+func setNetworkOptions(cnsNwConfig *cns.GetNetworkContainerResponse, nwInfo *network.EndpointInfo) {
 	if cnsNwConfig != nil && cnsNwConfig.MultiTenancyInfo.ID != 0 {
 		logger.Info("Setting Network Options")
 		vlanMap := make(map[string]interface{})
@@ -330,7 +330,7 @@ func getEndpointPolicies(args PolicyArgs) ([]policy.Policy, error) {
 	var policies []policy.Policy
 
 	if args.nwCfg.IPV6Mode == network.IPV6Nat {
-		ipv6Policy, err := getIPV6EndpointPolicy(args.nwInfo)
+		ipv6Policy, err := getIPV6EndpointPolicy(args.subnetInfos)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get ipv6 endpoint policy")
 		}
@@ -373,15 +373,15 @@ func getLoopbackDSRPolicy(args PolicyArgs) ([]policy.Policy, error) {
 	return policies, nil
 }
 
-func getIPV6EndpointPolicy(nwInfo *network.NetworkInfo) (policy.Policy, error) {
+func getIPV6EndpointPolicy(subnetInfos []network.SubnetInfo) (policy.Policy, error) {
 	var eppolicy policy.Policy
 
-	if len(nwInfo.Subnets) < 2 {
+	if len(subnetInfos) < 2 {
 		return eppolicy, fmt.Errorf("network state doesn't have ipv6 subnet")
 	}
 
 	// Everything should be snat'd except podcidr
-	exceptionList := []string{nwInfo.Subnets[1].Prefix.String()}
+	exceptionList := []string{subnetInfos[1].Prefix.String()}
 	rawPolicy, _ := json.Marshal(&hcsshim.OutboundNatPolicy{
 		Policy:     hcsshim.Policy{Type: hcsshim.OutboundNat},
 		Exceptions: exceptionList,

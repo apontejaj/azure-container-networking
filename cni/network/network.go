@@ -79,9 +79,9 @@ type NetPlugin struct {
 }
 
 type PolicyArgs struct {
-	nwInfo    *network.NetworkInfo
-	nwCfg     *cni.NetworkConfig
-	ipconfigs []*network.IPConfig
+	subnetInfos []network.SubnetInfo
+	nwCfg       *cni.NetworkConfig
+	ipconfigs   []*network.IPConfig
 }
 
 // client for node network service
@@ -626,7 +626,7 @@ type createEpInfoOpt struct {
 func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointInfo, error) { // you can modify to pass in whatever else you need
 	var (
 		epInfo network.EndpointInfo
-		nwInfo network.NetworkInfo
+		nwInfo network.EndpointInfo
 	)
 
 	// populate endpoint info section
@@ -644,15 +644,15 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 	if err != nil {
 		return nil, err
 	}
-
-	nwInfo = network.NetworkInfo{
-		Id:                            opt.networkID,
+	// this struct is for organization and represents fields from the network to be merged into the endpoint info later
+	nwInfo = network.EndpointInfo{
+		NetworkId:                     opt.networkID,
 		Mode:                          opt.ipamAddConfig.nwCfg.Mode,
 		MasterIfName:                  masterIfName,
 		AdapterName:                   opt.ipamAddConfig.nwCfg.AdapterName,
 		BridgeName:                    opt.ipamAddConfig.nwCfg.Bridge,
 		EnableSnatOnHost:              opt.ipamAddConfig.nwCfg.EnableSnatOnHost, // (unused) overridden by endpoint info value NO CONFLICT: Confirmed same value as field with same name in epInfo above
-		DNS:                           nwDNSInfo,                                // (unused) overridden by endpoint info value POSSIBLE CONFLICT (resolved by making nw and ep dns infos)
+		NetworkDNS:                    nwDNSInfo,                                // (unused) overridden by endpoint info value POSSIBLE CONFLICT (resolved by making nw and ep dns infos)
 		Policies:                      opt.policies,                             // not present in non-infra
 		NetNs:                         opt.ipamAddConfig.args.Netns,
 		Options:                       opt.ipamAddConfig.options,
@@ -661,7 +661,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		IPAMType:                      opt.ipamAddConfig.nwCfg.IPAM.Type,    // not present in non-infra
 		ServiceCidrs:                  opt.ipamAddConfig.nwCfg.ServiceCidrs, // (unused) overridden by endpoint info value NO CONFLICT: Confirmed same value as field with same name in epInfo above
 		IsIPv6Enabled:                 opt.ipv6Enabled,                      // not present in non-infra
-		NICType:                       string(opt.ifInfo.NICType),
+		NICType:                       opt.ifInfo.NICType,
 	}
 
 	if err := addSubnetToNetworkInfo(*opt.ifInfo, &nwInfo); err != nil {
@@ -681,9 +681,9 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 	}
 	policyArgs := PolicyArgs{
 		// pass podsubnet info etc. part of epinfo
-		nwInfo:    &nwInfo, // TODO: (1/2 opt.nwInfo) we do not have the full nw info created yet-- is this okay? getEndpointPolicies requires nwInfo.Subnets only (checked)
-		nwCfg:     opt.nwCfg,
-		ipconfigs: defaultInterfaceInfo.IPConfigs,
+		subnetInfos: nwInfo.Subnets, // TODO: (1/2 opt.nwInfo) we do not have the full nw info created yet-- is this okay? getEndpointPolicies requires nwInfo.Subnets only (checked)
+		nwCfg:       opt.nwCfg,
+		ipconfigs:   defaultInterfaceInfo.IPConfigs,
 	}
 	endpointPolicies, err := getEndpointPolicies(policyArgs)
 	if err != nil {
@@ -699,7 +699,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		// this mechanism of using only namespace and name is not unique for different incarnations of POD/container.
 		// IT will result in unpredictable behavior if API server decides to
 		// reorder DELETE and ADD call for new incarnation of same POD.
-		vethName = fmt.Sprintf("%s%s%s", nwInfo.Id, opt.args.ContainerID, opt.args.IfName) // TODO: (2/2 opt.nwInfo) We use the nwInfo we generated above
+		vethName = fmt.Sprintf("%s%s%s", nwInfo.NetworkId, opt.args.ContainerID, opt.args.IfName) // TODO: (2/2 opt.nwInfo) We use the nwInfo we generated above
 	}
 
 	// for secondary
@@ -765,7 +765,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 	// populate endpoint info with network info fields
 	epInfo.MasterIfName = nwInfo.MasterIfName
 	epInfo.AdapterName = nwInfo.AdapterName
-	epInfo.NetworkId = nwInfo.Id
+	epInfo.NetworkId = nwInfo.NetworkId
 	epInfo.Mode = nwInfo.Mode
 	epInfo.Subnets = nwInfo.Subnets
 	epInfo.PodSubnet = nwInfo.PodSubnet
@@ -775,7 +775,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 	epInfo.DisableHairpinOnHostInterface = nwInfo.DisableHairpinOnHostInterface
 	epInfo.IPAMType = nwInfo.IPAMType
 	epInfo.IsIPv6Enabled = nwInfo.IsIPv6Enabled
-	epInfo.NetworkDNS = nwInfo.DNS
+	epInfo.NetworkDNS = nwInfo.NetworkDNS
 
 	// now our ep info should have the full combined information from both the network and endpoint structs
 	return &epInfo, nil
@@ -819,7 +819,7 @@ func (plugin *NetPlugin) getNetworkDNSSettings(nwCfg *cni.NetworkConfig, dns net
 }
 
 // construct network info with ipv4/ipv6 subnets
-func addSubnetToNetworkInfo(interfaceInfo network.InterfaceInfo, nwInfo *network.NetworkInfo) error {
+func addSubnetToNetworkInfo(interfaceInfo network.InterfaceInfo, nwInfo *network.EndpointInfo) error {
 	for _, ipConfig := range interfaceInfo.IPConfigs {
 		ip, podSubnetPrefix, err := net.ParseCIDR(ipConfig.Address.String())
 		if err != nil {
