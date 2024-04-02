@@ -112,8 +112,8 @@ func getResult(ips ...string) []*network.IPConfig {
 	return res
 }
 
-func getNwInfo(subnetv4, subnetv6 string) *network.NetworkInfo {
-	nwinfo := &network.NetworkInfo{}
+func getNwInfo(subnetv4, subnetv6 string) *network.EndpointInfo {
+	nwinfo := &network.EndpointInfo{}
 	if subnetv4 != "" {
 		nwinfo.Subnets = append(nwinfo.Subnets, network.SubnetInfo{
 			Prefix: *getCIDRNotationForAddress(subnetv4),
@@ -131,7 +131,7 @@ func TestAzureIPAMInvoker_Add(t *testing.T) {
 	require := require.New(t)
 	type fields struct {
 		plugin delegatePlugin
-		nwInfo *network.NetworkInfo
+		nwInfo *network.EndpointInfo
 	}
 	type args struct {
 		nwCfg        *cni.NetworkConfig
@@ -259,7 +259,7 @@ func TestAzureIPAMInvoker_Delete(t *testing.T) {
 	require := require.New(t)
 	type fields struct {
 		plugin delegatePlugin
-		nwInfo *network.NetworkInfo
+		nwInfo *network.EndpointInfo
 	}
 	type args struct {
 		address *net.IPNet
@@ -394,7 +394,7 @@ func TestRemoveIpamState_Add(t *testing.T) {
 	requires := require.New(t)
 	type fields struct {
 		plugin delegatePlugin
-		nwInfo *network.NetworkInfo
+		nwInfo *network.EndpointInfo
 	}
 	type args struct {
 		nwCfg        *cni.NetworkConfig
