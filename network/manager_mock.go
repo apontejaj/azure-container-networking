@@ -60,7 +60,7 @@ func (nm *MockNetworkManager) CreateEndpoint(_ apipaClient, _ string, epInfo *En
 		return nil, err
 	}
 
-	nm.TestEndpointInfoMap[epInfo.Id] = epInfo
+	nm.TestEndpointInfoMap[epInfo.EndpointID] = epInfo
 	return &endpoint{}, nil
 }
 

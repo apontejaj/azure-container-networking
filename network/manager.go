@@ -427,7 +427,7 @@ func (nm *networkManager) GetEndpointState(networkID, endpointID string) (*Endpo
 		return nil, errors.Wrapf(err, "Get endpoint API returend with error")
 	}
 	epInfo := &EndpointInfo{
-		Id:                 endpointID,
+		EndpointID:         endpointID,
 		IfIndex:            EndpointIfIndex, // Azure CNI supports only one interface
 		IfName:             endpointResponse.EndpointInfo.HostVethName,
 		ContainerID:        endpointID,
@@ -491,7 +491,7 @@ func (nm *networkManager) DeleteEndpointState(networkID string, epInfo *Endpoint
 	}
 
 	ep := &endpoint{
-		Id:                       epInfo.Id,
+		Id:                       epInfo.EndpointID,
 		HnsId:                    epInfo.HNSEndpointID,
 		HostIfName:               epInfo.IfName,
 		LocalIP:                  "",
@@ -500,7 +500,7 @@ func (nm *networkManager) DeleteEndpointState(networkID string, epInfo *Endpoint
 		AllowInboundFromNCToHost: false,
 		EnableSnatOnHost:         false,
 		EnableMultitenancy:       false,
-		NetworkContainerID:       epInfo.Id,
+		NetworkContainerID:       epInfo.EndpointID,
 	}
 	logger.Info("Deleting endpoint with", zap.String("Endpoint Info: ", epInfo.PrettyString()), zap.String("HNISID : ", ep.HnsId))
 	return nw.deleteEndpointImpl(netlink.NewNetlink(), platform.NewExecClient(logger), nil, nil, nil, nil, ep)

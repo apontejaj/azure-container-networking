@@ -59,7 +59,7 @@ type endpoint struct {
 
 // EndpointInfo contains read-only information about an endpoint.
 type EndpointInfo struct {
-	Id                       string
+	EndpointID               string
 	ContainerID              string
 	NetNsPath                string
 	IfName                   string
@@ -152,7 +152,7 @@ type apipaClient interface {
 
 func (epInfo *EndpointInfo) PrettyString() string {
 	return fmt.Sprintf("Id:%s ContainerID:%s NetNsPath:%s IfName:%s IfIndex:%d MacAddr:%s IPAddrs:%v Gateways:%v Data:%+v",
-		epInfo.Id, epInfo.ContainerID, epInfo.NetNsPath, epInfo.IfName, epInfo.IfIndex, epInfo.MacAddress.String(), epInfo.IPAddresses,
+		epInfo.EndpointID, epInfo.ContainerID, epInfo.NetNsPath, epInfo.IfName, epInfo.IfIndex, epInfo.MacAddress.String(), epInfo.IPAddresses,
 		epInfo.Gateways, epInfo.Data)
 }
 
@@ -171,7 +171,7 @@ func (nw *network) newEndpoint(
 
 	defer func() {
 		if err != nil {
-			logger.Error("Failed to create endpoint with err", zap.String("id", epInfo.Id), zap.Error(err))
+			logger.Error("Failed to create endpoint with err", zap.String("id", epInfo.EndpointID), zap.Error(err))
 		}
 	}()
 
@@ -270,7 +270,7 @@ func podNameMatches(source string, actualValue string, doExactMatch bool) bool {
 // GetInfo returns information about the endpoint.
 func (ep *endpoint) getInfo() *EndpointInfo {
 	info := &EndpointInfo{
-		Id:                       ep.Id,
+		EndpointID:               ep.Id,
 		IPAddresses:              ep.IPAddresses,
 		InfraVnetIP:              ep.InfraVnetIP,
 		Data:                     make(map[string]interface{}),
@@ -337,13 +337,13 @@ func (nm *networkManager) updateEndpoint(nw *network, exsitingEpInfo *EndpointIn
 		zap.String("id", nw.Id), zap.Any("targetEpInfo", targetEpInfo))
 	defer func() {
 		if err != nil {
-			logger.Error("Failed to update endpoint with err", zap.String("id", exsitingEpInfo.Id), zap.Error(err))
+			logger.Error("Failed to update endpoint with err", zap.String("id", exsitingEpInfo.EndpointID), zap.Error(err))
 		}
 	}()
 
-	logger.Info("Trying to retrieve endpoint id", zap.String("id", exsitingEpInfo.Id))
+	logger.Info("Trying to retrieve endpoint id", zap.String("id", exsitingEpInfo.EndpointID))
 
-	ep := nw.Endpoints[exsitingEpInfo.Id]
+	ep := nw.Endpoints[exsitingEpInfo.EndpointID]
 	if ep == nil {
 		return errEndpointNotFound
 	}
@@ -357,7 +357,7 @@ func (nm *networkManager) updateEndpoint(nw *network, exsitingEpInfo *EndpointIn
 	}
 
 	// Update routes for existing endpoint
-	nw.Endpoints[exsitingEpInfo.Id].Routes = ep.Routes
+	nw.Endpoints[exsitingEpInfo.EndpointID].Routes = ep.Routes
 
 	return nil
 }

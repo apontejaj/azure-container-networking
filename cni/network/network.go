@@ -183,11 +183,11 @@ func (plugin *NetPlugin) GetAllEndpointState(networkid string) (*api.AzureCNISta
 	}
 
 	for _, ep := range eps {
-		id := ep.Id
+		id := ep.EndpointID
 		info := api.PodNetworkInterfaceInfo{
 			PodName:       ep.PODName,
 			PodNamespace:  ep.PODNameSpace,
-			PodEndpointId: ep.Id,
+			PodEndpointId: ep.EndpointID,
 			ContainerID:   ep.ContainerID,
 			IPAddresses:   ep.IPAddresses,
 		}
@@ -769,7 +769,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 	}
 
 	epInfo = network.EndpointInfo{
-		Id:                 opt.endpointID,
+		EndpointID:         opt.endpointID,
 		ContainerID:        opt.args.ContainerID,
 		NetNsPath:          opt.args.Netns,
 		IfName:             opt.args.IfName,
@@ -1591,7 +1591,7 @@ func (plugin *NetPlugin) Update(args *cniSkel.CmdArgs) error {
 
 	// Update the endpoint.
 	logger.Info("Now updating existing endpoint with targetNetworkConfig",
-		zap.String("endpoint", existingEpInfo.Id),
+		zap.String("endpoint", existingEpInfo.EndpointID),
 		zap.Any("config", targetNetworkConfig))
 	if err = plugin.nm.UpdateEndpoint(networkID, existingEpInfo, targetEpInfo); err != nil {
 		err = plugin.Errorf("Failed to update endpoint: %v", err)

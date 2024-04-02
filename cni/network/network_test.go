@@ -1024,7 +1024,7 @@ func getTestEndpoint(podname, podnamespace, ipwithcidr, podinterfaceid, infracon
 	ep := acnnetwork.EndpointInfo{
 		PODName:      podname,
 		PODNameSpace: podnamespace,
-		Id:           podinterfaceid,
+		EndpointID:   podinterfaceid,
 		ContainerID:  infracontainerid,
 		IPAddresses: []net.IPNet{
 			*ipnet,
@@ -1056,22 +1056,22 @@ func TestGetAllEndpointState(t *testing.T) {
 
 	res := &api.AzureCNIState{
 		ContainerInterfaces: map[string]api.PodNetworkInterfaceInfo{
-			ep1.Id: {
-				PodEndpointId: ep1.Id,
+			ep1.EndpointID: {
+				PodEndpointId: ep1.EndpointID,
 				PodName:       ep1.PODName,
 				PodNamespace:  ep1.PODNameSpace,
 				ContainerID:   ep1.ContainerID,
 				IPAddresses:   ep1.IPAddresses,
 			},
-			ep2.Id: {
-				PodEndpointId: ep2.Id,
+			ep2.EndpointID: {
+				PodEndpointId: ep2.EndpointID,
 				PodName:       ep2.PODName,
 				PodNamespace:  ep2.PODNameSpace,
 				ContainerID:   ep2.ContainerID,
 				IPAddresses:   ep2.IPAddresses,
 			},
-			ep3.Id: {
-				PodEndpointId: ep3.Id,
+			ep3.EndpointID: {
+				PodEndpointId: ep3.EndpointID,
 				PodName:       ep3.PODName,
 				PodNamespace:  ep3.PODNameSpace,
 				ContainerID:   ep3.ContainerID,

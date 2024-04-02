@@ -175,9 +175,9 @@ var _ = Describe("Test Endpoint", func() {
 				Endpoints: map[string]*endpoint{},
 			}
 			epInfo := &EndpointInfo{
-				Id:     "768e8deb-eth1",
-				Data:   make(map[string]interface{}),
-				IfName: eth0IfName,
+				EndpointID: "768e8deb-eth1",
+				Data:       make(map[string]interface{}),
+				IfName:     eth0IfName,
 			}
 			epInfo.Data[VlanIDKey] = 100
 
@@ -187,7 +187,7 @@ var _ = Describe("Test Endpoint", func() {
 					netio.NewMockNetIO(false, 0), NewMockEndpointClient(nil), NewMockNamespaceClient(), iptables.NewClient(), []*EndpointInfo{epInfo}, 0)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(ep).NotTo(BeNil())
-				Expect(ep.Id).To(Equal(epInfo.Id))
+				Expect(ep.Id).To(Equal(epInfo.EndpointID))
 				Expect(ep.Gateways).To(BeEmpty())
 			})
 			It("should have fields set", func() {
@@ -199,7 +199,7 @@ var _ = Describe("Test Endpoint", func() {
 					netio.NewMockNetIO(false, 0), NewMockEndpointClient(nil), NewMockNamespaceClient(), iptables.NewClient(), []*EndpointInfo{epInfo}, 0)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(ep).NotTo(BeNil())
-				Expect(ep.Id).To(Equal(epInfo.Id))
+				Expect(ep.Id).To(Equal(epInfo.EndpointID))
 				Expect(ep.Gateways).NotTo(BeNil())
 				Expect(len(ep.Gateways)).To(Equal(1))
 				Expect(ep.Gateways[0].String()).To(Equal("192.168.0.1"))
@@ -242,9 +242,9 @@ var _ = Describe("Test Endpoint", func() {
 					Endpoints: map[string]*endpoint{},
 				}
 				epInfo := &EndpointInfo{
-					Id:      "768e8deb-eth1",
-					IfName:  eth0IfName,
-					NICType: cns.InfraNIC,
+					EndpointID: "768e8deb-eth1",
+					IfName:     eth0IfName,
+					NICType:    cns.InfraNIC,
 				}
 				ep, err := nw.newEndpointImpl(nil, netlink.NewMockNetlink(false, ""), platform.NewMockExecClient(false),
 					netio.NewMockNetIO(false, 0), NewMockEndpointClient(func(ep *EndpointInfo) error {
@@ -260,7 +260,7 @@ var _ = Describe("Test Endpoint", func() {
 					netio.NewMockNetIO(false, 0), NewMockEndpointClient(nil), NewMockNamespaceClient(), iptables.NewClient(), []*EndpointInfo{epInfo}, 0)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(ep).NotTo(BeNil())
-				Expect(ep.Id).To(Equal(epInfo.Id))
+				Expect(ep.Id).To(Equal(epInfo.EndpointID))
 			})
 		})
 		Context("When secondary endpoint client is used", func() {
@@ -271,9 +271,9 @@ var _ = Describe("Test Endpoint", func() {
 				extIf:     &externalInterface{BridgeName: "testbridge"},
 			}
 			epInfo := &EndpointInfo{
-				Id:      "768e8deb-eth1",
-				IfName:  eth0IfName,
-				NICType: cns.InfraNIC,
+				EndpointID: "768e8deb-eth1",
+				IfName:     eth0IfName,
+				NICType:    cns.InfraNIC,
 			}
 			secondaryEpInfo := &EndpointInfo{
 				NICType: cns.DelegatedVMNIC,
@@ -292,7 +292,7 @@ var _ = Describe("Test Endpoint", func() {
 				ep, err = nw.newEndpointImpl(nil, netlink.NewMockNetlink(false, ""), platform.NewMockExecClient(false),
 					netio.NewMockNetIO(false, 0), nil, NewMockNamespaceClient(), iptables.NewClient(), []*EndpointInfo{epInfo, secondaryEpInfo}, 0)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(ep.Id).To(Equal(epInfo.Id))
+				Expect(ep.Id).To(Equal(epInfo.EndpointID))
 			})
 
 			It("Should add endpoint when there are no errors", func() {
@@ -300,7 +300,7 @@ var _ = Describe("Test Endpoint", func() {
 				ep, err := nw.newEndpointImpl(nil, netlink.NewMockNetlink(false, ""), platform.NewMockExecClient(false),
 					netio.NewMockNetIO(false, 0), nil, NewMockNamespaceClient(), iptables.NewClient(), []*EndpointInfo{epInfo, secondaryEpInfo}, 0)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(ep.Id).To(Equal(epInfo.Id))
+				Expect(ep.Id).To(Equal(epInfo.EndpointID))
 			})
 		})
 	})
@@ -312,8 +312,8 @@ var _ = Describe("Test Endpoint", func() {
 
 				nw := &network{}
 				existingEpInfo := &EndpointInfo{
-					Id:     "768e8deb-eth1",
-					IfName: eth0IfName,
+					EndpointID: "768e8deb-eth1",
+					IfName:     eth0IfName,
 				}
 				targetEpInfo := &EndpointInfo{}
 				err := nm.updateEndpoint(nw, existingEpInfo, targetEpInfo)

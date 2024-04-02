@@ -69,7 +69,7 @@ func (nw *network) newEndpointImpl(
 		containerIf   *net.Interface
 	)
 
-	if nw.Endpoints[defaultEpInfo.Id] != nil {
+	if nw.Endpoints[defaultEpInfo.EndpointID] != nil {
 		logger.Info("[net] Endpoint already exists.")
 		err = errEndpointExists
 		return nil, err
@@ -94,12 +94,12 @@ func (nw *network) newEndpointImpl(
 	} else {
 		// Create a veth pair.
 		logger.Info("Generate veth name based on endpoint id")
-		hostIfName = fmt.Sprintf("%s%s", hostVEthInterfacePrefix, defaultEpInfo.Id[:7])
-		contIfName = fmt.Sprintf("%s%s-2", hostVEthInterfacePrefix, defaultEpInfo.Id[:7])
+		hostIfName = fmt.Sprintf("%s%s", hostVEthInterfacePrefix, defaultEpInfo.EndpointID[:7])
+		contIfName = fmt.Sprintf("%s%s-2", hostVEthInterfacePrefix, defaultEpInfo.EndpointID[:7])
 	}
 
 	ep := &endpoint{
-		Id:                       defaultEpInfo.Id,
+		Id:                       defaultEpInfo.EndpointID,
 		IfName:                   contIfName, // container veth pair name. In cnm, we won't rename this and docker expects veth name.
 		HostIfName:               hostIfName,
 		InfraVnetIP:              defaultEpInfo.InfraVnetIP,
@@ -394,8 +394,8 @@ func deleteRoutes(nl netlink.NetlinkInterface, netioshim netio.NetIOInterface, i
 func (nm *networkManager) updateEndpointImpl(nw *network, existingEpInfo *EndpointInfo, targetEpInfo *EndpointInfo) (*endpoint, error) {
 	var ep *endpoint
 
-	existingEpFromRepository := nw.Endpoints[existingEpInfo.Id]
-	logger.Info("[updateEndpointImpl] Going to retrieve endpoint with Id to update", zap.String("id", existingEpInfo.Id))
+	existingEpFromRepository := nw.Endpoints[existingEpInfo.EndpointID]
+	logger.Info("[updateEndpointImpl] Going to retrieve endpoint with Id to update", zap.String("id", existingEpInfo.EndpointID))
 	if existingEpFromRepository == nil {
 		logger.Info("[updateEndpointImpl] Endpoint cannot be updated as it does not exist")
 		return nil, errEndpointNotFound
@@ -426,7 +426,7 @@ func (nm *networkManager) updateEndpointImpl(nw *network, existingEpInfo *Endpoi
 			}
 		}()
 	} else {
-		logger.Info("[updateEndpointImpl] Endpoint cannot be updated as the network namespace does not exist: Epid", zap.String("id", existingEpInfo.Id),
+		logger.Info("[updateEndpointImpl] Endpoint cannot be updated as the network namespace does not exist: Epid", zap.String("id", existingEpInfo.EndpointID),
 			zap.String("component", "updateEndpointImpl"))
 		return nil, errNamespaceNotFound
 	}
@@ -438,7 +438,7 @@ func (nm *networkManager) updateEndpointImpl(nw *network, existingEpInfo *Endpoi
 
 	// Create the endpoint object.
 	ep = &endpoint{
-		Id: existingEpInfo.Id,
+		Id: existingEpInfo.EndpointID,
 	}
 
 	// Update existing endpoint state with the new routes to persist

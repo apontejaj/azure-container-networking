@@ -236,7 +236,7 @@ func (plugin *netPlugin) createEndpoint(w http.ResponseWriter, r *http.Request) 
 	}
 
 	epInfo := network.EndpointInfo{
-		Id:              req.EndpointID,
+		EndpointID:      req.EndpointID,
 		IPAddresses:     []net.IPNet{*ipv4Address},
 		SkipHotAttachEp: true, // Skip hot attach endpoint as it's done in Join
 	}

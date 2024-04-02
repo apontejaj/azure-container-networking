@@ -74,7 +74,7 @@ func NewOVSEndpointClient(
 		netioshim:                &netio.NetIO{},
 	}
 
-	NewInfraVnetClient(client, epInfo.Id[:7])
+	NewInfraVnetClient(client, epInfo.EndpointID[:7])
 	client.NewSnatClient(nw.SnatBridgeIP, localIP, epInfo)
 
 	return client
