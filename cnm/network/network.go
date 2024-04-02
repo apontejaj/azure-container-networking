@@ -145,9 +145,9 @@ func (plugin *netPlugin) createNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Process request.
-	nwInfo := network.NetworkInfo{
-		Id:      req.NetworkID,
-		Options: req.Options,
+	nwInfo := network.EndpointInfo{
+		NetworkId: req.NetworkID,
+		Options:   req.Options,
 	}
 
 	// Parse network options.
@@ -247,8 +247,8 @@ func (plugin *netPlugin) createEndpoint(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		log.Errorf("failed to init CNS client", err)
 	}
-	// We only pass a single epInfo, so can pass default index as 0
-	err = plugin.nm.CreateEndpoint(cnscli, req.NetworkID, []*network.EndpointInfo{&epInfo}, 0)
+	_, err = plugin.nm.CreateEndpoint(cnscli, req.NetworkID, &epInfo)
+	// TODO: Because create endpoint no longer assigns to the map or saves to a file, you need to handle it in cnm right here!
 	if err != nil {
 		plugin.SendErrorResponse(w, err)
 		return
