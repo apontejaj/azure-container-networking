@@ -57,7 +57,7 @@ type network struct {
 	SnatBridgeIP     string
 }
 
-// NetworkInfo contains read-only information about a container network.
+// NetworkInfo contains read-only information about a container network. Use EndpointInfo instead when possible.
 type NetworkInfo struct {
 	MasterIfName                  string
 	AdapterName                   string
@@ -325,7 +325,6 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 		// sendEvent(plugin, fmt.Sprintf("[cni-net] Creating endpoint %s.", epInfo.PrettyString()))
 		// TODO: pass in network id, or get network id from ep info-- it makes more sense if it came from epInfo
 		// since the network is directly related to the epInfo
-		// TODO: okay to pass in a slice of epInfo this way and just say epIndex is 0, or is refactoring create endpoint needed?
 		ep, err := nm.CreateEndpoint(cnsclient, nwInfo.NetworkId, epInfo)
 		if err != nil {
 			// err = plugin.Errorf("Failed to create endpoint: %v", err)
