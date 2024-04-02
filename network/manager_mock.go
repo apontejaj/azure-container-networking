@@ -6,7 +6,7 @@ import (
 
 // MockNetworkManager is a mock structure for Network Manager
 type MockNetworkManager struct {
-	TestNetworkInfoMap  map[string]*NetworkInfo
+	TestNetworkInfoMap  map[string]*EndpointInfo
 	TestEndpointInfoMap map[string]*EndpointInfo
 	TestEndpointClient  *MockEndpointClient
 }
@@ -14,7 +14,7 @@ type MockNetworkManager struct {
 // NewMockNetworkmanager returns a new mock
 func NewMockNetworkmanager(mockEndpointclient *MockEndpointClient) *MockNetworkManager {
 	return &MockNetworkManager{
-		TestNetworkInfoMap:  make(map[string]*NetworkInfo),
+		TestNetworkInfoMap:  make(map[string]*EndpointInfo),
 		TestEndpointInfoMap: make(map[string]*EndpointInfo),
 		TestEndpointClient:  mockEndpointclient,
 	}
@@ -34,7 +34,7 @@ func (nm *MockNetworkManager) AddExternalInterface(ifName string, subnet string)
 }
 
 // CreateNetwork mock
-func (nm *MockNetworkManager) CreateNetwork(nwInfo *NetworkInfo) error {
+func (nm *MockNetworkManager) CreateNetwork(nwInfo *EndpointInfo) error {
 	nm.TestNetworkInfoMap[nwInfo.Id] = nwInfo
 	return nil
 }
@@ -45,11 +45,11 @@ func (nm *MockNetworkManager) DeleteNetwork(networkID string) error {
 }
 
 // GetNetworkInfo mock
-func (nm *MockNetworkManager) GetNetworkInfo(networkID string) (NetworkInfo, error) {
+func (nm *MockNetworkManager) GetNetworkInfo(networkID string) (EndpointInfo, error) {
 	if info, exists := nm.TestNetworkInfoMap[networkID]; exists {
 		return *info, nil
 	}
-	return NetworkInfo{}, errNetworkNotFound
+	return EndpointInfo{}, errNetworkNotFound
 }
 
 // CreateEndpoint mock

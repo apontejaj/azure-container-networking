@@ -162,29 +162,29 @@ func (nm *networkManager) findExternalInterfaceByName(ifName string) *externalIn
 }
 
 // NewNetwork creates a new container network.
-func (nm *networkManager) newNetwork(nwInfo *NetworkInfo) (*network, error) {
+func (nm *networkManager) newNetwork(epInfo *EndpointInfo) (*network, error) {
 	var nw *network
 	var err error
 
-	logger.Info("Creating", zap.String("network", nwInfo.PrettyString()))
+	logger.Info("Creating", zap.String("network", epInfo.PrettyString()))
 	defer func() {
 		if err != nil {
-			logger.Error("Failed to create network", zap.String("id", nwInfo.Id), zap.Error(err))
+			logger.Error("Failed to create network", zap.String("id", epInfo.Id), zap.Error(err))
 		}
 	}()
 
 	// Set defaults.
-	if nwInfo.Mode == "" {
-		nwInfo.Mode = opModeDefault
+	if epInfo.Mode == "" {
+		epInfo.Mode = opModeDefault
 	}
 
 	// If the master interface name is provided, find the external interface by name
 	// else use subnet to to find the interface
 	var extIf *externalInterface
-	if len(strings.TrimSpace(nwInfo.MasterIfName)) > 0 {
-		extIf = nm.findExternalInterfaceByName(nwInfo.MasterIfName)
+	if len(strings.TrimSpace(epInfo.MasterIfName)) > 0 {
+		extIf = nm.findExternalInterfaceByName(epInfo.MasterIfName)
 	} else {
-		extIf = nm.findExternalInterfaceBySubnet(nwInfo.Subnets[0].Prefix.String())
+		extIf = nm.findExternalInterfaceBySubnet(epInfo.Subnets[0].Prefix.String())
 	}
 	if extIf == nil {
 		err = errSubnetNotFound
@@ -192,22 +192,22 @@ func (nm *networkManager) newNetwork(nwInfo *NetworkInfo) (*network, error) {
 	}
 
 	// Make sure this network does not already exist.
-	if extIf.Networks[nwInfo.Id] != nil {
+	if extIf.Networks[epInfo.Id] != nil {
 		err = errNetworkExists
 		return nil, err
 	}
 
 	// Call the OS-specific implementation.
-	nw, err = nm.newNetworkImpl(nwInfo, extIf)
+	nw, err = nm.newNetworkImpl(epInfo, extIf)
 	if err != nil {
 		return nil, err
 	}
 
 	// Add the network object.
-	nw.Subnets = nwInfo.Subnets
-	extIf.Networks[nwInfo.Id] = nw
+	nw.Subnets = epInfo.Subnets
+	extIf.Networks[epInfo.Id] = nw
 
-	logger.Info("Created network on interface", zap.String("id", nwInfo.Id), zap.String("Name", extIf.Name))
+	logger.Info("Created network on interface", zap.String("id", epInfo.Id), zap.String("Name", extIf.Name))
 	return nw, nil
 }
 
@@ -312,27 +312,7 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 		if nwGetErr != nil {
 			// Create the network if it is not found
 			// populate network info with fields from ep info
-			nwInfo = NetworkInfo{
-				MasterIfName:                  epInfo.MasterIfName,
-				AdapterName:                   epInfo.AdapterName,
-				Id:                            epInfo.NetworkId,
-				Mode:                          epInfo.Mode,
-				Subnets:                       epInfo.Subnets,
-				PodSubnet:                     epInfo.PodSubnet,
-				DNS:                           epInfo.NetworkDNS,
-				Policies:                      epInfo.Policies,
-				BridgeName:                    epInfo.BridgeName,
-				EnableSnatOnHost:              epInfo.EnableSnatOnHost,
-				NetNs:                         epInfo.NetNs,
-				Options:                       epInfo.Options,
-				DisableHairpinOnHostInterface: epInfo.DisableHairpinOnHostInterface,
-				IPV6Mode:                      epInfo.IPV6Mode,
-				IPAMType:                      epInfo.IPAMType,
-				ServiceCidrs:                  epInfo.ServiceCidrs,
-				IsIPv6Enabled:                 epInfo.IsIPv6Enabled,
-				NICType:                       string(epInfo.NICType),
-			}
-			err := nm.CreateNetwork(&nwInfo)
+			err := nm.CreateNetwork(epInfo)
 			if err != nil {
 				// TODO: error messages/handling are different in this file
 				// err = plugin.Errorf("createNetworkInternal: Failed to create network: %v", err)

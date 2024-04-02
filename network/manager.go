@@ -91,7 +91,7 @@ type NetworkManager interface {
 
 	AddExternalInterface(ifName string, subnet string) error
 
-	CreateNetwork(nwInfo *NetworkInfo) error
+	CreateNetwork(nwInfo *EndpointInfo) error
 	DeleteNetwork(networkID string) error
 	GetNetworkInfo(networkID string) (NetworkInfo, error)
 	// FindNetworkIDFromNetNs returns the network name that contains an endpoint created for this netNS, errNetworkNotFound if no network is found
@@ -305,11 +305,11 @@ func (nm *networkManager) AddExternalInterface(ifName string, subnet string) err
 }
 
 // CreateNetwork creates a new container network.
-func (nm *networkManager) CreateNetwork(nwInfo *NetworkInfo) error {
+func (nm *networkManager) CreateNetwork(epInfo *EndpointInfo) error {
 	nm.Lock()
 	defer nm.Unlock()
 
-	_, err := nm.newNetwork(nwInfo)
+	_, err := nm.newNetwork(epInfo)
 	if err != nil {
 		return err
 	}

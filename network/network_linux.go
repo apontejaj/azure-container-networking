@@ -59,22 +59,22 @@ func newErrorNetworkManager(errStr string) error {
 type route netlink.Route
 
 // NewNetworkImpl creates a new container network.
-func (nm *networkManager) newNetworkImpl(nwInfo *NetworkInfo, extIf *externalInterface) (*network, error) {
+func (nm *networkManager) newNetworkImpl(epInfo *EndpointInfo, extIf *externalInterface) (*network, error) {
 	// Connect the external interface.
 	var (
 		vlanid int
 		ifName string
 	)
-	opt, _ := nwInfo.Options[genericData].(map[string]interface{})
-	logger.Info("opt options", zap.Any("opt", opt), zap.Any("options", nwInfo.Options))
+	opt, _ := epInfo.Options[genericData].(map[string]interface{})
+	logger.Info("opt options", zap.Any("opt", opt), zap.Any("options", epInfo.Options))
 
-	switch nwInfo.Mode {
+	switch epInfo.Mode {
 	case opModeTunnel:
 		fallthrough
 	case opModeBridge:
 		logger.Info("create bridge")
 		ifName = extIf.BridgeName
-		if err := nm.connectExternalInterface(extIf, nwInfo); err != nil {
+		if err := nm.connectExternalInterface(extIf, epInfo); err != nil {
 			return nil, err
 		}
 
@@ -84,7 +84,7 @@ func (nm *networkManager) newNetworkImpl(nwInfo *NetworkInfo, extIf *externalInt
 	case opModeTransparent:
 		logger.Info("Transparent mode")
 		ifName = extIf.Name
-		if nwInfo.IPV6Mode != "" {
+		if epInfo.IPV6Mode != "" {
 			nu := networkutils.NewNetworkUtils(nm.netlink, nm.plClient)
 			if err := nu.EnableIPV6Forwarding(); err != nil {
 				return nil, fmt.Errorf("Ipv6 forwarding failed: %w", err)
@@ -111,7 +111,7 @@ func (nm *networkManager) newNetworkImpl(nwInfo *NetworkInfo, extIf *externalInt
 		return nil, errNetworkModeInvalid
 	}
 
-	err := nm.handleCommonOptions(ifName, nwInfo)
+	err := nm.handleCommonOptions(ifName, epInfo)
 	if err != nil {
 		logger.Error("handleCommonOptions failed with", zap.Error(err))
 		return nil, err
@@ -119,28 +119,28 @@ func (nm *networkManager) newNetworkImpl(nwInfo *NetworkInfo, extIf *externalInt
 
 	// Create the network object.
 	nw := &network{
-		Id:               nwInfo.Id,
-		Mode:             nwInfo.Mode,
+		Id:               epInfo.Id,
+		Mode:             epInfo.Mode,
 		Endpoints:        make(map[string]*endpoint),
 		extIf:            extIf,
 		VlanId:           vlanid,
-		DNS:              nwInfo.DNS,
-		EnableSnatOnHost: nwInfo.EnableSnatOnHost,
+		DNS:              epInfo.NetworkDNS,
+		EnableSnatOnHost: epInfo.EnableSnatOnHost,
 	}
 
 	return nw, nil
 }
 
-func (nm *networkManager) handleCommonOptions(ifName string, nwInfo *NetworkInfo) error {
+func (nm *networkManager) handleCommonOptions(ifName string, epInfo *EndpointInfo) error {
 	var err error
-	if routes, exists := nwInfo.Options[RoutesKey]; exists {
+	if routes, exists := epInfo.Options[RoutesKey]; exists {
 		err = addRoutes(nm.netlink, nm.netio, ifName, routes.([]RouteInfo))
 		if err != nil {
 			return err
 		}
 	}
 
-	if iptcmds, exists := nwInfo.Options[IPTablesKey]; exists {
+	if iptcmds, exists := epInfo.Options[IPTablesKey]; exists {
 		err = nm.addToIptables(iptcmds.([]iptables.IPTableEntry))
 		if err != nil {
 			return err
@@ -157,7 +157,7 @@ func (nm *networkManager) deleteNetworkImpl(nw *network) error {
 	if nw.VlanId != 0 {
 		networkClient = NewOVSClient(nw.extIf.BridgeName, nw.extIf.Name, ovsctl.NewOvsctl(), nm.netlink, nm.plClient)
 	} else {
-		networkClient = NewLinuxBridgeClient(nw.extIf.BridgeName, nw.extIf.Name, NetworkInfo{}, nm.netlink, nm.plClient)
+		networkClient = NewLinuxBridgeClient(nw.extIf.BridgeName, nw.extIf.Name, EndpointInfo{}, nm.netlink, nm.plClient)
 	}
 
 	// Disconnect the interface if this was the last network using it.
@@ -463,7 +463,7 @@ func (nm *networkManager) applyDNSConfig(extIf *externalInterface, ifName string
 }
 
 // ConnectExternalInterface connects the given host interface to a bridge.
-func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwInfo *NetworkInfo) error {
+func (nm *networkManager) connectExternalInterface(extIf *externalInterface, epInfo *EndpointInfo) error {
 	var (
 		err           error
 		networkClient NetworkClient
@@ -486,16 +486,16 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 	}
 
 	// If a bridge name is not specified, generate one based on the external interface index.
-	bridgeName := nwInfo.BridgeName
+	bridgeName := epInfo.BridgeName
 	if bridgeName == "" {
 		bridgeName = fmt.Sprintf("%s%d", bridgePrefix, hostIf.Index)
 	}
 
-	opt, _ := nwInfo.Options[genericData].(map[string]interface{})
+	opt, _ := epInfo.Options[genericData].(map[string]interface{})
 	if opt != nil && opt[VlanIDKey] != nil {
 		networkClient = NewOVSClient(bridgeName, extIf.Name, ovsctl.NewOvsctl(), nm.netlink, nm.plClient)
 	} else {
-		networkClient = NewLinuxBridgeClient(bridgeName, extIf.Name, *nwInfo, nm.netlink, nm.plClient)
+		networkClient = NewLinuxBridgeClient(bridgeName, extIf.Name, *epInfo, nm.netlink, nm.plClient)
 	}
 
 	// Check if the bridge already exists.
@@ -582,7 +582,7 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 	}
 
 	// External interface hairpin on.
-	if !nwInfo.DisableHairpinOnHostInterface {
+	if !epInfo.DisableHairpinOnHostInterface {
 		logger.Info("Setting link hairpin on", zap.String("Name", hostIf.Name))
 		if err = networkClient.SetHairpinOnHostInterface(true); err != nil {
 			return err
@@ -607,14 +607,14 @@ func (nm *networkManager) connectExternalInterface(extIf *externalInterface, nwI
 		logger.Info("Applied dns config on", zap.Any("DNSInfo", extIf.DNSInfo), zap.String("bridgeName", bridgeName))
 	}
 
-	if nwInfo.IPV6Mode == IPV6Nat {
+	if epInfo.IPV6Mode == IPV6Nat {
 		// adds pod cidr gateway ip to bridge
-		if err = nm.addIpv6NatGateway(nwInfo); err != nil {
+		if err = nm.addIpv6NatGateway(epInfo); err != nil {
 			logger.Error("Adding IPv6 Nat Gateway failed with", zap.Error(err))
 			return err
 		}
 
-		if err = nm.addIpv6SnatRule(extIf, nwInfo); err != nil {
+		if err = nm.addIpv6SnatRule(extIf, epInfo); err != nil {
 			logger.Error("Adding IPv6 Snat Rule failed with", zap.Error(err))
 			return err
 		}
@@ -674,16 +674,16 @@ func (nm *networkManager) addToIptables(cmds []iptables.IPTableEntry) error {
 }
 
 // Add ipv6 nat gateway IP on bridge
-func (nm *networkManager) addIpv6NatGateway(nwInfo *NetworkInfo) error {
+func (nm *networkManager) addIpv6NatGateway(epInfo *EndpointInfo) error {
 	logger.Info("Adding ipv6 nat gateway on azure bridge")
-	for _, subnetInfo := range nwInfo.Subnets {
+	for _, subnetInfo := range epInfo.Subnets {
 		if subnetInfo.Family == platform.AfINET6 {
 			ipAddr := []net.IPNet{{
 				IP:   subnetInfo.Gateway,
 				Mask: subnetInfo.Prefix.Mask,
 			}}
 			nuc := networkutils.NewNetworkUtils(nm.netlink, nm.plClient)
-			err := nuc.AssignIPToInterface(nwInfo.BridgeName, ipAddr)
+			err := nuc.AssignIPToInterface(epInfo.BridgeName, ipAddr)
 			if err != nil {
 				return newErrorNetworkManager(err.Error())
 			}
@@ -694,13 +694,13 @@ func (nm *networkManager) addIpv6NatGateway(nwInfo *NetworkInfo) error {
 }
 
 // snat ipv6 traffic to secondary ipv6 ip before leaving VM
-func (nm *networkManager) addIpv6SnatRule(extIf *externalInterface, nwInfo *NetworkInfo) error {
+func (nm *networkManager) addIpv6SnatRule(extIf *externalInterface, epInfo *EndpointInfo) error {
 	var (
 		ipv6SnatRuleSet  bool
 		ipv6SubnetPrefix net.IPNet
 	)
 
-	for _, subnet := range nwInfo.Subnets {
+	for _, subnet := range epInfo.Subnets {
 		if subnet.Family == platform.AfINET6 {
 			ipv6SubnetPrefix = subnet.Prefix
 			break
