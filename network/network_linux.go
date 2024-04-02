@@ -119,7 +119,7 @@ func (nm *networkManager) newNetworkImpl(epInfo *EndpointInfo, extIf *externalIn
 
 	// Create the network object.
 	nw := &network{
-		Id:               epInfo.Id,
+		Id:               epInfo.NetworkId,
 		Mode:             epInfo.Mode,
 		Endpoints:        make(map[string]*endpoint),
 		extIf:            extIf,
@@ -731,7 +731,7 @@ func (nm *networkManager) addIpv6SnatRule(extIf *externalInterface, epInfo *Endp
 	return nil
 }
 
-func getNetworkInfoImpl(nwInfo *NetworkInfo, nw *network) {
+func getNetworkInfoImpl(nwInfo *EndpointInfo, nw *network) {
 	if nw.VlanId != 0 {
 		vlanMap := make(map[string]interface{})
 		vlanMap[VlanIDKey] = strconv.Itoa(nw.VlanId)

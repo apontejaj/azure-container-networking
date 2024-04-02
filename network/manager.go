@@ -93,7 +93,7 @@ type NetworkManager interface {
 
 	CreateNetwork(nwInfo *EndpointInfo) error
 	DeleteNetwork(networkID string) error
-	GetNetworkInfo(networkID string) (NetworkInfo, error)
+	GetNetworkInfo(networkID string) (EndpointInfo, error)
 	// FindNetworkIDFromNetNs returns the network name that contains an endpoint created for this netNS, errNetworkNotFound if no network is found
 	FindNetworkIDFromNetNs(netNs string) (string, error)
 	GetNumEndpointsByContainerID(containerID string) int
@@ -336,21 +336,21 @@ func (nm *networkManager) DeleteNetwork(networkID string) error {
 }
 
 // GetNetworkInfo returns information about the given network.
-func (nm *networkManager) GetNetworkInfo(networkId string) (NetworkInfo, error) {
+func (nm *networkManager) GetNetworkInfo(networkId string) (EndpointInfo, error) {
 	nm.Lock()
 	defer nm.Unlock()
 
 	nw, err := nm.getNetwork(networkId)
 	if err != nil {
-		return NetworkInfo{}, err
+		return EndpointInfo{}, err
 	}
 
-	nwInfo := NetworkInfo{
-		Id:               networkId,
+	nwInfo := EndpointInfo{
+		NetworkId:        networkId,
 		Subnets:          nw.Subnets,
 		Mode:             nw.Mode,
 		EnableSnatOnHost: nw.EnableSnatOnHost,
-		DNS:              nw.DNS,
+		NetworkDNS:       nw.DNS,
 		Options:          make(map[string]interface{}),
 	}
 

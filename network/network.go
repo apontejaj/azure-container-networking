@@ -169,7 +169,7 @@ func (nm *networkManager) newNetwork(epInfo *EndpointInfo) (*network, error) {
 	logger.Info("Creating", zap.String("network", epInfo.PrettyString()))
 	defer func() {
 		if err != nil {
-			logger.Error("Failed to create network", zap.String("id", epInfo.Id), zap.Error(err))
+			logger.Error("Failed to create network", zap.String("id", epInfo.NetworkId), zap.Error(err))
 		}
 	}()
 
@@ -192,7 +192,7 @@ func (nm *networkManager) newNetwork(epInfo *EndpointInfo) (*network, error) {
 	}
 
 	// Make sure this network does not already exist.
-	if extIf.Networks[epInfo.Id] != nil {
+	if extIf.Networks[epInfo.NetworkId] != nil {
 		err = errNetworkExists
 		return nil, err
 	}
@@ -205,9 +205,9 @@ func (nm *networkManager) newNetwork(epInfo *EndpointInfo) (*network, error) {
 
 	// Add the network object.
 	nw.Subnets = epInfo.Subnets
-	extIf.Networks[epInfo.Id] = nw
+	extIf.Networks[epInfo.NetworkId] = nw
 
-	logger.Info("Created network on interface", zap.String("id", epInfo.Id), zap.String("Name", extIf.Name))
+	logger.Info("Created network on interface", zap.String("id", epInfo.NetworkId), zap.String("Name", extIf.Name))
 	return nw, nil
 }
 
@@ -326,7 +326,7 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 		// TODO: pass in network id, or get network id from ep info-- it makes more sense if it came from epInfo
 		// since the network is directly related to the epInfo
 		// TODO: okay to pass in a slice of epInfo this way and just say epIndex is 0, or is refactoring create endpoint needed?
-		ep, err := nm.CreateEndpoint(cnsclient, nwInfo.Id, epInfo)
+		ep, err := nm.CreateEndpoint(cnsclient, nwInfo.NetworkId, epInfo)
 		if err != nil {
 			// err = plugin.Errorf("Failed to create endpoint: %v", err)
 			return err //added

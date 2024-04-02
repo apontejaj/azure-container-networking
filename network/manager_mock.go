@@ -35,7 +35,7 @@ func (nm *MockNetworkManager) AddExternalInterface(ifName string, subnet string)
 
 // CreateNetwork mock
 func (nm *MockNetworkManager) CreateNetwork(nwInfo *EndpointInfo) error {
-	nm.TestNetworkInfoMap[nwInfo.Id] = nwInfo
+	nm.TestNetworkInfoMap[nwInfo.NetworkId] = nwInfo
 	return nil
 }
 
@@ -147,7 +147,7 @@ func (nm *MockNetworkManager) GetNumEndpointsByContainerID(_ string) int {
 	numEndpoints := 0
 
 	for _, network := range nm.TestNetworkInfoMap {
-		if _, err := nm.GetAllEndpoints(network.Id); err == nil {
+		if _, err := nm.GetAllEndpoints(network.NetworkId); err == nil {
 			numEndpoints++
 		}
 	}

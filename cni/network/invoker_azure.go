@@ -29,7 +29,7 @@ const (
 
 type AzureIPAMInvoker struct {
 	plugin delegatePlugin
-	nwInfo *network.NetworkInfo
+	nwInfo *network.EndpointInfo
 }
 
 type delegatePlugin interface {
@@ -39,7 +39,7 @@ type delegatePlugin interface {
 }
 
 // Create an IPAM instance every time a CNI action is called.
-func NewAzureIpamInvoker(plugin *NetPlugin, nwInfo *network.NetworkInfo) *AzureIPAMInvoker {
+func NewAzureIpamInvoker(plugin *NetPlugin, nwInfo *network.EndpointInfo) *AzureIPAMInvoker {
 	return &AzureIPAMInvoker{
 		plugin: plugin,
 		nwInfo: nwInfo,

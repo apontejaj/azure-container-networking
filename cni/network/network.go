@@ -344,10 +344,11 @@ func (plugin *NetPlugin) getNetworkID(netNs string, interfaceInfo *network.Inter
 	return networkID, nil
 }
 
-// get network info
-func (plugin *NetPlugin) getNetworkInfo(netNs string, interfaceInfo *network.InterfaceInfo, nwCfg *cni.NetworkConfig) network.NetworkInfo {
+// get network info for legacy
+func (plugin *NetPlugin) getNetworkInfo(netNs string, interfaceInfo *network.InterfaceInfo, nwCfg *cni.NetworkConfig) network.EndpointInfo {
 	networkID, _ := plugin.getNetworkID(netNs, interfaceInfo, nwCfg)
 	nwInfo, _ := plugin.nm.GetNetworkInfo(networkID)
+
 	return nwInfo
 }
 
@@ -478,10 +479,6 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	options := make(map[string]any)
 	ipamAddConfig := IPAMAddConfig{nwCfg: nwCfg, args: args, options: options}
 
-	var (
-		nwInfo network.NetworkInfo
-	)
-
 	if nwCfg.MultiTenancy {
 		plugin.report.Context = "AzureCNIMultitenancy"
 		plugin.multitenancyClient.Init(cnsClient, AzureNetIOShim{})
@@ -514,7 +511,8 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			case network.AzureCNS:
 				plugin.ipamInvoker = NewCNSInvoker(k8sPodName, k8sNamespace, cnsClient, util.ExecutionMode(nwCfg.ExecutionMode), util.IpamMode(nwCfg.IPAM.Mode))
 			default:
-				nwInfo = plugin.getNetworkInfo(args.Netns, nil, nwCfg)
+				// legacy
+				nwInfo := plugin.getNetworkInfo(args.Netns, nil, nwCfg)
 				plugin.ipamInvoker = NewAzureIpamInvoker(plugin, &nwInfo)
 			}
 		}
@@ -1221,7 +1219,7 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 		k8sPodName   string
 		k8sNamespace string
 		networkID    string
-		nwInfo       network.NetworkInfo
+		nwInfo       network.EndpointInfo
 		epInfo       *network.EndpointInfo
 		cniMetric    telemetry.AIMetric
 	)
