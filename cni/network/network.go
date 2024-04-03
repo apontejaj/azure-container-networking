@@ -694,7 +694,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		vethName = fmt.Sprintf("%s%s%s", nwInfo.NetworkId, opt.args.ContainerID, opt.args.IfName) // TODO: (2/2 opt.nwInfo) We use the nwInfo we generated above
 	}
 
-	// for secondary
+	// for secondary (Populate addresses)
 	var addresses []net.IPNet
 	for _, ipconfig := range opt.ifInfo.IPConfigs {
 		addresses = append(addresses, ipconfig.Address)
@@ -734,11 +734,6 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		return nil, plugin.Errorf(err.Error())
 	}
 	epInfo.Policies = append(epInfo.Policies, epPolicies...)
-
-	// Populate addresses.
-	for _, ipconfig := range defaultInterfaceInfo.IPConfigs {
-		epInfo.IPAddresses = append(epInfo.IPAddresses, ipconfig.Address)
-	}
 
 	if opt.ipamAddResult.ipv6Enabled { // not specific to this particular interface
 		epInfo.IPV6Mode = string(util.IpamMode(opt.nwCfg.IPAM.Mode)) // TODO: check IPV6Mode field can be deprecated and can we add IsIPv6Enabled flag for generic working
