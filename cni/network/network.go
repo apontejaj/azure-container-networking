@@ -522,6 +522,10 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			if err != nil {
 				return fmt.Errorf("IPAM Invoker Add failed with error: %w", err)
 			}
+			logger.Info("Interfaces",
+				zap.String("InterfaceInfo DefaultInterface:", fmt.Sprintf("%v", ipamAddResult.defaultInterfaceInfo)),
+				zap.String("SecondaryInterfaces:", fmt.Sprintf("%v", ipamAddResult.secondaryInterfacesInfo)),
+			)
 			sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.defaultInterfaceInfo, ipamAddResult.secondaryInterfacesInfo))
 		}
 
