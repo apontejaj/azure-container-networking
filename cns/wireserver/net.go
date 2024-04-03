@@ -40,10 +40,11 @@ func GetPrimaryInterfaceFromResult(res *GetInterfacesResult) (*InterfaceInfo, er
 		}
 
 		return &InterfaceInfo{
-			Subnet:    s.Prefix,
-			IsPrimary: true,
-			Gateway:   gw.String(),
-			PrimaryIP: primaryIP,
+			Subnet:     s.Prefix,
+			IsPrimary:  true,
+			Gateway:    gw.String(),
+			PrimaryIP:  primaryIP,
+			MacAddress: i.MacAddress,
 		}, nil
 	}
 	return nil, ErrNoPrimaryInterface

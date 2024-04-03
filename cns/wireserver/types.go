@@ -7,6 +7,7 @@ type InterfaceInfo struct {
 	IsPrimary    bool
 	PrimaryIP    string
 	SecondaryIPs []string
+	MacAddress   string
 }
 
 type Address struct {
