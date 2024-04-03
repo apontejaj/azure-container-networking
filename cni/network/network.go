@@ -521,14 +521,9 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		if err != nil {
 			return fmt.Errorf("IPAM Invoker Add failed with error: %w", err)
 		}
-		//TODO: remove
-		ifIndex, _ := findDefaultInterface(ipamAddResult)
 
-		if ifIndex == -1 {
-			ifIndex, _ = findDefaultInterface(ipamAddResult)
-		}
-		// This proably needs to be changed as we return all interfaces...
-		sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.interfaceInfo[ifIndex], ipamAddResult.interfaceInfo))
+		// TODO: This proably needs to be changed as we return all interfaces...
+		// sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.interfaceInfo[ifIndex], ipamAddResult.interfaceInfo))
 	}
 
 	ifIndex, _ := findDefaultInterface(ipamAddResult)
@@ -570,9 +565,6 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		}
 		var epInfo *network.EndpointInfo
 		epInfo, err = plugin.createEpInfo(&createEpInfoOpt)
-		if err != nil {
-			return err
-		}
 		if err != nil {
 			return err
 		}
@@ -675,19 +667,19 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 	defaultInterfaceInfo := opt.ifInfo
 	epDNSInfo, err := getEndpointDNSSettings(opt.nwCfg, defaultInterfaceInfo.DNS, opt.k8sNamespace) // Probably won't panic if given bad values
 	if err != nil {
-		// TODO: will it error out if we have a secondary endpoint that has blank DNS though? If so, problem!
+		// TODO: will it error out if we have a secondary endpoint that has blank DNS though? If so, problem! Discussed and answer is no.
 		err = plugin.Errorf("Failed to getEndpointDNSSettings: %v", err)
 		return nil, err
 	}
 	policyArgs := PolicyArgs{
 		// pass podsubnet info etc. part of epinfo
-		subnetInfos: nwInfo.Subnets, // TODO: (1/2 opt.nwInfo) we do not have the full nw info created yet-- is this okay? getEndpointPolicies requires nwInfo.Subnets only (checked)
+		subnetInfos: nwInfo.Subnets, // TODO: (1/2 opt.nwInfo) we do not have the full nw info created yet-- is this okay? Discussed and answer is it's fine. getEndpointPolicies requires nwInfo.Subnets only (checked)
 		nwCfg:       opt.nwCfg,
 		ipconfigs:   defaultInterfaceInfo.IPConfigs,
 	}
 	endpointPolicies, err := getEndpointPolicies(policyArgs)
 	if err != nil {
-		// TODO: should only error out if we have an ip config and it is not readable
+		// TODO: should only error out if we have an ip config and it is not readable. Discussed and answer is it's fine.
 		logger.Error("Failed to get endpoint policies", zap.Error(err))
 		return nil, err
 	}
@@ -751,11 +743,13 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 	if opt.ipamAddResult.ipv6Enabled { // not specific to this particular interface
 		epInfo.IPV6Mode = string(util.IpamMode(opt.nwCfg.IPAM.Mode)) // TODO: check IPV6Mode field can be deprecated and can we add IsIPv6Enabled flag for generic working
 	}
-
+	// TODO: REMOVE (any azIpam or azIpamResult.IPs should be removed, or infra vnet ip or epInfo.InfraVnetIP-- don't remove from endpoint or network state)
+	// PROBLEM: The infra vnet ip is used in OVS etc. (snat rules)
 	if opt.azIpamResult != nil && opt.azIpamResult.IPs != nil {
 		epInfo.InfraVnetIP = opt.azIpamResult.IPs[0].Address
 	}
 
+	// TODO: Do I remove azIpamResult as a param from the function below? It is used in linux (changes ep info routes)!
 	if opt.nwCfg.MultiTenancy {
 		plugin.multitenancyClient.SetupRoutingForMultitenancy(opt.nwCfg, opt.cnsNetworkConfig, opt.azIpamResult, &epInfo, defaultInterfaceInfo)
 	}
