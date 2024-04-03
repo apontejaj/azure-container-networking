@@ -231,10 +231,6 @@ func (nm *networkManager) configureHcnNetwork(nwInfo *NetworkInfo, extIf *extern
 	// Initialize HNS network.
 	hcnNetwork := &hcn.HostComputeNetwork{
 		Name: nwInfo.Id,
-		Dns: hcn.Dns{
-			Domain:     nwInfo.DNS.Suffix,
-			ServerList: nwInfo.DNS.Servers,
-		},
 		Ipams: []hcn.Ipam{
 			{
 				Type: hcnIpamTypeStatic,
