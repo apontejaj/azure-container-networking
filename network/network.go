@@ -301,17 +301,19 @@ func (nm *networkManager) GetNumEndpointsByContainerID(containerID string) int {
 
 // networkID is opt.nwInfo.ID
 // cns url is opt.nwCfg.CNSUrl
-// actually creates the network and corresponding endpoint
+// Creates the network and corresponding endpoint
 func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*EndpointInfo) error {
-	interfaceInfos := []*InterfaceInfo{}
-	var networkIDofChosenEndpoint string
-	var epToSave *endpoint
+	interfaceInfos := map[string][]*InterfaceInfo{} // map of network ids to slices of interface info pointers (for secondary interfaces)
+
+	epsToSave := map[string]*endpoint{} // mapping network id to endpoint object (for non-secondary/infra interfaces)
+
 	for _, epInfo := range epInfos {
+		logger.Info("Creating endpoint and network", zap.String("endpointInfo", epInfo.PrettyString()))
 		// check if network exists
 		nwInfo, nwGetErr := nm.GetNetworkInfo(epInfo.NetworkId)
 		if nwGetErr != nil {
+			logger.Info("Existing network not found", zap.String("networkID", epInfo.NetworkId))
 			// Create the network if it is not found
-			// populate network info with fields from ep info
 			err := nm.CreateNetwork(epInfo)
 			if err != nil {
 				// TODO: error messages/handling are different in this file
@@ -321,10 +323,8 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 		}
 
 		// Create the endpoint.
-		logger.Info("Creating endpoint", zap.String("endpointInfo", epInfo.PrettyString()))
 		// sendEvent(plugin, fmt.Sprintf("[cni-net] Creating endpoint %s.", epInfo.PrettyString()))
-		// TODO: pass in network id, or get network id from ep info-- it makes more sense if it came from epInfo
-		// since the network is directly related to the epInfo
+		// nwInfo.NetworkId is the same as epInfo.NetworkId
 		ep, err := nm.CreateEndpoint(cnsclient, nwInfo.NetworkId, epInfo)
 		if err != nil {
 			// err = plugin.Errorf("Failed to create endpoint: %v", err)
@@ -332,16 +332,17 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 		}
 		// if infra nic, we will use this endpoint for its root fields, and otherwise, we collect all secondary/delegated if infos to add to the ep secondary interface slice
 		if epInfo.NICType == cns.InfraNIC {
-			epToSave = ep
-			networkIDofChosenEndpoint = epInfo.NetworkId
+			// if there are multiple endpoints to be created (in dual nic case), we assume they will be on different networks
+			epsToSave[epInfo.NetworkId] = ep
 		} else {
-			// taken from secondary endpoint client
+			// we discard the endpoint object created
+			// below is taken from secondary endpoint client
 			ipconfigs := make([]*IPConfig, len(epInfo.IPAddresses))
 			for i, ipconfig := range epInfo.IPAddresses {
 				ipconfigs[i] = &IPConfig{Address: ipconfig}
 			}
-
-			interfaceInfos = append(interfaceInfos, &InterfaceInfo{
+			// can append to nil slice
+			interfaceInfos[epInfo.NetworkId] = append(interfaceInfos[epInfo.NetworkId], &InterfaceInfo{
 				Name:              epInfo.IfName,
 				MacAddress:        epInfo.MacAddress,
 				IPConfigs:         ipconfigs,
@@ -351,12 +352,13 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 		}
 	}
 	// convert to one endpoint
-	epToSave.SecondaryInterfaces = map[string]*InterfaceInfo{}
-	for _, ifInfo := range interfaceInfos {
-		epToSave.SecondaryInterfaces[ifInfo.Name] = ifInfo
+	for networkID, ep := range epsToSave {
+		ep.SecondaryInterfaces = map[string]*InterfaceInfo{}
+		for _, ifInfo := range interfaceInfos[networkID] {
+			ep.SecondaryInterfaces[ifInfo.Name] = ifInfo
+		}
 	}
 
-	// save
-	nm.SaveState(networkIDofChosenEndpoint, epToSave)
-	return nil
+	// save endpoint (non dual nic case) or endpoints (dual nic case)
+	return nm.SaveState(epsToSave)
 }

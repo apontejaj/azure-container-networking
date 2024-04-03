@@ -110,7 +110,7 @@ type NetworkManager interface {
 	GetNumberOfEndpoints(ifName string, networkID string) int
 	GetEndpointID(containerID, ifName string) string
 	IsStatelessCNIMode() bool
-	SaveState(networkID string, ep *endpoint) error
+	SaveState(eps map[string]*endpoint) error
 }
 
 // Creates a new network manager.
@@ -687,26 +687,34 @@ func (nm *networkManager) GetEndpointID(containerID, ifName string) string {
 	}
 	return containerID + "-" + ifName
 }
-func (nm *networkManager) SaveState(networkID string, ep *endpoint) error {
+
+// saves the map of network ids to endpoints to the state file
+func (nm *networkManager) SaveState(eps map[string]*endpoint) error {
 	// TODO: Necessary?
 	nm.Lock()
 	defer nm.Unlock()
 
-	nw, err := nm.getNetwork(networkID)
+	logger.Info("Saving state")
+	// TODO: What if we fail halfway through?
+	for networkID, ep := range eps {
+		nw, err := nm.getNetwork(networkID)
+		if err != nil {
+			return err
+		}
+
+		nw.Endpoints[ep.Id] = ep // used only once
+
+		if nm.IsStatelessCNIMode() {
+			err = nm.UpdateEndpointState(ep)
+			return err
+		}
+	}
+
+	// once endpoints and networks are in-memory, save once
+	err := nm.save()
 	if err != nil {
 		return err
 	}
 
-	nw.Endpoints[ep.Id] = ep // used only once
-
-	if nm.IsStatelessCNIMode() {
-		err = nm.UpdateEndpointState(ep)
-		return err
-	}
-
-	err = nm.save()
-	if err != nil {
-		return err
-	}
 	return nil
 }

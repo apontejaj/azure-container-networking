@@ -766,6 +766,8 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 	epInfo.IsIPv6Enabled = nwInfo.IsIPv6Enabled
 	epInfo.NetworkDNS = nwInfo.NetworkDNS
 
+	logger.Info("Generated endpoint info from fields", zap.String("epInfo", epInfo.PrettyString()))
+
 	// now our ep info should have the full combined information from both the network and endpoint structs
 	return &epInfo, nil
 }
