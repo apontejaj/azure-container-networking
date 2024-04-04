@@ -110,7 +110,7 @@ type NetworkManager interface {
 	GetNumberOfEndpoints(ifName string, networkID string) int
 	GetEndpointID(containerID, ifName string) string
 	IsStatelessCNIMode() bool
-	SaveState(eps map[string]*endpoint) error
+	SaveState(eps []*endpoint) error
 }
 
 // Creates a new network manager.
@@ -395,14 +395,6 @@ func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epIn
 			}
 		}
 	}()
-
-	if nm.IsStatelessCNIMode() {
-		err = nm.UpdateEndpointState(ep)
-		if err != nil {
-			return nil, err
-		}
-		// TODO: If stateless cni success, we still return ep right
-	}
 
 	return ep, nil
 }
@@ -689,32 +681,26 @@ func (nm *networkManager) GetEndpointID(containerID, ifName string) string {
 }
 
 // saves the map of network ids to endpoints to the state file
-func (nm *networkManager) SaveState(eps map[string]*endpoint) error {
+func (nm *networkManager) SaveState(eps []*endpoint) error {
 	// TODO: Necessary?
 	nm.Lock()
 	defer nm.Unlock()
 
 	logger.Info("Saving state")
 	// TODO: What if we fail halfway through?
-	for networkID, ep := range eps {
-		nw, err := nm.getNetwork(networkID)
-		if err != nil {
-			return err
-		}
-
-		nw.Endpoints[ep.Id] = ep // used only once
-
+	for _, ep := range eps {
 		if nm.IsStatelessCNIMode() {
-			err = nm.UpdateEndpointState(ep)
-			return err
+			err := nm.UpdateEndpointState(ep)
+			if err != nil {
+				return err
+			}
 		}
+	}
+	// we either use stateless cni and save via update endpoint state, or use the state file
+	if nm.IsStatelessCNIMode() {
+		return nil
 	}
 
 	// once endpoints and networks are in-memory, save once
-	err := nm.save()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return nm.save()
 }

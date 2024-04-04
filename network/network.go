@@ -8,7 +8,6 @@ import (
 	"net"
 	"strings"
 
-	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/network/policy"
 	"github.com/Azure/azure-container-networking/platform"
 	"go.uber.org/zap"
@@ -303,9 +302,7 @@ func (nm *networkManager) GetNumEndpointsByContainerID(containerID string) int {
 // cns url is opt.nwCfg.CNSUrl
 // Creates the network and corresponding endpoint
 func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*EndpointInfo) error {
-	interfaceInfos := map[string][]*InterfaceInfo{} // map of network ids to slices of interface info pointers (for secondary interfaces)
-
-	epsToSave := map[string]*endpoint{} // mapping network id to endpoint object (for non-secondary/infra interfaces)
+	eps := []*endpoint{} // mapping network id to endpoint object (for non-secondary/infra interfaces)
 
 	for _, epInfo := range epInfos {
 		logger.Info("Creating endpoint and network", zap.String("endpointInfo", epInfo.PrettyString()))
@@ -330,35 +327,10 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 			// err = plugin.Errorf("Failed to create endpoint: %v", err)
 			return err //added
 		}
-		// if infra nic, we will use this endpoint for its root fields, and otherwise, we collect all secondary/delegated if infos to add to the ep secondary interface slice
-		if epInfo.NICType == cns.InfraNIC {
-			// if there are multiple endpoints to be created (in dual nic case), we assume they will be on different networks
-			epsToSave[epInfo.NetworkId] = ep
-		} else {
-			// we discard the endpoint object created
-			// below is taken from secondary endpoint client
-			ipconfigs := make([]*IPConfig, len(epInfo.IPAddresses))
-			for i, ipconfig := range epInfo.IPAddresses {
-				ipconfigs[i] = &IPConfig{Address: ipconfig}
-			}
-			// can append to nil slice
-			interfaceInfos[epInfo.NetworkId] = append(interfaceInfos[epInfo.NetworkId], &InterfaceInfo{
-				Name:              epInfo.IfName,
-				MacAddress:        epInfo.MacAddress,
-				IPConfigs:         ipconfigs,
-				NICType:           epInfo.NICType,
-				SkipDefaultRoutes: epInfo.SkipDefaultRoutes,
-			})
-		}
-	}
-	// convert to one endpoint
-	for networkID, ep := range epsToSave {
-		ep.SecondaryInterfaces = map[string]*InterfaceInfo{}
-		for _, ifInfo := range interfaceInfos[networkID] {
-			ep.SecondaryInterfaces[ifInfo.Name] = ifInfo
-		}
+
+		eps = append(eps, ep)
 	}
 
-	// save endpoint (non dual nic case) or endpoints (dual nic case)
-	return nm.SaveState(epsToSave)
+	// save endpoints
+	return nm.SaveState(eps)
 }
