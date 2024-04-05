@@ -118,6 +118,7 @@ func (nw *network) newEndpointImpl(
 		PODNameSpace:             defaultEpInfo.PODNameSpace,
 		Routes:                   defaultEpInfo.Routes,
 		SecondaryInterfaces:      make(map[string]*InterfaceInfo),
+		NICType:                  defaultEpInfo.NICType,
 	}
 	if nw.extIf != nil {
 		ep.Gateways = []net.IP{nw.extIf.IPv4Gateway}
@@ -277,7 +278,8 @@ func (nw *network) deleteEndpointImpl(nl netlink.NetlinkInterface, plc platform.
 		} else if nw.Mode != opModeTransparent {
 			epClient = NewLinuxBridgeEndpointClient(nw.extIf, ep.HostIfName, "", nw.Mode, nl, plc)
 		} else {
-			if len(ep.SecondaryInterfaces) > 0 {
+			// delete if secondary interfaces populated or endpoint of type delegated (new way)
+			if len(ep.SecondaryInterfaces) > 0 || ep.NICType == cns.DelegatedVMNIC {
 				epClient = NewSecondaryEndpointClient(nl, nioc, plc, nsc, ep)
 				epClient.DeleteEndpointRules(ep)
 				//nolint:errcheck // ignore error

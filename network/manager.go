@@ -427,6 +427,7 @@ func (nm *networkManager) GetEndpointState(networkID, endpointID string) (*Endpo
 		PODNameSpace:       endpointResponse.EndpointInfo.PodNamespace,
 		NetworkContainerID: endpointID,
 		HNSEndpointID:      endpointResponse.EndpointInfo.HnsEndpointID,
+		// TODO: Populate NIC Type
 	}
 
 	for _, ip := range endpointResponse.EndpointInfo.IfnameToIPMap {
@@ -493,6 +494,7 @@ func (nm *networkManager) DeleteEndpointState(networkID string, epInfo *Endpoint
 		EnableSnatOnHost:         false,
 		EnableMultitenancy:       false,
 		NetworkContainerID:       epInfo.EndpointID,
+		NICType:                  epInfo.NICType,
 	}
 	logger.Info("Deleting endpoint with", zap.String("Endpoint Info: ", epInfo.PrettyString()), zap.String("HNISID : ", ep.HnsId))
 	return nw.deleteEndpointImpl(netlink.NewNetlink(), platform.NewExecClient(logger), nil, nil, nil, nil, ep)

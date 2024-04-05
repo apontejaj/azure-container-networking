@@ -55,6 +55,8 @@ type endpoint struct {
 	NetNs                    string `json:",omitempty"`
 	// SecondaryInterfaces is a map of interface name to InterfaceInfo
 	SecondaryInterfaces map[string]*InterfaceInfo
+	// Store nic type since we no longer populate SecondaryInterfaces
+	NICType cns.NICType
 }
 
 // EndpointInfo contains read-only information about an endpoint.
