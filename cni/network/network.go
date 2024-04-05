@@ -498,8 +498,8 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 				zap.Error(err))
 			return err
 		}
-
-		if !plugin.isDualNicFeatureSupported(args.Netns) {
+		// dual nic when we get multiple interface infos back (multitenancy does not necessarily have multiple if infos)
+		if len(ipamAddResult.interfaceInfo) > 1 && !plugin.isDualNicFeatureSupported(args.Netns) {
 			errMsg := fmt.Sprintf("received multiple NC results %+v from CNS while dualnic feature is not supported", ipamAddResults)
 			logger.Error("received multiple NC results from CNS while dualnic feature is not supported",
 				zap.Any("results", ipamAddResult))
@@ -620,7 +620,9 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		epInfo network.EndpointInfo
 		nwInfo network.EndpointInfo
 	)
-
+	// ensure we can find the master interface
+	opt.ifInfo.HostSubnetPrefix.IP = opt.ifInfo.HostSubnetPrefix.IP.Mask(opt.ifInfo.HostSubnetPrefix.Mask)
+	opt.ipamAddConfig.nwCfg.IPAM.Subnet = opt.ifInfo.HostSubnetPrefix.String()
 	// populate endpoint info section
 	masterIfName := plugin.findMasterInterface(opt)
 	if masterIfName == "" {
