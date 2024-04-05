@@ -578,8 +578,10 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create cns client")
 	}
-	plugin.nm.EndpointCreate(cnsclient, epInfos)
-
+	err = plugin.nm.EndpointCreate(cnsclient, epInfos)
+	if err != nil {
+		return err // behavior can change if you don't assign to err prior to returning
+	}
 	return nil
 
 }

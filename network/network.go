@@ -307,7 +307,7 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 	for _, epInfo := range epInfos {
 		logger.Info("Creating endpoint and network", zap.String("endpointInfo", epInfo.PrettyString()))
 		// check if network exists
-		nwInfo, nwGetErr := nm.GetNetworkInfo(epInfo.NetworkId)
+		_, nwGetErr := nm.GetNetworkInfo(epInfo.NetworkId)
 		if nwGetErr != nil {
 			logger.Info("Existing network not found", zap.String("networkID", epInfo.NetworkId))
 			// Create the network if it is not found
@@ -322,7 +322,7 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 		// Create the endpoint.
 		// sendEvent(plugin, fmt.Sprintf("[cni-net] Creating endpoint %s.", epInfo.PrettyString()))
 		// nwInfo.NetworkId is the same as epInfo.NetworkId
-		ep, err := nm.CreateEndpoint(cnsclient, nwInfo.NetworkId, epInfo)
+		ep, err := nm.CreateEndpoint(cnsclient, epInfo.NetworkId, epInfo)
 		if err != nil {
 			// err = plugin.Errorf("Failed to create endpoint: %v", err)
 			return err //added
