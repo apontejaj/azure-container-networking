@@ -302,7 +302,7 @@ func (nm *networkManager) GetNumEndpointsByContainerID(containerID string) int {
 // cns url is opt.nwCfg.CNSUrl
 // Creates the network and corresponding endpoint
 func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*EndpointInfo) error {
-	eps := []*endpoint{} // mapping network id to endpoint object (for non-secondary/infra interfaces)
+	eps := []*endpoint{} // save endpoints for stateless
 
 	for _, epInfo := range epInfos {
 		logger.Info("Creating endpoint and network", zap.String("endpointInfo", epInfo.PrettyString()))

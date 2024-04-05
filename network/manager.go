@@ -682,7 +682,6 @@ func (nm *networkManager) GetEndpointID(containerID, ifName string) string {
 
 // saves the map of network ids to endpoints to the state file
 func (nm *networkManager) SaveState(eps []*endpoint) error {
-	// TODO: Necessary?
 	nm.Lock()
 	defer nm.Unlock()
 

@@ -156,7 +156,7 @@ func (nm *MockNetworkManager) GetNumEndpointsByContainerID(_ string) int {
 }
 
 // TODO: understand mock behavior
-func (nm *MockNetworkManager) SaveState(eps map[string]*endpoint) error {
+func (nm *MockNetworkManager) SaveState(eps []*endpoint) error {
 	return nil
 }
 
