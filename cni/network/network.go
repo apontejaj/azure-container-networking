@@ -1432,12 +1432,3 @@ func convertCniResultToInterfaceInfo(result *cniTypesCurr.Result) network.Interf
 
 	return interfaceInfo
 }
-
-// func findInfraNicInterfaceKey(ifInfos map[string]network.InterfaceInfo) network.InterfaceInfo {
-// 	for _, ifInfo := range ifInfos {
-// 		if ifInfo.NICType == cns.InfraNIC {
-// 			return &ifInfo
-// 		}
-// 	}
-// 	return nil
-// }

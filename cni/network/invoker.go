@@ -35,7 +35,7 @@ type IPAMAddResult struct {
 	ipv6Enabled      bool
 }
 
-func (ipamAddResult IPAMAddResult) PrettyString() string {
+func (ipamAddResult *IPAMAddResult) PrettyString() string {
 	pStr := "InterfaceInfo: "
 	for _, ifInfo := range ipamAddResult.interfaceInfo {
 		pStr += ifInfo.PrettyString()
