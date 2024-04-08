@@ -359,7 +359,6 @@ func (plugin *NetPlugin) getNetworkInfo(netNs string, interfaceInfo *network.Int
 func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	var (
 		ipamAddResult    IPAMAddResult
-		ipamAddResults   []IPAMAddResult
 		azIpamResult     *cniTypesCurr.Result
 		enableInfraVnet  bool
 		enableSnatForDNS bool
@@ -507,9 +506,9 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		}
 		// dual nic when we get multiple interface infos back (multitenancy does not necessarily have multiple if infos)
 		if len(ipamAddResult.interfaceInfo) > 1 && !plugin.isDualNicFeatureSupported(args.Netns) {
-			errMsg := fmt.Sprintf("received multiple NC results %+v from CNS while dualnic feature is not supported", ipamAddResults)
+			errMsg := fmt.Sprintf("received multiple NC results %+v from CNS while dualnic feature is not supported", ipamAddResult.interfaceInfo)
 			logger.Error("received multiple NC results from CNS while dualnic feature is not supported",
-				zap.Any("results", ipamAddResult))
+				zap.Any("results", ipamAddResult.interfaceInfo))
 			return plugin.Errorf(errMsg)
 		}
 	} else {

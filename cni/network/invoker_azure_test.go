@@ -82,12 +82,24 @@ func (m *mockDelegatePlugin) Errorf(format string, args ...interface{}) *cniType
 	}
 }
 
+// net.ParseCIDR will first get the ip, which contains byte data for the ip and mask,
+// and the ipnet, which has a field for the *masked* ip and a field for the mask
+// this function then replaces the masked ip with the "ip" field retrieved earlier and returns the ipnet
 func getCIDRNotationForAddress(ipaddresswithcidr string) *net.IPNet {
 	ip, ipnet, err := net.ParseCIDR(ipaddresswithcidr)
 	if err != nil {
 		panic(fmt.Sprintf("failed to parse cidr with err: %v", err))
 	}
 	ipnet.IP = ip
+	return ipnet
+}
+
+// returns an ipnet, which contains the *masked* ip (zeroed out based on CIDR) and the mask itself
+func parseCIDR(ipaddresswithcidr string) *net.IPNet {
+	_, ipnet, err := net.ParseCIDR(ipaddresswithcidr)
+	if err != nil {
+		panic(fmt.Sprintf("failed to parse cidr with err: %v", err))
+	}
 	return ipnet
 }
 
