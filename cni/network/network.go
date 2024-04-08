@@ -639,7 +639,6 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		nwInfo network.EndpointInfo
 	)
 	// ensure we can find the master interface
-	// TODO: in swiftv2 with secondary interface, there won't be a host subnet prefix-- ensure this does not crash/break
 	opt.ifInfo.HostSubnetPrefix.IP = opt.ifInfo.HostSubnetPrefix.IP.Mask(opt.ifInfo.HostSubnetPrefix.Mask)
 	opt.ipamAddConfig.nwCfg.IPAM.Subnet = opt.ifInfo.HostSubnetPrefix.String()
 	// populate endpoint info section
@@ -684,23 +683,20 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 	setNetworkOptions(opt.ifInfo.NCResponse, &nwInfo)
 
 	// populate endpoint info
-	// populate endpoint info fields code is below
-	//defaultInterfaceInfo := opt.ifInfo
 	epDNSInfo, err := getEndpointDNSSettings(opt.nwCfg, opt.ifInfo.DNS, opt.k8sNamespace) // Probably won't panic if given bad values
 	if err != nil {
-		// TODO: will it error out if we have a secondary endpoint that has blank DNS though? If so, problem! Discussed and answer is no.
+
 		err = plugin.Errorf("Failed to getEndpointDNSSettings: %v", err)
 		return nil, err
 	}
 	policyArgs := PolicyArgs{
-		// pass podsubnet info etc. part of epinfo
-		subnetInfos: nwInfo.Subnets, // TODO: (1/2 opt.nwInfo) we do not have the full nw info created yet-- is this okay? Discussed and answer is it's fine. getEndpointPolicies requires nwInfo.Subnets only (checked)
+		subnetInfos: nwInfo.Subnets, // getEndpointPolicies requires nwInfo.Subnets only (checked)
 		nwCfg:       opt.nwCfg,
 		ipconfigs:   opt.ifInfo.IPConfigs,
 	}
 	endpointPolicies, err := getEndpointPolicies(policyArgs)
 	if err != nil {
-		// TODO: should only error out if we have an ip config and it is not readable. Discussed and answer is it's fine.
+
 		logger.Error("Failed to get endpoint policies", zap.Error(err))
 		return nil, err
 	}
@@ -712,7 +708,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		// this mechanism of using only namespace and name is not unique for different incarnations of POD/container.
 		// IT will result in unpredictable behavior if API server decides to
 		// reorder DELETE and ADD call for new incarnation of same POD.
-		vethName = fmt.Sprintf("%s%s%s", nwInfo.NetworkId, opt.args.ContainerID, opt.args.IfName) // TODO: (2/2 opt.nwInfo) We use the nwInfo we generated above
+		vethName = fmt.Sprintf("%s%s%s", nwInfo.NetworkId, opt.args.ContainerID, opt.args.IfName)
 	}
 
 	// for secondary (Populate addresses)
@@ -760,13 +756,11 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 	if opt.ipamAddResult.ipv6Enabled { // not specific to this particular interface
 		epInfo.IPV6Mode = string(util.IpamMode(opt.nwCfg.IPAM.Mode)) // TODO: check IPV6Mode field can be deprecated and can we add IsIPv6Enabled flag for generic working
 	}
-	// TODO: REMOVE (any azIpam or azIpamResult.IPs should be removed, or infra vnet ip or epInfo.InfraVnetIP-- don't remove from endpoint or network state)
-	// PROBLEM: The infra vnet ip is used in OVS etc. (snat rules)
+
 	if opt.azIpamResult != nil && opt.azIpamResult.IPs != nil {
 		epInfo.InfraVnetIP = opt.azIpamResult.IPs[0].Address
 	}
 
-	// TODO: Do I remove azIpamResult as a param from the function below? It is used in linux (changes ep info routes)!
 	if opt.nwCfg.MultiTenancy {
 		// previously only infra nic was passed into this function but now all nics are passed in (possibly breaks swift v2)
 		plugin.multitenancyClient.SetupRoutingForMultitenancy(opt.nwCfg, opt.cnsNetworkConfig, opt.azIpamResult, &epInfo, opt.ifInfo)
