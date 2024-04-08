@@ -277,19 +277,20 @@ var _ = Describe("Test Endpoint", func() {
 				NICType:    cns.InfraNIC,
 			}
 			secondaryEpInfo := &EndpointInfo{
-				// TODO: should this have an endpoint info always in swift v2? It (even delegated/secondary infos!) must have an ep id always or it will panic
-				NICType: cns.DelegatedVMNIC,
-				Routes:  []RouteInfo{{Dst: *ipnet}},
+				// When we create the secondary endpoint infos while looping over the interface infos, we pass in the same endpoint id
+				EndpointID: "768e8deb-eth1",
+				NICType:    cns.DelegatedVMNIC,
+				Routes:     []RouteInfo{{Dst: *ipnet}},
 			}
 
-			It("Should not endpoint to the network when there is an error", func() {
+			It("Should not add endpoint to the network when there is an error", func() {
 				secondaryEpInfo.MacAddress = netio.BadHwAddr // mock netlink will fail to set link state on bad eth
 				ep, err := nw.newEndpointImpl(nil, netlink.NewMockNetlink(false, ""), platform.NewMockExecClient(false),
 					netio.NewMockNetIO(false, 0), nil, NewMockNamespaceClient(), iptables.NewClient(), secondaryEpInfo)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal("SecondaryEndpointClient Error: " + netlink.ErrorMockNetlink.Error()))
 				Expect(ep).To(BeNil())
-
+				// should not panic or error when going through the unified endpoint impl flow with only the delegated nic type fields
 				secondaryEpInfo.MacAddress = netio.HwAddr
 				ep, err = nw.newEndpointImpl(nil, netlink.NewMockNetlink(false, ""), platform.NewMockExecClient(false),
 					netio.NewMockNetIO(false, 0), nil, NewMockNamespaceClient(), iptables.NewClient(), secondaryEpInfo)
