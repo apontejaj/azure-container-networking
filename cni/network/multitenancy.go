@@ -231,7 +231,7 @@ func (m *Multitenancy) GetAllNetworkContainers(
 		ifInfo.NICType = cns.InfraNIC
 
 		// assuming we only assign infra nics in this function
-		ipamResult.interfaceInfo[string(ifInfo.NICType)+string(i)] = ifInfo
+		ipamResult.interfaceInfo[string(ifInfo.NICType)+fmt.Sprint(i)] = ifInfo
 	}
 
 	return ipamResult, err
