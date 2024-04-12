@@ -606,14 +606,17 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			for _, epInfo := range epInfos {
 				deleteErr := plugin.nm.DeleteEndpoint(epInfo.NetworkId, epInfo.EndpointID, epInfo)
 				if deleteErr != nil {
-					logger.Error("Could not delete endpoint after detecting add failure", zap.String("epInfo", epInfo.PrettyString()))
+					// we already do not return an error when the endpoint is not found, so deleteErr is a real error
+					logger.Error("Could not delete endpoint after detecting add failure", zap.String("epInfo", epInfo.PrettyString()), zap.Error(deleteErr))
+					return
 				}
 			}
 			// Rely on cleanupAllocationOnError declared above to delete ips
 			// Delete state in disk here
 			delErr := plugin.nm.DeleteState(epInfos)
 			if delErr != nil {
-				logger.Error("Could not delete state after detecting add failure")
+				logger.Error("Could not delete state after detecting add failure", zap.Error(delErr))
+				return
 			}
 		}
 	}()
@@ -1094,7 +1097,6 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 			}
 		}
 	}
-
 	// Initialize values from network config.
 	if err != nil {
 		// If error is not found error, then we ignore it, to comply with CNI SPEC.
@@ -1112,26 +1114,27 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 	var epInfos []*network.EndpointInfo
 	if plugin.nm.IsStatelessCNIMode() {
 		epInfos, err = plugin.nm.GetEndpointState(networkID, args.ContainerID)
+		// TODO: epInfos from stateless cni does not have networkID populated and so DeleteEndpoint will not have the networkID
 	} else {
 		epInfos = plugin.nm.GetEndpointInfosFromContainerID(args.ContainerID)
 	}
 
 	// for when the endpoint is not created, but the ips are already allocated (only works if single network, single infra)
 	// stateless cni won't have this issue
-	if !plugin.nm.IsStatelessCNIMode() && len(epInfos) == 0 {
+	if len(epInfos) == 0 {
 		endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
 		if !nwCfg.MultiTenancy {
 			logger.Error("Failed to query endpoint",
 				zap.String("endpoint", endpointID),
 				zap.Error(err))
-			logger.Error("Release ip by ContainerID (endpoint not found)",
-				zap.String("containerID", args.ContainerID))
-			sendEvent(plugin, fmt.Sprintf("Release ip by ContainerID (endpoint not found):%v", args.ContainerID))
-			if err = plugin.ipamInvoker.Delete(nil, nwCfg, args, nwInfo.Options); err != nil {
-				return plugin.RetriableError(fmt.Errorf("failed to release address(no endpoint): %w", err))
+			if !plugin.nm.IsStatelessCNIMode() {
+				logger.Error("Release ip by ContainerID (endpoint not found)",
+					zap.String("containerID", args.ContainerID))
+				sendEvent(plugin, fmt.Sprintf("Release ip by ContainerID (endpoint not found):%v", args.ContainerID))
+				if err = plugin.ipamInvoker.Delete(nil, nwCfg, args, nwInfo.Options); err != nil {
+					return plugin.RetriableError(fmt.Errorf("failed to release address(no endpoint): %w", err))
+				}
 			}
-		} else {
-			// TODO: how do we clean up ips in multitenancy case?
 		}
 		// Log the error but return success if the endpoint being deleted is not found.
 		err = nil
@@ -1142,7 +1145,8 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 	// delete endpoints
 	for _, epInfo := range epInfos {
 		// CHECK: networkID or epInfo.networkID (it's not populated when we convert ep to epInfo)
-		if err = plugin.nm.DeleteEndpoint(networkID, epInfo.EndpointID, epInfo); err != nil {
+		if err = plugin.nm.DeleteEndpoint(epInfo.NetworkId, epInfo.EndpointID, epInfo); err != nil {
+			// An error will not be returned if the endpoint is not found
 			// return a retriable error so the container runtime will retry this DEL later
 			// the implementation of this function returns nil if the endpoint doens't exist, so
 			// we don't have to check that here
@@ -1158,7 +1162,8 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 			zap.String("endpointID", epInfo.EndpointID))
 		sendEvent(plugin, fmt.Sprintf("Deleting endpoint:%v", epInfo.EndpointID))
 
-		if !nwCfg.MultiTenancy {
+		if !nwCfg.MultiTenancy && epInfo.NICType == cns.InfraNIC {
+			// Delegated/secondary nic ips are statically allocated so we don't need to release
 			// Call into IPAM plugin to release the endpoint's addresses.
 			for i := range epInfo.IPAddresses {
 				logger.Info("Release ip", zap.String("ip", epInfo.IPAddresses[i].IP.String()))
@@ -1168,7 +1173,7 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 					return plugin.RetriableError(fmt.Errorf("failed to release address: %w", err))
 				}
 			}
-		} else if epInfo.EnableInfraVnet {
+		} else if epInfo.EnableInfraVnet { // remove in future PR
 			nwCfg.IPAM.Subnet = nwInfo.Subnets[0].Prefix.String()
 			nwCfg.IPAM.Address = epInfo.InfraVnetIP.IP.String()
 			err = plugin.ipamInvoker.Delete(nil, nwCfg, args, nwInfo.Options)

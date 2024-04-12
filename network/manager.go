@@ -428,7 +428,7 @@ func (nm *networkManager) GetEndpointState(networkID, containerID string) ([]*En
 
 	for i := 0; i < len(epInfos); i++ {
 		if epInfos[i].NICType == cns.InfraNIC {
-			if epInfos[i].IsEndpointStateIncomplete() {
+			if epInfos[i].IsEndpointStateIncomplete() { // assume false for swift v2
 				epInfos[i], err = epInfos[i].GetEndpointInfoByIPImpl(epInfos[i].IPAddresses, networkID)
 				if err != nil {
 					return nil, errors.Wrapf(err, "Get endpoint API returned with error")
@@ -747,10 +747,12 @@ func cnsEndpointInfotoCNIEpInfos(endpointInfo restserver.EndpointInfo, endpointI
 func (nm *networkManager) GetEndpointInfosFromContainerID(containerID string) []*EndpointInfo {
 	ret := []*EndpointInfo{}
 	for _, extIf := range nm.ExternalInterfaces {
-		for _, nw := range extIf.Networks {
+		for networkID, nw := range extIf.Networks {
 			for _, ep := range nw.Endpoints {
 				if ep.ContainerID == containerID {
-					ret = append(ret, ep.getInfo())
+					val := ep.getInfo()
+					val.NetworkId = networkID // endpoint doesn't contain the network id
+					ret = append(ret, val)
 				}
 			}
 		}
