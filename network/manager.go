@@ -9,7 +9,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Azure/azure-container-networking/cns"
 	cnsclient "github.com/Azure/azure-container-networking/cns/client"
+	"github.com/Azure/azure-container-networking/cns/restserver"
 	"github.com/Azure/azure-container-networking/common"
 	"github.com/Azure/azure-container-networking/log"
 	"github.com/Azure/azure-container-networking/netio"
@@ -70,7 +72,7 @@ type EndpointClient interface {
 
 // NetworkManager manages the set of container networking resources.
 type networkManager struct {
-	StatelessCniMode   bool
+	statelessCniMode   bool
 	CnsClient          *cnsclient.Client
 	Version            string
 	TimeStamp          time.Time
@@ -111,6 +113,9 @@ type NetworkManager interface {
 	GetEndpointID(containerID, ifName string) string
 	IsStatelessCNIMode() bool
 	SaveState(eps []*endpoint) error
+	DeleteState(epInfos []*EndpointInfo) error
+	GetEndpointInfosFromContainerID(containerID string) []*EndpointInfo
+	GetEndpointState(networkID, containerID string) ([]*EndpointInfo, error)
 }
 
 // Creates a new network manager.
@@ -151,7 +156,7 @@ func (nm *networkManager) Uninitialize() {
 
 // SetStatelessCNIMode enable the statelessCNI falg and inititlizes a CNSClient
 func (nm *networkManager) SetStatelessCNIMode() error {
-	nm.StatelessCniMode = true
+	nm.statelessCniMode = true
 	// Create CNS client
 	client, err := cnsclient.New(cnsBaseURL, cnsReqTimeout)
 	if err != nil {
@@ -163,7 +168,7 @@ func (nm *networkManager) SetStatelessCNIMode() error {
 
 // IsStatelessCNIMode checks if the Stateless CNI mode has been enabled or not
 func (nm *networkManager) IsStatelessCNIMode() bool {
-	return nm.StatelessCniMode
+	return nm.statelessCniMode
 }
 
 // Restore reads network manager state from persistent store.
@@ -403,7 +408,7 @@ func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epIn
 // It will add HNSEndpointID or HostVeth name to the endpoint state
 func (nm *networkManager) UpdateEndpointState(ep *endpoint) error {
 	logger.Info("Calling cns updateEndpoint API with ", zap.String("containerID: ", ep.ContainerID), zap.String("HnsId: ", ep.HnsId), zap.String("HostIfName: ", ep.HostIfName))
-	response, err := nm.CnsClient.UpdateEndpoint(context.TODO(), ep.ContainerID, ep.HnsId, ep.HostIfName)
+	response, err := nm.CnsClient.UpdateEndpoint(context.TODO(), ep.ContainerID, ep.HnsId, ep.HostIfName, ep.IfName)
 	if err != nil {
 		return errors.Wrapf(err, "Update endpoint API returend with error")
 	}
@@ -413,36 +418,25 @@ func (nm *networkManager) UpdateEndpointState(ep *endpoint) error {
 
 // GetEndpointState will make a call to CNS GetEndpointState API in the stateless CNI mode to fetch the endpointInfo
 // TODO unit tests need to be added, WorkItem: 26606939
-func (nm *networkManager) GetEndpointState(networkID, endpointID string) (*EndpointInfo, error) {
-	endpointResponse, err := nm.CnsClient.GetEndpoint(context.TODO(), endpointID)
+// In stateless cni, container id is the endpoint id, so you can pass in either
+func (nm *networkManager) GetEndpointState(networkID, containerID string) ([]*EndpointInfo, error) {
+	endpointResponse, err := nm.CnsClient.GetEndpoint(context.TODO(), containerID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Get endpoint API returend with error")
+		return nil, errors.Wrapf(err, "Get endpoint API returned with error")
 	}
-	epInfo := &EndpointInfo{
-		EndpointID:         endpointID,
-		IfIndex:            EndpointIfIndex, // Azure CNI supports only one interface
-		IfName:             endpointResponse.EndpointInfo.HostVethName,
-		ContainerID:        endpointID,
-		PODName:            endpointResponse.EndpointInfo.PodName,
-		PODNameSpace:       endpointResponse.EndpointInfo.PodNamespace,
-		NetworkContainerID: endpointID,
-		HNSEndpointID:      endpointResponse.EndpointInfo.HnsEndpointID,
-		// TODO: Populate NIC Type
-	}
+	epInfos := cnsEndpointInfotoCNIEpInfos(endpointResponse.EndpointInfo, containerID)
 
-	for _, ip := range endpointResponse.EndpointInfo.IfnameToIPMap {
-		epInfo.IPAddresses = ip.IPv4
-		epInfo.IPAddresses = append(epInfo.IPAddresses, ip.IPv6...)
-
-	}
-	if epInfo.IsEndpointStateIncomplete() {
-		epInfo, err = epInfo.GetEndpointInfoByIPImpl(epInfo.IPAddresses, networkID)
-		if err != nil {
-			return nil, errors.Wrapf(err, "Get endpoint API returend with error")
+	for i := 0; i < len(epInfos); i++ {
+		if epInfos[i].NICType == cns.InfraNIC {
+			if epInfos[i].IsEndpointStateIncomplete() {
+				epInfos[i], err = epInfos[i].GetEndpointInfoByIPImpl(epInfos[i].IPAddresses, networkID)
+				if err != nil {
+					return nil, errors.Wrapf(err, "Get endpoint API returned with error")
+				}
+			}
 		}
 	}
-	logger.Info("returning getEndpoint API with", zap.String("Endpoint Info: ", epInfo.PrettyString()), zap.String("HNISID : ", epInfo.HNSEndpointID))
-	return epInfo, nil
+	return epInfos, nil
 }
 
 // DeleteEndpoint deletes an existing container endpoint.
@@ -451,6 +445,7 @@ func (nm *networkManager) DeleteEndpoint(networkID, endpointID string, epInfo *E
 	defer nm.Unlock()
 
 	if nm.IsStatelessCNIMode() {
+		// CHECK: Performs same actions as below, but creates the endpoint in a different way (doesn't actually make calls to cns)
 		return nm.DeleteEndpointState(networkID, epInfo)
 	}
 
@@ -460,11 +455,6 @@ func (nm *networkManager) DeleteEndpoint(networkID, endpointID string, epInfo *E
 	}
 
 	err = nw.deleteEndpoint(nm.netlink, nm.plClient, nm.netio, nm.nsClient, nm.iptablesClient, endpointID)
-	if err != nil {
-		return err
-	}
-
-	err = nm.save()
 	if err != nil {
 		return err
 	}
@@ -507,9 +497,17 @@ func (nm *networkManager) GetEndpointInfo(networkID, endpointID string) (*Endpoi
 
 	if nm.IsStatelessCNIMode() {
 		logger.Info("calling cns getEndpoint API")
-		epInfo, err := nm.GetEndpointState(networkID, endpointID)
-
-		return epInfo, err
+		epInfos, err := nm.GetEndpointState(networkID, endpointID)
+		if err != nil {
+			return nil, err
+		}
+		for _, epInfo := range epInfos {
+			if epInfo.NICType == cns.InfraNIC {
+				return epInfo, nil
+			}
+		}
+		// CHECK: what if multiple infra nics or no infra nics? Guess: multi infra nics are interchangeable
+		return nil, err
 	}
 
 	nw, err := nm.getNetwork(networkID)
@@ -671,7 +669,7 @@ func (nm *networkManager) GetNumberOfEndpoints(ifName string, networkId string) 
 // GetEndpointID returns a unique endpoint ID based on the CNI mode.
 func (nm *networkManager) GetEndpointID(containerID, ifName string) string {
 	if nm.IsStatelessCNIMode() {
-		return containerID
+		return containerID // CHECK: In stateless cni do we need to also add the num or is it always the same ep id for all endpoints with the same container id?
 	}
 	if len(containerID) > ContainerIDLength {
 		containerID = containerID[:ContainerIDLength]
@@ -688,7 +686,7 @@ func (nm *networkManager) SaveState(eps []*endpoint) error {
 	defer nm.Unlock()
 
 	logger.Info("Saving state")
-	// TODO: What if we fail halfway through?
+	// If we fail half way, we'll propagate an error up which should clean everything up
 	for _, ep := range eps {
 		if nm.IsStatelessCNIMode() {
 			err := nm.UpdateEndpointState(ep)
@@ -704,4 +702,58 @@ func (nm *networkManager) SaveState(eps []*endpoint) error {
 
 	// once endpoints and networks are in-memory, save once
 	return nm.save()
+}
+func (nm *networkManager) DeleteState(epInfos []*EndpointInfo) error {
+	nm.Lock()
+	defer nm.Unlock()
+
+	logger.Info("Deleting state")
+	// We do not use DeleteEndpointState for stateless cni because we already call it in DeleteEndpoint
+	// This function is only for saving to stateless cni or the cni statefile
+	// For stateless cni, plugin.ipamInvoker.Delete takes care of removing the state in the main Delete function
+
+	if nm.IsStatelessCNIMode() {
+		return nil
+	}
+
+	// once endpoints and networks are deleted in-memory, save once
+	return nm.save()
+}
+
+// called to convert a cns restserver EndpointInfo into a network EndpointInfo
+func cnsEndpointInfotoCNIEpInfos(endpointInfo restserver.EndpointInfo, endpointID string) []*EndpointInfo {
+	ret := []*EndpointInfo{}
+
+	for ifName, ipInfo := range endpointInfo.IfnameToIPMap {
+		epInfo := &EndpointInfo{
+			EndpointID:         endpointID,      // endpoint id is always the same, but we shouldn't use it in the stateless path
+			IfIndex:            EndpointIfIndex, // Azure CNI supports only one interface
+			ContainerID:        endpointID,
+			PODName:            endpointInfo.PodName,
+			PODNameSpace:       endpointInfo.PodNamespace,
+			NetworkContainerID: endpointID,
+		}
+
+		epInfo.IPAddresses = ipInfo.IPv4
+		epInfo.IPAddresses = append(epInfo.IPAddresses, ipInfo.IPv6...)
+		epInfo.IfName = ifName
+		epInfo.HostIfName = ipInfo.HostVethName
+		epInfo.HNSEndpointID = ipInfo.HnsEndpointID
+		epInfo.NICType = ipInfo.NICType
+		ret = append(ret, epInfo)
+	}
+	return ret
+}
+func (nm *networkManager) GetEndpointInfosFromContainerID(containerID string) []*EndpointInfo {
+	ret := []*EndpointInfo{}
+	for _, extIf := range nm.ExternalInterfaces {
+		for _, nw := range extIf.Networks {
+			for _, ep := range nw.Endpoints {
+				if ep.ContainerID == containerID {
+					ret = append(ret, ep.getInfo())
+				}
+			}
+		}
+	}
+	return ret
 }

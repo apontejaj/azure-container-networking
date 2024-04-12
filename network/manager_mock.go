@@ -184,3 +184,20 @@ func (nm *MockNetworkManager) EndpointCreate(client apipaClient, epInfos []*Endp
 	// save endpoints
 	return nm.SaveState(eps)
 }
+
+// TODO: understand mock behavior
+func (nm *MockNetworkManager) DeleteState(epInfos []*EndpointInfo) error {
+	return nil
+}
+func (nm *MockNetworkManager) GetEndpointInfosFromContainerID(containerID string) []*EndpointInfo {
+	ret := []*EndpointInfo{}
+	for _, epInfo := range nm.TestEndpointInfoMap {
+		if epInfo.ContainerID == containerID {
+			ret = append(ret, epInfo)
+		}
+	}
+	return ret
+}
+func (nm *MockNetworkManager) GetEndpointState(networkID, containerID string) ([]*EndpointInfo, error) {
+	return []*EndpointInfo{}, nil
+}

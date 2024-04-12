@@ -301,7 +301,7 @@ func (nm *networkManager) GetNumEndpointsByContainerID(containerID string) int {
 
 // networkID is opt.nwInfo.ID
 // cns url is opt.nwCfg.CNSUrl
-// Creates the network and corresponding endpoint
+// Creates the network and corresponding endpoint (should be called once during Add)
 func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*EndpointInfo) error {
 	eps := []*endpoint{} // save endpoints for stateless
 
@@ -316,13 +316,10 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 			if err != nil {
 				// TODO: error messages/handling are different in this file
 				// err = plugin.Errorf("createNetworkInternal: Failed to create network: %v", err)
-				return err // added
+				return err
 			}
 		}
 
-		// Create the endpoint.
-		// sendEvent(plugin, fmt.Sprintf("[cni-net] Creating endpoint %s.", epInfo.PrettyString()))
-		// nwInfo.NetworkId is the same as epInfo.NetworkId
 		ep, err := nm.CreateEndpoint(cnsclient, epInfo.NetworkId, epInfo)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create endpoint")

@@ -251,5 +251,5 @@ func (client *OVSEndpointClient) DeleteEndpoints(ep *endpoint) error {
 	if err := client.DeleteSnatEndpoint(); err != nil {
 		return err
 	}
-	return DeleteInfraVnetEndpoint(client, ep.Id[:7])
+	return DeleteInfraVnetEndpoint(client)
 }

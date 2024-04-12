@@ -486,6 +486,8 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	ipamAddConfig := IPAMAddConfig{nwCfg: nwCfg, args: args, options: options}
 
 	if nwCfg.MultiTenancy {
+		// dual nic multitenancy -> two interface infos
+		// multitenancy (swift v1) -> one interface info
 		plugin.report.Context = "AzureCNIMultitenancy"
 		plugin.multitenancyClient.Init(cnsClient, AzureNetIOShim{})
 
@@ -512,6 +514,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			return plugin.Errorf(errMsg)
 		}
 	} else {
+		// when nwcfg.multitenancy (use multitenancy flag for swift v1 only) is false
 		if plugin.ipamInvoker == nil {
 			switch nwCfg.IPAM.Type {
 			case network.AzureCNS:
@@ -532,7 +535,6 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		// sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam DefaultInterface: %+v, SecondaryInterfaces: %+v", ipamAddResult.interfaceInfo[ifIndex], ipamAddResult.interfaceInfo))
 	}
 
-	endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
 	policies := cni.GetPoliciesFromNwCfg(nwCfg.AdditionalArgs)
 	// moved to addIpamInvoker
 	// sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam interface: %+v", ipamAddResult.PrettyString()))
@@ -540,6 +542,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	defer func() { //nolint:gocritic
 		if err != nil {
 			// for multi-tenancies scenario, CNI is not supposed to invoke CNS for cleaning Ips
+			// if nwCfg.Multitenancy is false or ipam type is not azure cns
 			if !(nwCfg.MultiTenancy && nwCfg.IPAM.Type == network.AzureCNS) {
 				for _, ifInfo := range ipamAddResult.interfaceInfo {
 					// This used to only be called for infraNIC, test if this breaks scenarios
@@ -553,10 +556,13 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	}()
 
 	epInfos := []*network.EndpointInfo{}
+	var infraSeen bool = false
+	i := 0
 	for _, ifInfo := range ipamAddResult.interfaceInfo {
 		// TODO: hopefully I can get natInfo here?
 		natInfo := getNATInfo(nwCfg, options[network.SNATIPKey], enableSnatForDNS)
 		networkID, _ := plugin.getNetworkID(args.Netns, &ifInfo, nwCfg)
+
 		createEpInfoOpt := createEpInfoOpt{
 			nwCfg:            nwCfg,
 			cnsNetworkConfig: ifInfo.NCResponse,
@@ -564,7 +570,6 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			azIpamResult:     azIpamResult,
 			args:             args,
 			policies:         policies,
-			endpointID:       endpointID,
 			k8sPodName:       k8sPodName,
 			k8sNamespace:     k8sNamespace,
 			enableInfraVnet:  enableInfraVnet,
@@ -575,6 +580,9 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			ifInfo:        &ifInfo,
 			ipamAddConfig: &ipamAddConfig,
 			ipv6Enabled:   ipamAddResult.ipv6Enabled,
+
+			infraSeen: &infraSeen,
+			idx:       i,
 		}
 		var epInfo *network.EndpointInfo
 		epInfo, err = plugin.createEpInfo(&createEpInfoOpt)
@@ -585,12 +593,31 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		// TODO: should this statement be based on the current iteration instead of the constant ifIndex?
 		// TODO figure out where to put telemetry: sendEvent(plugin, fmt.Sprintf("CNI ADD succeeded: IP:%+v, VlanID: %v, podname %v, namespace %v numendpoints:%d",
 		//	ipamAddResult.interfaceInfo[ifIndex].IPConfigs, epInfo.Data[network.VlanIDKey], k8sPodName, k8sNamespace, plugin.nm.GetNumberOfEndpoints("", nwCfg.Name)))
-
+		i += 1
 	}
 	cnsclient, err := cnscli.New(nwCfg.CNSUrl, defaultRequestTimeout)
 	if err != nil {
 		return errors.Wrap(err, "failed to create cns client")
 	}
+	defer func() {
+		if err != nil {
+			// CHECK: can we just keep going through each ep info ignoring if the ep actually exists?
+			// Delete all endpoints
+			for _, epInfo := range epInfos {
+				deleteErr := plugin.nm.DeleteEndpoint(epInfo.NetworkId, epInfo.EndpointID, epInfo)
+				if deleteErr != nil {
+					logger.Error("Could not delete endpoint after detecting add failure", zap.String("epInfo", epInfo.PrettyString()))
+				}
+			}
+			// Rely on cleanupAllocationOnError declared above to delete ips
+			// Delete state in disk here
+			delErr := plugin.nm.DeleteState(epInfos)
+			if delErr != nil {
+				logger.Error("Could not delete state after detecting add failure")
+			}
+		}
+	}()
+	// CHECK: why does the cns client deal with apipa?-- "cns client" only used in windows to create apipa
 	err = plugin.nm.EndpointCreate(cnsclient, epInfos)
 	if err != nil {
 		return err // behavior can change if you don't assign to err prior to returning
@@ -619,7 +646,6 @@ type createEpInfoOpt struct {
 	azIpamResult     *cniTypesCurr.Result
 	args             *cniSkel.CmdArgs
 	policies         []policy.Policy
-	endpointID       string
 	k8sPodName       string
 	k8sNamespace     string
 	enableInfraVnet  bool
@@ -630,6 +656,9 @@ type createEpInfoOpt struct {
 	ifInfo        *network.InterfaceInfo
 	ipamAddConfig *IPAMAddConfig
 	ipv6Enabled   bool
+
+	infraSeen *bool // Only the first infra gets args.ifName, even if the second infra is on a different network
+	idx       int
 }
 
 func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointInfo, error) { // you can modify to pass in whatever else you need
@@ -717,8 +746,18 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		addresses = append(addresses, ipconfig.Address)
 	}
 
+	// generate endpoint info
+	var endpointID string
+	if opt.ifInfo.NICType == cns.InfraNIC && !*opt.infraSeen {
+		// so we do not break existing scenarios, only the first infra gets the original endpoint id generation
+		endpointID = plugin.nm.GetEndpointID(opt.args.ContainerID, opt.args.IfName)
+		*opt.infraSeen = true
+	} else {
+		endpointID = plugin.nm.GetEndpointID(opt.args.ContainerID, strconv.Itoa(opt.idx))
+	}
+
 	epInfo = network.EndpointInfo{
-		EndpointID:         opt.endpointID,
+		EndpointID:         endpointID,
 		ContainerID:        opt.args.ContainerID,
 		NetNsPath:          opt.args.Netns,
 		IfName:             opt.args.IfName,
@@ -951,8 +990,6 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 		k8sPodName   string
 		k8sNamespace string
 		networkID    string
-		nwInfo       network.EndpointInfo
-		epInfo       *network.EndpointInfo
 		cniMetric    telemetry.AIMetric
 	)
 
@@ -1028,7 +1065,7 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 			plugin.ipamInvoker = NewCNSInvoker(k8sPodName, k8sNamespace, cnsClient, util.ExecutionMode(nwCfg.ExecutionMode), util.IpamMode(nwCfg.IPAM.Mode))
 
 		default:
-			plugin.ipamInvoker = NewAzureIpamInvoker(plugin, &nwInfo)
+			plugin.ipamInvoker = NewAzureIpamInvoker(plugin, &network.EndpointInfo{})
 		}
 	}
 
@@ -1037,81 +1074,89 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 	// deleted, getNetworkName will return error of the type NetworkNotFoundError which will result in nil error as compliance
 	// with CNI SPEC as mentioned below.
 
-	numEndpointsToDelete := 1
-	// only get number of endpoints if it's multitenancy mode
-	if nwCfg.MultiTenancy {
-		numEndpointsToDelete = plugin.nm.GetNumEndpointsByContainerID(args.ContainerID)
-	}
-
-	logger.Info("Endpoints to be deleted", zap.Int("count", numEndpointsToDelete))
-	for i := 0; i < numEndpointsToDelete; i++ {
-		// Initialize values from network config.
-		networkID, err = plugin.getNetworkName(args.Netns, nil, nwCfg)
-		if err != nil {
-			// If error is not found error, then we ignore it, to comply with CNI SPEC.
-			if network.IsNetworkNotFoundError(err) {
-				err = nil
+	// CHECK: args.Netns or epInfo.Netns (it's not populated when we convert ep to epInfo)
+	// CHECK: When do we have multiple network ids?
+	networkID, err = plugin.getNetworkID(args.Netns, nil, nwCfg)
+	// CHECK: When do we get multiple network infos
+	var nwInfo network.EndpointInfo
+	if nwInfo, err = plugin.nm.GetNetworkInfo(networkID); err != nil {
+		if !nwCfg.MultiTenancy {
+			logger.Error("Failed to query network",
+				zap.String("network", networkID),
+				zap.Error(err))
+			// Log the error but return success if the network is not found.
+			// if cni hits this, mostly state file would be missing and it can be reboot scenario where
+			// container runtime tries to delete and create pods which existed before reboot.
+			// this condition will not apply to stateless CNI since the network struct will be crated on each call
+			err = nil
+			if !plugin.nm.IsStatelessCNIMode() {
 				return err
 			}
-
-			logger.Error("Failed to extract network name from network config", zap.Error(err))
-			err = plugin.Errorf("Failed to extract network name from network config. error: %v", err)
-			return err
 		}
-		// Query the network.
-		if nwInfo, err = plugin.nm.GetNetworkInfo(networkID); err != nil {
-			if !nwCfg.MultiTenancy {
-				logger.Error("Failed to query network",
-					zap.String("network", networkID),
-					zap.Error(err))
-				// Log the error but return success if the network is not found.
-				// if cni hits this, mostly state file would be missing and it can be reboot scenario where
-				// container runtime tries to delete and create pods which existed before reboot.
-				// this condition will not apply to stateless CNI since the network struct will be crated on each call
-				err = nil
-				if !plugin.nm.IsStatelessCNIMode() {
-					return err
-				}
-			}
-		}
+	}
 
-		endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
-		// Query the endpoint.
-		if epInfo, err = plugin.nm.GetEndpointInfo(networkID, endpointID); err != nil {
-			logger.Info("GetEndpoint",
-				zap.String("endpoint", endpointID),
-				zap.Error(err))
-			if !nwCfg.MultiTenancy {
-				// attempt to release address associated with this Endpoint id
-				// This is to ensure clean up is done even in failure cases
-
-				logger.Error("Failed to query endpoint",
-					zap.String("endpoint", endpointID),
-					zap.Error(err))
-				logger.Error("Release ip by ContainerID (endpoint not found)",
-					zap.String("containerID", args.ContainerID))
-				sendEvent(plugin, fmt.Sprintf("Release ip by ContainerID (endpoint not found):%v", args.ContainerID))
-				if err = plugin.ipamInvoker.Delete(nil, nwCfg, args, nwInfo.Options); err != nil {
-					return plugin.RetriableError(fmt.Errorf("failed to release address(no endpoint): %w", err))
-				}
-			}
-			// Log the error but return success if the endpoint being deleted is not found.
+	// Initialize values from network config.
+	if err != nil {
+		// If error is not found error, then we ignore it, to comply with CNI SPEC.
+		if network.IsNetworkNotFoundError(err) {
 			err = nil
 			return err
 		}
 
-		// schedule send metric before attempting delete
-		defer sendMetricFunc() //nolint:gocritic
-		logger.Info("Deleting endpoint",
-			zap.String("endpointID", endpointID))
-		sendEvent(plugin, fmt.Sprintf("Deleting endpoint:%v", endpointID))
-		// Delete the endpoint.
-		if err = plugin.nm.DeleteEndpoint(networkID, endpointID, epInfo); err != nil {
+		logger.Error("Failed to extract network name from network config", zap.Error(err))
+		err = plugin.Errorf("Failed to extract network name from network config. error: %v", err)
+		return err
+	}
+	logger.Info("Retrieved network info, populating endpoint infos with container id", zap.String("containerID", args.ContainerID))
+
+	var epInfos []*network.EndpointInfo
+	if plugin.nm.IsStatelessCNIMode() {
+		epInfos, err = plugin.nm.GetEndpointState(networkID, args.ContainerID)
+	} else {
+		epInfos = plugin.nm.GetEndpointInfosFromContainerID(args.ContainerID)
+	}
+
+	// for when the endpoint is not created, but the ips are already allocated (only works if single network, single infra)
+	// stateless cni won't have this issue
+	if !plugin.nm.IsStatelessCNIMode() && len(epInfos) == 0 {
+		endpointID := plugin.nm.GetEndpointID(args.ContainerID, args.IfName)
+		if !nwCfg.MultiTenancy {
+			logger.Error("Failed to query endpoint",
+				zap.String("endpoint", endpointID),
+				zap.Error(err))
+			logger.Error("Release ip by ContainerID (endpoint not found)",
+				zap.String("containerID", args.ContainerID))
+			sendEvent(plugin, fmt.Sprintf("Release ip by ContainerID (endpoint not found):%v", args.ContainerID))
+			if err = plugin.ipamInvoker.Delete(nil, nwCfg, args, nwInfo.Options); err != nil {
+				return plugin.RetriableError(fmt.Errorf("failed to release address(no endpoint): %w", err))
+			}
+		} else {
+			// TODO: how do we clean up ips in multitenancy case?
+		}
+		// Log the error but return success if the endpoint being deleted is not found.
+		err = nil
+		return err
+	}
+	logger.Info("Deleting the endpoints", zap.Any("endpointInfos", epInfos))
+	// populate ep infos here in loop if necessary
+	// delete endpoints
+	for _, epInfo := range epInfos {
+		// CHECK: networkID or epInfo.networkID (it's not populated when we convert ep to epInfo)
+		if err = plugin.nm.DeleteEndpoint(networkID, epInfo.EndpointID, epInfo); err != nil {
 			// return a retriable error so the container runtime will retry this DEL later
 			// the implementation of this function returns nil if the endpoint doens't exist, so
 			// we don't have to check that here
 			return plugin.RetriableError(fmt.Errorf("failed to delete endpoint: %w", err))
 		}
+	}
+	logger.Info("Deleting the endpoints from the ipam")
+	// delete endpoint state in cns and in statefile
+	for _, epInfo := range epInfos {
+		// schedule send metric before attempting delete
+		defer sendMetricFunc() //nolint:gocritic
+		logger.Info("Deleting endpoint",
+			zap.String("endpointID", epInfo.EndpointID))
+		sendEvent(plugin, fmt.Sprintf("Deleting endpoint:%v", epInfo.EndpointID))
 
 		if !nwCfg.MultiTenancy {
 			// Call into IPAM plugin to release the endpoint's addresses.
@@ -1131,6 +1176,11 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 				return plugin.RetriableError(fmt.Errorf("failed to release address: %w", err))
 			}
 		}
+	}
+	logger.Info("Deleting the state from the cni statefile")
+	err = plugin.nm.DeleteState(epInfos)
+	if err != nil {
+		return plugin.RetriableError(fmt.Errorf("failed to save state: %w", err))
 	}
 	sendEvent(plugin, fmt.Sprintf("CNI DEL succeeded : Released ip %+v podname %v namespace %v", nwCfg.IPAM.Address, k8sPodName, k8sNamespace))
 
