@@ -407,8 +407,9 @@ func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epIn
 // UpdateEndpointState will make a call to CNS updatEndpointState API in the stateless CNI mode
 // It will add HNSEndpointID or HostVeth name to the endpoint state
 func (nm *networkManager) UpdateEndpointState(ep *endpoint) error {
+	ifnameToIPInfoMap := generateCNSIPInfoMap(ep) // key : interface name, value : IPInfo
 	logger.Info("Calling cns updateEndpoint API with ", zap.String("containerID: ", ep.ContainerID), zap.String("HnsId: ", ep.HnsId), zap.String("HostIfName: ", ep.HostIfName))
-	response, err := nm.CnsClient.UpdateEndpoint(context.TODO(), ep.ContainerID, ep.HnsId, ep.HostIfName, ep.IfName)
+	response, err := nm.CnsClient.UpdateEndpoint(context.TODO(), ep.ContainerID, ifnameToIPInfoMap)
 	if err != nil {
 		return errors.Wrapf(err, "Update endpoint API returend with error")
 	}
@@ -758,4 +759,20 @@ func (nm *networkManager) GetEndpointInfosFromContainerID(containerID string) []
 		}
 	}
 	return ret
+}
+
+func generateCNSIPInfoMap(ep *endpoint) map[string]*restserver.IPInfo {
+	ifNametoIPInfoMap := make(map[string]*restserver.IPInfo) // key : interface name, value : IPInfo
+	if ep.IfName != "" {
+		ifNametoIPInfoMap[ep.IfName].NICType = cns.InfraNIC
+		ifNametoIPInfoMap[ep.IfName].HnsEndpointID = ep.HnsId
+		ifNametoIPInfoMap[ep.IfName].HostVethName = ep.HostIfName
+	}
+	if ep.SecondaryInterfaces != nil {
+		for ifName, InterfaceInfo := range ep.SecondaryInterfaces {
+			ifNametoIPInfoMap[ifName].NICType = InterfaceInfo.NICType
+		}
+
+	}
+	return ifNametoIPInfoMap
 }
