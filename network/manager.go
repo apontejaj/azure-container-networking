@@ -406,10 +406,15 @@ func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epIn
 
 // UpdateEndpointState will make a call to CNS updatEndpointState API in the stateless CNI mode
 // It will add HNSEndpointID or HostVeth name to the endpoint state
-func (nm *networkManager) UpdateEndpointState(ep *endpoint) error {
-	ifnameToIPInfoMap := generateCNSIPInfoMap(ep) // key : interface name, value : IPInfo
-	logger.Info("Calling cns updateEndpoint API with ", zap.String("containerID: ", ep.ContainerID), zap.String("HnsId: ", ep.HnsId), zap.String("HostIfName: ", ep.HostIfName))
-	response, err := nm.CnsClient.UpdateEndpoint(context.TODO(), ep.ContainerID, ifnameToIPInfoMap)
+func (nm *networkManager) UpdateEndpointState(eps []*endpoint) error {
+	if len(eps) == 0 {
+		return nil
+	}
+
+	ifnameToIPInfoMap := generateCNSIPInfoMap(eps) // key : interface name, value : IPInfo
+	// logger.Info("Calling cns updateEndpoint API with ", zap.String("containerID: ", ep.ContainerID), zap.String("HnsId: ", ep.HnsId), zap.String("HostIfName: ", ep.HostIfName))
+	// we assume all endpoints have the same container id
+	response, err := nm.CnsClient.UpdateEndpoint(context.TODO(), eps[0].ContainerID, ifnameToIPInfoMap)
 	if err != nil {
 		return errors.Wrapf(err, "Update endpoint API returend with error")
 	}
@@ -429,7 +434,7 @@ func (nm *networkManager) GetEndpointState(networkID, containerID string) ([]*En
 
 	for i := 0; i < len(epInfos); i++ {
 		if epInfos[i].NICType == cns.InfraNIC {
-			if epInfos[i].IsEndpointStateIncomplete() { // assume false for swift v2
+			if epInfos[i].IsEndpointStateIncomplete() { // assume false for swift v2 for now
 				epInfos[i], err = epInfos[i].GetEndpointInfoByIPImpl(epInfos[i].IPAddresses, networkID)
 				if err != nil {
 					return nil, errors.Wrapf(err, "Get endpoint API returned with error")
@@ -688,14 +693,13 @@ func (nm *networkManager) SaveState(eps []*endpoint) error {
 
 	logger.Info("Saving state")
 	// If we fail half way, we'll propagate an error up which should clean everything up
-	for _, ep := range eps {
-		if nm.IsStatelessCNIMode() {
-			err := nm.UpdateEndpointState(ep)
-			if err != nil {
-				return err
-			}
+	if nm.IsStatelessCNIMode() {
+		err := nm.UpdateEndpointState(eps)
+		if err != nil {
+			return err
 		}
 	}
+
 	// we either use stateless cni and save via update endpoint state, or use the state file
 	if nm.IsStatelessCNIMode() {
 		return nil
@@ -761,18 +765,16 @@ func (nm *networkManager) GetEndpointInfosFromContainerID(containerID string) []
 	return ret
 }
 
-func generateCNSIPInfoMap(ep *endpoint) map[string]*restserver.IPInfo {
+func generateCNSIPInfoMap(eps []*endpoint) map[string]*restserver.IPInfo {
 	ifNametoIPInfoMap := make(map[string]*restserver.IPInfo) // key : interface name, value : IPInfo
-	if ep.IfName != "" {
-		ifNametoIPInfoMap[ep.IfName].NICType = cns.InfraNIC
-		ifNametoIPInfoMap[ep.IfName].HnsEndpointID = ep.HnsId
-		ifNametoIPInfoMap[ep.IfName].HostVethName = ep.HostIfName
-	}
-	if ep.SecondaryInterfaces != nil {
-		for ifName, InterfaceInfo := range ep.SecondaryInterfaces {
-			ifNametoIPInfoMap[ifName].NICType = InterfaceInfo.NICType
-		}
 
+	for _, ep := range eps {
+		if ep.IfName != "" {
+			ifNametoIPInfoMap[ep.IfName].NICType = ep.NICType
+			ifNametoIPInfoMap[ep.IfName].HnsEndpointID = ep.HnsId
+			ifNametoIPInfoMap[ep.IfName].HostVethName = ep.HostIfName
+		}
 	}
+
 	return ifNametoIPInfoMap
 }
