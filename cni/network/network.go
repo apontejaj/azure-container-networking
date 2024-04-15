@@ -403,8 +403,10 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		// previously just logged the default (infra) interface so this is equivalent behavior
 		cniResult := &cniTypesCurr.Result{}
 		for _, ifInfo := range ipamAddResult.interfaceInfo {
+			logger.Info("Exiting add, interface info retrieved", zap.Any("ifInfo", ifInfo))
 			if ifInfo.NICType == cns.InfraNIC {
-				cniResult = convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[string(cns.InfraNIC)], args.IfName)
+				cniResult = convertInterfaceInfoToCniResult(ifInfo, args.IfName)
+				logger.Info("CNI result generated", zap.Any("cniResult", cniResult))
 			}
 		}
 
