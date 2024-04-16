@@ -339,20 +339,20 @@ func (ep *endpoint) detach() error {
 }
 
 // updateEndpoint updates an existing endpoint in the network.
-func (nm *networkManager) updateEndpoint(nw *network, exsitingEpInfo *EndpointInfo, targetEpInfo *EndpointInfo) error {
+func (nm *networkManager) updateEndpoint(nw *network, existingEpInfo, targetEpInfo *EndpointInfo) error {
 	var err error
 
-	logger.Info("Updating existing endpoint in network to target", zap.Any("exsitingEpInfo", exsitingEpInfo),
+	logger.Info("Updating existing endpoint in network to target", zap.Any("existingEpInfo", existingEpInfo),
 		zap.String("id", nw.Id), zap.Any("targetEpInfo", targetEpInfo))
 	defer func() {
 		if err != nil {
-			logger.Error("Failed to update endpoint with err", zap.String("id", exsitingEpInfo.EndpointID), zap.Error(err))
+			logger.Error("Failed to update endpoint with err", zap.String("id", existingEpInfo.EndpointID), zap.Error(err))
 		}
 	}()
 
-	logger.Info("Trying to retrieve endpoint id", zap.String("id", exsitingEpInfo.EndpointID))
+	logger.Info("Trying to retrieve endpoint id", zap.String("id", existingEpInfo.EndpointID))
 
-	ep := nw.Endpoints[exsitingEpInfo.EndpointID]
+	ep := nw.Endpoints[existingEpInfo.EndpointID]
 	if ep == nil {
 		return errEndpointNotFound
 	}
@@ -360,27 +360,24 @@ func (nm *networkManager) updateEndpoint(nw *network, exsitingEpInfo *EndpointIn
 	logger.Info("Retrieved endpoint to update", zap.Any("ep", ep))
 
 	// Call the platform implementation.
-	ep, err = nm.updateEndpointImpl(nw, exsitingEpInfo, targetEpInfo)
+	ep, err = nm.updateEndpointImpl(nw, existingEpInfo, targetEpInfo)
 	if err != nil {
 		return err
 	}
 
 	// Update routes for existing endpoint
-	nw.Endpoints[exsitingEpInfo.EndpointID].Routes = ep.Routes
+	nw.Endpoints[existingEpInfo.EndpointID].Routes = ep.Routes
 
 	return nil
 }
 
 func GetPodNameWithoutSuffix(podName string) string {
 	nameSplit := strings.Split(podName, "-")
-	logger.Info("namesplit", zap.Any("nameSplit", nameSplit))
 	if len(nameSplit) > 2 {
 		nameSplit = nameSplit[:len(nameSplit)-2]
 	} else {
 		return podName
 	}
-
-	logger.Info("Pod name after splitting based on", zap.Any("nameSplit", nameSplit))
 	return strings.Join(nameSplit, "-")
 }
 
