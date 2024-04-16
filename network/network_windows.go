@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/network/hnswrapper"
 	"github.com/Azure/azure-container-networking/network/policy"
 	"github.com/Azure/azure-container-networking/platform"
@@ -297,6 +298,11 @@ func (nm *networkManager) configureHcnNetwork(nwInfo *EndpointInfo, extIf *exter
 		hcnNetwork.Type = hcn.L2Tunnel
 	default:
 		return nil, errNetworkModeInvalid
+	}
+
+	if nwInfo.NICType == cns.DelegatedVMNIC {
+		hcnNetwork.Type = hcn.Transparent
+		hcnNetwork.Flags = hcn.DisableHostPort
 	}
 
 	// Populate subnets.

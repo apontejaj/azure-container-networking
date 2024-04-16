@@ -9,6 +9,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/netio"
 	"github.com/Azure/azure-container-networking/netlink"
 	"github.com/Azure/azure-container-networking/network/policy"
@@ -75,7 +76,7 @@ func (nw *network) newEndpointImpl(
 	_ ipTablesClient,
 	epInfo *EndpointInfo,
 ) (*endpoint, error) {
-	// there is only 1 epInfo for windows, multiple interfaces will be added in the future
+
 	if useHnsV2, err := UseHnsV2(epInfo.NetNsPath); useHnsV2 {
 		if err != nil {
 			return nil, err
@@ -85,6 +86,7 @@ func (nw *network) newEndpointImpl(
 	}
 
 	return nw.newEndpointImplHnsV1(epInfo, plc)
+	// TODO: add switch statement for NIC type for IB and Accelnet NIC support to create endpoint here in the future
 }
 
 // newEndpointImplHnsV1 creates a new endpoint in the network using HnsV1
@@ -220,8 +222,15 @@ func (nw *network) configureHcnEndpoint(epInfo *EndpointInfo) (*hcn.HostComputeE
 			Major: hcnSchemaVersionMajor,
 			Minor: hcnSchemaVersionMinor,
 		},
-		MacAddress: epInfo.MacAddress.String(),
 	}
+
+	// macAddress type for InfraNIC is like "60:45:bd:12:45:65"
+	macAddress := epInfo.MacAddress.String()
+	if epInfo.NICType != cns.InfraNIC {
+		// convert the format of macAddress that HNS can accept, i.e, "60-45-bd-12-45-65" if NIC type is delegated NIC
+		macAddress = strings.Join(strings.Split(macAddress, ":"), "-")
+	}
+	hcnEndpoint.MacAddress = macAddress
 
 	if endpointPolicies, err := policy.GetHcnEndpointPolicies(policy.EndpointPolicy, epInfo.Policies, epInfo.Data, epInfo.EnableSnatForDns, epInfo.EnableMultiTenancy, epInfo.NATInfo); err == nil {
 		for _, epPolicy := range endpointPolicies {
@@ -399,6 +408,7 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 		ContainerID:              epInfo.ContainerID,
 		PODName:                  epInfo.PODName,
 		PODNameSpace:             epInfo.PODNameSpace,
+		// SecondaryInterfaces:      make(map[string]*InterfaceInfo),
 	}
 
 	for _, route := range epInfo.Routes {
@@ -406,6 +416,19 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 	}
 
 	ep.MacAddress, _ = net.ParseMAC(hnsResponse.MacAddress)
+
+	// Confirm with TM: when we delete an endpoint, this code is to find ifName from endpoint and then we can delete this endpoint
+	// ipconfigs := make([]*IPConfig, len(ep.IPAddresses))
+	// for i, ipconfig := range ep.IPAddresses {
+	// 	ipconfigs[i] = &IPConfig{Address: ipconfig}
+	// }
+
+	// // Add secondary interfaces info to CNI state file
+	// ep.SecondaryInterfaces[ep.IfName] = &InterfaceInfo{
+	// 	MacAddress: ep.MacAddress,
+	// 	IPConfigs:  ipconfigs,
+	// 	Routes:     ep.Routes,
+	// }
 
 	return ep, nil
 }
