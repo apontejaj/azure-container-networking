@@ -995,6 +995,7 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 		k8sPodName   string
 		k8sNamespace string
 		networkID    string
+		nwInfo       network.EndpointInfo
 		cniMetric    telemetry.AIMetric
 	)
 
@@ -1070,7 +1071,8 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 			plugin.ipamInvoker = NewCNSInvoker(k8sPodName, k8sNamespace, cnsClient, util.ExecutionMode(nwCfg.ExecutionMode), util.IpamMode(nwCfg.IPAM.Mode))
 
 		default:
-			plugin.ipamInvoker = NewAzureIpamInvoker(plugin, &network.EndpointInfo{})
+			// nwInfo gets populated later in the function
+			plugin.ipamInvoker = NewAzureIpamInvoker(plugin, &nwInfo)
 		}
 	}
 
@@ -1083,7 +1085,6 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 	// CHECK: When do we have multiple network ids?
 	networkID, err = plugin.getNetworkID(args.Netns, nil, nwCfg)
 	// CHECK: When do we get multiple network infos
-	var nwInfo network.EndpointInfo
 	if nwInfo, err = plugin.nm.GetNetworkInfo(networkID); err != nil {
 		if !nwCfg.MultiTenancy {
 			logger.Error("Failed to query network",
