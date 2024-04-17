@@ -153,9 +153,9 @@ type apipaClient interface {
 }
 
 func (epInfo *EndpointInfo) PrettyString() string {
-	return fmt.Sprintf("Id:%s ContainerID:%s NetNsPath:%s IfName:%s IfIndex:%d MacAddr:%s IPAddrs:%v Gateways:%v Data:%+v",
+	return fmt.Sprintf("Id:%s ContainerID:%s NetNsPath:%s IfName:%s IfIndex:%d MacAddr:%s IPAddrs:%v Gateways:%v Data:%+v NICType: %s",
 		epInfo.EndpointID, epInfo.ContainerID, epInfo.NetNsPath, epInfo.IfName, epInfo.IfIndex, epInfo.MacAddress.String(), epInfo.IPAddresses,
-		epInfo.Gateways, epInfo.Data)
+		epInfo.Gateways, epInfo.Data, epInfo.NICType)
 }
 
 func (ifInfo *InterfaceInfo) PrettyString() string {
