@@ -72,6 +72,9 @@ const (
 	CheckIfHNSStatePathExistsCommand = "Test-Path " +
 		"-Path HKLM:\\SYSTEM\\CurrentControlSet\\Services\\hns\\State"
 
+	// Command to fetch netadapter and pnp id
+	GetMacAddressVFPPnpIDMapping = "Get-NetAdapter | Select-Object MacAddress, PnpDeviceID| Format-Table -HideTableHeaders"
+
 	// Command to restart HNS service
 	RestartHnsServiceCommand = "Restart-Service -Name hns"
 
@@ -181,6 +184,33 @@ func (p *execClient) ExecutePowershellCommand(command string) (string, error) {
 	}
 
 	cmd := exec.Command(ps, command)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err = cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("%s:%s", err.Error(), stderr.String())
+	}
+
+	return strings.TrimSpace(stdout.String()), nil
+}
+
+// ExecutePowershellCommandWithContext executes powershell command wth context
+func (p *execClient) ExecutePowershellCommandWithContext(command string, ctx context.Context) (string, error) {
+	ps, err := exec.LookPath("powershell.exe")
+	if err != nil {
+		return "", fmt.Errorf("Failed to find powershell executable")
+	}
+
+	if p.logger != nil {
+		p.logger.Info("[Azure-Utils]", zap.String("command", command))
+	} else {
+		log.Printf("[Azure-Utils] %s", command)
+	}
+
+	cmd := exec.CommandContext(ctx, ps, command)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -342,4 +372,25 @@ func ReplaceFile(source, destination string) error {
 	}
 
 	return windows.MoveFileEx(src, dest, windows.MOVEFILE_REPLACE_EXISTING|windows.MOVEFILE_WRITE_THROUGH)
+}
+
+func FetchMacAddressPnpIDMapping(execClient ExecClient) (map[string]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel() // The cancel should be deferred so resources are cleaned up
+	output, err := execClient.ExecutePowershellCommandWithContext(" ", ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]string)
+	if len(output) == 0 {
+		return nil, errors.New("network adapter not found")
+	}
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		parts := strings.Split(line, " ")
+		key := strings.ToUpper(strings.ReplaceAll(parts[0], "-", ":"))
+		value := parts[1]
+		result[key] = value
+	}
+	return result, nil
 }

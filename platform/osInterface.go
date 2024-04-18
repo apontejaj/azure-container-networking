@@ -1,6 +1,7 @@
 package platform
 
 import (
+	"context"
 	"time"
 
 	"go.uber.org/zap"
@@ -21,6 +22,7 @@ type ExecClient interface {
 	GetLastRebootTime() (time.Time, error)
 	ClearNetworkConfiguration() (bool, error)
 	ExecutePowershellCommand(command string) (string, error)
+	ExecutePowershellCommandWithContext(command string, ctx context.Context) (string, error)
 	KillProcessByName(processName string) error
 }
 
