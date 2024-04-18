@@ -136,6 +136,10 @@ func (p *execClient) ExecutePowershellCommand(_ string) (string, error) {
 	return "", nil
 }
 
+func (p *execClient) ExecutePowershellCommandWithContext(_ string, ctx context.Context) (string, error) {
+	return "", nil
+}
+
 func (p *execClient) KillProcessByName(processName string) error {
 	cmd := fmt.Sprintf("pkill -f %v", processName)
 	_, err := p.ExecuteCommand(cmd)
@@ -200,3 +204,7 @@ func HasMellanoxAdapter() bool {
 
 // Not needed for Linux
 func MonitorAndSetMellanoxRegKeyPriorityVLANTag(_ context.Context, _ int) {}
+
+func FetchMacAddressPnpIDMapping(execClient ExecClient) (map[string]string, error) {
+	return nil, nil
+}
