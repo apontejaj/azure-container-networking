@@ -910,6 +910,11 @@ func main() {
 		}
 	}
 
+	if cnsconfig.BackendNICEnabled {
+		// If backenNIC is enabled on the AKS cluster, set the macaddress to pnpid mapping in cache for future use
+		httpRestService.SetPnpIDMacaddressMapping()
+	}
+
 	if cnsconfig.EnableAsyncPodDelete {
 		// Start fs watcher here
 		cnsclient, err := cnsclient.New("", cnsReqTimeout) //nolint

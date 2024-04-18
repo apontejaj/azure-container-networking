@@ -126,6 +126,12 @@ func (k *K8sSWIFTv2Middleware) validateIPConfigsRequest(ctx context.Context, req
 		if !mtpnc.IsReady() {
 			return nil, types.UnexpectedError, errMTPNCNotReady.Error()
 		}
+		interfaceInfos := mtpnc.Status.InterfaceInfos
+		for _, interfaceInfo := range interfaceInfos {
+			if interfaceInfo.NICType == string(cns.BackendNIC) {
+				req.BackendInterfaceMacAddress = interfaceInfo.MacAddress
+			}
+		}
 	}
 	logger.Printf("[SWIFTv2Middleware] pod %s has secondary interface : %v", podInfo.Name(), req.SecondaryInterfacesExist)
 	// retrieve podinfo from orchestrator context
