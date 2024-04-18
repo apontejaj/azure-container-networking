@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -20,6 +21,11 @@ import (
 	"github.com/Azure/azure-container-networking/platform"
 	"github.com/Azure/azure-container-networking/store"
 	"github.com/pkg/errors"
+)
+
+const (
+	GetMacAddressVFPPnpIDMapping = "Get-NetAdapter | Select-Object MacAddress, PnpDeviceID| Format-Table -HideTableHeaders"
+	Timeout                      = 5 * time.Second
 )
 
 // This file contains the utility/helper functions called by either HTTP APIs or Exported/Internal APIs on HTTPRestService
@@ -38,6 +44,49 @@ func (service *HTTPRestService) setNetworkInfo(networkName string, networkInfo *
 	service.Lock()
 	defer service.Unlock()
 	service.state.Networks[networkName] = networkInfo
+}
+
+func (service *HTTPRestService) SetPnpIDMacaddressMapping() error {
+	service.Lock()
+	defer service.Unlock()
+	VfMacAddressMapping, err := fetchMacAddressPnpIDMapping()
+	if err != nil {
+		return err
+	}
+	service.PnpIDByMacAddress = VfMacAddressMapping
+	return nil
+}
+
+func (service *HTTPRestService) getPNPIDFromMacAddress(macAddress string) (string, error) {
+	if _, ok := service.PnpIDByMacAddress[macAddress]; !ok {
+		if err := service.SetPnpIDMacaddressMapping(); err != nil {
+			return "", err
+		}
+	}
+	return service.PnpIDByMacAddress[macAddress], nil
+}
+
+func fetchMacAddressPnpIDMapping() (map[string]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
+	defer cancel() // The cancel should be deferred so resources are cleaned up
+	cmd := exec.CommandContext(ctx, "powershell", GetMacAddressVFPPnpIDMapping)
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]string)
+	if len(output) == 0 {
+		return nil, errors.New("Network adapter not found")
+	}
+	lines := strings.Split(strings.TrimSpace((string(output))), "\n")
+	logger.Printf("received input:%s", lines)
+	for _, line := range lines {
+		parts := strings.Split(line, " ")
+		key := strings.ToUpper(strings.ReplaceAll(parts[0], "-", ":"))
+		value := parts[1]
+		result[key] = value
+	}
+	return result, nil
 }
 
 // Remove the network info from the service network state
