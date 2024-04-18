@@ -680,10 +680,6 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		err := plugin.Errorf("Failed to find the master interface")
 		return nil, err
 	}
-	logger.Info("Found master interface", zap.String("ifname", masterIfName))
-	if err := plugin.addExternalInterface(masterIfName, opt.ifInfo.HostSubnetPrefix.String()); err != nil {
-		return nil, err
-	}
 
 	nwDNSInfo, err := plugin.getNetworkDNSSettings(opt.ipamAddConfig.nwCfg, opt.ifInfo.DNS)
 	if err != nil {
@@ -787,6 +783,8 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		// added the following for delegated vm nic
 		IPAddresses: addresses,
 		MacAddress:  opt.ifInfo.MacAddress,
+		// the following is used for creating an external interface if we can't find an existing network
+		HostSubnetPrefix: opt.ifInfo.HostSubnetPrefix.String(),
 	}
 
 	epPolicies, err := getPoliciesFromRuntimeCfg(opt.nwCfg, opt.ipamAddResult.ipv6Enabled) // not specific to delegated or infra
@@ -846,17 +844,6 @@ func (plugin *NetPlugin) cleanupAllocationOnError(
 			}
 		}
 	}
-}
-
-// Copied from paul's commit
-// Add the master as an external interface
-func (plugin *NetPlugin) addExternalInterface(masterIfName, hostSubnetPrefix string) error {
-	err := plugin.nm.AddExternalInterface(masterIfName, hostSubnetPrefix)
-	if err != nil {
-		err = plugin.Errorf("Failed to add external interface: %v", err)
-		return err
-	}
-	return nil
 }
 
 func (plugin *NetPlugin) getNetworkDNSSettings(nwCfg *cni.NetworkConfig, dns network.DNSInfo) (network.DNSInfo, error) {

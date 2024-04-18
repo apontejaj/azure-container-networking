@@ -307,12 +307,21 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 
 	for _, epInfo := range epInfos {
 		logger.Info("Creating endpoint and network", zap.String("endpointInfo", epInfo.PrettyString()))
-		// check if network exists
+		// check if network exists by searching through all external interfaces for the network
 		_, nwGetErr := nm.GetNetworkInfo(epInfo.NetworkId)
 		if nwGetErr != nil {
 			logger.Info("Existing network not found", zap.String("networkID", epInfo.NetworkId))
+
+			logger.Info("Found master interface", zap.String("masterIfName", epInfo.MasterIfName))
+
+			// Add the master as an external interface.
+			err := nm.AddExternalInterface(epInfo.MasterIfName, epInfo.HostSubnetPrefix)
+			if err != nil {
+				return err
+			}
+
 			// Create the network if it is not found
-			err := nm.CreateNetwork(epInfo)
+			err = nm.CreateNetwork(epInfo)
 			if err != nil {
 				// TODO: error messages/handling are different in this file
 				// err = plugin.Errorf("createNetworkInternal: Failed to create network: %v", err)

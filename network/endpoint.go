@@ -115,6 +115,8 @@ type EndpointInfo struct {
 	// ServiceCidrs omitted
 	IsIPv6Enabled bool
 	// NICType omitted
+
+	HostSubnetPrefix string // can be used later to add an external interface
 }
 
 // RouteInfo contains information about an IP route.

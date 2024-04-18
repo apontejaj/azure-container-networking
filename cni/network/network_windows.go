@@ -125,7 +125,7 @@ func setNetworkOptions(cnsNwConfig *cns.GetNetworkContainerResponse, nwInfo *net
 	}
 }
 
-func setEndpointOptions(cnsNwConfig *cns.GetNetworkContainerResponse, epInfo *network.EndpointInfo, vethName string) {
+func setEndpointOptions(cnsNwConfig *cns.GetNetworkContainerResponse, epInfo *network.EndpointInfo, _ string) {
 	if cnsNwConfig != nil && cnsNwConfig.MultiTenancyInfo.ID != 0 {
 		logger.Info("Setting Endpoint Options")
 		var cnetAddressMap []string
