@@ -54,7 +54,7 @@ func (service *HTTPRestService) requestIPConfigHandlerHelper(ctx context.Context
 			return &cns.IPConfigsResponse{
 				Response: cns.Response{
 					ReturnCode: types.FailedToAllocateIPConfig,
-					Message:    fmt.Sprintf("AllocateIPConfig failed: %v, IP config request is %v", err, ipconfigsRequest),
+					Message:    fmt.Sprintf("BackendNIC allocation failed: %v, config request is %v", err, ipconfigsRequest),
 				},
 				PodIPInfo: []cns.PodIpInfo{},
 			}, err
