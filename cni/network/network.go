@@ -640,6 +640,8 @@ func (plugin *NetPlugin) findMasterInterface(opt *createEpInfoOpt) string {
 		return plugin.findMasterInterfaceBySubnet(opt.ipamAddConfig.nwCfg, &opt.ifInfo.HostSubnetPrefix)
 	case cns.DelegatedVMNIC:
 		return plugin.findInterfaceByMAC(opt.ifInfo.MacAddress.String())
+	case cns.BackendNIC:
+		return ""
 	default:
 		return ""
 	}
@@ -693,20 +695,20 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		MasterIfName:                  masterIfName,
 		AdapterName:                   opt.ipamAddConfig.nwCfg.AdapterName,
 		BridgeName:                    opt.ipamAddConfig.nwCfg.Bridge,
-		EnableSnatOnHost:              opt.ipamAddConfig.nwCfg.EnableSnatOnHost, // (unused) overridden by endpoint info value; there will be no conflict (confirmed same value as field with same name in epInfo above)
-		NetworkDNS:                    nwDNSInfo,                                // (unused) overridden by endpoint info value; nw and ep dns infos are separated to avoid possible conflicts
-		Policies:                      opt.policies,                             // not present in non-infra
+		EnableSnatOnHost:              opt.ipamAddConfig.nwCfg.EnableSnatOnHost, // (unused) same value as field with same name in epInfo above
+		NetworkDNS:                    nwDNSInfo,                                // (unused) nw and ep dns infos are separated to avoid possible conflicts
+		Policies:                      opt.policies,                             // present infra only
 		NetNs:                         opt.ipamAddConfig.args.Netns,
 		Options:                       opt.ipamAddConfig.options,
 		DisableHairpinOnHostInterface: opt.ipamAddConfig.nwCfg.DisableHairpinOnHostInterface,
-		IPV6Mode:                      opt.ipamAddConfig.nwCfg.IPV6Mode,     // not present in non-infra TODO: check if IPV6Mode field can be deprecated // (unused) overridden by endpoint info value; there will be no conflict (onfirmed same value as field with same name in epInfo above)
-		IPAMType:                      opt.ipamAddConfig.nwCfg.IPAM.Type,    // not present in non-infra
-		ServiceCidrs:                  opt.ipamAddConfig.nwCfg.ServiceCidrs, // (unused) overridden by endpoint info value; there will be no conflict (confirmed same value as field with same name in epInfo above)
-		IsIPv6Enabled:                 opt.ipv6Enabled,                      // not present in non-infra
+		IPV6Mode:                      opt.ipamAddConfig.nwCfg.IPV6Mode,     // present infra only TODO: check if IPV6Mode field can be deprecated (unused)
+		IPAMType:                      opt.ipamAddConfig.nwCfg.IPAM.Type,    // present infra only
+		ServiceCidrs:                  opt.ipamAddConfig.nwCfg.ServiceCidrs, // (unused) same value as field with same name in epInfo above
+		IsIPv6Enabled:                 opt.ipv6Enabled,                      // present infra only
 		NICType:                       opt.ifInfo.NICType,
 	}
 
-	if err := addSubnetToNetworkInfo(*opt.ifInfo, &nwInfo); err != nil {
+	if err = addSubnetToNetworkInfo(*opt.ifInfo, &nwInfo); err != nil {
 		logger.Info("Failed to add subnets to networkInfo", zap.Error(err))
 		return nil, err
 	}
@@ -742,10 +744,10 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 	}
 
 	// for secondary (Populate addresses)
-	// intially only for infra nic but now applied to all nic types
-	var addresses []net.IPNet
-	for _, ipconfig := range opt.ifInfo.IPConfigs {
-		addresses = append(addresses, ipconfig.Address)
+	// initially only for infra nic but now applied to all nic types
+	var addresses = make([]net.IPNet, len(opt.ifInfo.IPConfigs))
+	for i, ipconfig := range opt.ifInfo.IPConfigs {
+		addresses[i] = ipconfig.Address
 	}
 
 	// generate endpoint info

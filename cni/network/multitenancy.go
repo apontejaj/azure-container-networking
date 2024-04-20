@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -231,7 +232,7 @@ func (m *Multitenancy) GetAllNetworkContainers(
 		ifInfo.NICType = cns.InfraNIC
 
 		// assuming we only assign infra nics in this function
-		ipamResult.interfaceInfo[string(ifInfo.NICType)+fmt.Sprint(i)] = ifInfo
+		ipamResult.interfaceInfo[string(ifInfo.NICType)+strconv.Itoa(i)] = ifInfo
 	}
 
 	return ipamResult, err

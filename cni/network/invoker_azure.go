@@ -114,7 +114,7 @@ func (invoker *AzureIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, er
 	}
 
 	// TODO: changed how host subnet prefix populated (check)
-	var hostSubnetPrefix = net.IPNet{}
+	hostSubnetPrefix := net.IPNet{}
 	if len(result.IPs) > 0 {
 		hostSubnetPrefix = result.IPs[0].Address
 	}
