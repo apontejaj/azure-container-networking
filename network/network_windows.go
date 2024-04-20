@@ -112,7 +112,7 @@ func (nm *networkManager) newNetworkImplHnsV1(nwInfo *EndpointInfo, extIf *exter
 
 	// Initialize HNS network.
 	hnsNetwork := &hcsshim.HNSNetwork{
-		Name:               nwInfo.NetworkId,
+		Name:               nwInfo.NetworkID,
 		NetworkAdapterName: networkAdapterName,
 		DNSServerList:      strings.Join(nwInfo.NetworkDNS.Servers, ","),
 		Policies:           policy.SerializePolicies(policy.NetworkPolicy, nwInfo.Policies, nil, false, false),
@@ -173,7 +173,7 @@ func (nm *networkManager) newNetworkImplHnsV1(nwInfo *EndpointInfo, extIf *exter
 
 	// Create the network object.
 	nw := &network{
-		Id:               nwInfo.NetworkId,
+		Id:               nwInfo.NetworkID,
 		HnsId:            hnsResponse.Id,
 		Mode:             nwInfo.Mode,
 		Endpoints:        make(map[string]*endpoint),
@@ -231,7 +231,7 @@ func (nm *networkManager) appIPV6RouteEntry(nwInfo *EndpointInfo) error {
 func (nm *networkManager) configureHcnNetwork(nwInfo *EndpointInfo, extIf *externalInterface) (*hcn.HostComputeNetwork, error) {
 	// Initialize HNS network.
 	hcnNetwork := &hcn.HostComputeNetwork{
-		Name: nwInfo.NetworkId,
+		Name: nwInfo.NetworkID,
 		Dns: hcn.Dns{
 			Domain:     nwInfo.NetworkDNS.Suffix,
 			ServerList: nwInfo.NetworkDNS.Servers,
@@ -406,7 +406,7 @@ func (nm *networkManager) newNetworkImplHnsV2(nwInfo *EndpointInfo, extIf *exter
 
 	// Create the network object.
 	nw := &network{
-		Id:               nwInfo.NetworkId,
+		Id:               nwInfo.NetworkID,
 		HnsId:            hnsResponse.Id,
 		Mode:             nwInfo.Mode,
 		Endpoints:        make(map[string]*endpoint),

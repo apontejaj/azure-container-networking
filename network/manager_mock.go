@@ -36,7 +36,7 @@ func (nm *MockNetworkManager) AddExternalInterface(ifName string, subnet string)
 
 // CreateNetwork mock
 func (nm *MockNetworkManager) CreateNetwork(nwInfo *EndpointInfo) error {
-	nm.TestNetworkInfoMap[nwInfo.NetworkId] = nwInfo
+	nm.TestNetworkInfoMap[nwInfo.NetworkID] = nwInfo
 	return nil
 }
 
@@ -147,7 +147,7 @@ func (nm *MockNetworkManager) GetNumEndpointsByContainerID(_ string) int {
 	numEndpoints := 0
 
 	for _, network := range nm.TestNetworkInfoMap {
-		if _, err := nm.GetAllEndpoints(network.NetworkId); err == nil {
+		if _, err := nm.GetAllEndpoints(network.NetworkID); err == nil {
 			numEndpoints++
 		}
 	}
@@ -163,7 +163,7 @@ func (nm *MockNetworkManager) SaveState(_ []*endpoint) error {
 func (nm *MockNetworkManager) EndpointCreate(client apipaClient, epInfos []*EndpointInfo) error {
 	eps := []*endpoint{}
 	for _, epInfo := range epInfos {
-		_, nwGetErr := nm.GetNetworkInfo(epInfo.NetworkId)
+		_, nwGetErr := nm.GetNetworkInfo(epInfo.NetworkID)
 		if nwGetErr != nil {
 			err := nm.CreateNetwork(epInfo)
 			if err != nil {
@@ -171,7 +171,7 @@ func (nm *MockNetworkManager) EndpointCreate(client apipaClient, epInfos []*Endp
 			}
 		}
 
-		ep, err := nm.CreateEndpoint(client, epInfo.NetworkId, epInfo)
+		ep, err := nm.CreateEndpoint(client, epInfo.NetworkID, epInfo)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create endpoint")
 		}

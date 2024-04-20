@@ -169,7 +169,7 @@ func (nm *networkManager) newNetwork(epInfo *EndpointInfo) (*network, error) {
 	logger.Info("Creating", zap.String("network", epInfo.PrettyString()))
 	defer func() {
 		if err != nil {
-			logger.Error("Failed to create network", zap.String("id", epInfo.NetworkId), zap.Error(err))
+			logger.Error("Failed to create network", zap.String("id", epInfo.NetworkID), zap.Error(err))
 		}
 	}()
 
@@ -192,7 +192,7 @@ func (nm *networkManager) newNetwork(epInfo *EndpointInfo) (*network, error) {
 	}
 
 	// Make sure this network does not already exist.
-	if extIf.Networks[epInfo.NetworkId] != nil {
+	if extIf.Networks[epInfo.NetworkID] != nil {
 		err = errNetworkExists
 		return nil, err
 	}
@@ -205,9 +205,9 @@ func (nm *networkManager) newNetwork(epInfo *EndpointInfo) (*network, error) {
 
 	// Add the network object.
 	nw.Subnets = epInfo.Subnets
-	extIf.Networks[epInfo.NetworkId] = nw
+	extIf.Networks[epInfo.NetworkID] = nw
 
-	logger.Info("Created network on interface", zap.String("id", epInfo.NetworkId), zap.String("Name", extIf.Name))
+	logger.Info("Created network on interface", zap.String("id", epInfo.NetworkID), zap.String("Name", extIf.Name))
 	return nw, nil
 }
 
@@ -306,9 +306,9 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 	for _, epInfo := range epInfos {
 		logger.Info("Creating endpoint and network", zap.String("endpointInfo", epInfo.PrettyString()))
 		// check if network exists by searching through all external interfaces for the network
-		_, nwGetErr := nm.GetNetworkInfo(epInfo.NetworkId)
+		_, nwGetErr := nm.GetNetworkInfo(epInfo.NetworkID)
 		if nwGetErr != nil {
-			logger.Info("Existing network not found", zap.String("networkID", epInfo.NetworkId))
+			logger.Info("Existing network not found", zap.String("networkID", epInfo.NetworkID))
 
 			logger.Info("Found master interface", zap.String("masterIfName", epInfo.MasterIfName))
 
@@ -325,7 +325,7 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 			}
 		}
 
-		ep, err := nm.CreateEndpoint(cnsclient, epInfo.NetworkId, epInfo)
+		ep, err := nm.CreateEndpoint(cnsclient, epInfo.NetworkID, epInfo)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create endpoint")
 		}

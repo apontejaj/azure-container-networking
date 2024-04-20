@@ -351,7 +351,7 @@ func (nm *networkManager) GetNetworkInfo(networkID string) (EndpointInfo, error)
 	}
 
 	nwInfo := EndpointInfo{
-		NetworkId:        networkID,
+		NetworkID:        networkID,
 		Subnets:          nw.Subnets,
 		Mode:             nw.Mode,
 		EnableSnatOnHost: nw.EnableSnatOnHost,
@@ -758,7 +758,7 @@ func (nm *networkManager) GetEndpointInfosFromContainerID(containerID string) []
 			for _, ep := range nw.Endpoints {
 				if ep.ContainerID == containerID {
 					val := ep.getInfo()
-					val.NetworkId = networkID // endpoint doesn't contain the network id
+					val.NetworkID = networkID // endpoint doesn't contain the network id
 					ret = append(ret, val)
 				}
 			}

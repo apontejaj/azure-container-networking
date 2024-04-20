@@ -151,7 +151,7 @@ var _ = Describe("Test Network", func() {
 				}
 				nm.ExternalInterfaces["eth0"].Networks["nw"] = &network{}
 				nwInfo := &EndpointInfo{
-					NetworkId:    "nw",
+					NetworkID:    "nw",
 					MasterIfName: "eth0",
 				}
 				nw, err := nm.newNetwork(nwInfo)
@@ -170,7 +170,7 @@ var _ = Describe("Test Network", func() {
 					Networks: map[string]*network{},
 				}
 				nwInfo := &EndpointInfo{
-					NetworkId:    "nw",
+					NetworkID:    "nw",
 					MasterIfName: "eth0",
 					Mode:         opModeTransparent,
 					IPV6Mode:     IPV6Nat,
@@ -178,7 +178,7 @@ var _ = Describe("Test Network", func() {
 				nw, err := nm.newNetwork(nwInfo)
 				Expect(err).To(BeNil())
 				Expect(nw).NotTo(BeNil())
-				Expect(nw.Id).To(Equal(nwInfo.NetworkId))
+				Expect(nw.Id).To(Equal(nwInfo.NetworkID))
 			})
 		})
 
@@ -192,7 +192,7 @@ var _ = Describe("Test Network", func() {
 					Networks: map[string]*network{},
 				}
 				nwInfo := &EndpointInfo{
-					NetworkId:    "nw",
+					NetworkID:    "nw",
 					MasterIfName: "eth0",
 					Mode:         opModeTransparentVlan,
 				}

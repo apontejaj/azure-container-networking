@@ -99,7 +99,7 @@ type EndpointInfo struct {
 
 	MasterIfName string // related to HostIfName?
 	AdapterName  string
-	NetworkId    string // referred to as Id in NetworkInfo
+	NetworkID    string // referred to as Id in NetworkInfo
 	Mode         string
 	Subnets      []SubnetInfo
 	PodSubnet    SubnetInfo

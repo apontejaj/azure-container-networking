@@ -116,7 +116,7 @@ func (nm *networkManager) newNetworkImpl(epInfo *EndpointInfo, extIf *externalIn
 
 	// Create the network object.
 	nw := &network{
-		Id:               epInfo.NetworkId,
+		Id:               epInfo.NetworkID,
 		Mode:             epInfo.Mode,
 		Endpoints:        make(map[string]*endpoint),
 		extIf:            extIf,

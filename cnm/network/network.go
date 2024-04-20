@@ -146,7 +146,7 @@ func (plugin *netPlugin) createNetwork(w http.ResponseWriter, r *http.Request) {
 
 	// Process request.
 	nwInfo := network.EndpointInfo{
-		NetworkId: req.NetworkID,
+		NetworkID: req.NetworkID,
 		Options:   req.Options,
 	}
 

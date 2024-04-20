@@ -35,7 +35,7 @@ func TestNewAndDeleteNetworkImplHnsV2(t *testing.T) {
 	Hnsv2 = hnswrapper.NewHnsv2wrapperFake()
 
 	nwInfo := &EndpointInfo{
-		NetworkId:    "d3e97a83-ba4c-45d5-ba88-dc56757ece28",
+		NetworkID:    "d3e97a83-ba4c-45d5-ba88-dc56757ece28",
 		MasterIfName: "eth0",
 		Mode:         "bridge",
 	}
@@ -76,7 +76,7 @@ func TestSuccesfulNetworkCreationWhenAlreadyExists(t *testing.T) {
 
 	// network name is derived from network info id
 	nwInfo := &EndpointInfo{
-		NetworkId:    "azure-vlan1-172-28-1-0_24",
+		NetworkID:    "azure-vlan1-172-28-1-0_24",
 		MasterIfName: "eth0",
 		Mode:         "bridge",
 	}
@@ -109,7 +109,7 @@ func TestNewNetworkImplHnsV2WithTimeout(t *testing.T) {
 	}
 
 	nwInfo := &EndpointInfo{
-		NetworkId:    "d3e97a83-ba4c-45d5-ba88-dc56757ece28",
+		NetworkID:    "d3e97a83-ba4c-45d5-ba88-dc56757ece28",
 		MasterIfName: "eth0",
 		Mode:         "bridge",
 	}
@@ -132,7 +132,7 @@ func TestDeleteNetworkImplHnsV2WithTimeout(t *testing.T) {
 	}
 
 	nwInfo := &EndpointInfo{
-		NetworkId:    "d3e97a83-ba4c-45d5-ba88-dc56757ece28",
+		NetworkID:    "d3e97a83-ba4c-45d5-ba88-dc56757ece28",
 		MasterIfName: "eth0",
 		Mode:         "bridge",
 	}
@@ -181,7 +181,7 @@ func TestNewNetworkImplHnsV1WithTimeout(t *testing.T) {
 	}
 
 	nwInfo := &EndpointInfo{
-		NetworkId:    "d3e97a83-ba4c-45d5-ba88-dc56757ece28",
+		NetworkID:    "d3e97a83-ba4c-45d5-ba88-dc56757ece28",
 		MasterIfName: "eth0",
 		Mode:         "bridge",
 	}
@@ -204,7 +204,7 @@ func TestDeleteNetworkImplHnsV1WithTimeout(t *testing.T) {
 	}
 
 	nwInfo := &EndpointInfo{
-		NetworkId:    "d3e97a83-ba4c-45d5-ba88-dc56757ece28",
+		NetworkID:    "d3e97a83-ba4c-45d5-ba88-dc56757ece28",
 		MasterIfName: "eth0",
 		Mode:         "bridge",
 	}
@@ -261,7 +261,7 @@ func TestAddIPv6DefaultRoute(t *testing.T) {
 	}
 
 	nwInfo := &EndpointInfo{
-		NetworkId:    "d3f97a83-ba4c-45d5-ba88-dc56757ece28",
+		NetworkID:    "d3f97a83-ba4c-45d5-ba88-dc56757ece28",
 		MasterIfName: "eth0",
 		Mode:         "bridge",
 		Subnets:      networkSubnetInfo,
@@ -304,7 +304,7 @@ func TestFailToAddIPv6DefaultRoute(t *testing.T) {
 	}
 
 	nwInfo := &EndpointInfo{
-		NetworkId:    "d3f97a83-ba4c-45d5-ba88-dc56757ece28",
+		NetworkID:    "d3f97a83-ba4c-45d5-ba88-dc56757ece28",
 		MasterIfName: "eth0",
 		Mode:         "bridge",
 		Subnets:      networkSubnetInfo,

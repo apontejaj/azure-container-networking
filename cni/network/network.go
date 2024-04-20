@@ -607,7 +607,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 			// Delete all endpoints
 			for _, epInfo := range epInfos {
-				deleteErr := plugin.nm.DeleteEndpoint(epInfo.NetworkId, epInfo.EndpointID, epInfo)
+				deleteErr := plugin.nm.DeleteEndpoint(epInfo.NetworkID, epInfo.EndpointID, epInfo)
 				if deleteErr != nil {
 					// we already do not return an error when the endpoint is not found, so deleteErr is a real error
 					logger.Error("Could not delete endpoint after detecting add failure", zap.String("epInfo", epInfo.PrettyString()), zap.Error(deleteErr))
@@ -688,7 +688,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 	}
 	// this struct is for organization and represents fields from the network to be merged into the endpoint info later
 	nwInfo = network.EndpointInfo{
-		NetworkId:                     opt.networkID,
+		NetworkID:                     opt.networkID,
 		Mode:                          opt.ipamAddConfig.nwCfg.Mode,
 		MasterIfName:                  masterIfName,
 		AdapterName:                   opt.ipamAddConfig.nwCfg.AdapterName,
@@ -738,7 +738,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		// this mechanism of using only namespace and name is not unique for different incarnations of POD/container.
 		// IT will result in unpredictable behavior if API server decides to
 		// reorder DELETE and ADD call for new incarnation of same POD.
-		vethName = fmt.Sprintf("%s%s%s", nwInfo.NetworkId, opt.args.ContainerID, opt.args.IfName)
+		vethName = fmt.Sprintf("%s%s%s", nwInfo.NetworkID, opt.args.ContainerID, opt.args.IfName)
 	}
 
 	// for secondary (Populate addresses)
@@ -813,7 +813,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 	// populate endpoint info with network info fields
 	epInfo.MasterIfName = nwInfo.MasterIfName
 	epInfo.AdapterName = nwInfo.AdapterName
-	epInfo.NetworkId = nwInfo.NetworkId
+	epInfo.NetworkID = nwInfo.NetworkID
 	epInfo.Mode = nwInfo.Mode
 	epInfo.Subnets = nwInfo.Subnets
 	epInfo.PodSubnet = nwInfo.PodSubnet
@@ -1134,7 +1134,7 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 	for _, epInfo := range epInfos {
 		// CHECK: in stateless, network id is not populated in epInfo, but in stateful cni, it is (nw id is used in stateful)
 		// CHECK: in stateless cni, we do not use the network id, but pass in network id to cover stateful case
-		if err = plugin.nm.DeleteEndpoint(epInfo.NetworkId, epInfo.EndpointID, epInfo); err != nil {
+		if err = plugin.nm.DeleteEndpoint(epInfo.NetworkID, epInfo.EndpointID, epInfo); err != nil {
 			// An error will not be returned if the endpoint is not found
 			// return a retriable error so the container runtime will retry this DEL later
 			// the implementation of this function returns nil if the endpoint doens't exist, so
