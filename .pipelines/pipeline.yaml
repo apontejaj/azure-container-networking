@@ -420,18 +420,6 @@ stages:
           k8sVersion: ""
           dependsOn: "test"
 
-      # Cilium Dualstack Overlay E2E tests
-      - template: singletenancy/cilium-dualstack-overlay/cilium-dualstackoverlay-e2e-job-template.yaml
-        parameters:
-          name: "cilium_dualstackoverlay_e2e"
-          displayName: Cilium on AKS DualStack Overlay
-          os: linux
-          clusterType: dualstack-byocni-nokubeproxy-up
-          clusterName: "cildsovere2e"
-          vmSize: Standard_B2ms
-          k8sVersion: ""
-          dependsOn: "test"
-
           # Cilium Overlay with hubble E2E tests
       - template: singletenancy/cilium-overlay-withhubble/cilium-overlay-e2e-job-template.yaml
         parameters:
@@ -507,17 +495,6 @@ stages:
           scaleup: 50
           dependsOn: "test"
 
-      # CNI dual stack overlay E2E tests
-      - template: singletenancy/dualstack-overlay/dualstackoverlay-e2e-job-template.yaml
-        parameters:
-          name: "dualstackoverlay_e2e"
-          displayName: AKS DualStack Overlay
-          os: linux
-          clusterType: dualstack-overlay-byocni-up
-          clusterName: "dsovere2e"
-          vmSize: Standard_B2ms
-          dependsOn: "test"
-
       - stage: delete
         displayName: Delete Clusters
         condition: always()
@@ -530,8 +507,6 @@ stages:
           - aks_ubuntu_22_linux_e2e
           - aks_swift_vnetscale_e2e
           - aks_windows_22_e2e
-          - dualstackoverlay_e2e
-          - cilium_dualstackoverlay_e2e
         variables:
           commitID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.commitID'] ]
         jobs:
@@ -574,12 +549,6 @@ stages:
                 aks_windows_22_e2e:
                   name: aks_windows_22_e2e
                   clusterName: "win22e2e"
-                dualstackoverlay_e2e:
-                  name: dualstackoverlay_e2e
-                  clusterName: "dsovere2e"
-                cilium_dualstackoverlay_e2e:
-                  name: cilium_dualstackoverlay_e2e
-                  clusterName: "cildsovere2e"
             steps:
               - template: templates/delete-cluster.yaml
                 parameters:
@@ -617,8 +586,6 @@ stages:
           - cilium_h_overlay_e2e
           - aks_ubuntu_22_linux_e2e
           - aks_windows_22_e2e
-          - dualstackoverlay_e2e
-          - cilium_dualstackoverlay_e2e
         jobs:
           - job: delete_remote_artifacts
             displayName: Delete remote artifacts
