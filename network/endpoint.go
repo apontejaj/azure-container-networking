@@ -301,7 +301,7 @@ func (ep *endpoint) getInfo() *EndpointInfo {
 		NetworkContainerID:       ep.NetworkContainerID,
 		HNSEndpointID:            ep.HnsId,
 		HostIfName:               ep.HostIfName,
-		NICType:                  ep.NICType, // CHECK: Any more fields to convert endpoint into endpoint info?
+		NICType:                  ep.NICType,
 	}
 
 	info.Routes = append(info.Routes, ep.Routes...)

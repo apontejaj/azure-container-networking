@@ -561,7 +561,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	var infraSeen bool = false
 	i := 0
 	for _, ifInfo := range ipamAddResult.interfaceInfo {
-		// TODO: hopefully I can get natInfo here?
+
 		natInfo := getNATInfo(nwCfg, options[network.SNATIPKey], enableSnatForDNS)
 		networkID, _ := plugin.getNetworkID(args.Netns, &ifInfo, nwCfg)
 
@@ -603,7 +603,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	}
 	defer func() {
 		if err != nil {
-			// CHECK: can we just keep going through each ep info ignoring if the ep actually exists?
+
 			// Delete all endpoints
 			for _, epInfo := range epInfos {
 				deleteErr := plugin.nm.DeleteEndpoint(epInfo.NetworkId, epInfo.EndpointID, epInfo)
@@ -692,15 +692,15 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		MasterIfName:                  masterIfName,
 		AdapterName:                   opt.ipamAddConfig.nwCfg.AdapterName,
 		BridgeName:                    opt.ipamAddConfig.nwCfg.Bridge,
-		EnableSnatOnHost:              opt.ipamAddConfig.nwCfg.EnableSnatOnHost, // (unused) overridden by endpoint info value NO CONFLICT: Confirmed same value as field with same name in epInfo above
-		NetworkDNS:                    nwDNSInfo,                                // (unused) overridden by endpoint info value POSSIBLE CONFLICT (resolved by making nw and ep dns infos)
+		EnableSnatOnHost:              opt.ipamAddConfig.nwCfg.EnableSnatOnHost, // (unused) overridden by endpoint info value; there will be no conflict (confirmed same value as field with same name in epInfo above)
+		NetworkDNS:                    nwDNSInfo,                                // (unused) overridden by endpoint info value; nw and ep dns infos are separated to avoid possible conflicts
 		Policies:                      opt.policies,                             // not present in non-infra
 		NetNs:                         opt.ipamAddConfig.args.Netns,
 		Options:                       opt.ipamAddConfig.options,
 		DisableHairpinOnHostInterface: opt.ipamAddConfig.nwCfg.DisableHairpinOnHostInterface,
-		IPV6Mode:                      opt.ipamAddConfig.nwCfg.IPV6Mode,     // not present in non-infra TODO: check if IPV6Mode field can be deprecated // (unused) overridden by endpoint info value NO CONFLICT: Confirmed same value as field with same name in epInfo above
+		IPV6Mode:                      opt.ipamAddConfig.nwCfg.IPV6Mode,     // not present in non-infra TODO: check if IPV6Mode field can be deprecated // (unused) overridden by endpoint info value; there will be no conflict (onfirmed same value as field with same name in epInfo above)
 		IPAMType:                      opt.ipamAddConfig.nwCfg.IPAM.Type,    // not present in non-infra
-		ServiceCidrs:                  opt.ipamAddConfig.nwCfg.ServiceCidrs, // (unused) overridden by endpoint info value NO CONFLICT: Confirmed same value as field with same name in epInfo above
+		ServiceCidrs:                  opt.ipamAddConfig.nwCfg.ServiceCidrs, // (unused) overridden by endpoint info value; there will be no conflict (confirmed same value as field with same name in epInfo above)
 		IsIPv6Enabled:                 opt.ipv6Enabled,                      // not present in non-infra
 		NICType:                       opt.ifInfo.NICType,
 	}
@@ -1131,7 +1131,8 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 	// populate ep infos here in loop if necessary
 	// delete endpoints
 	for _, epInfo := range epInfos {
-		// CHECK: networkID or epInfo.networkID (it's not populated when we convert ep to epInfo)
+		// CHECK: in stateless, network id is not populated in epInfo, but in stateful cni, it is (nw id is used in stateful)
+		// CHECK: in stateless cni, we do not use the network id, but pass in network id to cover stateful case
 		if err = plugin.nm.DeleteEndpoint(epInfo.NetworkId, epInfo.EndpointID, epInfo); err != nil {
 			// An error will not be returned if the endpoint is not found
 			// return a retriable error so the container runtime will retry this DEL later

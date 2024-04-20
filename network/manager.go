@@ -451,7 +451,7 @@ func (nm *networkManager) DeleteEndpoint(networkID, endpointID string, epInfo *E
 	defer nm.Unlock()
 
 	if nm.IsStatelessCNIMode() {
-		// CHECK: Performs same actions as below, but creates the endpoint in a different way (doesn't actually make calls to cns)
+		// Calls deleteEndpointImpl directly, skipping the get network check; does not call cns
 		return nm.DeleteEndpointState(networkID, epInfo)
 	}
 
@@ -470,7 +470,7 @@ func (nm *networkManager) DeleteEndpoint(networkID, endpointID string, epInfo *E
 
 func (nm *networkManager) DeleteEndpointState(networkID string, epInfo *EndpointInfo) error {
 	nw := &network{
-		Id:           networkID,
+		Id:           networkID, // CHECK: currently unused in stateless cni
 		Mode:         opModeTransparentVlan,
 		SnatBridgeIP: "",
 		extIf: &externalInterface{
@@ -512,7 +512,7 @@ func (nm *networkManager) GetEndpointInfo(networkID, endpointID string) (*Endpoi
 				return epInfo, nil
 			}
 		}
-		// CHECK: what if multiple infra nics or no infra nics? Guess: multi infra nics are interchangeable
+
 		return nil, err
 	}
 

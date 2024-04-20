@@ -156,13 +156,11 @@ func (nm *MockNetworkManager) GetNumEndpointsByContainerID(_ string) int {
 	return numEndpoints
 }
 
-// TODO: understand mock behavior
 func (nm *MockNetworkManager) SaveState(eps []*endpoint) error {
 	// TODO: Mock behavior for saving the state separate from TestEndpointInfo/NetworkInfo map maybe
 	return nil
 }
 
-// TODO: understand mock behavior
 func (nm *MockNetworkManager) EndpointCreate(client apipaClient, epInfos []*EndpointInfo) error {
 	eps := []*endpoint{}
 	for _, epInfo := range epInfos {
@@ -185,8 +183,8 @@ func (nm *MockNetworkManager) EndpointCreate(client apipaClient, epInfos []*Endp
 	return nm.SaveState(eps)
 }
 
-// TODO: understand mock behavior
 func (nm *MockNetworkManager) DeleteState(epInfos []*EndpointInfo) error {
+	// TODO: Mock behavior for deleting the state separate from TestEndpointInfo/NetworkInfo map maybe
 	return nil
 }
 func (nm *MockNetworkManager) GetEndpointInfosFromContainerID(containerID string) []*EndpointInfo {
