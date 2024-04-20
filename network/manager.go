@@ -341,17 +341,17 @@ func (nm *networkManager) DeleteNetwork(networkID string) error {
 }
 
 // GetNetworkInfo returns information about the given network.
-func (nm *networkManager) GetNetworkInfo(networkId string) (EndpointInfo, error) {
+func (nm *networkManager) GetNetworkInfo(networkID string) (EndpointInfo, error) {
 	nm.Lock()
 	defer nm.Unlock()
 
-	nw, err := nm.getNetwork(networkId)
+	nw, err := nm.getNetwork(networkID)
 	if err != nil {
 		return EndpointInfo{}, err
 	}
 
 	nwInfo := EndpointInfo{
-		NetworkId:        networkId,
+		NetworkId:        networkID,
 		Subnets:          nw.Subnets,
 		Mode:             nw.Mode,
 		EnableSnatOnHost: nw.EnableSnatOnHost,
@@ -708,7 +708,8 @@ func (nm *networkManager) SaveState(eps []*endpoint) error {
 	// once endpoints and networks are in-memory, save once
 	return nm.save()
 }
-func (nm *networkManager) DeleteState(epInfos []*EndpointInfo) error {
+
+func (nm *networkManager) DeleteState(_ []*EndpointInfo) error {
 	nm.Lock()
 	defer nm.Unlock()
 
@@ -749,6 +750,7 @@ func cnsEndpointInfotoCNIEpInfos(endpointInfo restserver.EndpointInfo, endpointI
 	}
 	return ret
 }
+
 func (nm *networkManager) GetEndpointInfosFromContainerID(containerID string) []*EndpointInfo {
 	ret := []*EndpointInfo{}
 	for _, extIf := range nm.ExternalInterfaces {

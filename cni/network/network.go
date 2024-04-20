@@ -402,10 +402,10 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		// Add Interfaces to result.
 		// previously just logged the default (infra) interface so this is equivalent behavior
 		cniResult := &cniTypesCurr.Result{}
-		for _, ifInfo := range ipamAddResult.interfaceInfo {
-			logger.Info("Exiting add, interface info retrieved", zap.Any("ifInfo", ifInfo))
-			if ifInfo.NICType == cns.InfraNIC {
-				cniResult = convertInterfaceInfoToCniResult(ifInfo, args.IfName)
+		for key := range ipamAddResult.interfaceInfo {
+			logger.Info("Exiting add, interface info retrieved", zap.Any("ifInfo", ipamAddResult.interfaceInfo[key]))
+			if ipamAddResult.interfaceInfo[key].NICType == cns.InfraNIC {
+				cniResult = convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[key], args.IfName)
 				logger.Info("CNI result generated", zap.Any("cniResult", cniResult))
 			}
 		}
@@ -558,9 +558,10 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	}()
 
 	epInfos := []*network.EndpointInfo{}
-	var infraSeen bool = false
+	infraSeen := false
 	i := 0
-	for _, ifInfo := range ipamAddResult.interfaceInfo {
+	for key := range ipamAddResult.interfaceInfo {
+		ifInfo := ipamAddResult.interfaceInfo[key]
 
 		natInfo := getNATInfo(nwCfg, options[network.SNATIPKey], enableSnatForDNS)
 		networkID, _ := plugin.getNetworkID(args.Netns, &ifInfo, nwCfg)
@@ -595,7 +596,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		// TODO: should this statement be based on the current iteration instead of the constant ifIndex?
 		// TODO figure out where to put telemetry: sendEvent(plugin, fmt.Sprintf("CNI ADD succeeded: IP:%+v, VlanID: %v, podname %v, namespace %v numendpoints:%d",
 		//	ipamAddResult.interfaceInfo[ifIndex].IPConfigs, epInfo.Data[network.VlanIDKey], k8sPodName, k8sNamespace, plugin.nm.GetNumberOfEndpoints("", nwCfg.Name)))
-		i += 1
+		i++
 	}
 	cnsclient, err := cnscli.New(nwCfg.CNSUrl, defaultRequestTimeout)
 	if err != nil {

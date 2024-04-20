@@ -76,7 +76,6 @@ func (nw *network) newEndpointImpl(
 	_ ipTablesClient,
 	epInfo *EndpointInfo,
 ) (*endpoint, error) {
-
 	if useHnsV2, err := UseHnsV2(epInfo.NetNsPath); useHnsV2 {
 		if err != nil {
 			return nil, err

@@ -412,7 +412,7 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 		}
 
 		ipConfigs := addResult.interfaceInfo[string(info.nicType)].IPConfigs
-		ipConfigs = append(addResult.interfaceInfo[string(info.nicType)].IPConfigs,
+		ipConfigs = append(ipConfigs,
 			&network.IPConfig{
 				Address: net.IPNet{
 					IP:   ip,
@@ -428,9 +428,9 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 
 		resRoute := addResult.interfaceInfo[string(info.nicType)].Routes
 		if len(routes) > 0 {
-			resRoute = append(addResult.interfaceInfo[string(info.nicType)].Routes, routes...)
+			resRoute = append(resRoute, routes...)
 		} else { // add default routes if none are provided
-			resRoute = append(addResult.interfaceInfo[string(info.nicType)].Routes, network.RouteInfo{
+			resRoute = append(resRoute, network.RouteInfo{
 				Dst: defaultRouteDstPrefix,
 				Gw:  ncgw,
 			})

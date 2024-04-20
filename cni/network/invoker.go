@@ -33,8 +33,9 @@ type IPAMAddResult struct {
 
 func (ipamAddResult IPAMAddResult) PrettyString() string {
 	pStr := "InterfaceInfo: "
-	for _, ifInfo := range ipamAddResult.interfaceInfo {
-		pStr += ifInfo.PrettyString()
+	for key := range ipamAddResult.interfaceInfo {
+		val := ipamAddResult.interfaceInfo[key]
+		pStr += val.PrettyString()
 	}
 	return pStr
 }
