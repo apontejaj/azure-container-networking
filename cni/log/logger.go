@@ -16,7 +16,7 @@ var (
 
 const (
 	maxLogFileSizeInMb = 5
-	maxLogFileCount    = 8
+	maxLogFileCount    = 110
 )
 
 func initZapLog(logFile string) *zap.Logger {
