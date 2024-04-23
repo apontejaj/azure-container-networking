@@ -162,29 +162,29 @@ func (nm *networkManager) findExternalInterfaceByName(ifName string) *externalIn
 }
 
 // NewNetwork creates a new container network.
-func (nm *networkManager) newNetwork(epInfo *EndpointInfo) (*network, error) {
+func (nm *networkManager) newNetwork(nwInfo *EndpointInfo) (*network, error) {
 	var nw *network
 	var err error
 
-	logger.Info("Creating", zap.String("network", epInfo.PrettyString()))
+	logger.Info("Creating", zap.String("network", nwInfo.PrettyString()))
 	defer func() {
 		if err != nil {
-			logger.Error("Failed to create network", zap.String("id", epInfo.NetworkID), zap.Error(err))
+			logger.Error("Failed to create network", zap.String("id", nwInfo.NetworkID), zap.Error(err))
 		}
 	}()
 
 	// Set defaults.
-	if epInfo.Mode == "" {
-		epInfo.Mode = opModeDefault
+	if nwInfo.Mode == "" {
+		nwInfo.Mode = opModeDefault
 	}
 
 	// If the master interface name is provided, find the external interface by name
 	// else use subnet to to find the interface
 	var extIf *externalInterface
-	if len(strings.TrimSpace(epInfo.MasterIfName)) > 0 {
-		extIf = nm.findExternalInterfaceByName(epInfo.MasterIfName)
+	if len(strings.TrimSpace(nwInfo.MasterIfName)) > 0 {
+		extIf = nm.findExternalInterfaceByName(nwInfo.MasterIfName)
 	} else {
-		extIf = nm.findExternalInterfaceBySubnet(epInfo.Subnets[0].Prefix.String())
+		extIf = nm.findExternalInterfaceBySubnet(nwInfo.Subnets[0].Prefix.String())
 	}
 	if extIf == nil {
 		err = errSubnetNotFound
@@ -192,22 +192,22 @@ func (nm *networkManager) newNetwork(epInfo *EndpointInfo) (*network, error) {
 	}
 
 	// Make sure this network does not already exist.
-	if extIf.Networks[epInfo.NetworkID] != nil {
+	if extIf.Networks[nwInfo.NetworkID] != nil {
 		err = errNetworkExists
 		return nil, err
 	}
 
 	// Call the OS-specific implementation.
-	nw, err = nm.newNetworkImpl(epInfo, extIf)
+	nw, err = nm.newNetworkImpl(nwInfo, extIf)
 	if err != nil {
 		return nil, err
 	}
 
 	// Add the network object.
-	nw.Subnets = epInfo.Subnets
-	extIf.Networks[epInfo.NetworkID] = nw
+	nw.Subnets = nwInfo.Subnets
+	extIf.Networks[nwInfo.NetworkID] = nw
 
-	logger.Info("Created network on interface", zap.String("id", epInfo.NetworkID), zap.String("Name", extIf.Name))
+	logger.Info("Created network on interface", zap.String("id", nwInfo.NetworkID), zap.String("Name", extIf.Name))
 	return nw, nil
 }
 

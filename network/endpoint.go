@@ -52,7 +52,7 @@ type endpoint struct {
 	PODName                  string `json:",omitempty"`
 	PODNameSpace             string `json:",omitempty"`
 	InfraVnetAddressSpace    string `json:",omitempty"`
-	NetNs                    string `json:",omitempty"`
+	NetNs                    string `json:",omitempty"` // used in windows
 	// SecondaryInterfaces is a map of interface name to InterfaceInfo
 	SecondaryInterfaces map[string]*InterfaceInfo
 	// Store nic type since we no longer populate SecondaryInterfaces
@@ -95,26 +95,20 @@ type EndpointInfo struct {
 	NICType                  cns.NICType
 	SkipDefaultRoutes        bool
 	HNSEndpointID            string
-	HostIfName               string
-
-	MasterIfName string // related to HostIfName?
-	AdapterName  string
-	NetworkID    string // referred to as Id in NetworkInfo
-	Mode         string
-	Subnets      []SubnetInfo
-	PodSubnet    SubnetInfo
-	// DNS omitted
-	// Policies omitted
-	BridgeName string
-	// EnableSnatOnHost omitted
-	NetNs                         string                 // related to NetNsPath?
-	Options                       map[string]interface{} // related to Data?
+	HostIfName               string // unused in windows, and in linux
+	// Fields related to the network are below
+	MasterIfName                  string
+	AdapterName                   string
+	NetworkID                     string
+	Mode                          string
+	Subnets                       []SubnetInfo
+	PodSubnet                     SubnetInfo
+	BridgeName                    string
+	NetNs                         string // used in windows
+	Options                       map[string]interface{}
 	DisableHairpinOnHostInterface bool
-	// IPV6Mode omitted
-	IPAMType string
-	// ServiceCidrs omitted
-	IsIPv6Enabled bool
-	// NICType omitted
+	IPAMType                      string
+	IsIPv6Enabled                 bool
 
 	HostSubnetPrefix string // can be used later to add an external interface
 }
