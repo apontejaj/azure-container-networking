@@ -10,7 +10,6 @@ import (
 
 	"github.com/Azure/azure-container-networking/network/policy"
 	"github.com/Azure/azure-container-networking/platform"
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -327,7 +326,7 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 
 		ep, err := nm.CreateEndpoint(cnsclient, epInfo.NetworkID, epInfo)
 		if err != nil {
-			return errors.Wrap(err, "Failed to create endpoint")
+			return err
 		}
 
 		eps = append(eps, ep)

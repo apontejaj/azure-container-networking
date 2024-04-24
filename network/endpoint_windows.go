@@ -418,18 +418,8 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 
 	ep.MacAddress, _ = net.ParseMAC(hnsResponse.MacAddress)
 
-	// Confirm with TM: when we delete an endpoint, this code is to find ifName from endpoint and then we can delete this endpoint
-	// ipconfigs := make([]*IPConfig, len(ep.IPAddresses))
-	// for i, ipconfig := range ep.IPAddresses {
-	// 	ipconfigs[i] = &IPConfig{Address: ipconfig}
-	// }
-
-	// // Add secondary interfaces info to CNI state file
-	// ep.SecondaryInterfaces[ep.IfName] = &InterfaceInfo{
-	// 	MacAddress: ep.MacAddress,
-	// 	IPConfigs:  ipconfigs,
-	// 	Routes:     ep.Routes,
-	// }
+	// TODO: Confirm with TM: when we delete an endpoint, this code is to find ifName from endpoint and then we can delete this endpoint
+	// TODO: deal with ep.SecondaryInterfaces here at all anymore?
 
 	return ep, nil
 }

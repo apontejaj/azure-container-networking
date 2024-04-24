@@ -382,7 +382,7 @@ func TestIpamAddFail(t *testing.T) {
 			},
 			wantErr:           []bool{false},
 			wantEndpointErr:   true,
-			wantErrMsg:        "Failed to create endpoint: MockEndpointClient Error : Endpoint Error",
+			wantErrMsg:        "failed to create endpoint: MockEndpointClient Error : Endpoint Error",
 			expectedEndpoints: 0,
 		},
 	}
@@ -1186,7 +1186,7 @@ func TestPluginSwiftV2Add(t *testing.T) {
 				IfName:      eth0IfName,
 			},
 			wantErr:    true,
-			wantErrMsg: "IPAM Invoker Add failed with error: delegatedVMNIC fail",
+			wantErrMsg: "IPAM Invoker Add failed with error: failed to add ipam invoker: delegatedVMNIC fail",
 		},
 		{
 			name: "SwiftV2 EndpointClient Add fail",
@@ -1211,7 +1211,7 @@ func TestPluginSwiftV2Add(t *testing.T) {
 				IfName:      eth0IfName,
 			},
 			wantErr:    true,
-			wantErrMsg: "Failed to create endpoint: MockEndpointClient Error : AddEndpoints Delegated VM NIC failed",
+			wantErrMsg: "failed to create endpoint: MockEndpointClient Error : AddEndpoints Delegated VM NIC failed",
 		},
 	}
 

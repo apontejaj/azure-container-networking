@@ -329,7 +329,7 @@ func addNatIPV6SubnetInfo(nwCfg *cni.NetworkConfig,
 func (plugin *NetPlugin) addIpamInvoker(ipamAddConfig IPAMAddConfig) (IPAMAddResult, error) {
 	ipamAddResult, err := plugin.ipamInvoker.Add(ipamAddConfig)
 	if err != nil {
-		return IPAMAddResult{}, err
+		return IPAMAddResult{}, errors.Wrap(err, "failed to add ipam invoker")
 	}
 	sendEvent(plugin, fmt.Sprintf("Allocated IPAddress from ipam interface: %+v", ipamAddResult.PrettyString()))
 	return ipamAddResult, nil
@@ -626,12 +626,11 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	// CHECK: why does the cns client deal with apipa?-- "cns client" only used in windows to create apipa
 	err = plugin.nm.EndpointCreate(cnsclient, epInfos)
 	if err != nil {
-		return err // behavior can change if you don't assign to err prior to returning
+		return errors.Wrap(err, "failed to create endpoint") // behavior can change if you don't assign to err prior to returning
 	}
 	// telemetry added
 	sendEvent(plugin, fmt.Sprintf("CNI ADD Process succeeded for interfaces: %v", ipamAddResult.PrettyString()))
 	return nil
-
 }
 
 func (plugin *NetPlugin) findMasterInterface(opt *createEpInfoOpt) string {
@@ -745,7 +744,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 
 	// for secondary (Populate addresses)
 	// initially only for infra nic but now applied to all nic types
-	var addresses = make([]net.IPNet, len(opt.ifInfo.IPConfigs))
+	addresses := make([]net.IPNet, len(opt.ifInfo.IPConfigs))
 	for i, ipconfig := range opt.ifInfo.IPConfigs {
 		addresses[i] = ipconfig.Address
 	}

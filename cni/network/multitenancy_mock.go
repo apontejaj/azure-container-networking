@@ -3,9 +3,9 @@ package network
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"runtime"
+	"strconv"
 
 	"github.com/Azure/azure-container-networking/cni"
 	"github.com/Azure/azure-container-networking/cns"
@@ -171,7 +171,7 @@ func (m *MockMultitenancy) GetAllNetworkContainers(
 		ifInfo.NICType = cns.InfraNIC
 
 		// assuming we only assign infra nics in this function
-		ipamResult.interfaceInfo[string(ifInfo.NICType)+fmt.Sprint(i)] = ifInfo
+		ipamResult.interfaceInfo[string(ifInfo.NICType)+strconv.Itoa(i)] = ifInfo
 	}
 
 	return ipamResult, nil

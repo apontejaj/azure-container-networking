@@ -500,7 +500,6 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 					}
 				}
 				if ifInfo.NICType == cns.InfraNIC {
-					t.Logf("%s", &ifInfo.HostSubnetPrefix) // TODO: Remove later
 					require.Equalf(tt.wantDefaultResult, ifInfo, "incorrect default response")
 				}
 			}

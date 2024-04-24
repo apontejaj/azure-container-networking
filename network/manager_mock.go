@@ -2,7 +2,6 @@ package network
 
 import (
 	"github.com/Azure/azure-container-networking/common"
-	"github.com/pkg/errors"
 )
 
 // MockNetworkManager is a mock structure for Network Manager
@@ -173,7 +172,7 @@ func (nm *MockNetworkManager) EndpointCreate(client apipaClient, epInfos []*Endp
 
 		ep, err := nm.CreateEndpoint(client, epInfo.NetworkID, epInfo)
 		if err != nil {
-			return errors.Wrap(err, "Failed to create endpoint")
+			return err
 		}
 		eps = append(eps, ep)
 	}
