@@ -116,6 +116,27 @@ func (tb *TelemetryBuffer) StartServer() error {
 				tb.connections = append(tb.connections, conn)
 				tb.mutex.Unlock()
 				go func() {
+					defer func() {
+						var index int
+						var value net.Conn
+						var found bool
+
+						tb.mutex.Lock()
+						defer tb.mutex.Unlock()
+
+						for index, value = range tb.connections {
+							if value == conn {
+								conn.Close()
+								found = true
+								break
+							}
+						}
+
+						if found {
+							tb.connections = remove(tb.connections, index)
+						}
+					}()
+
 					for {
 						reportStr, err := read(conn)
 						if err == nil {
@@ -145,25 +166,6 @@ func (tb *TelemetryBuffer) StartServer() error {
 								}
 							}
 						} else {
-							var index int
-							var value net.Conn
-							var found bool
-
-							tb.mutex.Lock()
-							defer tb.mutex.Unlock()
-
-							for index, value = range tb.connections {
-								if value == conn {
-									conn.Close()
-									found = true
-									break
-								}
-							}
-
-							if found {
-								tb.connections = remove(tb.connections, index)
-							}
-
 							return
 						}
 					}
