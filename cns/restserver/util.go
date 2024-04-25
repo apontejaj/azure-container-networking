@@ -61,6 +61,11 @@ func (service *HTTPRestService) getPNPIDFromMacAddress(macAddress string) (strin
 		if err := service.SetPnpIDMacaddressMapping(); err != nil {
 			return "", err
 		}
+		// IB adapters can be absent from the list of adapters, checking for the value after the fetch
+		if _, ok := service.PnpIDByMacAddress[macAddress]; !ok {
+			return "", errors.New("Backend Network adapter not found")
+		}
+
 	}
 	return service.PnpIDByMacAddress[macAddress], nil
 }
