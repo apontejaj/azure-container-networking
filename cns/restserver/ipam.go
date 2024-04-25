@@ -47,7 +47,7 @@ func (service *HTTPRestService) requestIPConfigHandlerHelper(ctx context.Context
 		}, errors.New("failed to validate ip config request")
 	}
 
-	var podBackendInfo cns.PodIpInfo
+	var podIPInfoResult []cns.PodIpInfo
 	if ipconfigsRequest.BackendInterfaceMacAddress != "" {
 		PnPID, err := service.getPNPIDFromMacAddress(ipconfigsRequest.BackendInterfaceMacAddress)
 		if err != nil {
@@ -59,11 +59,12 @@ func (service *HTTPRestService) requestIPConfigHandlerHelper(ctx context.Context
 				PodIPInfo: []cns.PodIpInfo{},
 			}, err
 		}
-		podBackendInfo = cns.PodIpInfo{
+		podBackendInfo := cns.PodIpInfo{
 			MacAddress: ipconfigsRequest.BackendInterfaceMacAddress,
 			NICType:    cns.BackendNIC,
 			PnPID:      PnPID,
 		}
+		podIPInfoResult = append(podIPInfoResult, podBackendInfo)
 	}
 
 	// record a pod requesting an IP
@@ -101,12 +102,12 @@ func (service *HTTPRestService) requestIPConfigHandlerHelper(ctx context.Context
 		}
 	}
 
-	podIPInfo = append(podIPInfo, podBackendInfo)
+	podIPInfoResult = append(podIPInfoResult, podIPInfo...)
 	return &cns.IPConfigsResponse{
 		Response: cns.Response{
 			ReturnCode: types.Success,
 		},
-		PodIPInfo: podIPInfo,
+		PodIPInfo: podIPInfoResult,
 	}, nil
 }
 

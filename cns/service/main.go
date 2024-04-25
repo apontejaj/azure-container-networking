@@ -910,6 +910,7 @@ func main() {
 		}
 	}
 
+	// No-op for linux, mapping is set for windows in aks scenario
 	httpRestService.SetPnpIDMacaddressMapping()
 
 	if cnsconfig.EnableAsyncPodDelete {

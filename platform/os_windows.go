@@ -374,23 +374,31 @@ func ReplaceFile(source, destination string) error {
 	return windows.MoveFileEx(src, dest, windows.MOVEFILE_REPLACE_EXISTING|windows.MOVEFILE_WRITE_THROUGH)
 }
 
+/*
+	Sample output:  Get-NetAdapter | Select-Object MacAddress, PnpDeviceID| Format-Table -HideTableHeaders
+
+6C-A1-00-50-E4-2D PCI\VEN_8086&DEV_2723&SUBSYS_00808086&REV_1A\4&328243d9&0&00E0
+80-6D-97-1E-CF-4E USB\VID_17EF&PID_A359\3010019E3
+*/
 func FetchMacAddressPnpIDMapping(execClient ExecClient) (map[string]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel() // The cancel should be deferred so resources are cleaned up
-	output, err := execClient.ExecutePowershellCommandWithContext(" ", ctx)
+	output, err := execClient.ExecutePowershellCommandWithContext(GetMacAddressVFPPnpIDMapping, ctx)
 	if err != nil {
 		return nil, err
 	}
 	result := make(map[string]string)
-	if len(output) == 0 {
-		return nil, errors.New("network adapter not found")
-	}
-	lines := strings.Split(output, "\n")
-	for _, line := range lines {
-		parts := strings.Split(line, " ")
-		key := strings.ToUpper(strings.ReplaceAll(parts[0], "-", ":"))
-		value := parts[1]
-		result[key] = value
+	if len(output) != 0 {
+		// Split the output based on new line characters
+		lines := strings.Split(output, "\n")
+		for _, line := range lines {
+			// Split based on " " to fetch the macaddress and pci id
+			parts := strings.Split(line, " ")
+			// Change the format of macaddress from xx-xx-xx-xx to xx:xx:xx:xx
+			key := strings.ToUpper(strings.ReplaceAll(parts[0], "-", ":"))
+			value := parts[1]
+			result[key] = value
+		}
 	}
 	return result, nil
 }
