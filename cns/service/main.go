@@ -827,6 +827,9 @@ func main() {
 			return
 		}
 
+		// No-op for linux, mapping is set for windows in aks swiftv2 scenario
+		httpRestService.SetPnpIDMacaddressMapping()
+
 		// We might be configured to reinitialize state from the CNI instead of the apiserver.
 		// If so, we should check that the CNI is new enough to support the state commands,
 		// otherwise we fall back to the existing behavior.
@@ -937,9 +940,6 @@ func main() {
 			}()
 		}
 	}
-
-	// No-op for linux, mapping is set for windows in aks scenario
-	httpRestService.SetPnpIDMacaddressMapping()
 
 	if cnsconfig.EnableAsyncPodDelete {
 		// Start fs watcher here
