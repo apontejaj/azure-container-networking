@@ -57,7 +57,6 @@ type CNSConfig struct {
 	UseHTTPS                    bool
 	WatchPods                   bool `json:"-"`
 	WireserverIP                string
-	BackendNICEnabled           bool
 }
 
 type TelemetrySettings struct {
