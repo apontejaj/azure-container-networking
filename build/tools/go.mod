@@ -9,7 +9,7 @@ require (
 	github.com/golangci/golangci-lint v1.56.2
 	github.com/jstemmer/go-junit-report v1.0.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.3.0
-	google.golang.org/protobuf v1.33.0
+	google.golang.org/protobuf v1.34.0
 	mvdan.cc/gofumpt v0.6.0
 	sigs.k8s.io/controller-tools v0.13.0
 )
@@ -190,9 +190,9 @@ require (
 	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc // indirect
 	golang.org/x/exp/typeparams v0.0.0-20231219180239-dc181d75b848 // indirect
 	golang.org/x/mod v0.15.0 // indirect
-	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
-	golang.org/x/sys v0.17.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.18.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect

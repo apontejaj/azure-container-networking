@@ -97,9 +97,9 @@ type EndpointInfo struct {
 
 type IPInfo struct {
 	IPv4          []net.IPNet
-	IPv6          []net.IPNet
-	HnsEndpointID string
-	HostVethName  string
+	IPv6          []net.IPNet `json:",omitempty"`
+	HnsEndpointID string      `json:",omitempty"`
+	HostVethName  string      `json:",omitempty"`
 	NICType       cns.NICType
 }
 
@@ -185,6 +185,9 @@ func NewHTTPRestService(config *common.ServiceConfig, wscli interfaceGetter, wsp
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get primary interface from IMDS response")
 	}
+
+	// add primaryInterfaceIP to cns config
+	config.Server.PrimaryInterfaceIP = primaryInterface.PrimaryIP
 
 	serviceState := &httpRestServiceState{
 		Networks:         make(map[string]*networkInfo),
