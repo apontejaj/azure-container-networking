@@ -1081,9 +1081,6 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 			// container runtime tries to delete and create pods which existed before reboot.
 			// this condition will not apply to stateless CNI since the network struct will be crated on each call
 			err = nil
-			if !plugin.nm.IsStatelessCNIMode() {
-				return err
-			}
 		}
 	}
 	// Initialize values from network config.
