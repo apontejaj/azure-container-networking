@@ -38,6 +38,7 @@ const (
 	InfraInterfaceName   = "eth0"
 	ContainerIDLength    = 8
 	EndpointIfIndex      = 0 // Azure CNI supports only one interface
+	DefaultNetworkID     = "azure"
 )
 
 var Ipv4DefaultRouteDstPrefix = net.IPNet{
@@ -435,6 +436,9 @@ func (nm *networkManager) GetEndpointState(networkID, containerID string) ([]*En
 	for i := 0; i < len(epInfos); i++ {
 		if epInfos[i].NICType == cns.InfraNIC {
 			if epInfos[i].IsEndpointStateIncomplete() { // assume false for swift v2 for now
+				if networkID == "" {
+					networkID = DefaultNetworkID
+				}
 				epInfos[i], err = epInfos[i].GetEndpointInfoByIPImpl(epInfos[i].IPAddresses, networkID)
 				if err != nil {
 					return nil, errors.Wrapf(err, "Get endpoint API returned with error")
@@ -740,12 +744,20 @@ func cnsEndpointInfotoCNIEpInfos(endpointInfo restserver.EndpointInfo, endpointI
 			NetworkContainerID: endpointID,
 		}
 
+		// This is an special case for endpoint state that are being crated by statefull CNI
+		if ifName == "" {
+			ifName = InfraInterfaceName
+		}
+
+		// filling out the InfraNIC from the state
 		epInfo.IPAddresses = ipInfo.IPv4
 		epInfo.IPAddresses = append(epInfo.IPAddresses, ipInfo.IPv6...)
 		epInfo.IfName = ifName
 		epInfo.HostIfName = ipInfo.HostVethName
 		epInfo.HNSEndpointID = ipInfo.HnsEndpointID
 		epInfo.NICType = ipInfo.NICType
+		epInfo.HNSNetworkID = ipInfo.HnsNetworkID
+		epInfo.MacAddress = net.HardwareAddr(ipInfo.MacAddress)
 		ret = append(ret, epInfo)
 	}
 	return ret
@@ -771,10 +783,12 @@ func generateCNSIPInfoMap(eps []*endpoint) map[string]*restserver.IPInfo {
 	ifNametoIPInfoMap := make(map[string]*restserver.IPInfo) // key : interface name, value : IPInfo
 
 	for _, ep := range eps {
-		if ep.IfName != "" {
-			ifNametoIPInfoMap[ep.IfName].NICType = ep.NICType
-			ifNametoIPInfoMap[ep.IfName].HnsEndpointID = ep.HnsId
-			ifNametoIPInfoMap[ep.IfName].HostVethName = ep.HostIfName
+		ifNametoIPInfoMap[ep.IfName] = &restserver.IPInfo{
+			NICType:       ep.NICType,
+			HnsEndpointID: ep.HnsId,
+			HnsNetworkID:  ep.HNSNetworkID,
+			HostVethName:  ep.HostIfName,
+			MacAddress:    ep.MacAddress.String(),
 		}
 	}
 
