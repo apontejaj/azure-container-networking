@@ -475,6 +475,7 @@ func (nm *networkManager) DeleteEndpoint(networkID, endpointID string, epInfo *E
 func (nm *networkManager) DeleteEndpointState(networkID string, epInfo *EndpointInfo) error {
 	nw := &network{
 		Id:           networkID, // CHECK: currently unused in stateless cni
+		HnsId:        epInfo.HNSNetworkID,
 		Mode:         opModeTransparentVlan,
 		SnatBridgeIP: "",
 		extIf: &externalInterface{
@@ -486,6 +487,7 @@ func (nm *networkManager) DeleteEndpointState(networkID string, epInfo *Endpoint
 	ep := &endpoint{
 		Id:                       epInfo.EndpointID,
 		HnsId:                    epInfo.HNSEndpointID,
+		HNSNetworkID:             epInfo.HNSNetworkID, // unused needed (we use nw.HnsId for deleting the network)
 		HostIfName:               epInfo.IfName,
 		LocalIP:                  "",
 		VlanID:                   0,
@@ -497,7 +499,18 @@ func (nm *networkManager) DeleteEndpointState(networkID string, epInfo *Endpoint
 		NICType:                  epInfo.NICType,
 	}
 	logger.Info("Deleting endpoint with", zap.String("Endpoint Info: ", epInfo.PrettyString()), zap.String("HNISID : ", ep.HnsId))
-	return nw.deleteEndpointImpl(netlink.NewNetlink(), platform.NewExecClient(logger), nil, nil, nil, nil, ep)
+	err := nw.deleteEndpointImpl(netlink.NewNetlink(), platform.NewExecClient(logger), nil, nil, nil, nil, ep)
+	if err != nil {
+		return err
+	}
+	if epInfo.NICType == cns.DelegatedVMNIC {
+		// CHECK: should it affect linux? (if it does, it could disconnect external interface, is that okay?)
+		// bad only when 1) stateless and 2) linux and 3) delegated vmnics exist
+		logger.Info("Deleting endpoint because delegated vmnic detected", zap.String("HNSNetworkID", nw.HnsId))
+		err = nm.deleteNetworkImpl(nw)
+		// no need to clean up state in stateless
+	}
+	return err
 }
 
 // GetEndpointInfo returns information about the given endpoint.
