@@ -10,7 +10,6 @@ parameters:
 
 stages:
   - stage: ${{ parameters.clusterName }}
-    continueOnError: true
     displayName: Create Cluster - ${{ parameters.displayName }}
     dependsOn:
       - ${{ parameters.dependsOn }}
@@ -29,6 +28,7 @@ stages:
           vmSize: ${{ parameters.vmSize }}
           k8sVersion: ${{ parameters.k8sVersion }}
           dependsOn: ${{ parameters.dependsOn }}
+          continueOnError: true
           region: $(REGION_SWIFTV2_CLUSTER_TEST) # Swiftv2 has a specific region requirements
 
   - stage: ${{ parameters.name }}
