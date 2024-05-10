@@ -10,7 +10,7 @@ parameters:
 
 stages:
   - stage: ${{ parameters.clusterName }}
-    condition: and( succeeded(), not(eq(dependencies.dualstackoverlaye2e.result,'SucceededWithIssues')) ) # Cant use parameters in dependencies
+    condition: and( succeeded(), not(eq(dependencies.setup.result,'SucceededWithIssues')) ) # Cant use parameters in dependencies
     displayName: Create Cluster - ${{ parameters.displayName }}
     dependsOn:
       - ${{ parameters.dependsOn }}
@@ -32,7 +32,7 @@ stages:
           region: $(REGION_SWIFTV2_CLUSTER_TEST) # Swiftv2 has a specific region requirements
 
   - stage: ${{ parameters.name }}
-    condition: and( succeeded(), not(eq(dependencies.dualstackoverlaye2e.result,'SucceededWithIssues')) ) # Cant use parameters in dependencies
+    condition: and( succeeded(), not(eq(dependencies.mtacluster.result,'SucceededWithIssues')) ) # Cant use parameters in dependencies
     displayName: E2E - ${{ parameters.displayName }}
     dependsOn:
     - setup
