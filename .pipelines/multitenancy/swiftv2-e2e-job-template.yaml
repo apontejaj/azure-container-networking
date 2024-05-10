@@ -10,7 +10,7 @@ parameters:
 
 stages:
   - stage: ${{ parameters.clusterName }}
-    condition: and( succeeded(), not(eq(dependencies.setup.result,'SucceededWithIssues')) ) # Cant use parameters in dependencies
+    continueOnError: true
     displayName: Create Cluster - ${{ parameters.displayName }}
     dependsOn:
       - ${{ parameters.dependsOn }}
