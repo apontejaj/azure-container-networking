@@ -487,16 +487,17 @@ func (nm *networkManager) DeleteEndpointState(networkID string, epInfo *Endpoint
 	ep := &endpoint{
 		Id:                       epInfo.EndpointID,
 		HnsId:                    epInfo.HNSEndpointID,
-		HNSNetworkID:             epInfo.HNSNetworkID, // unused needed (we use nw.HnsId for deleting the network)
-		HostIfName:               epInfo.IfName,
+		HNSNetworkID:             epInfo.HNSNetworkID, // unused (we use nw.HnsId for deleting the network)
+		HostIfName:               epInfo.HostIfName,
 		LocalIP:                  "",
 		VlanID:                   0,
 		AllowInboundFromHostToNC: false,
 		AllowInboundFromNCToHost: false,
 		EnableSnatOnHost:         false,
 		EnableMultitenancy:       false,
-		NetworkContainerID:       epInfo.EndpointID,
+		NetworkContainerID:       epInfo.NetworkContainerID, // we don't use this as long as AllowInboundFromHostToNC and AllowInboundFromNCToHost are false
 		NICType:                  epInfo.NICType,
+		NICName:                  epInfo.IfName,
 	}
 	logger.Info("Deleting endpoint with", zap.String("Endpoint Info: ", epInfo.PrettyString()), zap.String("HNISID : ", ep.HnsId))
 	err := nw.deleteEndpointImpl(netlink.NewNetlink(), platform.NewExecClient(logger), nil, nil, nil, nil, ep)
@@ -757,7 +758,7 @@ func cnsEndpointInfotoCNIEpInfos(endpointInfo restserver.EndpointInfo, endpointI
 			NetworkContainerID: endpointID,
 		}
 
-		// This is an special case for endpoint state that are being crated by statefull CNI
+		// If we create an endpoint state with stateful cni and then swap to a stateless cni binary, ifname would not be populated
 		if ifName == "" {
 			ifName = InfraInterfaceName
 		}
@@ -765,7 +766,7 @@ func cnsEndpointInfotoCNIEpInfos(endpointInfo restserver.EndpointInfo, endpointI
 		// filling out the InfraNIC from the state
 		epInfo.IPAddresses = ipInfo.IPv4
 		epInfo.IPAddresses = append(epInfo.IPAddresses, ipInfo.IPv6...)
-		epInfo.IfName = ifName
+		epInfo.IfName = ifName // ifname (container veth peer) not used in linux (or even windows) deletion
 		epInfo.HostIfName = ipInfo.HostVethName
 		epInfo.HNSEndpointID = ipInfo.HnsEndpointID
 		epInfo.NICType = ipInfo.NICType
@@ -796,7 +797,7 @@ func generateCNSIPInfoMap(eps []*endpoint) map[string]*restserver.IPInfo {
 	ifNametoIPInfoMap := make(map[string]*restserver.IPInfo) // key : interface name, value : IPInfo
 
 	for _, ep := range eps {
-		ifNametoIPInfoMap[ep.IfName] = &restserver.IPInfo{
+		ifNametoIPInfoMap[ep.NICName] = &restserver.IPInfo{ // in windows, the nicname is args ifname, in linux, it's ethX
 			NICType:       ep.NICType,
 			HnsEndpointID: ep.HnsId,
 			HnsNetworkID:  ep.HNSNetworkID,

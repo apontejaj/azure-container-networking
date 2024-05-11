@@ -58,6 +58,8 @@ type endpoint struct {
 	SecondaryInterfaces map[string]*InterfaceInfo
 	// Store nic type since we no longer populate SecondaryInterfaces
 	NICType cns.NICType
+	// Store the key used in stateless
+	NICName string
 }
 
 // EndpointInfo contains read-only information about an endpoint.
@@ -151,9 +153,9 @@ type apipaClient interface {
 }
 
 func (epInfo *EndpointInfo) PrettyString() string {
-	return fmt.Sprintf("Id:%s ContainerID:%s NetNsPath:%s IfName:%s IfIndex:%d MacAddr:%s IPAddrs:%v Gateways:%v Data:%+v NICType: %s",
+	return fmt.Sprintf("Id:%s ContainerID:%s NetNsPath:%s IfName:%s IfIndex:%d MacAddr:%s IPAddrs:%v Gateways:%v Data:%+v NICType: %s NetworkContainerID: %s HostIfName: %s",
 		epInfo.EndpointID, epInfo.ContainerID, epInfo.NetNsPath, epInfo.IfName, epInfo.IfIndex, epInfo.MacAddress.String(), epInfo.IPAddresses,
-		epInfo.Gateways, epInfo.Data, epInfo.NICType)
+		epInfo.Gateways, epInfo.Data, epInfo.NICType, epInfo.NetworkContainerID, epInfo.HostIfName)
 }
 
 func (ifInfo *InterfaceInfo) PrettyString() string {

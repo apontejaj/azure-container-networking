@@ -171,6 +171,7 @@ func (nw *network) newEndpointImplHnsV1(epInfo *EndpointInfo, plc platform.ExecC
 		NetNs:            epInfo.NetNsPath,
 		ContainerID:      epInfo.ContainerID,
 		NICType:          epInfo.NICType,
+		NICName:          epInfo.IfName,
 	}
 
 	for _, route := range epInfo.Routes {
@@ -410,6 +411,7 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 		PODNameSpace:             epInfo.PODNameSpace,
 		// SecondaryInterfaces:      make(map[string]*InterfaceInfo),
 		NICType: epInfo.NICType,
+		NICName: epInfo.IfName,
 	}
 
 	for _, route := range epInfo.Routes {

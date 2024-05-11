@@ -119,6 +119,8 @@ func (nw *network) newEndpointImpl(
 		Routes:                   defaultEpInfo.Routes,
 		SecondaryInterfaces:      make(map[string]*InterfaceInfo),
 		NICType:                  defaultEpInfo.NICType,
+		// Should end up being eth0 in non-delegated nic cases
+		NICName: defaultEpInfo.MasterIfName, // CHECK: Should find interface name by mac address for linux secondaries
 	}
 	if nw.extIf != nil {
 		ep.Gateways = []net.IP{nw.extIf.IPv4Gateway}
