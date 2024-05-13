@@ -72,15 +72,3 @@ stages:
           portforward: true
           hostport: true
           service: true
-
-      - job: failedE2ELogs
-        displayName: "Failure Logs"
-        dependsOn:
-          - ${{ parameters.name }}
-        condition: failed()
-        steps:
-          - template: ../templates/log-template.yaml
-            parameters:
-              clusterName: ${{ parameters.clusterName }}-$(commitID)
-              os: linux
-              cni: cniv2
