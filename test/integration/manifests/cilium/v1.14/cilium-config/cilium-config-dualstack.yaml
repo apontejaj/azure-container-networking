@@ -13,7 +13,8 @@ data:
   cilium-endpoint-gc-interval: 5m0s
   cluster-id: "0"
   cluster-name: default
-  debug: "false"
+  debug: "true"
+  debug-verbose: "datapath"
   disable-cnp-status-updates: "true"
   disable-endpoint-crd: "false"
   enable-auto-protect-node-port-range: "true"
