@@ -404,9 +404,13 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		cniResult := &cniTypesCurr.Result{}
 		for key := range ipamAddResult.interfaceInfo {
 			logger.Info("Exiting add, interface info retrieved", zap.Any("ifInfo", ipamAddResult.interfaceInfo[key]))
+			// previously we had a default interface info to select which interface info was the one to be returned from cni add
+			// now we have to infer which interface info should be returned
+			// we assume that we want to return the infra nic always, and if that is not found, return any one of the secondary interfaces
+			// if there is an infra nic + secondary, we will always return the infra nic (linux swift v2)
+			cniResult = convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[key], args.IfName)
 			if ipamAddResult.interfaceInfo[key].NICType == cns.InfraNIC {
-				cniResult = convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[key], args.IfName)
-				logger.Info("CNI result generated", zap.Any("cniResult", cniResult))
+				break
 			}
 		}
 
@@ -1426,6 +1430,7 @@ func convertInterfaceInfoToCniResult(info network.InterfaceInfo, ifName string) 
 		Interfaces: []*cniTypesCurr.Interface{
 			{
 				Name: ifName,
+				Mac:  info.MacAddress.String(),
 			},
 		},
 		DNS: cniTypes.DNS{
