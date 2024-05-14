@@ -60,15 +60,3 @@ stages:
               name: ${{ parameters.name }}
               clusterName: ${{ parameters.clusterName }}-$(commitID)
               os: linux
-
-      # - template: ../cni/k8s-e2e/k8s-e2e-job-template.yaml
-      #   parameters:
-      #     sub: $(ACN_TEST_SERVICE_CONNECTION)
-      #     clusterName: ${{ parameters.clusterName }}-$(commitID)
-      #     os: ${{ parameters.os }}
-      #     dependsOn: ${{ parameters.name }}
-      #     datapath: true
-      #     dns: true
-      #     portforward: true
-      #     hostport: true
-      #     service: true
