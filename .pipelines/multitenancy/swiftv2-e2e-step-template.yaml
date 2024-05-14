@@ -1,8 +1,9 @@
 parameters:
   name: ""
   clusterName: ""
-  cni: cniv2
-  os: ""
+  # cni: cniv2
+  # os: ""
+  continueOnError: true
 
 steps:
   - bash: |
