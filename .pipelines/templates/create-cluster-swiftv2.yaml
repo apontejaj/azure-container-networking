@@ -13,6 +13,7 @@ jobs:
           scriptType: "bash"
           addSpnToEnvironment: true
           inlineScript: |
+            exit 1
             set -e
             echo "Check az version"
             az version
