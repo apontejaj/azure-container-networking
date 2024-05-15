@@ -6,7 +6,7 @@ steps:
         CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable-v0.14.txt)
       elif [[ ${CILIUM_VERSION_TAG} =~ ^1.14.[0-9]{1,2} ]]; then
         echo "Cilium Agent Version ${BASH_REMATCH[0]}"
-        CILIUM_CLI_VERSION=v0.15.22
+        CILIUM_CLI_VERSION=v0.16.6
       else
         echo "Cilium Agent Version ${CILIUM_VERSION_TAG}"
         CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/master/stable.txt)
