@@ -324,7 +324,7 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 			}
 		}
 
-		ep, err := nm.CreateEndpoint(cnsclient, epInfo.NetworkID, epInfo)
+		ep, err := nm.createEndpoint(cnsclient, epInfo.NetworkID, epInfo)
 		if err != nil {
 			return err
 		}

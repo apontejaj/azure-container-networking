@@ -54,13 +54,13 @@ func (nm *MockNetworkManager) GetNetworkInfo(networkID string) (EndpointInfo, er
 
 // CreateEndpoint mock
 // TODO: Fix mock behavior because create endpoint no longer also saves the state
-func (nm *MockNetworkManager) CreateEndpoint(_ apipaClient, _ string, epInfo *EndpointInfo) (*endpoint, error) {
+func (nm *MockNetworkManager) CreateEndpoint(_ apipaClient, _ string, epInfo *EndpointInfo) error {
 	if err := nm.TestEndpointClient.AddEndpoints(epInfo); err != nil {
-		return nil, err
+		return err
 	}
 
 	nm.TestEndpointInfoMap[epInfo.EndpointID] = epInfo
-	return &endpoint{}, nil
+	return nil
 }
 
 // DeleteEndpoint mock
@@ -170,14 +170,14 @@ func (nm *MockNetworkManager) EndpointCreate(client apipaClient, epInfos []*Endp
 			}
 		}
 
-		ep, err := nm.CreateEndpoint(client, epInfo.NetworkID, epInfo)
+		err := nm.CreateEndpoint(client, epInfo.NetworkID, epInfo)
 		if err != nil {
 			return err
 		}
-		eps = append(eps, ep)
+		eps = append(eps, &endpoint{}) // mock append
 	}
 
-	// save endpoints
+	// mock save endpoints
 	return nm.SaveState(eps)
 }
 

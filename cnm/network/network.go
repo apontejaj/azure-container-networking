@@ -247,7 +247,7 @@ func (plugin *netPlugin) createEndpoint(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		log.Errorf("failed to init CNS client", err)
 	}
-	_, err = plugin.nm.CreateEndpoint(cnscli, req.NetworkID, &epInfo)
+	err = plugin.nm.CreateEndpoint(cnscli, req.NetworkID, &epInfo)
 	// TODO: Because create endpoint no longer assigns to the map or saves to a file, you need to handle it in cnm right here!
 	if err != nil {
 		plugin.SendErrorResponse(w, err)

@@ -101,7 +101,7 @@ type NetworkManager interface {
 	FindNetworkIDFromNetNs(netNs string) (string, error)
 	GetNumEndpointsByContainerID(containerID string) int
 
-	CreateEndpoint(client apipaClient, networkID string, epInfo *EndpointInfo) (*endpoint, error)
+	CreateEndpoint(client apipaClient, networkID string, epInfo *EndpointInfo) error
 	EndpointCreate(client apipaClient, epInfos []*EndpointInfo) error // TODO: change name
 	DeleteEndpoint(networkID string, endpointID string, epInfo *EndpointInfo) error
 	GetEndpointInfo(networkID string, endpointID string) (*EndpointInfo, error)
@@ -369,8 +369,7 @@ func (nm *networkManager) GetNetworkInfo(networkID string) (EndpointInfo, error)
 	return nwInfo, nil
 }
 
-// CreateEndpoint creates a new container endpoint.
-func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epInfo *EndpointInfo) (*endpoint, error) {
+func (nm *networkManager) createEndpoint(cli apipaClient, networkID string, epInfo *EndpointInfo) (*endpoint, error) {
 	nm.Lock()
 	defer nm.Unlock()
 
@@ -403,6 +402,12 @@ func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epIn
 	}()
 
 	return ep, nil
+}
+
+// CreateEndpoint creates a new container endpoint (this is for compatibility-- add flow should no longer use this).
+func (nm *networkManager) CreateEndpoint(cli apipaClient, networkID string, epInfo *EndpointInfo) error {
+	_, err := nm.createEndpoint(cli, networkID, epInfo)
+	return err
 }
 
 // UpdateEndpointState will make a call to CNS updatEndpointState API in the stateless CNI mode
