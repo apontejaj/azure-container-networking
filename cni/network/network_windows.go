@@ -151,7 +151,7 @@ func (plugin *NetPlugin) getNetworkName(netNs string, interfaceInfo *network.Int
 
 	determineWinVer()
 	// Swiftv2 L1VH Network Name
-	if interfaceInfo != nil && interfaceInfo.NICType == cns.DelegatedVMNIC {
+	if interfaceInfo != nil && (interfaceInfo.NICType == cns.DelegatedVMNIC || interfaceInfo.NICType == cns.BackendNIC) {
 		logger.Info("swiftv2", zap.String("network name", interfaceInfo.MacAddress.String()))
 		return "azure-" + interfaceInfo.MacAddress.String(), nil
 	}

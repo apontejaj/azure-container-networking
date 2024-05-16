@@ -200,3 +200,7 @@ func HasMellanoxAdapter() bool {
 
 // Not needed for Linux
 func MonitorAndSetMellanoxRegKeyPriorityVLANTag(_ context.Context, _ int) {}
+
+func FetchMacAddressPnpIDMapping(execClient ExecClient) (map[string]string, error) {
+	return nil, nil
+}

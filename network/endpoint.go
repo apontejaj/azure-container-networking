@@ -140,6 +140,7 @@ type InterfaceInfo struct {
 	SkipDefaultRoutes bool
 	HostSubnetPrefix  net.IPNet                        // Move this field from ipamAddResult
 	NCResponse        *cns.GetNetworkContainerResponse // TODO: create a new struct and keep fields that are being used
+	PnPID             string
 }
 
 type IPConfig struct {

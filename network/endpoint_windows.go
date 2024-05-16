@@ -81,11 +81,17 @@ func (nw *network) newEndpointImpl(
 			return nil, err
 		}
 
-		return nw.newEndpointImplHnsV2(cli, epInfo)
+		switch epInfo.NICType {
+		case cns.InfraNIC, cns.DelegatedVMNIC:
+			return nw.newEndpointImplHnsV2(cli, epInfo)
+		case cns.BackendNIC: // return if nic type is infinite band
+			return nil, nil
+		}
+
+		// return nw.newEndpointImplHnsV2(cli, epInfo)
 	}
 
 	return nw.newEndpointImplHnsV1(epInfo, plc)
-	// TODO: add switch statement for NIC type for IB and Accelnet NIC support to create endpoint here in the future
 }
 
 // newEndpointImplHnsV1 creates a new endpoint in the network using HnsV1

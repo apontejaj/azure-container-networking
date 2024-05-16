@@ -22,6 +22,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	Timeout = 5 * time.Second
+)
+
 // This file contains the utility/helper functions called by either HTTP APIs or Exported/Internal APIs on HTTPRestService
 
 // Get the network info from the service network state
@@ -45,6 +49,32 @@ func (service *HTTPRestService) removeNetworkInfo(networkName string) {
 	service.Lock()
 	defer service.Unlock()
 	delete(service.state.Networks, networkName)
+}
+
+func (service *HTTPRestService) SetPnpIDMacaddressMapping() error {
+	service.Lock()
+	defer service.Unlock()
+	p := platform.NewExecClient(nil)
+	VfMacAddressMapping, err := platform.FetchMacAddressPnpIDMapping(p)
+	if err != nil {
+		return err
+	}
+	service.PnpIDByMacAddress = VfMacAddressMapping
+	return nil
+}
+
+func (service *HTTPRestService) getPNPIDFromMacAddress(macAddress string) (string, error) {
+	if _, ok := service.PnpIDByMacAddress[macAddress]; !ok {
+		if err := service.SetPnpIDMacaddressMapping(); err != nil {
+			return "", err
+		}
+		// IB adapters can be absent from the list of adapters, checking for the value after the fetch
+		if _, ok := service.PnpIDByMacAddress[macAddress]; !ok {
+			return "", errors.New("Backend Network adapter not found")
+		}
+
+	}
+	return service.PnpIDByMacAddress[macAddress], nil
 }
 
 // saveState writes CNS state to persistent store.

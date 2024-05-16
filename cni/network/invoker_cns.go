@@ -53,6 +53,7 @@ type IPResultInfo struct {
 	macAddress         string
 	skipDefaultRoutes  bool
 	routes             []cns.Route
+	pnpID              string
 }
 
 func (i IPResultInfo) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
@@ -156,6 +157,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 			macAddress:         response.PodIPInfo[i].MacAddress,
 			skipDefaultRoutes:  response.PodIPInfo[i].SkipDefaultRoutes,
 			routes:             response.PodIPInfo[i].Routes,
+			pnpID:              response.PodIPInfo[i].PnPID,
 		}
 
 		logger.Info("Received info for pod",
@@ -165,8 +167,8 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 		//nolint:exhaustive // ignore exhaustive types check
 		// Do we want to leverage this lint skip in other places of our code?
 		switch info.nicType {
-		case cns.DelegatedVMNIC:
-			// only handling single v4 PodIPInfo for DelegatedVMNICs at the moment, will have to update once v6 gets added
+		case cns.DelegatedVMNIC, cns.BackendNIC:
+			// only handling single v4 PodIPInfo for DelegatedVMNICs and Infinite-BandVMNICs at the moment, will have to update once v6 gets added
 			if !info.skipDefaultRoutes {
 				numInterfacesWithDefaultRoutes++
 			}
@@ -488,6 +490,7 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 		NICType:           info.nicType,
 		MacAddress:        macAddress,
 		SkipDefaultRoutes: info.skipDefaultRoutes,
+		PnPID:             info.pnpID,
 	}
 
 	return nil
