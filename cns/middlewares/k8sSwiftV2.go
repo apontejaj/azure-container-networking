@@ -42,6 +42,7 @@ var _ cns.IPConfigsHandlerMiddleware = (*K8sSWIFTv2Middleware)(nil)
 func (m *K8sSWIFTv2Middleware) IPConfigsRequestHandlerWrapper(defaultHandler, failureHandler cns.IPConfigsHandlerFunc) cns.IPConfigsHandlerFunc {
 	return func(ctx context.Context, req cns.IPConfigsRequest) (*cns.IPConfigsResponse, error) {
 		podInfo, respCode, message := m.validateIPConfigsRequest(ctx, &req)
+		// Add a function to fetch the macaddresses
 
 		if respCode != types.Success {
 			return &cns.IPConfigsResponse{
@@ -129,13 +130,18 @@ func (m *K8sSWIFTv2Middleware) validateIPConfigsRequest(ctx context.Context, req
 			return nil, types.UnexpectedError, errMTPNCNotReady.Error()
 		}
 		interfaceInfos := mtpnc.Status.InterfaceInfos
-		for _, interfaceInfo := range interfaceInfos {
+		for index, interfaceInfo := range interfaceInfos {
 			if interfaceInfo.NICType == string(cns.BackendNIC) {
-				req.BackendInterfaceMacAddress = interfaceInfo.MacAddress
+				if interfaceInfo.MacAddress == "" || interfaceInfo.NCID == "" || mtpnc.Status.NCID == "" {
+					return nil, types.UnexpectedError, errMTPNCNotReady.Error()
+				}
+				req.BackendInterfaceExist = true
+				req.BackendInterfaceMacAddresses[index] = interfaceInfo.MacAddress
 			}
 		}
 	}
 	logger.Printf("[SWIFTv2Middleware] pod %s has secondary interface : %v", podInfo.Name(), req.SecondaryInterfacesExist)
+	logger.Printf("[SWIFTv2Middleware] pod %s has backend interface : %v", podInfo.Name(), req.BackendInterfaceExist)
 	// retrieve podinfo from orchestrator context
 	return podInfo, types.Success, ""
 }

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -85,6 +86,8 @@ const (
 	// reg key value for PriorityVLANTag = 3  --> Packet priority and VLAN enabled
 	// for more details goto https://learn.microsoft.com/en-us/windows-hardware/drivers/network/standardized-inf-keywords-for-ndis-qos
 	desiredVLANTagForMellanox = 3
+
+	ExecTimeout = 5 * time.Second
 )
 
 // Flag to check if sdnRemoteArpMacAddress registry key is set
@@ -381,7 +384,7 @@ func ReplaceFile(source, destination string) error {
 80-6D-97-1E-CF-4E USB\VID_17EF&PID_A359\3010019E3
 */
 func FetchMacAddressPnpIDMapping(execClient ExecClient) (map[string]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), ExecTimeout)
 	defer cancel() // The cancel should be deferred so resources are cleaned up
 	output, err := execClient.ExecutePowershellCommandWithContext(GetMacAddressVFPPnpIDMapping, ctx)
 	if err != nil {
@@ -395,7 +398,7 @@ func FetchMacAddressPnpIDMapping(execClient ExecClient) (map[string]string, erro
 			// Split based on " " to fetch the macaddress and pci id
 			parts := strings.Split(line, " ")
 			// Changing the format of macaddress from xx-xx-xx-xx to xx:xx:xx:xx
-			formattedMacaddress := net.net.ParseMAC(parts[0])
+			formattedMacaddress := net.ParseMAC(parts[0])
 			key := formattedMacaddress.String()
 			value := parts[1]
 			result[key] = value
