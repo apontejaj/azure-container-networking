@@ -408,7 +408,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			// now we have to infer which interface info should be returned
 			// we assume that we want to return the infra nic always, and if that is not found, return any one of the secondary interfaces
 			// if there is an infra nic + secondary, we will always return the infra nic (linux swift v2)
-			cniResult = convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[key], args.IfName)
+			cniResult = plugin.convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[key], args.IfName)
 			if ipamAddResult.interfaceInfo[key].NICType == cns.InfraNIC {
 				break
 			}
@@ -583,10 +583,9 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			enableSnatForDNS: enableSnatForDNS,
 			natInfo:          natInfo,
 			networkID:        networkID,
-
-			ifInfo:        &ifInfo,
-			ipamAddConfig: &ipamAddConfig,
-			ipv6Enabled:   ipamAddResult.ipv6Enabled,
+			ifInfo:           &ifInfo,
+			ipamAddConfig:    &ipamAddConfig,
+			ipv6Enabled:      ipamAddResult.ipv6Enabled,
 
 			infraSeen: &infraSeen,
 			idx:       i,
@@ -641,10 +640,8 @@ func (plugin *NetPlugin) findMasterInterface(opt *createEpInfoOpt) string {
 	switch opt.ifInfo.NICType {
 	case cns.InfraNIC:
 		return plugin.findMasterInterfaceBySubnet(opt.ipamAddConfig.nwCfg, &opt.ifInfo.HostSubnetPrefix)
-	case cns.DelegatedVMNIC:
+	case cns.DelegatedVMNIC, cns.BackendNIC:
 		return plugin.findInterfaceByMAC(opt.ifInfo.MacAddress.String())
-	case cns.BackendNIC:
-		return ""
 	default:
 		return ""
 	}
@@ -663,10 +660,9 @@ type createEpInfoOpt struct {
 	enableSnatForDNS bool
 	natInfo          []policy.NATInfo
 	networkID        string
-
-	ifInfo        *network.InterfaceInfo
-	ipamAddConfig *IPAMAddConfig
-	ipv6Enabled   bool
+	ifInfo           *network.InterfaceInfo
+	ipamAddConfig    *IPAMAddConfig
+	ipv6Enabled      bool
 
 	infraSeen *bool // Only the first infra gets args.ifName, even if the second infra is on a different network
 	idx       int
@@ -1425,12 +1421,18 @@ func convertNnsToIPConfigs(
 	return ipConfigs
 }
 
-func convertInterfaceInfoToCniResult(info network.InterfaceInfo, ifName string) *cniTypesCurr.Result {
+func (plugin *NetPlugin) convertInterfaceInfoToCniResult(info network.InterfaceInfo, ifName string) *cniTypesCurr.Result {
+	var pnpDeviceID string
+	if info.NICType == cns.BackendNIC {
+		pnpDeviceID, _ = plugin.nm.GetPnPDeviceID(info.PnPID)
+	}
+
 	result := &cniTypesCurr.Result{
 		Interfaces: []*cniTypesCurr.Interface{
 			{
-				Name: ifName,
-				Mac:  info.MacAddress.String(),
+				Name:  ifName,
+				Mac:   info.MacAddress.String(),
+				PciID: pnpDeviceID,
 			},
 		},
 		DNS: cniTypes.DNS{

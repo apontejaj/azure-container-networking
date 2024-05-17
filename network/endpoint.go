@@ -113,6 +113,7 @@ type EndpointInfo struct {
 	DisableHairpinOnHostInterface bool
 	IPAMType                      string
 	IsIPv6Enabled                 bool
+	PnPID                         string
 
 	HostSubnetPrefix string // can be used later to add an external interface
 }

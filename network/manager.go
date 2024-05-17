@@ -5,6 +5,7 @@ package network
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -117,6 +118,8 @@ type NetworkManager interface {
 	DeleteState(epInfos []*EndpointInfo) error
 	GetEndpointInfosFromContainerID(containerID string) []*EndpointInfo
 	GetEndpointState(networkID, containerID string) ([]*EndpointInfo, error)
+
+	GetPnPDeviceID(instanceID string) (string, error)
 }
 
 // Creates a new network manager.
@@ -791,6 +794,25 @@ func (nm *networkManager) GetEndpointInfosFromContainerID(containerID string) []
 		}
 	}
 	return ret
+}
+
+// Get PnP Device ID
+func (nm *networkManager) GetPnPDeviceID(instanceID string) (string, error) {
+	getLocationPath := fmt.Sprintf("(Get-PnpDeviceProperty -KeyName DEVPKEY_Device_LocationPaths –InstanceId %s).Data[0]", instanceID)
+	locationPath, err := nm.plClient.ExecutePowershellCommand(getLocationPath)
+	if err != nil {
+		errMsg := fmt.Sprintf("Failed to get VF locationPath due to error %s", err.Error())
+		return "", errors.Errorf(errMsg)
+	}
+
+	getPnPDeviceID := fmt.Sprintf("Get-PnpDeviceProperty %s", locationPath)
+	pnpDeviceID, err := nm.plClient.ExecutePowershellCommand(getPnPDeviceID)
+	if err != nil {
+		errMsg := fmt.Sprintf("Failed to get PnP device ID due to error %s", err.Error())
+		return "", errors.Errorf(errMsg)
+	}
+
+	return pnpDeviceID, nil
 }
 
 func generateCNSIPInfoMap(eps []*endpoint) map[string]*restserver.IPInfo {
