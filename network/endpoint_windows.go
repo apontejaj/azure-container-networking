@@ -393,6 +393,12 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 		gateway = net.ParseIP(hnsResponse.Routes[0].NextHop)
 	}
 
+	nicName := epInfo.IfName
+	// infra nic nicname will look like eth0, but delegated/secondary nics will look like "vEthernet 2"
+	if epInfo.NICType != cns.InfraNIC {
+		nicName = epInfo.MasterIfName
+	}
+
 	// Create the endpoint object.
 	ep := &endpoint{
 		Id:                       hcnEndpoint.Name,
@@ -413,7 +419,7 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 		PODNameSpace:             epInfo.PODNameSpace,
 		// SecondaryInterfaces:      make(map[string]*InterfaceInfo),
 		NICType: epInfo.NICType,
-		NICName: epInfo.IfName,
+		NICName: nicName,
 	}
 
 	for _, route := range epInfo.Routes {

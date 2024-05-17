@@ -700,7 +700,7 @@ func (nm *networkManager) GetNumberOfEndpoints(ifName string, networkId string) 
 // GetEndpointID returns a unique endpoint ID based on the CNI mode.
 func (nm *networkManager) GetEndpointID(containerID, ifName string) string {
 	if nm.IsStatelessCNIMode() {
-		return containerID // CHECK: In stateless cni do we need to also add the num or is it always the same ep id for all endpoints with the same container id?
+		return containerID
 	}
 	if len(containerID) > ContainerIDLength {
 		containerID = containerID[:ContainerIDLength]

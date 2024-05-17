@@ -98,6 +98,12 @@ func (nw *network) newEndpointImpl(
 		contIfName = fmt.Sprintf("%s%s-2", hostVEthInterfacePrefix, defaultEpInfo.EndpointID[:7])
 	}
 
+	nicName := epInfo.IfName
+	// infra nic nicname will look like eth0, but delegated/secondary nics will look like "eth1 eth2 eth3"
+	if epInfo.NICType != cns.InfraNIC {
+		nicName = epInfo.MasterIfName
+	}
+
 	ep := &endpoint{
 		Id:                       defaultEpInfo.EndpointID,
 		IfName:                   contIfName, // container veth pair name. In cnm, we won't rename this and docker expects veth name.
@@ -120,7 +126,7 @@ func (nw *network) newEndpointImpl(
 		SecondaryInterfaces:      make(map[string]*InterfaceInfo),
 		NICType:                  defaultEpInfo.NICType,
 		// Should end up being eth0 in non-delegated nic cases
-		NICName: defaultEpInfo.MasterIfName, // CHECK: Should find interface name by mac address for linux secondaries
+		NICName: nicName, // CHECK: Should find interface name by mac address for linux secondaries
 	}
 	if nw.extIf != nil {
 		ep.Gateways = []net.IP{nw.extIf.IPv4Gateway}
