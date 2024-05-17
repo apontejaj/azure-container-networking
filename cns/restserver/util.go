@@ -22,9 +22,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	Timeout = 5 * time.Second
-)
 
 // This file contains the utility/helper functions called by either HTTP APIs or Exported/Internal APIs on HTTPRestService
 
