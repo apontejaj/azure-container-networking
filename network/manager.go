@@ -39,6 +39,7 @@ const (
 	ContainerIDLength    = 8
 	EndpointIfIndex      = 0 // Azure CNI supports only one interface
 	DefaultNetworkID     = "azure"
+	dummyGUID            = "12345678-1234-1234-1234-123456789012"
 )
 
 var Ipv4DefaultRouteDstPrefix = net.IPNet{
@@ -483,7 +484,7 @@ func (nm *networkManager) DeleteEndpointState(networkID string, epInfo *Endpoint
 		HnsId:        epInfo.HNSNetworkID,
 		Mode:         opModeTransparentVlan,
 		SnatBridgeIP: "",
-		NetNs:        epInfo.NetNs, // to trigger hns v2, windows
+		NetNs:        dummyGUID, // to trigger hns v2, windows
 		extIf: &externalInterface{
 			Name:       InfraInterfaceName,
 			MacAddress: nil,
@@ -502,7 +503,7 @@ func (nm *networkManager) DeleteEndpointState(networkID string, epInfo *Endpoint
 		EnableSnatOnHost:         false,
 		EnableMultitenancy:       false,
 		NetworkContainerID:       epInfo.NetworkContainerID, // we don't use this as long as AllowInboundFromHostToNC and AllowInboundFromNCToHost are false
-		NetNs:                    epInfo.NetNs,              // to trigger hnsv2, windows
+		NetNs:                    dummyGUID,                 // to trigger hnsv2, windows
 		NICType:                  epInfo.NICType,
 		NICName:                  epInfo.IfName,
 	}
