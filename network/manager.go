@@ -483,6 +483,7 @@ func (nm *networkManager) DeleteEndpointState(networkID string, epInfo *Endpoint
 		HnsId:        epInfo.HNSNetworkID,
 		Mode:         opModeTransparentVlan,
 		SnatBridgeIP: "",
+		NetNs:        epInfo.NetNs, // to trigger hns v2, windows
 		extIf: &externalInterface{
 			Name:       InfraInterfaceName,
 			MacAddress: nil,
@@ -496,11 +497,12 @@ func (nm *networkManager) DeleteEndpointState(networkID string, epInfo *Endpoint
 		HostIfName:               epInfo.HostIfName,
 		LocalIP:                  "",
 		VlanID:                   0,
-		AllowInboundFromHostToNC: false,
+		AllowInboundFromHostToNC: false, // stateless currently does not support apipa
 		AllowInboundFromNCToHost: false,
 		EnableSnatOnHost:         false,
 		EnableMultitenancy:       false,
 		NetworkContainerID:       epInfo.NetworkContainerID, // we don't use this as long as AllowInboundFromHostToNC and AllowInboundFromNCToHost are false
+		NetNs:                    epInfo.NetNs,              // to trigger hnsv2, windows
 		NICType:                  epInfo.NICType,
 		NICName:                  epInfo.IfName,
 	}

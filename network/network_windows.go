@@ -183,6 +183,8 @@ func (nm *networkManager) newNetworkImplHnsV1(nwInfo *EndpointInfo, extIf *exter
 		NetNs:            nwInfo.NetNs,
 	}
 
+	nwInfo.HNSNetworkID = hnsResponse.Id // we use this later in stateless to clean up in ADD if there is an error
+
 	globals, err := Hnsv1.GetHNSGlobals()
 	if err != nil || globals.Version.Major <= hcsshim.HNSVersion1803.Major {
 		// err would be not nil for windows 1709 & below
@@ -415,6 +417,8 @@ func (nm *networkManager) newNetworkImplHnsV2(nwInfo *EndpointInfo, extIf *exter
 		EnableSnatOnHost: nwInfo.EnableSnatOnHost,
 		NetNs:            nwInfo.NetNs,
 	}
+
+	nwInfo.HNSNetworkID = hnsResponse.Id // we use this later in stateless to clean up in ADD if there is an error
 
 	return nw, nil
 }
