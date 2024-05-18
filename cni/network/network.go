@@ -674,8 +674,7 @@ type createEpInfoOpt struct {
 
 func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointInfo, error) { // you can modify to pass in whatever else you need
 	var (
-		epInfo network.EndpointInfo
-		nwInfo network.EndpointInfo
+		endpointInfo network.EndpointInfo
 	)
 	// ensure we can find the master interface
 	opt.ifInfo.HostSubnetPrefix.IP = opt.ifInfo.HostSubnetPrefix.IP.Mask(opt.ifInfo.HostSubnetPrefix.Mask)
@@ -692,30 +691,26 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		return nil, err
 	}
 	// this struct is for organization and represents fields from the network to be merged into the endpoint info later
-	nwInfo = network.EndpointInfo{
+	endpointInfo = network.EndpointInfo{
 		NetworkID:                     opt.networkID,
 		Mode:                          opt.ipamAddConfig.nwCfg.Mode,
 		MasterIfName:                  masterIfName,
 		AdapterName:                   opt.ipamAddConfig.nwCfg.AdapterName,
 		BridgeName:                    opt.ipamAddConfig.nwCfg.Bridge,
-		EnableSnatOnHost:              opt.ipamAddConfig.nwCfg.EnableSnatOnHost, // (unused) same value as field with same name in epInfo above
-		NetworkDNS:                    nwDNSInfo,                                // (unused) nw and ep dns infos are separated to avoid possible conflicts
-		Policies:                      opt.policies,                             // present infra only
+		NetworkDNS:                    nwDNSInfo,    // nw and ep dns infos are separated to avoid possible conflicts
+		Policies:                      opt.policies, // CHECK: Should there be endpoint policies and a separate network policies?
 		NetNs:                         opt.ipamAddConfig.args.Netns,
 		Options:                       opt.ipamAddConfig.options,
 		DisableHairpinOnHostInterface: opt.ipamAddConfig.nwCfg.DisableHairpinOnHostInterface,
-		IPV6Mode:                      opt.ipamAddConfig.nwCfg.IPV6Mode,     // present infra only TODO: check if IPV6Mode field can be deprecated (unused)
-		IPAMType:                      opt.ipamAddConfig.nwCfg.IPAM.Type,    // present infra only
-		ServiceCidrs:                  opt.ipamAddConfig.nwCfg.ServiceCidrs, // (unused) same value as field with same name in epInfo above
-		IsIPv6Enabled:                 opt.ipv6Enabled,                      // present infra only
-		NICType:                       opt.ifInfo.NICType,
+		IPAMType:                      opt.ipamAddConfig.nwCfg.IPAM.Type, // present infra only
+		IsIPv6Enabled:                 opt.ipv6Enabled,                   // present infra only
 	}
 
-	if err = addSubnetToNetworkInfo(*opt.ifInfo, &nwInfo); err != nil {
-		logger.Info("Failed to add subnets to networkInfo", zap.Error(err))
+	if err = addSubnetToEndpointInfo(*opt.ifInfo, &endpointInfo); err != nil {
+		logger.Info("Failed to add subnets to endpointInfo", zap.Error(err))
 		return nil, err
 	}
-	setNetworkOptions(opt.ifInfo.NCResponse, &nwInfo)
+	setNetworkOptions(opt.ifInfo.NCResponse, &endpointInfo)
 
 	// populate endpoint info
 	epDNSInfo, err := getEndpointDNSSettings(opt.nwCfg, opt.ifInfo.DNS, opt.k8sNamespace) // Probably won't panic if given bad values
@@ -725,7 +720,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		return nil, err
 	}
 	policyArgs := PolicyArgs{
-		subnetInfos: nwInfo.Subnets, // getEndpointPolicies requires nwInfo.Subnets only (checked)
+		subnetInfos: endpointInfo.Subnets, // getEndpointPolicies requires nwInfo.Subnets only (checked)
 		nwCfg:       opt.nwCfg,
 		ipconfigs:   opt.ifInfo.IPConfigs,
 	}
@@ -743,7 +738,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		// this mechanism of using only namespace and name is not unique for different incarnations of POD/container.
 		// IT will result in unpredictable behavior if API server decides to
 		// reorder DELETE and ADD call for new incarnation of same POD.
-		vethName = fmt.Sprintf("%s%s%s", nwInfo.NetworkID, opt.args.ContainerID, opt.args.IfName)
+		vethName = fmt.Sprintf("%s%s%s", endpointInfo.NetworkID, opt.args.ContainerID, opt.args.IfName)
 	}
 
 	// for secondary (Populate addresses)
@@ -763,77 +758,60 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		endpointID = plugin.nm.GetEndpointID(opt.args.ContainerID, strconv.Itoa(opt.idx))
 	}
 
-	epInfo = network.EndpointInfo{
-		EndpointID:         endpointID,
-		ContainerID:        opt.args.ContainerID,
-		NetNsPath:          opt.args.Netns,
-		IfName:             opt.args.IfName,
-		Data:               make(map[string]interface{}),
-		EndpointDNS:        epDNSInfo,
-		Policies:           opt.policies,
-		IPsToRouteViaHost:  opt.nwCfg.IPsToRouteViaHost,
-		EnableSnatOnHost:   opt.nwCfg.EnableSnatOnHost,
-		EnableMultiTenancy: opt.nwCfg.MultiTenancy,
-		EnableInfraVnet:    opt.enableInfraVnet,
-		EnableSnatForDns:   opt.enableSnatForDNS,
-		PODName:            opt.k8sPodName,
-		PODNameSpace:       opt.k8sNamespace,
-		SkipHotAttachEp:    false, // Hot attach at the time of endpoint creation
-		IPV6Mode:           opt.nwCfg.IPV6Mode,
-		VnetCidrs:          opt.nwCfg.VnetCidrs,
-		ServiceCidrs:       opt.nwCfg.ServiceCidrs,
-		NATInfo:            opt.natInfo,
-		NICType:            opt.ifInfo.NICType,
-		SkipDefaultRoutes:  opt.ifInfo.SkipDefaultRoutes,
-		Routes:             opt.ifInfo.Routes,
-		// added the following for delegated vm nic
-		IPAddresses: addresses,
-		MacAddress:  opt.ifInfo.MacAddress,
-		// the following is used for creating an external interface if we can't find an existing network
-		HostSubnetPrefix: opt.ifInfo.HostSubnetPrefix.String(),
-	}
+	endpointInfo.EndpointID = endpointID
+	endpointInfo.ContainerID = opt.args.ContainerID
+	endpointInfo.NetNsPath = opt.args.Netns // probably same value as epInfo.NetNs
+	endpointInfo.IfName = opt.args.IfName
+	endpointInfo.Data = make(map[string]interface{})
+	endpointInfo.EndpointDNS = epDNSInfo
+	endpointInfo.Policies = opt.policies
+	endpointInfo.IPsToRouteViaHost = opt.nwCfg.IPsToRouteViaHost
+	endpointInfo.EnableSnatOnHost = opt.nwCfg.EnableSnatOnHost
+	endpointInfo.EnableMultiTenancy = opt.nwCfg.MultiTenancy
+	endpointInfo.EnableInfraVnet = opt.enableInfraVnet
+	endpointInfo.EnableSnatForDns = opt.enableSnatForDNS
+	endpointInfo.PODName = opt.k8sPodName
+	endpointInfo.PODNameSpace = opt.k8sNamespace
+	endpointInfo.SkipHotAttachEp = false // Hot attach at the time of endpoint creation
+	endpointInfo.IPV6Mode = opt.nwCfg.IPV6Mode
+	endpointInfo.VnetCidrs = opt.nwCfg.VnetCidrs
+	endpointInfo.ServiceCidrs = opt.nwCfg.ServiceCidrs
+	endpointInfo.NATInfo = opt.natInfo
+	endpointInfo.NICType = opt.ifInfo.NICType
+	endpointInfo.SkipDefaultRoutes = opt.ifInfo.SkipDefaultRoutes
+	endpointInfo.Routes = opt.ifInfo.Routes
+	// added the following for delegated vm nic
+	endpointInfo.IPAddresses = addresses
+	endpointInfo.MacAddress = opt.ifInfo.MacAddress
+	// the following is used for creating an external interface if we can't find an existing network
+	endpointInfo.HostSubnetPrefix = opt.ifInfo.HostSubnetPrefix.String()
 
 	epPolicies, err := getPoliciesFromRuntimeCfg(opt.nwCfg, opt.ipamAddResult.ipv6Enabled) // not specific to delegated or infra
 	if err != nil {
 		logger.Error("failed to get policies from runtime configurations", zap.Error(err))
 		return nil, plugin.Errorf(err.Error())
 	}
-	epInfo.Policies = append(epInfo.Policies, epPolicies...)
+	endpointInfo.Policies = append(endpointInfo.Policies, epPolicies...)
 
 	if opt.ipamAddResult.ipv6Enabled { // not specific to this particular interface
-		epInfo.IPV6Mode = string(util.IpamMode(opt.nwCfg.IPAM.Mode)) // TODO: check IPV6Mode field can be deprecated and can we add IsIPv6Enabled flag for generic working
+		endpointInfo.IPV6Mode = string(util.IpamMode(opt.nwCfg.IPAM.Mode)) // TODO: check IPV6Mode field can be deprecated and can we add IsIPv6Enabled flag for generic working
 	}
 
 	if opt.azIpamResult != nil && opt.azIpamResult.IPs != nil {
-		epInfo.InfraVnetIP = opt.azIpamResult.IPs[0].Address
+		endpointInfo.InfraVnetIP = opt.azIpamResult.IPs[0].Address
 	}
 
 	if opt.nwCfg.MultiTenancy {
 		// previously only infra nic was passed into this function but now all nics are passed in (possibly breaks swift v2)
-		plugin.multitenancyClient.SetupRoutingForMultitenancy(opt.nwCfg, opt.cnsNetworkConfig, opt.azIpamResult, &epInfo, opt.ifInfo)
+		plugin.multitenancyClient.SetupRoutingForMultitenancy(opt.nwCfg, opt.cnsNetworkConfig, opt.azIpamResult, &endpointInfo, opt.ifInfo)
 	}
 
-	setEndpointOptions(opt.cnsNetworkConfig, &epInfo, vethName)
+	setEndpointOptions(opt.cnsNetworkConfig, &endpointInfo, vethName)
 
-	// populate endpoint info with network info fields
-	epInfo.MasterIfName = nwInfo.MasterIfName
-	epInfo.AdapterName = nwInfo.AdapterName
-	epInfo.NetworkID = nwInfo.NetworkID
-	epInfo.Mode = nwInfo.Mode
-	epInfo.Subnets = nwInfo.Subnets
-	epInfo.PodSubnet = nwInfo.PodSubnet
-	epInfo.BridgeName = nwInfo.BridgeName
-	epInfo.NetNs = nwInfo.NetNs
-	epInfo.Options = nwInfo.Options
-	epInfo.DisableHairpinOnHostInterface = nwInfo.DisableHairpinOnHostInterface
-	epInfo.IPAMType = nwInfo.IPAMType
-	epInfo.IsIPv6Enabled = nwInfo.IsIPv6Enabled
-	epInfo.NetworkDNS = nwInfo.NetworkDNS
-
-	logger.Info("Generated endpoint info from fields", zap.String("epInfo", epInfo.PrettyString()))
+	logger.Info("Generated endpoint info from fields", zap.String("epInfo", endpointInfo.PrettyString()))
 
 	// now our ep info should have the full combined information from both the network and endpoint structs
-	return &epInfo, nil
+	return &endpointInfo, nil
 }
 
 // cleanup allocated ipv4 and ipv6 addresses if they exist
@@ -863,7 +841,7 @@ func (plugin *NetPlugin) getNetworkDNSSettings(nwCfg *cni.NetworkConfig, dns net
 }
 
 // construct network info with ipv4/ipv6 subnets
-func addSubnetToNetworkInfo(interfaceInfo network.InterfaceInfo, nwInfo *network.EndpointInfo) error {
+func addSubnetToEndpointInfo(interfaceInfo network.InterfaceInfo, nwInfo *network.EndpointInfo) error {
 	for _, ipConfig := range interfaceInfo.IPConfigs {
 		ip, podSubnetPrefix, err := net.ParseCIDR(ipConfig.Address.String())
 		if err != nil {
