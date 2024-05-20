@@ -189,7 +189,7 @@ func NewHTTPRestService(config *common.ServiceConfig, wscli interfaceGetter, wsp
 	}
 
 	// add primaryInterfaceIP to cns config
-	config.Server.PrimaryInterfaceIP = primaryInterface.PrimaryIP
+	config.Server.PrimaryInterfaceIP = "localhost"
 
 	serviceState := &httpRestServiceState{
 		Networks:         make(map[string]*networkInfo),
