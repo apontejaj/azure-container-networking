@@ -72,8 +72,8 @@ func (invoker *AzureIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, er
 
 	defer func() {
 		if err != nil {
-			if len(addResult.interfaceInfo) > 0 && len(addResult.interfaceInfo[string(cns.InfraNIC)].IPConfigs) > 0 {
-				if er := invoker.Delete(&addResult.interfaceInfo[string(cns.InfraNIC)].IPConfigs[0].Address, addConfig.nwCfg, nil, addConfig.options); er != nil {
+			if len(addResult.interfaceInfo) > 0 && len(addResult.interfaceInfo[invoker.getInterfaceInfoKey(cns.InfraNIC)].IPConfigs) > 0 {
+				if er := invoker.Delete(&addResult.interfaceInfo[invoker.getInterfaceInfoKey(cns.InfraNIC)].IPConfigs[0].Address, addConfig.nwCfg, nil, addConfig.options); er != nil {
 					err = invoker.plugin.Errorf("Failed to clean up IP's during Delete with error %v, after Add failed with error %w", er, err)
 				}
 			} else {
@@ -118,7 +118,7 @@ func (invoker *AzureIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, er
 	if len(result.IPs) > 0 {
 		hostSubnetPrefix = result.IPs[0].Address
 	}
-	addResult.interfaceInfo[string(cns.InfraNIC)] = network.InterfaceInfo{
+	addResult.interfaceInfo[invoker.getInterfaceInfoKey(cns.InfraNIC)] = network.InterfaceInfo{
 		IPConfigs: ipconfigs,
 		Routes:    routes,
 		DNS: network.DNSInfo{
@@ -207,4 +207,8 @@ func (invoker *AzureIPAMInvoker) Delete(address *net.IPNet, nwCfg *cni.NetworkCo
 	}
 
 	return nil
+}
+
+func (invoker *AzureIPAMInvoker) getInterfaceInfoKey(nicType cns.NICType) string {
+	return string(nicType)
 }

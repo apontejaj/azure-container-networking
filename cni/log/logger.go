@@ -16,9 +16,9 @@ var (
 
 const (
 	maxLogFileSizeInMb = 5
+	maxLogFileCount    = 8
 	etwCNIEventName    = "Azure-CNI"
 	loggingLevel       = zapcore.DebugLevel
-	maxLogFileCount    = 8
 )
 
 func initZapLog(logFile string) *zap.Logger {

@@ -207,14 +207,21 @@ func (plugin *NetPlugin) Stop() {
 
 // findInterfaceByMAC returns the name of the master interface
 func (plugin *NetPlugin) findInterfaceByMAC(macAddress string) string {
-	interfaces, _ := net.Interfaces()
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		logger.Error("failed to get interfaces", zap.Error(err))
+		return ""
+	}
+	macs := make([]string, 0, len(interfaces))
 	for _, iface := range interfaces {
 		// find master interface by macAddress for Swiftv2
+		macs = append(macs, iface.HardwareAddr.String())
 		if iface.HardwareAddr.String() == macAddress {
 			return iface.Name
 		}
 	}
 	// Failed to find a suitable interface.
+	logger.Error("Failed to find interface by MAC", zap.String("macAddress", macAddress), zap.Strings("interfaces", macs))
 	return ""
 }
 
@@ -228,7 +235,12 @@ func (plugin *NetPlugin) findMasterInterfaceBySubnet(nwCfg *cni.NetworkConfig, s
 
 	// Otherwise, pick the first interface with an IP address in the given subnet.
 	subnetPrefixString := subnetPrefix.String()
-	interfaces, _ := net.Interfaces()
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		logger.Error("failed to get interfaces", zap.Error(err))
+		return ""
+	}
+	var ipnets []string
 	for _, iface := range interfaces {
 		addrs, _ := iface.Addrs()
 		for _, addr := range addrs {
@@ -236,6 +248,7 @@ func (plugin *NetPlugin) findMasterInterfaceBySubnet(nwCfg *cni.NetworkConfig, s
 			if err != nil {
 				continue
 			}
+			ipnets = append(ipnets, ipnet.String())
 			if subnetPrefixString == ipnet.String() {
 				return iface.Name
 			}
@@ -243,6 +256,7 @@ func (plugin *NetPlugin) findMasterInterfaceBySubnet(nwCfg *cni.NetworkConfig, s
 	}
 
 	// Failed to find a suitable interface.
+	logger.Error("Failed to find interface by subnet prefix", zap.String("subnetPrefix", subnetPrefixString), zap.Strings("interfaces", ipnets))
 	return ""
 }
 
@@ -492,6 +506,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	ipamAddConfig := IPAMAddConfig{nwCfg: nwCfg, args: args, options: options}
 
 	if nwCfg.MultiTenancy {
+		// triggered only in swift v1 multitenancy
 		// dual nic multitenancy -> two interface infos
 		// multitenancy (swift v1) -> one interface info
 		plugin.report.Context = "AzureCNIMultitenancy"
@@ -673,9 +688,7 @@ type createEpInfoOpt struct {
 }
 
 func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointInfo, error) { // you can modify to pass in whatever else you need
-	var (
-		endpointInfo network.EndpointInfo
-	)
+	var endpointInfo network.EndpointInfo
 	// ensure we can find the master interface
 	opt.ifInfo.HostSubnetPrefix.IP = opt.ifInfo.HostSubnetPrefix.IP.Mask(opt.ifInfo.HostSubnetPrefix.Mask)
 	opt.ipamAddConfig.nwCfg.IPAM.Subnet = opt.ifInfo.HostSubnetPrefix.String()

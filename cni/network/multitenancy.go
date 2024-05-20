@@ -232,7 +232,7 @@ func (m *Multitenancy) GetAllNetworkContainers(
 		ifInfo.NICType = cns.InfraNIC
 
 		// assuming we only assign infra nics in this function
-		ipamResult.interfaceInfo[string(ifInfo.NICType)+strconv.Itoa(i)] = ifInfo
+		ipamResult.interfaceInfo[m.getInterfaceInfoKey(ifInfo.NICType, i)] = ifInfo
 	}
 
 	return ipamResult, err
@@ -364,6 +364,10 @@ func checkIfSubnetOverlaps(enableInfraVnet bool, nwCfg *cni.NetworkConfig, cnsNe
 	}
 
 	return false
+}
+
+func (m *Multitenancy) getInterfaceInfoKey(nicType cns.NICType, i int) string {
+	return string(nicType) + strconv.Itoa(i)
 }
 
 var (
