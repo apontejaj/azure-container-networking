@@ -711,7 +711,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		AdapterName:                   opt.ipamAddConfig.nwCfg.AdapterName,
 		BridgeName:                    opt.ipamAddConfig.nwCfg.Bridge,
 		NetworkDNS:                    nwDNSInfo,    // nw and ep dns infos are separated to avoid possible conflicts
-		Policies:                      opt.policies, // CHECK: Should there be endpoint policies and a separate network policies?
+		NetworkPolicies:               opt.policies, // nw and ep policies separated to avoid possible conflicts
 		NetNs:                         opt.ipamAddConfig.args.Netns,
 		Options:                       opt.ipamAddConfig.options,
 		DisableHairpinOnHostInterface: opt.ipamAddConfig.nwCfg.DisableHairpinOnHostInterface,
@@ -743,7 +743,8 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		logger.Error("Failed to get endpoint policies", zap.Error(err))
 		return nil, err
 	}
-
+	// create endpoint policies by appending to network policies
+	// the value passed into NetworkPolicies should be unaffected since we reassign here
 	opt.policies = append(opt.policies, endpointPolicies...)
 
 	vethName := fmt.Sprintf("%s.%s", opt.k8sNamespace, opt.k8sPodName)
@@ -777,7 +778,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 	endpointInfo.IfName = opt.args.IfName
 	endpointInfo.Data = make(map[string]interface{})
 	endpointInfo.EndpointDNS = epDNSInfo
-	endpointInfo.Policies = opt.policies
+	endpointInfo.EndpointPolicies = opt.policies
 	endpointInfo.IPsToRouteViaHost = opt.nwCfg.IPsToRouteViaHost
 	endpointInfo.EnableSnatOnHost = opt.nwCfg.EnableSnatOnHost
 	endpointInfo.EnableMultiTenancy = opt.nwCfg.MultiTenancy
@@ -804,7 +805,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		logger.Error("failed to get policies from runtime configurations", zap.Error(err))
 		return nil, plugin.Errorf(err.Error())
 	}
-	endpointInfo.Policies = append(endpointInfo.Policies, epPolicies...)
+	endpointInfo.EndpointPolicies = append(endpointInfo.EndpointPolicies, epPolicies...)
 
 	if opt.ipamAddResult.ipv6Enabled { // not specific to this particular interface
 		endpointInfo.IPV6Mode = string(util.IpamMode(opt.nwCfg.IPAM.Mode)) // TODO: check IPV6Mode field can be deprecated and can we add IsIPv6Enabled flag for generic working

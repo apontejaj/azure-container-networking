@@ -106,7 +106,7 @@ func (nw *network) newEndpointImplHnsV1(epInfo *EndpointInfo, plc platform.ExecC
 		VirtualNetwork: nw.HnsId,
 		DNSSuffix:      epInfo.EndpointDNS.Suffix,
 		DNSServerList:  strings.Join(epInfo.EndpointDNS.Servers, ","),
-		Policies:       policy.SerializePolicies(policy.EndpointPolicy, epInfo.Policies, epInfo.Data, epInfo.EnableSnatForDns, epInfo.EnableMultiTenancy),
+		Policies:       policy.SerializePolicies(policy.EndpointPolicy, epInfo.EndpointPolicies, epInfo.Data, epInfo.EnableSnatForDns, epInfo.EnableMultiTenancy),
 	}
 
 	// HNS currently supports one IP address and one IPv6 address per endpoint.
@@ -235,7 +235,7 @@ func (nw *network) configureHcnEndpoint(epInfo *EndpointInfo) (*hcn.HostComputeE
 	}
 	hcnEndpoint.MacAddress = macAddress
 
-	if endpointPolicies, err := policy.GetHcnEndpointPolicies(policy.EndpointPolicy, epInfo.Policies, epInfo.Data, epInfo.EnableSnatForDns, epInfo.EnableMultiTenancy, epInfo.NATInfo); err == nil {
+	if endpointPolicies, err := policy.GetHcnEndpointPolicies(policy.EndpointPolicy, epInfo.EndpointPolicies, epInfo.Data, epInfo.EnableSnatForDns, epInfo.EnableMultiTenancy, epInfo.NATInfo); err == nil {
 		for _, epPolicy := range endpointPolicies {
 			hcnEndpoint.Policies = append(hcnEndpoint.Policies, epPolicy)
 		}

@@ -77,7 +77,8 @@ type EndpointInfo struct {
 	IPsToRouteViaHost        []string
 	InfraVnetIP              net.IPNet
 	Routes                   []RouteInfo
-	Policies                 []policy.Policy
+	EndpointPolicies         []policy.Policy // used in windows
+	NetworkPolicies          []policy.Policy // used in windows
 	Gateways                 []net.IP
 	EnableSnatOnHost         bool
 	EnableInfraVnet          bool
