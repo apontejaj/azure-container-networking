@@ -1023,11 +1023,11 @@ func (c *Client) GetHomeAz(ctx context.Context) (*cns.GetHomeAzResponse, error) 
 	return &getHomeAzResponse, nil
 }
 
-// GetEndpoint calls the EndpointHandlerAPI in CNS to retrieve the state of a given containerID
-func (c *Client) GetEndpoint(ctx context.Context, containerID string) (*restserver.GetEndpointResponse, error) {
+// GetEndpoint calls the EndpointHandlerAPI in CNS to retrieve the state of a given EndpointID
+func (c *Client) GetEndpoint(ctx context.Context, endpointID string) (*restserver.GetEndpointResponse, error) {
 	// build the request
 	u := c.routes[cns.EndpointAPI]
-	uString := u.String() + containerID
+	uString := u.String() + endpointID
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, uString, http.NoBody)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build request")
