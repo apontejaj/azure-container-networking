@@ -768,14 +768,17 @@ func cnsEndpointInfotoCNIEpInfos(endpointInfo restserver.EndpointInfo, endpointI
 		}
 
 		// If we create an endpoint state with stateful cni and then swap to a stateless cni binary, ifname would not be populated
+		// triggered in migration to stateless only, assuming no incomplete state for delegated
 		if ifName == "" {
 			ifName = InfraInterfaceName
+			ipInfo.NICType = cns.InfraNIC
 		}
 
 		// filling out the InfraNIC from the state
 		epInfo.IPAddresses = ipInfo.IPv4
 		epInfo.IPAddresses = append(epInfo.IPAddresses, ipInfo.IPv6...)
-		epInfo.IfName = ifName // ifname (container veth peer) not used in linux (or even windows) deletion
+		epInfo.IfName = ifName // epInfo.IfName is set to the value of the NICName when the endpoint was added
+		// sidenote: ifname doesn't seem to be used in linux (or even windows) deletion
 		epInfo.HostIfName = ipInfo.HostVethName
 		epInfo.HNSEndpointID = ipInfo.HnsEndpointID
 		epInfo.NICType = ipInfo.NICType
