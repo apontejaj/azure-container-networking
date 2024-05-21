@@ -1062,16 +1062,14 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 	// deleted, getNetworkName will return error of the type NetworkNotFoundError which will result in nil error as compliance
 	// with CNI SPEC as mentioned below.
 
-	// CHECK: args.Netns or epInfo.Netns (it's not populated when we convert ep to epInfo)
-	// CHECK: When do we have multiple network ids?
+	// We get the network id and nw info here to preserve existing behavior
 	networkID, err = plugin.getNetworkID(args.Netns, nil, nwCfg)
-	// CHECK: When do we get multiple network infos
 	if nwInfo, err = plugin.nm.GetNetworkInfo(networkID); err != nil {
 		if !nwCfg.MultiTenancy {
 			logger.Error("Failed to query network",
 				zap.String("network", networkID),
 				zap.Error(err))
-			// Log the error but return success if the network is not found.
+			// Log the error if the network is not found.
 			// if cni hits this, mostly state file would be missing and it can be reboot scenario where
 			// container runtime tries to delete and create pods which existed before reboot.
 			// this condition will not apply to stateless CNI since the network struct will be crated on each call
@@ -1094,8 +1092,9 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 
 	var epInfos []*network.EndpointInfo
 	if plugin.nm.IsStatelessCNIMode() {
+		// network ID is passed in and used only for migration
+		// otherwise, in stateless, we don't need the network id for deletion
 		epInfos, err = plugin.nm.GetEndpointState(networkID, args.ContainerID)
-		// TODO: epInfos from stateless cni does not have networkID populated and so DeleteEndpoint will not have the networkID
 	} else {
 		epInfos = plugin.nm.GetEndpointInfosFromContainerID(args.ContainerID)
 	}
@@ -1125,8 +1124,7 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 	// populate ep infos here in loop if necessary
 	// delete endpoints
 	for _, epInfo := range epInfos {
-		// CHECK: in stateless, network id is not populated in epInfo, but in stateful cni, it is (nw id is used in stateful)
-		// CHECK: in stateless cni, we do not use the network id, but pass in network id to cover stateful case
+		// in stateless, network id is not populated in epInfo, but in stateful cni, it is (nw id is used in stateful)
 		if err = plugin.nm.DeleteEndpoint(epInfo.NetworkID, epInfo.EndpointID, epInfo); err != nil {
 			// An error will not be returned if the endpoint is not found
 			// return a retriable error so the container runtime will retry this DEL later

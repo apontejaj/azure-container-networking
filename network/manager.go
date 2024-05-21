@@ -513,7 +513,8 @@ func (nm *networkManager) DeleteEndpointState(networkID string, epInfo *Endpoint
 		return err
 	}
 	if epInfo.NICType == cns.DelegatedVMNIC {
-		// CHECK: should it affect linux? (if it does, it could disconnect external interface, is that okay?)
+		// we are currently assuming stateless is not running in linux
+		// CHECK: could this affect linux? (if it does, it could disconnect external interface, is that okay?)
 		// bad only when 1) stateless and 2) linux and 3) delegated vmnics exist
 		logger.Info("Deleting endpoint because delegated vmnic detected", zap.String("HNSNetworkID", nw.HnsId))
 		err = nm.deleteNetworkImpl(nw)
