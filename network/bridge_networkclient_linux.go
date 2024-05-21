@@ -25,7 +25,7 @@ func newErrorLinuxBridgeClient(errStr string) error {
 type LinuxBridgeClient struct {
 	bridgeName        string
 	hostInterfaceName string
-	epInfo            EndpointInfo
+	nwInfo            EndpointInfo
 	netlink           netlink.NetlinkInterface
 	nuClient          networkutils.NetworkUtils
 }
@@ -33,13 +33,13 @@ type LinuxBridgeClient struct {
 func NewLinuxBridgeClient(
 	bridgeName string,
 	hostInterfaceName string,
-	epInfo EndpointInfo,
+	nwInfo EndpointInfo,
 	nl netlink.NetlinkInterface,
 	plc platform.ExecClient,
 ) *LinuxBridgeClient {
 	client := &LinuxBridgeClient{
 		bridgeName:        bridgeName,
-		epInfo:            epInfo,
+		nwInfo:            nwInfo,
 		hostInterfaceName: hostInterfaceName,
 		netlink:           nl,
 		nuClient:          networkutils.NewNetworkUtils(nl, plc),
@@ -112,9 +112,9 @@ func (client *LinuxBridgeClient) AddL2Rules(extIf *externalInterface) error {
 		return err
 	}
 
-	if client.epInfo.IPV6Mode != "" {
+	if client.nwInfo.IPV6Mode != "" {
 		// for ipv6 node cidr set broute accept
-		if err := ebtables.SetBrouteAcceptByCidr(&client.epInfo.Subnets[1].Prefix, ebtables.IPV6, ebtables.Append, ebtables.Accept); err != nil {
+		if err := ebtables.SetBrouteAcceptByCidr(&client.nwInfo.Subnets[1].Prefix, ebtables.IPV6, ebtables.Append, ebtables.Accept); err != nil {
 			return err
 		}
 
@@ -137,7 +137,7 @@ func (client *LinuxBridgeClient) AddL2Rules(extIf *externalInterface) error {
 	}
 
 	// Enable VEPA for host policy enforcement if necessary.
-	if client.epInfo.Mode == opModeTunnel {
+	if client.nwInfo.Mode == opModeTunnel {
 		logger.Info("Enabling VEPA mode for", zap.String("hostInterfaceName", client.hostInterfaceName))
 		if err := ebtables.SetVepaMode(client.bridgeName, commonInterfacePrefix, virtualMacAddress, ebtables.Append); err != nil {
 			return err
@@ -152,7 +152,7 @@ func (client *LinuxBridgeClient) DeleteL2Rules(extIf *externalInterface) {
 	ebtables.SetDnatForArpReplies(extIf.Name, ebtables.Delete)
 	ebtables.SetArpReply(extIf.IPAddresses[0].IP, extIf.MacAddress, ebtables.Delete)
 	ebtables.SetSnatForInterface(extIf.Name, extIf.MacAddress, ebtables.Delete)
-	if client.epInfo.IPV6Mode != "" {
+	if client.nwInfo.IPV6Mode != "" {
 		if len(extIf.IPAddresses) > 1 {
 			ebtables.SetBrouteAcceptByCidr(extIf.IPAddresses[1], ebtables.IPV6, ebtables.Delete, ebtables.Accept)
 		}
@@ -180,7 +180,7 @@ func (client *LinuxBridgeClient) SetHairpinOnHostInterface(enable bool) error {
 }
 
 func (client *LinuxBridgeClient) setBrouteRedirect(action string) error {
-	if client.epInfo.ServiceCidrs != "" {
+	if client.nwInfo.ServiceCidrs != "" {
 		if err := ebtables.SetBrouteAcceptByCidr(nil, ebtables.IPV4, ebtables.Append, ebtables.RedirectAccept); err != nil {
 			return err
 		}
