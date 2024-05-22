@@ -4,7 +4,7 @@ package cns;
 
 option go_package = "grpc/protogen";
 
-// The Container Network Service (CNS) exposes a set of operations that allow the Distributed Network Controller (DNC) to manage
+// The Container Network Service (CNS) exposes a set of operations that allow the Delegated Network Controller (DNC) to manage
 // and monitor nodes in an orchestrator's infrastructure.
 
 // CNSService defines the gRPC service exposed by CNS to interact with DNC.

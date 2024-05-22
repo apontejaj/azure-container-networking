@@ -9,8 +9,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	pb "grpc/protogen"
 	"go.uber.org/zap"
+
+	pb "grpc/protogen"
 )
 
 // Server struct to hold the gRPC server settings and the CNS service.
@@ -23,7 +24,7 @@ type Server struct {
 // GrpcServerSettings holds the gRPC server settings.
 type GrpcServerSettings struct {
 	IPAddress string
-	Port      uint
+	Port      uint16s
 }
 
 // NewServer initializes a new gRPC server instance.

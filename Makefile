@@ -906,3 +906,4 @@ help: ## Display this help
 
 gen-proto: ## Generates source code from protobuf files
 	protoc --go_out=. --go-grpc_out=. --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative cns/grpc/proto/server.proto
+	
