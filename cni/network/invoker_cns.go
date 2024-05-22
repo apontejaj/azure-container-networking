@@ -195,7 +195,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 				return IPAMAddResult{}, err
 			}
 		default:
-			logger.Info("Unknown NIC type received from cns pod ip info", zap.String("nicType", string(info.nicType)))
+			logger.Warn("Unknown NIC type received from cns pod ip info", zap.String("nicType", string(info.nicType)))
 		}
 	}
 

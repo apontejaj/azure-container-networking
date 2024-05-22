@@ -29,8 +29,8 @@ import (
 var (
 	snatConfigFileName = filepath.FromSlash(os.Getenv("TEMP")) + "\\snatConfig"
 	// windows build for version 1903
-	win1903Version      = 18362
-	ipv6SubnetInfoCount = 2
+	win1903Version = 18362
+	dualStackCount = 2
 )
 
 /* handleConsecutiveAdd handles consecutive add calls for infrastructure containers on Windows platform.
@@ -377,7 +377,7 @@ func getLoopbackDSRPolicy(args PolicyArgs) ([]policy.Policy, error) {
 func getIPV6EndpointPolicy(subnetInfos []network.SubnetInfo) (policy.Policy, error) {
 	var eppolicy policy.Policy
 
-	if len(subnetInfos) < ipv6SubnetInfoCount {
+	if len(subnetInfos) < dualStackCount {
 		return eppolicy, fmt.Errorf("network state doesn't have ipv6 subnet")
 	}
 

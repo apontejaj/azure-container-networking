@@ -139,8 +139,8 @@ type InterfaceInfo struct {
 	DNS               DNSInfo
 	NICType           cns.NICType
 	SkipDefaultRoutes bool
-	HostSubnetPrefix  net.IPNet                        // Move this field from ipamAddResult
-	NCResponse        *cns.GetNetworkContainerResponse // TODO: create a new struct and keep fields that are being used
+	HostSubnetPrefix  net.IPNet // Move this field from ipamAddResult
+	NCResponse        *cns.GetNetworkContainerResponse
 }
 
 type IPConfig struct {

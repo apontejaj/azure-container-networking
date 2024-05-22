@@ -39,7 +39,7 @@ const (
 	ContainerIDLength    = 8
 	EndpointIfIndex      = 0 // Azure CNI supports only one interface
 	DefaultNetworkID     = "azure"
-	dummyGUID            = "12345678-1234-1234-1234-123456789012"
+	dummyGUID            = "12345678-1234-1234-1234-123456789012" // guid to trigger hnsv2 in windows
 )
 
 var Ipv4DefaultRouteDstPrefix = net.IPNet{
@@ -479,8 +479,11 @@ func (nm *networkManager) DeleteEndpoint(networkID, endpointID string, epInfo *E
 }
 
 func (nm *networkManager) DeleteEndpointState(networkID string, epInfo *EndpointInfo) error {
+	// we want to always use hnsv2 in stateless
+	// hnsv2 is only enabled if NetNs has a valid guid and the hnsv2 api is supported
+	// by passing in a dummy guid, we satisfy the first condition
 	nw := &network{
-		Id:           networkID, // CHECK: currently unused in stateless cni
+		Id:           networkID, // currently unused in stateless cni
 		HnsId:        epInfo.HNSNetworkID,
 		Mode:         opModeTransparentVlan,
 		SnatBridgeIP: "",
@@ -505,7 +508,7 @@ func (nm *networkManager) DeleteEndpointState(networkID string, epInfo *Endpoint
 		NetworkContainerID:       epInfo.NetworkContainerID, // we don't use this as long as AllowInboundFromHostToNC and AllowInboundFromNCToHost are false
 		NetNs:                    dummyGUID,                 // to trigger hnsv2, windows
 		NICType:                  epInfo.NICType,
-		NICName:                  epInfo.IfName,
+		NICName:                  epInfo.IfName, // TODO: For stateless cni linux populate NICName or IfName here to use in deletion in secondary endpoint client
 	}
 	logger.Info("Deleting endpoint with", zap.String("Endpoint Info: ", epInfo.PrettyString()), zap.String("HNISID : ", ep.HnsId))
 	err := nw.deleteEndpointImpl(netlink.NewNetlink(), platform.NewExecClient(logger), nil, nil, nil, nil, ep)

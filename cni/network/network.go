@@ -578,7 +578,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 	epInfos := []*network.EndpointInfo{}
 	infraSeen := false
-	i := 0
+	endpointIndex := 0
 	for key := range ipamAddResult.interfaceInfo {
 		ifInfo := ipamAddResult.interfaceInfo[key]
 
@@ -598,13 +598,11 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			enableSnatForDNS: enableSnatForDNS,
 			natInfo:          natInfo,
 			networkID:        networkID,
-
-			ifInfo:        &ifInfo,
-			ipamAddConfig: &ipamAddConfig,
-			ipv6Enabled:   ipamAddResult.ipv6Enabled,
-
-			infraSeen: &infraSeen,
-			idx:       i,
+			ifInfo:           &ifInfo,
+			ipamAddConfig:    &ipamAddConfig,
+			ipv6Enabled:      ipamAddResult.ipv6Enabled,
+			infraSeen:        &infraSeen,
+			endpointIndex:    endpointIndex,
 		}
 		var epInfo *network.EndpointInfo
 		epInfo, err = plugin.createEpInfo(&createEpInfoOpt)
@@ -615,7 +613,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		// TODO: should this statement be based on the current iteration instead of the constant ifIndex?
 		// TODO figure out where to put telemetry: sendEvent(plugin, fmt.Sprintf("CNI ADD succeeded: IP:%+v, VlanID: %v, podname %v, namespace %v numendpoints:%d",
 		//	ipamAddResult.interfaceInfo[ifIndex].IPConfigs, epInfo.Data[network.VlanIDKey], k8sPodName, k8sNamespace, plugin.nm.GetNumberOfEndpoints("", nwCfg.Name)))
-		i++
+		endpointIndex++
 	}
 	cnsclient, err := cnscli.New(nwCfg.CNSUrl, defaultRequestTimeout)
 	if err != nil {
@@ -683,8 +681,8 @@ type createEpInfoOpt struct {
 	ipamAddConfig *IPAMAddConfig
 	ipv6Enabled   bool
 
-	infraSeen *bool // Only the first infra gets args.ifName, even if the second infra is on a different network
-	idx       int
+	infraSeen     *bool // Only the first infra gets args.ifName, even if the second infra is on a different network
+	endpointIndex int
 }
 
 func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointInfo, error) { // you can modify to pass in whatever else you need
@@ -769,7 +767,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		endpointID = plugin.nm.GetEndpointID(opt.args.ContainerID, opt.args.IfName)
 		*opt.infraSeen = true
 	} else {
-		endpointID = plugin.nm.GetEndpointID(opt.args.ContainerID, strconv.Itoa(opt.idx))
+		endpointID = plugin.nm.GetEndpointID(opt.args.ContainerID, strconv.Itoa(opt.endpointIndex))
 	}
 
 	endpointInfo.EndpointID = endpointID
@@ -1079,6 +1077,7 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 	}
 	// Initialize values from network config.
 	if err != nil {
+		// if swift v1 multitenancy and we got an error retrieving the nwInfo
 		// If error is not found error, then we ignore it, to comply with CNI SPEC.
 		if network.IsNetworkNotFoundError(err) {
 			err = nil
@@ -1462,12 +1461,3 @@ func convertCniResultToInterfaceInfo(result *cniTypesCurr.Result) network.Interf
 
 	return interfaceInfo
 }
-
-// func findInfraNicInterfaceKey(ifInfos map[string]network.InterfaceInfo) network.InterfaceInfo {
-// 	for _, ifInfo := range ifInfos {
-// 		if ifInfo.NICType == cns.InfraNIC {
-// 			return &ifInfo
-// 		}
-// 	}
-// 	return nil
-// }
