@@ -181,6 +181,11 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 				return IPAMAddResult{}, err
 			}
 		case cns.InfraNIC:
+			fallthrough
+		case "":
+			// if we change from legacy cns, the nicType will be empty, so we assume it is infra nic
+			info.nicType = cns.InfraNIC
+
 			// only count dualstack interface once
 			_, exist := addResult.interfaceInfo[key]
 			if !exist {
@@ -370,7 +375,7 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 	}
 
 	ip, ncIPNet, err := net.ParseCIDR(info.podIPAddress + "/" + fmt.Sprint(info.ncSubnetPrefix))
-	if ip == nil {
+	if ip == nil || err != nil {
 		return errors.Wrap(err, "Unable to parse IP from response: "+info.podIPAddress+" with err %w")
 	}
 
@@ -391,12 +396,6 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 		} else {
 			return errors.Wrap(err, "No podIPAddress is found: %w")
 		}
-	}
-
-	if err != nil {
-		logger.Error("Error finding InfraNIC interface",
-			zap.Error(err))
-		return errors.Wrap(err, "error finding InfraNIC interface")
 	}
 
 	// get the name of the primary IP address

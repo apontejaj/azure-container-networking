@@ -39,7 +39,8 @@ const (
 	ContainerIDLength    = 8
 	EndpointIfIndex      = 0 // Azure CNI supports only one interface
 	DefaultNetworkID     = "azure"
-	dummyGUID            = "12345678-1234-1234-1234-123456789012" // guid to trigger hnsv2 in windows
+	// TODO: Remove dummy GUID and come up with more permanent solution
+	dummyGUID = "12345678-1234-1234-1234-123456789012" // guid to trigger hnsv2 in windows
 )
 
 var Ipv4DefaultRouteDstPrefix = net.IPNet{

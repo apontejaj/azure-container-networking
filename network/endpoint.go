@@ -107,12 +107,10 @@ type EndpointInfo struct {
 	NetworkID                     string
 	Mode                          string
 	Subnets                       []SubnetInfo
-	PodSubnet                     SubnetInfo
 	BridgeName                    string
 	NetNs                         string // used in windows
 	Options                       map[string]interface{}
 	DisableHairpinOnHostInterface bool
-	IPAMType                      string
 	IsIPv6Enabled                 bool
 
 	HostSubnetPrefix string // can be used later to add an external interface

@@ -562,9 +562,8 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 	defer func() { //nolint:gocritic
 		if err != nil {
-			// for multi-tenancies scenario, CNI is not supposed to invoke CNS for cleaning Ips
-			// if nwCfg.Multitenancy is false or ipam type is not azure cns
-			if !(nwCfg.MultiTenancy && nwCfg.IPAM.Type == network.AzureCNS) {
+			// for swift v1 multi-tenancies scenario, CNI is not supposed to invoke CNS for cleaning Ips
+			if !nwCfg.MultiTenancy {
 				for _, ifInfo := range ipamAddResult.interfaceInfo {
 					// This used to only be called for infraNIC, test if this breaks scenarios
 					// If it does then will have to search for infraNIC
@@ -640,7 +639,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			}
 		}
 	}()
-	// CHECK: why does the cns client deal with apipa?-- "cns client" only used in windows to create apipa
+
 	err = plugin.nm.EndpointCreate(cnsclient, epInfos)
 	if err != nil {
 		return errors.Wrap(err, "failed to create endpoint") // behavior can change if you don't assign to err prior to returning
@@ -657,7 +656,7 @@ func (plugin *NetPlugin) findMasterInterface(opt *createEpInfoOpt) string {
 	case cns.DelegatedVMNIC:
 		return plugin.findInterfaceByMAC(opt.ifInfo.MacAddress.String())
 	case cns.BackendNIC:
-		return ""
+		fallthrough
 	default:
 		return ""
 	}
@@ -713,7 +712,6 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		NetNs:                         opt.ipamAddConfig.args.Netns,
 		Options:                       opt.ipamAddConfig.options,
 		DisableHairpinOnHostInterface: opt.ipamAddConfig.nwCfg.DisableHairpinOnHostInterface,
-		IPAMType:                      opt.ipamAddConfig.nwCfg.IPAM.Type, // present infra only
 		IsIPv6Enabled:                 opt.ipv6Enabled,                   // present infra only
 	}
 

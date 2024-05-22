@@ -99,7 +99,7 @@ func (nw *network) newEndpointImpl(
 	}
 
 	nicName := epInfo.IfName
-	// infra nic nicname will look like eth0, but delegated/secondary nics will look like "eth1 eth2 eth3"
+	// infra nic nicname will look like eth0, and  delegated/secondary nics will be moved into the container namespace
 	if epInfo.NICType != cns.InfraNIC {
 		nicName = epInfo.MasterIfName
 	}
