@@ -82,6 +82,7 @@ import (
 	ctrlzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 	ctrlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	pb "grpc/protogen"
 )
 
 const (
@@ -796,6 +797,32 @@ func main() {
 			logger.Errorf("Failed to init HTTPService, err:%v.\n", err)
 			return
 		}
+	}
+
+	// Initialize logger
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
+
+	// Define gRPC server settings
+	settings := grpc.GrpcServerSettings{
+		IPAddress: "localhost",
+		Port:      50051,
+	}
+
+	// Initialize CNS service
+	cnsService := &grpc.CNSService{Logger: logger}
+
+	// Create a new gRPC server
+	server, err := grpc.NewServer(settings, cnsService, logger)
+	if err != nil {
+		logger.Sugar().Errorf("Could not initialize gRPC server: %v", err)
+		os.Exit(1)
+	}
+
+	// Start the gRPC server
+	if err := server.Start(); err != nil {
+		logger.Sugar().Errorf("Could not start gRPC server: %v", err)
+		os.Exit(1)
 	}
 
 	// Setting the remote ARP MAC address to 12-34-56-78-9a-bc on windows for external traffic if HNS is enabled

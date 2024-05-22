@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package cns;
 
+option go_package = "grpc/protogen";
+
 // The Container Network Service (CNS) exposes a set of operations that allow the Distributed Network Controller (DNC) to manage
 // and monitor nodes in an orchestrator's infrastructure.
 
@@ -23,10 +25,7 @@ message SetOrchestratorInfoRequest {
 }
 
 // SetOrchestratorInfoResponse is the response message for setting the orchestrator information.
-message SetOrchestratorInfoResponse {
-  int32 returnCode = 1; // The return code of the operation.
-  string message = 2; // Additional information about the operation result.
-}
+message SetOrchestratorInfoResponse {}
 
 // NodeInfoRequest is the request message for retrieving detailed information about a specific node.
 message NodeInfoRequest {
