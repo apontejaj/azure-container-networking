@@ -70,7 +70,6 @@ type EndpointInfo struct {
 	IfIndex                  int
 	MacAddress               net.HardwareAddr
 	EndpointDNS              DNSInfo
-	NetworkDNS               DNSInfo
 	IPAddresses              []net.IPNet
 	IPsToRouteViaHost        []string
 	InfraVnetIP              net.IPNet

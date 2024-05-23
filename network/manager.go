@@ -358,7 +358,6 @@ func (nm *networkManager) GetNetworkInfo(networkID string) (EndpointInfo, error)
 		Subnets:          nw.Subnets,
 		Mode:             nw.Mode,
 		EnableSnatOnHost: nw.EnableSnatOnHost,
-		NetworkDNS:       nw.DNS,
 		Options:          make(map[string]interface{}),
 	}
 

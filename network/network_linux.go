@@ -121,7 +121,6 @@ func (nm *networkManager) newNetworkImpl(nwInfo *EndpointInfo, extIf *externalIn
 		Endpoints:        make(map[string]*endpoint),
 		extIf:            extIf,
 		VlanId:           vlanid,
-		DNS:              nwInfo.NetworkDNS,
 		EnableSnatOnHost: nwInfo.EnableSnatOnHost,
 	}
 

@@ -695,11 +695,6 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		return nil, err
 	}
 
-	nwDNSInfo, err := plugin.getNetworkDNSSettings(opt.ipamAddConfig.nwCfg, opt.ifInfo.DNS)
-	if err != nil {
-		return nil, err
-	}
-
 	networkPolicies := opt.policies // save network policies before we modify the slice pointer for ep policies
 
 	// populate endpoint info
@@ -741,7 +736,6 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		MasterIfName:                  masterIfName,
 		AdapterName:                   opt.ipamAddConfig.nwCfg.AdapterName,
 		BridgeName:                    opt.ipamAddConfig.nwCfg.Bridge,
-		NetworkDNS:                    nwDNSInfo,       // nw and ep dns infos are separated to avoid possible conflicts
 		NetworkPolicies:               networkPolicies, // nw and ep policies separated to avoid possible conflicts
 		NetNs:                         opt.ipamAddConfig.args.Netns,
 		Options:                       opt.ipamAddConfig.options,
@@ -841,16 +835,6 @@ func (plugin *NetPlugin) cleanupAllocationOnError(
 			}
 		}
 	}
-}
-
-func (plugin *NetPlugin) getNetworkDNSSettings(nwCfg *cni.NetworkConfig, dns network.DNSInfo) (network.DNSInfo, error) {
-	nwDNSInfo, err := getNetworkDNSSettings(nwCfg, dns)
-	if err != nil {
-		err = plugin.Errorf("Failed to getDNSSettings: %v", err)
-		return network.DNSInfo{}, err
-	}
-	logger.Info("DNS Info", zap.Any("info", nwDNSInfo))
-	return nwDNSInfo, nil
 }
 
 // construct network info with ipv4/ipv6 subnets (updates subnets field)

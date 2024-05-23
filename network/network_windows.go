@@ -114,7 +114,6 @@ func (nm *networkManager) newNetworkImplHnsV1(nwInfo *EndpointInfo, extIf *exter
 	hnsNetwork := &hcsshim.HNSNetwork{
 		Name:               nwInfo.NetworkID,
 		NetworkAdapterName: networkAdapterName,
-		DNSServerList:      strings.Join(nwInfo.NetworkDNS.Servers, ","),
 		Policies:           policy.SerializePolicies(policy.NetworkPolicy, nwInfo.NetworkPolicies, nil, false, false),
 	}
 
@@ -234,10 +233,6 @@ func (nm *networkManager) configureHcnNetwork(nwInfo *EndpointInfo, extIf *exter
 	// Initialize HNS network.
 	hcnNetwork := &hcn.HostComputeNetwork{
 		Name: nwInfo.NetworkID,
-		Dns: hcn.Dns{
-			Domain:     nwInfo.NetworkDNS.Suffix,
-			ServerList: nwInfo.NetworkDNS.Servers,
-		},
 		Ipams: []hcn.Ipam{
 			{
 				Type: hcnIpamTypeStatic,
