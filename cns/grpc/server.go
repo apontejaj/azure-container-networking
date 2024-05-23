@@ -1,34 +1,32 @@
-package cns
+package grpc
 
 import (
 	"fmt"
 	"net"
-	"os"
 	"strconv"
-
+	
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-
 	"go.uber.org/zap"
 
-	pb "grpc/protogen"
+	pb "github.com/Azure/azure-container-networking/cns/grpc/proto"
 )
 
 // Server struct to hold the gRPC server settings and the CNS service.
 type Server struct {
 	Settings   GrpcServerSettings
-	CnsService pb.CNSServer
+	CnsService pb.CNSServiceServer
 	Logger     *zap.Logger
 }
 
 // GrpcServerSettings holds the gRPC server settings.
 type GrpcServerSettings struct {
 	IPAddress string
-	Port      uint16s
+	Port      uint16
 }
 
 // NewServer initializes a new gRPC server instance.
-func NewServer(settings GrpcServerSettings, cnsService pb.CNSServer, logger *zap.Logger) (*Server, error) {
+func NewServer(settings GrpcServerSettings, cnsService pb.CNSServiceServer, logger *zap.Logger) (*Server, error) {
 	if cnsService == nil {
 		return nil, fmt.Errorf("CNS service is not defined")
 	}
@@ -52,7 +50,7 @@ func (s *Server) Start() error {
 	s.Logger.Sugar().Infof("gRPC listening on %s", address)
 
 	grpcServer := grpc.NewServer()
-	pb.RegisterCNSServer(grpcServer, s.CnsService)
+	pb.RegisterCNSServiceServer(grpcServer, s.CnsService)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(grpcServer)

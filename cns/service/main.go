@@ -82,7 +82,8 @@ import (
 	ctrlzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 	ctrlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics/server"
-	pb "grpc/protogen"
+	"github.com/Azure/azure-container-networking/cns/grpc"
+	pb "github.com/Azure/azure-container-networking/cns/grpc/proto" 
 )
 
 const (
@@ -123,6 +124,7 @@ var (
 	rootErrCh chan error
 	z         *zap.Logger
 )
+
 
 // Version is populated by make during build.
 var version string
@@ -799,29 +801,30 @@ func main() {
 		}
 	}
 
-	// Initialize logger
-	logger, _ := zap.NewProduction()
-	defer logger.Sync()
+	type CNSService struct {
+		pb.UnimplementedCNSServiceServer
+		Logger *zap.Logger
+	}
 
 	// Define gRPC server settings
 	settings := grpc.GrpcServerSettings{
 		IPAddress: "localhost",
-		Port:      50051,
+		Port:      8080,
 	}
 
 	// Initialize CNS service
-	cnsService := &grpc.CNSService{Logger: logger}
+	cnsService := &CNSService{Logger: z}
 
 	// Create a new gRPC server
-	server, err := grpc.NewServer(settings, cnsService, logger)
+	server, err := grpc.NewServer(settings, cnsService, z)
 	if err != nil {
-		logger.Sugar().Errorf("Could not initialize gRPC server: %v", err)
+		logger.Errorf("Could not initialize gRPC server: %v", err)
 		os.Exit(1)
 	}
 
 	// Start the gRPC server
 	if err := server.Start(); err != nil {
-		logger.Sugar().Errorf("Could not start gRPC server: %v", err)
+		logger.Errorf("Could not start gRPC server: %v", err)
 		os.Exit(1)
 	}
 
