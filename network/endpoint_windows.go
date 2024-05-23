@@ -227,8 +227,9 @@ func (nw *network) configureHcnEndpoint(epInfo *EndpointInfo) (*hcn.HostComputeE
 	}
 
 	// macAddress type for InfraNIC is like "60:45:bd:12:45:65"
+	// if NICType is delegatedVMNIC, convert the macaddress format
 	macAddress := epInfo.MacAddress.String()
-	if epInfo.NICType != cns.InfraNIC {
+	if epInfo.NICType == cns.DelegatedVMNIC {
 		// convert the format of macAddress that HNS can accept, i.e, "60-45-bd-12-45-65" if NIC type is delegated NIC
 		macAddress = strings.Join(strings.Split(macAddress, ":"), "-")
 	}
