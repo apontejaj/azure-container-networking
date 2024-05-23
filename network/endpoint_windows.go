@@ -171,7 +171,6 @@ func (nw *network) newEndpointImplHnsV1(epInfo *EndpointInfo, plc platform.ExecC
 		NetNs:            epInfo.NetNsPath,
 		ContainerID:      epInfo.ContainerID,
 		NICType:          epInfo.NICType,
-		NICName:          epInfo.IfName,
 	}
 
 	for _, route := range epInfo.Routes {
@@ -404,7 +403,7 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 		Id:                       hcnEndpoint.Name,
 		HnsId:                    hnsResponse.Id,
 		SandboxKey:               epInfo.ContainerID,
-		IfName:                   epInfo.IfName,
+		IfName:                   nicName,
 		IPAddresses:              epInfo.IPAddresses,
 		Gateways:                 []net.IP{gateway},
 		DNS:                      epInfo.EndpointDNS,
@@ -418,7 +417,6 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 		PODName:                  epInfo.PODName,
 		PODNameSpace:             epInfo.PODNameSpace,
 		NICType:                  epInfo.NICType,
-		NICName:                  nicName,
 	}
 
 	for _, route := range epInfo.Routes {

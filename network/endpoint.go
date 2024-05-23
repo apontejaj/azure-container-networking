@@ -58,8 +58,6 @@ type endpoint struct {
 	SecondaryInterfaces map[string]*InterfaceInfo
 	// Store nic type since we no longer populate SecondaryInterfaces
 	NICType cns.NICType
-	// Store the key used in stateless
-	NICName string
 }
 
 // EndpointInfo contains read-only information about an endpoint.

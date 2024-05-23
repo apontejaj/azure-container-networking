@@ -509,7 +509,7 @@ func (nm *networkManager) DeleteEndpointState(networkID string, epInfo *Endpoint
 		NetworkContainerID:       epInfo.NetworkContainerID, // we don't use this as long as AllowInboundFromHostToNC and AllowInboundFromNCToHost are false
 		NetNs:                    dummyGUID,                 // to trigger hnsv2, windows
 		NICType:                  epInfo.NICType,
-		NICName:                  epInfo.IfName, // TODO: For stateless cni linux populate NICName or IfName here to use in deletion in secondary endpoint client
+		IfName:                   epInfo.IfName, // TODO: For stateless cni linux populate IfName here to use in deletion in secondary endpoint client
 	}
 	logger.Info("Deleting endpoint with", zap.String("Endpoint Info: ", epInfo.PrettyString()), zap.String("HNISID : ", ep.HnsId))
 	err := nw.deleteEndpointImpl(netlink.NewNetlink(), platform.NewExecClient(logger), nil, nil, nil, nil, ep)
@@ -781,7 +781,7 @@ func cnsEndpointInfotoCNIEpInfos(endpointInfo restserver.EndpointInfo, endpointI
 		// filling out the InfraNIC from the state
 		epInfo.IPAddresses = ipInfo.IPv4
 		epInfo.IPAddresses = append(epInfo.IPAddresses, ipInfo.IPv6...)
-		epInfo.IfName = ifName // epInfo.IfName is set to the value of the NICName when the endpoint was added
+		epInfo.IfName = ifName // epInfo.IfName is set to the value of ep.IfName when the endpoint was added
 		// sidenote: ifname doesn't seem to be used in linux (or even windows) deletion
 		epInfo.HostIfName = ipInfo.HostVethName
 		epInfo.HNSEndpointID = ipInfo.HnsEndpointID
@@ -813,7 +813,7 @@ func generateCNSIPInfoMap(eps []*endpoint) map[string]*restserver.IPInfo {
 	ifNametoIPInfoMap := make(map[string]*restserver.IPInfo) // key : interface name, value : IPInfo
 
 	for _, ep := range eps {
-		ifNametoIPInfoMap[ep.NICName] = &restserver.IPInfo{ // in windows, the nicname is args ifname, in linux, it's ethX
+		ifNametoIPInfoMap[ep.IfName] = &restserver.IPInfo{ // in windows, the nicname is args ifname, in linux, it's ethX
 			NICType:       ep.NICType,
 			HnsEndpointID: ep.HnsId,
 			HnsNetworkID:  ep.HNSNetworkID,
