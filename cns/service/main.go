@@ -808,7 +808,7 @@ func main() {
 
 	// Define gRPC server settings
 	settings := grpc.GrpcServerSettings{
-		IPAddress: "localhost",
+		IPAddress: "::",
 		Port:      8080,
 	}
 
@@ -823,10 +823,12 @@ func main() {
 	}
 
 	// Start the gRPC server
-	if err := server.Start(); err != nil {
-		logger.Errorf("Could not start gRPC server: %v", err)
-		os.Exit(1)
-	}
+	go func() {
+		if err := server.Start(); err != nil {
+			logger.Errorf("Could not start gRPC server: %v", err)
+			os.Exit(1)
+		}
+	}()
 
 	// Setting the remote ARP MAC address to 12-34-56-78-9a-bc on windows for external traffic if HNS is enabled
 	execClient := platform.NewExecClient(nil)

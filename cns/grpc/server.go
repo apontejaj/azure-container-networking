@@ -47,7 +47,7 @@ func (s *Server) Start() error {
 	if err != nil {
 		return fmt.Errorf("failed to listen on address %s: %w", address, err)
 	}
-	s.Logger.Sugar().Infof("gRPC listening on %s", address)
+	s.Logger.Sugar().Infof("⇨ gRPC server started on %s", address)
 
 	grpcServer := grpc.NewServer()
 	pb.RegisterCNSServiceServer(grpcServer, s.CnsService)
