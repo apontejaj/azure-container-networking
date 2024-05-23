@@ -117,6 +117,7 @@ func addDefaultRoute(_ string, _ *network.EndpointInfo, _ *network.InterfaceInfo
 func addSnatForDNS(_ string, _ *network.EndpointInfo, _ *network.InterfaceInfo) {
 }
 
+// updates options field
 func setNetworkOptions(cnsNwConfig *cns.GetNetworkContainerResponse, nwInfo *network.EndpointInfo) {
 	if cnsNwConfig != nil && cnsNwConfig.MultiTenancyInfo.ID != 0 {
 		logger.Info("Setting Network Options")

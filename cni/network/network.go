@@ -685,7 +685,6 @@ type createEpInfoOpt struct {
 }
 
 func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointInfo, error) { // you can modify to pass in whatever else you need
-	var endpointInfo network.EndpointInfo
 	// ensure we can find the master interface
 	opt.ifInfo.HostSubnetPrefix.IP = opt.ifInfo.HostSubnetPrefix.IP.Mask(opt.ifInfo.HostSubnetPrefix.Mask)
 	opt.ipamAddConfig.nwCfg.IPAM.Subnet = opt.ifInfo.HostSubnetPrefix.String()
@@ -700,26 +699,8 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 	if err != nil {
 		return nil, err
 	}
-	// this struct is for organization and represents fields from the network to be merged into the endpoint info later
-	endpointInfo = network.EndpointInfo{
-		NetworkID:                     opt.networkID,
-		Mode:                          opt.ipamAddConfig.nwCfg.Mode,
-		MasterIfName:                  masterIfName,
-		AdapterName:                   opt.ipamAddConfig.nwCfg.AdapterName,
-		BridgeName:                    opt.ipamAddConfig.nwCfg.Bridge,
-		NetworkDNS:                    nwDNSInfo,    // nw and ep dns infos are separated to avoid possible conflicts
-		NetworkPolicies:               opt.policies, // nw and ep policies separated to avoid possible conflicts
-		NetNs:                         opt.ipamAddConfig.args.Netns,
-		Options:                       opt.ipamAddConfig.options,
-		DisableHairpinOnHostInterface: opt.ipamAddConfig.nwCfg.DisableHairpinOnHostInterface,
-		IsIPv6Enabled:                 opt.ipv6Enabled,                   // present infra only
-	}
 
-	if err = addSubnetToEndpointInfo(*opt.ifInfo, &endpointInfo); err != nil {
-		logger.Info("Failed to add subnets to endpointInfo", zap.Error(err))
-		return nil, err
-	}
-	setNetworkOptions(opt.ifInfo.NCResponse, &endpointInfo)
+	networkPolicies := opt.policies // save network policies before we modify the slice pointer for ep policies
 
 	// populate endpoint info
 	epDNSInfo, err := getEndpointDNSSettings(opt.nwCfg, opt.ifInfo.DNS, opt.k8sNamespace) // Probably won't panic if given bad values
@@ -728,27 +709,13 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		err = plugin.Errorf("Failed to getEndpointDNSSettings: %v", err)
 		return nil, err
 	}
-	policyArgs := PolicyArgs{
-		subnetInfos: endpointInfo.Subnets, // getEndpointPolicies requires nwInfo.Subnets only (checked)
-		nwCfg:       opt.nwCfg,
-		ipconfigs:   opt.ifInfo.IPConfigs,
-	}
-	endpointPolicies, err := getEndpointPolicies(policyArgs)
-	if err != nil {
-
-		logger.Error("Failed to get endpoint policies", zap.Error(err))
-		return nil, err
-	}
-	// create endpoint policies by appending to network policies
-	// the value passed into NetworkPolicies should be unaffected since we reassign here
-	opt.policies = append(opt.policies, endpointPolicies...)
 
 	vethName := fmt.Sprintf("%s.%s", opt.k8sNamespace, opt.k8sPodName)
 	if opt.nwCfg.Mode != OpModeTransparent {
 		// this mechanism of using only namespace and name is not unique for different incarnations of POD/container.
 		// IT will result in unpredictable behavior if API server decides to
 		// reorder DELETE and ADD call for new incarnation of same POD.
-		vethName = fmt.Sprintf("%s%s%s", endpointInfo.NetworkID, opt.args.ContainerID, opt.args.IfName)
+		vethName = fmt.Sprintf("%s%s%s", opt.networkID, opt.args.ContainerID, opt.args.IfName)
 	}
 
 	// for secondary (Populate addresses)
@@ -768,34 +735,70 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		endpointID = plugin.nm.GetEndpointID(opt.args.ContainerID, strconv.Itoa(opt.endpointIndex))
 	}
 
-	endpointInfo.EndpointID = endpointID
-	endpointInfo.ContainerID = opt.args.ContainerID
-	endpointInfo.NetNsPath = opt.args.Netns // probably same value as epInfo.NetNs
-	endpointInfo.IfName = opt.args.IfName
-	endpointInfo.Data = make(map[string]interface{})
-	endpointInfo.EndpointDNS = epDNSInfo
-	endpointInfo.EndpointPolicies = opt.policies
-	endpointInfo.IPsToRouteViaHost = opt.nwCfg.IPsToRouteViaHost
-	endpointInfo.EnableSnatOnHost = opt.nwCfg.EnableSnatOnHost
-	endpointInfo.EnableMultiTenancy = opt.nwCfg.MultiTenancy
-	endpointInfo.EnableInfraVnet = opt.enableInfraVnet
-	endpointInfo.EnableSnatForDns = opt.enableSnatForDNS
-	endpointInfo.PODName = opt.k8sPodName
-	endpointInfo.PODNameSpace = opt.k8sNamespace
-	endpointInfo.SkipHotAttachEp = false // Hot attach at the time of endpoint creation
-	endpointInfo.IPV6Mode = opt.nwCfg.IPV6Mode
-	endpointInfo.VnetCidrs = opt.nwCfg.VnetCidrs
-	endpointInfo.ServiceCidrs = opt.nwCfg.ServiceCidrs
-	endpointInfo.NATInfo = opt.natInfo
-	endpointInfo.NICType = opt.ifInfo.NICType
-	endpointInfo.SkipDefaultRoutes = opt.ifInfo.SkipDefaultRoutes
-	endpointInfo.Routes = opt.ifInfo.Routes
-	// added the following for delegated vm nic
-	endpointInfo.IPAddresses = addresses
-	endpointInfo.MacAddress = opt.ifInfo.MacAddress
-	// the following is used for creating an external interface if we can't find an existing network
-	endpointInfo.HostSubnetPrefix = opt.ifInfo.HostSubnetPrefix.String()
+	endpointInfo := network.EndpointInfo{
+		NetworkID:                     opt.networkID,
+		Mode:                          opt.ipamAddConfig.nwCfg.Mode,
+		MasterIfName:                  masterIfName,
+		AdapterName:                   opt.ipamAddConfig.nwCfg.AdapterName,
+		BridgeName:                    opt.ipamAddConfig.nwCfg.Bridge,
+		NetworkDNS:                    nwDNSInfo,       // nw and ep dns infos are separated to avoid possible conflicts
+		NetworkPolicies:               networkPolicies, // nw and ep policies separated to avoid possible conflicts
+		NetNs:                         opt.ipamAddConfig.args.Netns,
+		Options:                       opt.ipamAddConfig.options,
+		DisableHairpinOnHostInterface: opt.ipamAddConfig.nwCfg.DisableHairpinOnHostInterface,
+		IsIPv6Enabled:                 opt.ipv6Enabled, // present infra only
 
+		EndpointID:  endpointID,
+		ContainerID: opt.args.ContainerID,
+		NetNsPath:   opt.args.Netns, // probably same value as epInfo.NetNs
+		IfName:      opt.args.IfName,
+		Data:        make(map[string]interface{}),
+		EndpointDNS: epDNSInfo,
+		// endpoint policies are populated later
+		IPsToRouteViaHost:  opt.nwCfg.IPsToRouteViaHost,
+		EnableSnatOnHost:   opt.nwCfg.EnableSnatOnHost,
+		EnableMultiTenancy: opt.nwCfg.MultiTenancy,
+		EnableInfraVnet:    opt.enableInfraVnet,
+		EnableSnatForDns:   opt.enableSnatForDNS,
+		PODName:            opt.k8sPodName,
+		PODNameSpace:       opt.k8sNamespace,
+		SkipHotAttachEp:    false, // Hot attach at the time of endpoint creation
+		IPV6Mode:           opt.nwCfg.IPV6Mode,
+		VnetCidrs:          opt.nwCfg.VnetCidrs,
+		ServiceCidrs:       opt.nwCfg.ServiceCidrs,
+		NATInfo:            opt.natInfo,
+		NICType:            opt.ifInfo.NICType,
+		SkipDefaultRoutes:  opt.ifInfo.SkipDefaultRoutes,
+		Routes:             opt.ifInfo.Routes,
+		// added the following for delegated vm nic
+		IPAddresses: addresses,
+		MacAddress:  opt.ifInfo.MacAddress,
+		// the following is used for creating an external interface if we can't find an existing network
+		HostSubnetPrefix: opt.ifInfo.HostSubnetPrefix.String(),
+	}
+
+	if err = addSubnetToEndpointInfo(*opt.ifInfo, &endpointInfo); err != nil {
+		logger.Info("Failed to add subnets to endpointInfo", zap.Error(err))
+		return nil, err
+	}
+	setNetworkOptions(opt.ifInfo.NCResponse, &endpointInfo)
+
+	// update endpoint policies
+	policyArgs := PolicyArgs{
+		subnetInfos: endpointInfo.Subnets, // getEndpointPolicies requires nwInfo.Subnets only (checked)
+		nwCfg:       opt.nwCfg,
+		ipconfigs:   opt.ifInfo.IPConfigs,
+	}
+	endpointPolicies, err := getEndpointPolicies(policyArgs)
+	if err != nil {
+		logger.Error("Failed to get endpoint policies", zap.Error(err))
+		return nil, err
+	}
+	// create endpoint policies by appending to network policies
+	// the value passed into NetworkPolicies should be unaffected since we reassign here
+	opt.policies = append(opt.policies, endpointPolicies...)
+	endpointInfo.EndpointPolicies = opt.policies
+	// add even more endpoint policies
 	epPolicies, err := getPoliciesFromRuntimeCfg(opt.nwCfg, opt.ipamAddResult.ipv6Enabled) // not specific to delegated or infra
 	if err != nil {
 		logger.Error("failed to get policies from runtime configurations", zap.Error(err))
@@ -850,7 +853,7 @@ func (plugin *NetPlugin) getNetworkDNSSettings(nwCfg *cni.NetworkConfig, dns net
 	return nwDNSInfo, nil
 }
 
-// construct network info with ipv4/ipv6 subnets
+// construct network info with ipv4/ipv6 subnets (updates subnets field)
 func addSubnetToEndpointInfo(interfaceInfo network.InterfaceInfo, nwInfo *network.EndpointInfo) error {
 	for _, ipConfig := range interfaceInfo.IPConfigs {
 		ip, podSubnetPrefix, err := net.ParseCIDR(ipConfig.Address.String())
