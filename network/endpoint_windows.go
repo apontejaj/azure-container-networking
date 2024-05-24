@@ -236,9 +236,7 @@ func (nw *network) configureHcnEndpoint(epInfo *EndpointInfo) (*hcn.HostComputeE
 	hcnEndpoint.MacAddress = macAddress
 
 	if epPolicies, err := policy.GetHcnEndpointPolicies(policy.EndpointPolicy, epInfo.EndpointPolicies, epInfo.Data, epInfo.EnableSnatForDns, epInfo.EnableMultiTenancy, epInfo.NATInfo); err == nil {
-		for _, epPolicy := range epPolicies {
-			hcnEndpoint.Policies = append(hcnEndpoint.Policies, epPolicy)
-		}
+		hcnEndpoint.Policies = append(hcnEndpoint.Policies, epPolicies...)
 	} else {
 		logger.Error("Failed to get endpoint policies due to", zap.Error(err))
 		return nil, err
