@@ -18,8 +18,6 @@ import (
 	"github.com/Azure/azure-container-networking/network/policy"
 	"github.com/Microsoft/hcsshim"
 	hnsv2 "github.com/Microsoft/hcsshim/hcn"
-	cniSkel "github.com/containernetworking/cni/pkg/skel"
-	cniTypes "github.com/containernetworking/cni/pkg/types"
 	cniTypesCurr "github.com/containernetworking/cni/pkg/types/100"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -32,84 +30,6 @@ var (
 	win1903Version = 18362
 	dualStackCount = 2
 )
-
-/* handleConsecutiveAdd handles consecutive add calls for infrastructure containers on Windows platform.
- * This is a temporary work around for issue #57253 of Kubernetes.
- * We can delete this if statement once they fix it.
- * Issue link: https://github.com/kubernetes/kubernetes/issues/57253
- */
-func (plugin *NetPlugin) handleConsecutiveAdd(args *cniSkel.CmdArgs, endpointId string, networkId string,
-	nwInfo *network.NetworkInfo, nwCfg *cni.NetworkConfig,
-) (*cniTypesCurr.Result, error) {
-	epInfo, _ := plugin.nm.GetEndpointInfo(networkId, endpointId)
-	if epInfo == nil {
-		return nil, nil
-	}
-
-	// Return in case of HNSv2 as consecutive add call doesn't need to be handled
-	if useHnsV2, err := network.UseHnsV2(args.Netns); useHnsV2 {
-		return nil, err
-	}
-
-	hnsEndpoint, err := network.Hnsv1.GetHNSEndpointByName(endpointId)
-	if hnsEndpoint != nil {
-		logger.Info("Found existing endpoint through hcsshim",
-			zap.Any("endpoint", hnsEndpoint))
-		endpoint, _ := network.Hnsv1.GetHNSEndpointByID(hnsEndpoint.Id)
-		isAttached, _ := network.Hnsv1.IsAttached(endpoint, args.ContainerID)
-		// Attach endpoint if it's not attached yet.
-		if !isAttached {
-			logger.Info("Attaching endpoint to container",
-				zap.String("endpoint", hnsEndpoint.Id),
-				zap.String("container", args.ContainerID))
-			err := network.Hnsv1.HotAttachEndpoint(args.ContainerID, hnsEndpoint.Id)
-			if err != nil {
-				logger.Error("Failed to hot attach shared endpoint to container",
-					zap.String("endpoint", hnsEndpoint.Id),
-					zap.String("container", args.ContainerID),
-					zap.Error(err))
-				return nil, err
-			}
-		}
-
-		// Populate result.
-		address := nwInfo.Subnets[0].Prefix
-		address.IP = hnsEndpoint.IPAddress
-		result := &cniTypesCurr.Result{
-			IPs: []*cniTypesCurr.IPConfig{
-				{
-					Address: address,
-					Gateway: net.ParseIP(hnsEndpoint.GatewayAddress),
-				},
-			},
-			Routes: []*cniTypes.Route{
-				{
-					Dst: net.IPNet{net.IPv4zero, net.IPv4Mask(0, 0, 0, 0)},
-					GW:  net.ParseIP(hnsEndpoint.GatewayAddress),
-				},
-			},
-		}
-
-		if nwCfg.IPV6Mode != "" && len(epInfo.IPAddresses) > 1 {
-			ipv6Config := &cniTypesCurr.IPConfig{
-				Address: epInfo.IPAddresses[1],
-			}
-
-			if len(nwInfo.Subnets) > 1 {
-				ipv6Config.Gateway = nwInfo.Subnets[1].Gateway
-			}
-
-			result.IPs = append(result.IPs, ipv6Config)
-		}
-
-		// Populate DNS servers.
-		result.DNS.Nameservers = nwCfg.DNS.Nameservers
-		return result, nil
-	}
-
-	err = fmt.Errorf("GetHNSEndpointByName for %v returned nil with err %v", endpointId, err)
-	return nil, err
-}
 
 func addDefaultRoute(_ string, _ *network.EndpointInfo, _ *network.InterfaceInfo) {
 }

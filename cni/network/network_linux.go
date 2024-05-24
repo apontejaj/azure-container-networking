@@ -19,13 +19,6 @@ const (
 
 const snatConfigFileName = "/tmp/snatConfig"
 
-// handleConsecutiveAdd is a dummy function for Linux platform.
-func (plugin *NetPlugin) handleConsecutiveAdd(args *cniSkel.CmdArgs, endpointID string, networkID string,
-	nwInfo *network.NetworkInfo, nwCfg *cni.NetworkConfig,
-) (*cniTypesCurr.Result, error) {
-	return nil, nil
-}
-
 func addDefaultRoute(gwIPString string, epInfo *network.EndpointInfo, result *network.InterfaceInfo) {
 	_, defaultIPNet, _ := net.ParseCIDR("0.0.0.0/0")
 	dstIP := net.IPNet{IP: net.ParseIP("0.0.0.0"), Mask: defaultIPNet.Mask}
