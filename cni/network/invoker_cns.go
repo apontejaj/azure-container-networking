@@ -180,9 +180,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 			if err := configureSecondaryAddResult(&info, &addResult, &response.PodIPInfo[i].PodIPConfig, key); err != nil {
 				return IPAMAddResult{}, err
 			}
-		case cns.InfraNIC:
-			fallthrough
-		case "":
+		case cns.InfraNIC, "":
 			// if we change from legacy cns, the nicType will be empty, so we assume it is infra nic
 			info.nicType = cns.InfraNIC
 

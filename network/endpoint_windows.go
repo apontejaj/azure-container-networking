@@ -235,8 +235,8 @@ func (nw *network) configureHcnEndpoint(epInfo *EndpointInfo) (*hcn.HostComputeE
 	}
 	hcnEndpoint.MacAddress = macAddress
 
-	if endpointPolicies, err := policy.GetHcnEndpointPolicies(policy.EndpointPolicy, epInfo.EndpointPolicies, epInfo.Data, epInfo.EnableSnatForDns, epInfo.EnableMultiTenancy, epInfo.NATInfo); err == nil {
-		for _, epPolicy := range endpointPolicies {
+	if epPolicies, err := policy.GetHcnEndpointPolicies(policy.EndpointPolicy, epInfo.EndpointPolicies, epInfo.Data, epInfo.EnableSnatForDns, epInfo.EnableMultiTenancy, epInfo.NATInfo); err == nil {
+		for _, epPolicy := range epPolicies {
 			hcnEndpoint.Policies = append(hcnEndpoint.Policies, epPolicy)
 		}
 	} else {
