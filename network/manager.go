@@ -792,6 +792,8 @@ func cnsEndpointInfotoCNIEpInfos(endpointInfo restserver.EndpointInfo, endpointI
 	return ret
 }
 
+// gets all endpoint infos associated with a container id and populates the network id field
+// nictype may be empty in which case it is likely of type "infra"
 func (nm *networkManager) GetEndpointInfosFromContainerID(containerID string) []*EndpointInfo {
 	ret := []*EndpointInfo{}
 	for _, extIf := range nm.ExternalInterfaces {

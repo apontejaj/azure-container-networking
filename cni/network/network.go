@@ -1127,7 +1127,7 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 			zap.String("endpointID", epInfo.EndpointID))
 		sendEvent(plugin, fmt.Sprintf("Deleting endpoint:%v", epInfo.EndpointID))
 
-		if !nwCfg.MultiTenancy && epInfo.NICType == cns.InfraNIC {
+		if !nwCfg.MultiTenancy && epInfo.NICType != cns.DelegatedVMNIC {
 			// Delegated/secondary nic ips are statically allocated so we don't need to release
 			// Call into IPAM plugin to release the endpoint's addresses.
 			for i := range epInfo.IPAddresses {

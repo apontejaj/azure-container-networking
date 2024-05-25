@@ -8,7 +8,6 @@ import (
 	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/network"
 	"github.com/Azure/azure-container-networking/network/policy"
-	cniSkel "github.com/containernetworking/cni/pkg/skel"
 	cniTypesCurr "github.com/containernetworking/cni/pkg/types/100"
 )
 
