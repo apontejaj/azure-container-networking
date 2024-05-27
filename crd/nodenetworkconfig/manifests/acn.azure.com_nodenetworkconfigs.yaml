@@ -109,6 +109,8 @@ spec:
                             type: string
                         type: object
                       type: array
+                    macAddress:
+                      type: string 
                     nodeIP:
                       type: string
                     primaryIP:
