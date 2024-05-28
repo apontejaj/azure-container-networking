@@ -292,6 +292,10 @@ func (nw *network) deleteEndpointImpl(nl netlink.NetlinkInterface, plc platform.
 				epClient.DeleteEndpointRules(ep)
 				//nolint:errcheck // ignore error
 				epClient.DeleteEndpoints(ep)
+				if ep.NICType == cns.DelegatedVMNIC {
+					// if the ep itself is of type secondary (new way), don't use transparent client below
+					return nil
+				}
 			}
 
 			epClient = NewTransparentEndpointClient(nw.extIf, ep.HostIfName, "", nw.Mode, nl, nioc, plc)
