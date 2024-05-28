@@ -229,6 +229,6 @@ func SetCNSConfigDefaults(config *CNSConfig) {
 	if config.GRPCServerPort == 0 {
 		config.GRPCServerPort = 8080
 	}
-	config.EnableGRPC = false
+	config.EnableGRPC = true
 	config.WatchPods = config.EnableIPAMv2 || config.EnableSwiftV2
 }

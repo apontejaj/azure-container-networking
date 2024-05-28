@@ -4,7 +4,7 @@
 // - protoc             v3.12.4
 // source: cns/grpc/proto/server.proto
 
-package protogen
+package cnsv1alpha
 
 import (
 	context "context"
