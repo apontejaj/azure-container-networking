@@ -904,6 +904,6 @@ tools: acncli gocov gocov-xml go-junit-report golangci-lint gofumpt protoc ## Bu
 help: ## Display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[0-9a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-gen-proto: ## Generates source code from protobuf files
+proto-gen: ## Generates source code from protobuf files
 	protoc --go_out=. --go-grpc_out=. --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative cns/grpc/proto/server.proto
 	

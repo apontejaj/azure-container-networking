@@ -29,6 +29,7 @@ import (
 	"github.com/Azure/azure-container-networking/cns/common"
 	"github.com/Azure/azure-container-networking/cns/configuration"
 	"github.com/Azure/azure-container-networking/cns/fsnotify"
+	"github.com/Azure/azure-container-networking/cns/grpc"
 	"github.com/Azure/azure-container-networking/cns/healthserver"
 	"github.com/Azure/azure-container-networking/cns/hnsclient"
 	"github.com/Azure/azure-container-networking/cns/imds"
@@ -82,8 +83,6 @@ import (
 	ctrlzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	ctrlmgr "sigs.k8s.io/controller-runtime/pkg/manager"
 	ctrlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics/server"
-	"github.com/Azure/azure-container-networking/cns/grpc"
-	pb "github.com/Azure/azure-container-networking/cns/grpc/proto" 
 )
 
 const (
@@ -694,6 +693,7 @@ func main() {
 	// Log platform information.
 	logger.Printf("Running on %v", platform.GetOSInfo())
 
+	// DO NOT MERGE
 	storeFileLocation = "./azure-cns.json"
 	err = platform.CreateDirectory(storeFileLocation)
 	if err != nil {
@@ -701,6 +701,7 @@ func main() {
 		return
 	}
 
+	// DO NOT MERGE
 	lockPath := "./"
 	lockclient, err := processlock.NewFileLock(lockPath + name + store.LockExtension)
 	if err != nil {
@@ -801,35 +802,6 @@ func main() {
 		}
 	}
 
-	type CNSService struct {
-		pb.UnimplementedCNSServiceServer
-		Logger *zap.Logger
-	}
-
-	// Define gRPC server settings
-	settings := grpc.GrpcServerSettings{
-		IPAddress: "::",
-		Port:      8080,
-	}
-
-	// Initialize CNS service
-	cnsService := &CNSService{Logger: z}
-
-	// Create a new gRPC server
-	server, err := grpc.NewServer(settings, cnsService, z)
-	if err != nil {
-		logger.Errorf("Could not initialize gRPC server: %v", err)
-		os.Exit(1)
-	}
-
-	// Start the gRPC server
-	go func() {
-		if err := server.Start(); err != nil {
-			logger.Errorf("Could not start gRPC server: %v", err)
-			os.Exit(1)
-		}
-	}()
-
 	// Setting the remote ARP MAC address to 12-34-56-78-9a-bc on windows for external traffic if HNS is enabled
 	execClient := platform.NewExecClient(nil)
 	err = platform.SetSdnRemoteArpMacAddress(execClient)
@@ -902,6 +874,33 @@ func main() {
 			logger.Errorf("Failed to start multiTenantController, err:%v.\n", err)
 			return
 		}
+	}
+
+	// Conditionally initialize and start the gRPC server
+	if cnsconfig.EnableGRPC {
+		// Define gRPC server settings
+		settings := grpc.GrpcServerSettings{
+			IPAddress: cnsconfig.GRPCServerIPAddress,
+			Port:      cnsconfig.GRPCServerPort,
+		}
+
+		// Initialize CNS service
+		cnsService := &grpc.CNSService{Logger: z}
+
+		// Create a new gRPC server
+		server, err := grpc.NewServer(settings, cnsService, z)
+		if err != nil {
+			logger.Errorf("Could not initialize gRPC server: %v", err)
+			os.Exit(1)
+		}
+
+		// Start the gRPC server
+		go func() {
+			if err := server.Start(); err != nil {
+				logger.Errorf("Could not start gRPC server: %v", err)
+				os.Exit(1)
+			}
+		}()
 	}
 
 	// if user provides cns url by -c option, then only start HTTP remote server using this url

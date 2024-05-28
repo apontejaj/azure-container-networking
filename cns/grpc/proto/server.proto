@@ -21,7 +21,7 @@ service CNSService {
 message SetOrchestratorInfoRequest {
   string dncPartitionKey = 1; // The partition key for DNC.
   string nodeID = 2; // The node ID.
-  string orchestratorType = 3; // The type of the orchestrator (e.g., ServiceFabric, Kubernetes, etc.).
+  string orchestratorType = 3; // The type of the orchestrator.
 }
 
 // SetOrchestratorInfoResponse is the response message for setting the orchestrator information.

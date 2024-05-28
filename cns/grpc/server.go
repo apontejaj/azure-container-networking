@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	
+
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"go.uber.org/zap"
 
 	pb "github.com/Azure/azure-container-networking/cns/grpc/proto"
 )
@@ -23,6 +23,12 @@ type Server struct {
 type GrpcServerSettings struct {
 	IPAddress string
 	Port      uint16
+}
+
+// CNSService defines the CNS gRPC service.
+type CNSService struct {
+	pb.UnimplementedCNSServiceServer
+	Logger *zap.Logger
 }
 
 // NewServer initializes a new gRPC server instance.

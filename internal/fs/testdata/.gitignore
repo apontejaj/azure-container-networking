@@ -1,2 +1,4 @@
 data.txt-old
 newdata.txt
+cns/grpc/proto/server.pb.go
+cns/grpc/proto/server_grpc.pb.go
