@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"strconv"
 
@@ -51,9 +52,10 @@ func (s *Server) Start() error {
 	address := net.JoinHostPort(s.Settings.IPAddress, strconv.FormatUint(uint64(s.Settings.Port), 10))
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
+		log.Printf("[Listener] Failed to listen on gRPC endpoint: %+v", err)
 		return fmt.Errorf("failed to listen on address %s: %w", address, err)
 	}
-	s.Logger.Sugar().Infof("⇨ gRPC server started on %s", address)
+	log.Printf("[Listener] Started listening on gRPC endpoint %s.", address)
 
 	grpcServer := grpc.NewServer()
 	pb.RegisterCNSServiceServer(grpcServer, s.CnsService)

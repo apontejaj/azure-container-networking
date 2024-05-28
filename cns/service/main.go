@@ -890,14 +890,14 @@ func main() {
 		// Create a new gRPC server
 		server, err := grpc.NewServer(settings, cnsService, z)
 		if err != nil {
-			logger.Errorf("Could not initialize gRPC server: %v", err)
+			logger.Errorf("[Listener] Could not initialize gRPC server: %v", err)
 			os.Exit(1)
 		}
 
 		// Start the gRPC server
 		go func() {
 			if err := server.Start(); err != nil {
-				logger.Errorf("Could not start gRPC server: %v", err)
+				logger.Errorf("[Listener] Could not start gRPC server: %v", err)
 				os.Exit(1)
 			}
 		}()
