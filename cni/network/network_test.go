@@ -1133,6 +1133,18 @@ func TestGetPodSubnetNatInfo(t *testing.T) {
 	}
 }
 
+type InterfaceGetterMock struct {
+	interfaces []net.Interface
+	err        error
+}
+
+func (n *InterfaceGetterMock) GetNetworkInterfaces() ([]net.Interface, error) {
+	if n.err != nil {
+		return nil, n.err
+	}
+	return n.interfaces, nil
+}
+
 func TestPluginSwiftV2Add(t *testing.T) {
 	plugin, _ := cni.NewPlugin("name", "0.3.0")
 
@@ -1159,6 +1171,11 @@ func TestPluginSwiftV2Add(t *testing.T) {
 				ipamInvoker: NewMockIpamInvoker(false, false, false, true, false),
 				report:      &telemetry.CNIReport{},
 				tb:          &telemetry.TelemetryBuffer{},
+				netClient: &InterfaceGetterMock{
+					interfaces: []net.Interface{
+						{Name: "eth0"},
+					},
+				},
 			},
 			args: &cniSkel.CmdArgs{
 				StdinData:   localNwCfg.Serialize(),
@@ -1177,6 +1194,11 @@ func TestPluginSwiftV2Add(t *testing.T) {
 				ipamInvoker: NewMockIpamInvoker(false, false, false, true, true),
 				report:      &telemetry.CNIReport{},
 				tb:          &telemetry.TelemetryBuffer{},
+				netClient: &InterfaceGetterMock{
+					interfaces: []net.Interface{
+						{Name: "eth0"},
+					},
+				},
 			},
 			args: &cniSkel.CmdArgs{
 				StdinData:   localNwCfg.Serialize(),
@@ -1202,6 +1224,11 @@ func TestPluginSwiftV2Add(t *testing.T) {
 				ipamInvoker: NewMockIpamInvoker(false, false, false, true, false),
 				report:      &telemetry.CNIReport{},
 				tb:          &telemetry.TelemetryBuffer{},
+				netClient: &InterfaceGetterMock{
+					interfaces: []net.Interface{
+						{Name: "eth0"},
+					},
+				},
 			},
 			args: &cniSkel.CmdArgs{
 				StdinData:   localNwCfg.Serialize(),
@@ -1213,6 +1240,28 @@ func TestPluginSwiftV2Add(t *testing.T) {
 			wantErr:    true,
 			wantErrMsg: "failed to create endpoint: MockEndpointClient Error : AddEndpoints Delegated VM NIC failed",
 		},
+		{
+			name: "SwiftV2 Find Interface By MAC Address Fail",
+			plugin: &NetPlugin{
+				Plugin:      plugin,
+				nm:          acnnetwork.NewMockNetworkmanager(acnnetwork.NewMockEndpointClient(nil)),
+				ipamInvoker: NewMockIpamInvoker(false, false, false, true, false),
+				report:      &telemetry.CNIReport{},
+				tb:          &telemetry.TelemetryBuffer{},
+				netClient: &InterfaceGetterMock{
+					interfaces: []net.Interface{},
+				},
+			},
+			args: &cniSkel.CmdArgs{
+				StdinData:   localNwCfg.Serialize(),
+				ContainerID: "test-container",
+				Netns:       "test-container",
+				Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "test-pod", "test-pod-ns"),
+				IfName:      eth0IfName,
+			},
+			wantErr:    true,
+			wantErrMsg: "Failed to find the master interface",
+		},
 	}
 
 	for _, tt := range tests {
@@ -1221,7 +1270,7 @@ func TestPluginSwiftV2Add(t *testing.T) {
 			err := tt.plugin.Add(tt.args)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.Equal(t, err.Error(), tt.wantErrMsg, "Expected %v but got %+v", tt.wantErrMsg, err.Error())
+				assert.Equal(t, tt.wantErrMsg, err.Error(), "Expected %v but got %+v", tt.wantErrMsg, err.Error())
 				endpoints, _ := tt.plugin.nm.GetAllEndpoints(localNwCfg.Name)
 				require.Condition(t, assert.Comparison(func() bool { return len(endpoints) == 0 }))
 			} else {

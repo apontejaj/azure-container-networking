@@ -76,6 +76,7 @@ type NetPlugin struct {
 	tb                 *telemetry.TelemetryBuffer
 	nnsClient          NnsClient
 	multitenancyClient MultitenancyClient
+	netClient          InterfaceGetter
 }
 
 type PolicyArgs struct {
@@ -95,6 +96,11 @@ type NnsClient interface {
 	// podName - name of the pod as received from containerD
 	// nwNamesapce - network namespace name as received from containerD
 	DeleteContainerNetworking(ctx context.Context, podName, nwNamespace string) (*nnscontracts.ConfigureContainerNetworkingResponse, error)
+}
+
+// client for getting interface
+type InterfaceGetter interface {
+	GetNetworkInterfaces() ([]net.Interface, error)
 }
 
 // snatConfiguration contains a bool that determines whether CNI enables snat on host and snat for dns
@@ -129,6 +135,7 @@ func NewPlugin(name string,
 		nm:                 nm,
 		nnsClient:          client,
 		multitenancyClient: multitenancyClient,
+		netClient:          &netio.NetIO{},
 	}, nil
 }
 
@@ -207,7 +214,7 @@ func (plugin *NetPlugin) Stop() {
 
 // findInterfaceByMAC returns the name of the master interface
 func (plugin *NetPlugin) findInterfaceByMAC(macAddress string) string {
-	interfaces, err := net.Interfaces()
+	interfaces, err := plugin.netClient.GetNetworkInterfaces()
 	if err != nil {
 		logger.Error("failed to get interfaces", zap.Error(err))
 		return ""
@@ -235,7 +242,7 @@ func (plugin *NetPlugin) findMasterInterfaceBySubnet(nwCfg *cni.NetworkConfig, s
 
 	// Otherwise, pick the first interface with an IP address in the given subnet.
 	subnetPrefixString := subnetPrefix.String()
-	interfaces, err := net.Interfaces()
+	interfaces, err := plugin.netClient.GetNetworkInterfaces()
 	if err != nil {
 		logger.Error("failed to get interfaces", zap.Error(err))
 		return ""
