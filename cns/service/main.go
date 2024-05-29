@@ -877,11 +877,11 @@ func main() {
 	}
 
 	// Conditionally initialize and start the gRPC server
-	if cnsconfig.EnableGRPC {
+	if cnsconfig.GRPCSettings.EnableGRPC {
 		// Define gRPC server settings
 		settings := grpc.GrpcServerSettings{
-			IPAddress: cnsconfig.GRPCServerIPAddress,
-			Port:      cnsconfig.GRPCServerPort,
+			IPAddress: cnsconfig.GRPCSettings.GRPCServerIPAddress,
+			Port:      cnsconfig.GRPCSettings.GRPCServerPort,
 		}
 
 		// Initialize CNS service
