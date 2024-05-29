@@ -696,18 +696,41 @@ func TestPluginMultitenancyDelete(t *testing.T) {
 		Master:                     "eth0",
 	}
 
+	happyArgs := &cniSkel.CmdArgs{
+		StdinData:   localNwCfg.Serialize(),
+		ContainerID: "test-container",
+		Netns:       "test-container",
+		Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "test-pod", "test-pod-ns"),
+		IfName:      eth0IfName,
+	}
+
 	tests := []struct {
 		name       string
 		methods    []string
 		args       *cniSkel.CmdArgs
+		delArgs    *cniSkel.CmdArgs
 		wantErr    bool
 		wantErrMsg string
 	}{
 		{
 			name:    "Multitenancy delete success",
 			methods: []string{CNI_ADD, CNI_DEL},
-			args: &cniSkel.CmdArgs{
-				StdinData:   localNwCfg.Serialize(),
+			args:    happyArgs,
+			delArgs: happyArgs,
+			wantErr: false,
+		},
+		{
+			name:    "Multitenancy delete net not found",
+			methods: []string{CNI_ADD, CNI_DEL},
+			args:    happyArgs,
+			delArgs: &cniSkel.CmdArgs{
+				StdinData: (&cni.NetworkConfig{
+					CNIVersion:                 "0.3.0",
+					Name:                       "othernet",
+					MultiTenancy:               true,
+					EnableExactMatchForPodName: true,
+					Master:                     "eth0",
+				}).Serialize(),
 				ContainerID: "test-container",
 				Netns:       "test-container",
 				Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "test-pod", "test-pod-ns"),
@@ -725,7 +748,7 @@ func TestPluginMultitenancyDelete(t *testing.T) {
 				if method == CNI_ADD {
 					err = plugin.Add(tt.args)
 				} else if method == CNI_DEL {
-					err = plugin.Delete(tt.args)
+					err = plugin.Delete(tt.delArgs)
 				}
 			}
 			if tt.wantErr {
