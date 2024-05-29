@@ -251,11 +251,14 @@ func TestAzureIPAMInvoker_Add(t *testing.T) {
 				require.Nil(err)
 			}
 
-			for _, ifInfo := range ipamAddResult.interfaceInfo {
+			for key, ifInfo := range ipamAddResult.interfaceInfo {
 				if ifInfo.NICType == cns.InfraNIC {
 					fmt.Printf("want:%+v\nrest:%+v\n", tt.want, ifInfo.IPConfigs)
 					require.Exactly(tt.want, ifInfo.IPConfigs)
 				}
+				// azure ipam invoker always sets key as infra nic
+				require.Equal(string(cns.InfraNIC), key)
+				require.Equal(cns.InfraNIC, ifInfo.NICType)
 			}
 		})
 	}

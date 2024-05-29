@@ -555,6 +555,9 @@ func TestGetMultiTenancyCNIResult(t *testing.T) {
 			// check multiple responses
 			tt.want5 = append(tt.want5, *tt.want1, *tt.want2)
 			require.Exactly(tt.want5, ncResponses)
+
+			require.Equal(cns.InfraNIC, got.interfaceInfo[string(cns.InfraNIC)+"0"].NICType)
+			require.Equal(cns.InfraNIC, got.interfaceInfo[string(cns.InfraNIC)+"1"].NICType)
 		})
 	}
 }
@@ -692,6 +695,7 @@ func TestGetMultiTenancyCNIResultUnsupportedAPI(t *testing.T) {
 			}
 			require.NoError(err)
 			require.Exactly(tt.want, got.interfaceInfo[string(cns.InfraNIC)+"0"].NCResponse)
+			require.Equal(cns.InfraNIC, got.interfaceInfo[string(cns.InfraNIC)+"0"].NICType)
 		})
 	}
 }
