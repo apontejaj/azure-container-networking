@@ -60,33 +60,32 @@ func (nw *network) newEndpointImpl(
 	epInfo *EndpointInfo,
 ) (*endpoint, error) {
 	var (
-		err           error
-		hostIfName    string
-		contIfName    string
-		localIP       string
-		vlanid        = 0
-		defaultEpInfo = epInfo
-		containerIf   *net.Interface
+		err         error
+		hostIfName  string
+		contIfName  string
+		localIP     string
+		vlanid      = 0
+		containerIf *net.Interface
 	)
 
-	if nw.Endpoints[defaultEpInfo.EndpointID] != nil {
+	if nw.Endpoints[epInfo.EndpointID] != nil {
 		logger.Info("[net] Endpoint already exists.")
 		err = errEndpointExists
 		return nil, err
 	}
 
-	if defaultEpInfo.Data != nil {
-		if _, ok := defaultEpInfo.Data[VlanIDKey]; ok {
-			vlanid = defaultEpInfo.Data[VlanIDKey].(int)
+	if epInfo.Data != nil {
+		if _, ok := epInfo.Data[VlanIDKey]; ok {
+			vlanid = epInfo.Data[VlanIDKey].(int)
 		}
 
-		if _, ok := defaultEpInfo.Data[LocalIPKey]; ok {
-			localIP = defaultEpInfo.Data[LocalIPKey].(string)
+		if _, ok := epInfo.Data[LocalIPKey]; ok {
+			localIP = epInfo.Data[LocalIPKey].(string)
 		}
 	}
 
-	if _, ok := defaultEpInfo.Data[OptVethName]; ok {
-		key := defaultEpInfo.Data[OptVethName].(string)
+	if _, ok := epInfo.Data[OptVethName]; ok {
+		key := epInfo.Data[OptVethName].(string)
 		logger.Info("Generate veth name based on the key provided", zap.String("key", key))
 		vethname := generateVethName(key)
 		hostIfName = fmt.Sprintf("%s%s", hostVEthInterfacePrefix, vethname)
@@ -96,8 +95,8 @@ func (nw *network) newEndpointImpl(
 	} else {
 		// Create a veth pair.
 		logger.Info("Generate veth name based on endpoint id")
-		hostIfName = fmt.Sprintf("%s%s", hostVEthInterfacePrefix, defaultEpInfo.EndpointID[:7])
-		contIfName = fmt.Sprintf("%s%s-2", hostVEthInterfacePrefix, defaultEpInfo.EndpointID[:7])
+		hostIfName = fmt.Sprintf("%s%s", hostVEthInterfacePrefix, epInfo.EndpointID[:7])
+		contIfName = fmt.Sprintf("%s%s-2", hostVEthInterfacePrefix, epInfo.EndpointID[:7])
 	}
 
 	nicName := epInfo.IfName
@@ -107,27 +106,27 @@ func (nw *network) newEndpointImpl(
 	}
 
 	ep := &endpoint{
-		Id: defaultEpInfo.EndpointID,
+		Id: epInfo.EndpointID,
 		// IfName should end up being eth0 in non-delegated nic cases
 		IfName:                   nicName, // container veth pair name. In cnm, we won't rename this and docker expects veth name.
 		HostIfName:               hostIfName,
-		InfraVnetIP:              defaultEpInfo.InfraVnetIP,
+		InfraVnetIP:              epInfo.InfraVnetIP,
 		LocalIP:                  localIP,
-		IPAddresses:              defaultEpInfo.IPAddresses,
-		DNS:                      defaultEpInfo.EndpointDNS,
+		IPAddresses:              epInfo.IPAddresses,
+		DNS:                      epInfo.EndpointDNS,
 		VlanID:                   vlanid,
-		EnableSnatOnHost:         defaultEpInfo.EnableSnatOnHost,
-		EnableInfraVnet:          defaultEpInfo.EnableInfraVnet,
-		EnableMultitenancy:       defaultEpInfo.EnableMultiTenancy,
-		AllowInboundFromHostToNC: defaultEpInfo.AllowInboundFromHostToNC,
-		AllowInboundFromNCToHost: defaultEpInfo.AllowInboundFromNCToHost,
-		NetworkNameSpace:         defaultEpInfo.NetNsPath,
-		ContainerID:              defaultEpInfo.ContainerID,
-		PODName:                  defaultEpInfo.PODName,
-		PODNameSpace:             defaultEpInfo.PODNameSpace,
-		Routes:                   defaultEpInfo.Routes,
+		EnableSnatOnHost:         epInfo.EnableSnatOnHost,
+		EnableInfraVnet:          epInfo.EnableInfraVnet,
+		EnableMultitenancy:       epInfo.EnableMultiTenancy,
+		AllowInboundFromHostToNC: epInfo.AllowInboundFromHostToNC,
+		AllowInboundFromNCToHost: epInfo.AllowInboundFromNCToHost,
+		NetworkNameSpace:         epInfo.NetNsPath,
+		ContainerID:              epInfo.ContainerID,
+		PODName:                  epInfo.PODName,
+		PODNameSpace:             epInfo.PODNameSpace,
+		Routes:                   epInfo.Routes,
 		SecondaryInterfaces:      make(map[string]*InterfaceInfo),
-		NICType:                  defaultEpInfo.NICType,
+		NICType:                  epInfo.NICType,
 	}
 	if nw.extIf != nil {
 		ep.Gateways = []net.IP{nw.extIf.IPv4Gateway}

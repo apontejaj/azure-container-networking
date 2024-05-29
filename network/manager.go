@@ -725,14 +725,7 @@ func (nm *networkManager) SaveState(eps []*endpoint) error {
 	// If we fail half way, we'll propagate an error up which should clean everything up
 	if nm.IsStatelessCNIMode() {
 		err := nm.UpdateEndpointState(eps)
-		if err != nil {
-			return err
-		}
-	}
-
-	// we either use stateless cni and save via update endpoint state, or use the state file
-	if nm.IsStatelessCNIMode() {
-		return nil
+		return err
 	}
 
 	// once endpoints and networks are in-memory, save once
