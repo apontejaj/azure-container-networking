@@ -1179,6 +1179,14 @@ func TestPluginSwiftV2Add(t *testing.T) {
 		Master:                     "eth0",
 	}
 
+	args := &cniSkel.CmdArgs{
+		StdinData:   localNwCfg.Serialize(),
+		ContainerID: "test-container",
+		Netns:       "test-container",
+		Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "test-pod", "test-pod-ns"),
+		IfName:      eth0IfName,
+	}
+
 	tests := []struct {
 		name       string
 		plugin     *NetPlugin
@@ -1200,13 +1208,7 @@ func TestPluginSwiftV2Add(t *testing.T) {
 					},
 				},
 			},
-			args: &cniSkel.CmdArgs{
-				StdinData:   localNwCfg.Serialize(),
-				ContainerID: "test-container",
-				Netns:       "test-container",
-				Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "test-pod", "test-pod-ns"),
-				IfName:      eth0IfName,
-			},
+			args:    args,
 			wantErr: false,
 		},
 		{
@@ -1223,13 +1225,7 @@ func TestPluginSwiftV2Add(t *testing.T) {
 					},
 				},
 			},
-			args: &cniSkel.CmdArgs{
-				StdinData:   localNwCfg.Serialize(),
-				ContainerID: "test-container",
-				Netns:       "test-container",
-				Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "test-pod", "test-pod-ns"),
-				IfName:      eth0IfName,
-			},
+			args:       args,
 			wantErr:    true,
 			wantErrMsg: "IPAM Invoker Add failed with error: failed to add ipam invoker: delegatedVMNIC fail",
 		},
@@ -1253,13 +1249,7 @@ func TestPluginSwiftV2Add(t *testing.T) {
 					},
 				},
 			},
-			args: &cniSkel.CmdArgs{
-				StdinData:   localNwCfg.Serialize(),
-				ContainerID: "test-container",
-				Netns:       "test-container",
-				Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "test-pod", "test-pod-ns"),
-				IfName:      eth0IfName,
-			},
+			args:       args,
 			wantErr:    true,
 			wantErrMsg: "failed to create endpoint: MockEndpointClient Error : AddEndpoints Delegated VM NIC failed",
 		},
@@ -1275,8 +1265,29 @@ func TestPluginSwiftV2Add(t *testing.T) {
 					interfaces: []net.Interface{},
 				},
 			},
+			args:       args,
+			wantErr:    true,
+			wantErrMsg: "Failed to find the master interface",
+		},
+		{
+			name: "SwiftV2 Find Interface By Subnet Prefix Fail",
+			plugin: &NetPlugin{
+				Plugin:      plugin,
+				nm:          acnnetwork.NewMockNetworkmanager(acnnetwork.NewMockEndpointClient(nil)),
+				ipamInvoker: NewMockIpamInvoker(false, false, false, false, false),
+				report:      &telemetry.CNIReport{},
+				tb:          &telemetry.TelemetryBuffer{},
+				netClient: &InterfaceGetterMock{
+					interfaces: []net.Interface{},
+				},
+			},
 			args: &cniSkel.CmdArgs{
-				StdinData:   localNwCfg.Serialize(),
+				StdinData: (&cni.NetworkConfig{
+					CNIVersion:                 "0.3.0",
+					Name:                       "swiftv2",
+					ExecutionMode:              string(util.V4Overlay),
+					EnableExactMatchForPodName: true,
+				}).Serialize(),
 				ContainerID: "test-container",
 				Netns:       "test-container",
 				Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "test-pod", "test-pod-ns"),
