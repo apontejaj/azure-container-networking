@@ -6,23 +6,23 @@ import (
 	"net"
 	"strconv"
 
+	pb "github.com/Azure/azure-container-networking/cns/grpc/cnsv1alpha"
+	"github.com/Azure/azure-container-networking/cns/restserver"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-
-	pb "github.com/Azure/azure-container-networking/cns/grpc/cnsv1alpha"
-	"github.com/Azure/azure-container-networking/cns/restserver"
 )
 
 // Server struct to hold the gRPC server settings and the CNS service.
 type Server struct {
-	Settings   GrpcServerSettings
+	Settings   ServerSettings
 	CnsService pb.CNSServer
 	Logger     *zap.Logger
 }
 
 // GrpcServerSettings holds the gRPC server settings.
-type GrpcServerSettings struct {
+type ServerSettings struct {
 	IPAddress string
 	Port      uint16
 }
@@ -31,13 +31,14 @@ type GrpcServerSettings struct {
 type CNS struct {
 	pb.UnimplementedCNSServer
 	Logger *zap.Logger
-	State *restserver.HTTPRestService
+	State  *restserver.HTTPRestService
 }
 
 // NewServer initializes a new gRPC server instance.
-func NewServer(settings GrpcServerSettings, cnsService pb.CNSServer, logger *zap.Logger) (*Server, error) {
+func NewServer(settings ServerSettings, cnsService pb.CNSServer, logger *zap.Logger) (*Server, error) {
 	if cnsService == nil {
-		return nil, fmt.Errorf("CNS service is not defined")
+		var ErrCNSServiceNotDefined = errors.New("CNS service is not defined")
+		return nil, fmt.Errorf("Failed to create new gRPC server: %w", ErrCNSServiceNotDefined)
 	}
 
 	server := &Server{

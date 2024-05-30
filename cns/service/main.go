@@ -874,7 +874,7 @@ func main() {
 	// Conditionally initialize and start the gRPC server
 	if cnsconfig.GRPCSettings.Enable {
 		// Define gRPC server settings
-		settings := grpc.GrpcServerSettings{
+		settings := grpc.ServerSettings{
 			IPAddress: cnsconfig.GRPCSettings.ServerIPAddress,
 			Port:      cnsconfig.GRPCSettings.ServerPort,
 		}
@@ -883,16 +883,16 @@ func main() {
 		cnsService := &grpc.CNS{Logger: z}
 
 		// Create a new gRPC server
-		server, err := grpc.NewServer(settings, cnsService, z)
-		if err != nil {
-			logger.Errorf("[Listener] Could not initialize gRPC server: %v", err)
+		server, grpcErr := grpc.NewServer(settings, cnsService, z)
+		if grpcErr != nil {
+			logger.Errorf("[Listener] Could not initialize gRPC server: %v", grpcErr)
 			return
 		}
 
 		// Start the gRPC server
 		go func() {
-			if err := server.Start(); err != nil {
-				logger.Errorf("[Listener] Could not start gRPC server: %v", err)
+			if grpcErr := server.Start(); err != nil {
+				logger.Errorf("[Listener] Could not start gRPC server: %v", grpcErr)
 				return
 			}
 		}()
