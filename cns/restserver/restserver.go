@@ -63,7 +63,7 @@ type HTTPRestService struct {
 	PodIPConfigState         map[string]cns.IPConfigurationStatus // Secondary IP ID(uuid) is key
 	routingTable             *routes.RoutingTable
 	store                    store.KeyValueStore
-	state                    *httpRestServiceState
+	state                    *HttpRestServiceState
 	podsPendingIPAssignment  *bounded.TimedSet
 	sync.RWMutex
 	dncPartitionKey            string
@@ -138,7 +138,7 @@ type containerstatus struct {
 }
 
 // httpRestServiceState contains the state we would like to persist.
-type httpRestServiceState struct {
+type HttpRestServiceState struct {
 	Location                         string
 	NetworkType                      string
 	OrchestratorType                 string
@@ -191,7 +191,7 @@ func NewHTTPRestService(config *common.ServiceConfig, wscli interfaceGetter, wsp
 	// add primaryInterfaceIP to cns config
 	config.Server.PrimaryInterfaceIP = primaryInterface.PrimaryIP
 
-	serviceState := &httpRestServiceState{
+	serviceState := &HttpRestServiceState{
 		Networks:         make(map[string]*networkInfo),
 		joinedNetworks:   make(map[string]struct{}),
 		primaryInterface: primaryInterface,
