@@ -37,7 +37,7 @@ type CNS struct {
 // NewServer initializes a new gRPC server instance.
 func NewServer(settings ServerSettings, cnsService pb.CNSServer, logger *zap.Logger) (*Server, error) {
 	if cnsService == nil {
-		var ErrCNSServiceNotDefined = errors.New("CNS service is not defined")
+		ErrCNSServiceNotDefined := errors.New("CNS service is not defined")
 		return nil, fmt.Errorf("Failed to create new gRPC server: %w", ErrCNSServiceNotDefined)
 	}
 

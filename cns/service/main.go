@@ -124,7 +124,6 @@ var (
 	z         *zap.Logger
 )
 
-
 // Version is populated by make during build.
 var version string
 
@@ -891,7 +890,7 @@ func main() {
 
 		// Start the gRPC server
 		go func() {
-			if grpcErr := server.Start(); err != nil {
+			if grpcErr := server.Start(); grpcErr != nil {
 				logger.Errorf("[Listener] Could not start gRPC server: %v", grpcErr)
 				return
 			}
