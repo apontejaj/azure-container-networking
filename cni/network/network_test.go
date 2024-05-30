@@ -1304,3 +1304,142 @@ func TestPluginSwiftV2Add(t *testing.T) {
 		})
 	}
 }
+
+func TestPluginSwiftV2MultipleAdd(t *testing.T) {
+	// checks cases where we create multiple endpoints in one call (also checks endpoint id)
+	// assumes we never get two infras created in one add call
+	plugin, _ := cni.NewPlugin("name", "0.3.0")
+
+	localNwCfg := cni.NetworkConfig{
+		CNIVersion:                 "0.3.0",
+		Name:                       "swiftv2",
+		ExecutionMode:              string(util.V4Overlay),
+		EnableExactMatchForPodName: true,
+		Master:                     "eth0",
+	}
+
+	args := &cniSkel.CmdArgs{
+		StdinData:   localNwCfg.Serialize(),
+		ContainerID: "test-container",
+		Netns:       "test-container",
+		Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "test-pod", "test-pod-ns"),
+		IfName:      eth0IfName,
+	}
+
+	tests := []struct {
+		name       string
+		plugin     *NetPlugin
+		args       *cniSkel.CmdArgs
+		wantErr    bool
+		wantErrMsg string
+		wantNumEps int
+		validEpIDs map[string]struct{}
+	}{
+		{
+			name: "SwiftV2 Add Infra and Delegated",
+			plugin: &NetPlugin{
+				Plugin: plugin,
+				nm:     acnnetwork.NewMockNetworkmanager(acnnetwork.NewMockEndpointClient(nil)),
+				ipamInvoker: NewCustomMockIpamInvoker(map[string]acnnetwork.InterfaceInfo{
+					"eth0-1": {
+						NICType: cns.DelegatedVMNIC,
+					},
+					"eth0": {
+						NICType: cns.InfraNIC,
+					},
+				}),
+				report: &telemetry.CNIReport{},
+				tb:     &telemetry.TelemetryBuffer{},
+				netClient: &InterfaceGetterMock{
+					interfaces: []net.Interface{
+						{Name: "eth0"},
+					},
+				},
+			},
+			args:       args,
+			wantErr:    false,
+			wantNumEps: 2,
+		},
+		{
+			name: "SwiftV2 Add Two Delegated",
+			plugin: &NetPlugin{
+				Plugin: plugin,
+				nm:     acnnetwork.NewMockNetworkmanager(acnnetwork.NewMockEndpointClient(nil)),
+				ipamInvoker: NewCustomMockIpamInvoker(map[string]acnnetwork.InterfaceInfo{
+					"eth0": {
+						NICType: cns.DelegatedVMNIC,
+					},
+					"eth0-1": {
+						NICType: cns.DelegatedVMNIC,
+					},
+				}),
+				report: &telemetry.CNIReport{},
+				tb:     &telemetry.TelemetryBuffer{},
+				netClient: &InterfaceGetterMock{
+					interfaces: []net.Interface{
+						{Name: "eth0"},
+					},
+				},
+			},
+			args:       args,
+			wantErr:    false,
+			wantNumEps: 2,
+		},
+		{
+			// creates 2 endpoints, the first succeeds, the second doesn't
+			// ensures that delete is called to clean up the first endpoint that succeeded
+			name: "SwiftV2 Partial Add fail",
+			plugin: &NetPlugin{
+				Plugin: plugin,
+				nm: acnnetwork.NewMockNetworkmanager(acnnetwork.NewMockEndpointClient(func(ep *acnnetwork.EndpointInfo) error {
+					if ep.NICType == cns.DelegatedVMNIC {
+						return acnnetwork.NewErrorMockEndpointClient("AddEndpoints Delegated VM NIC failed") //nolint:wrapcheck // ignore wrapping for test
+					}
+
+					return nil
+				})),
+				ipamInvoker: NewCustomMockIpamInvoker(map[string]acnnetwork.InterfaceInfo{
+					"eth0": {
+						NICType: cns.InfraNIC,
+					},
+					"eth0-1": {
+						NICType: cns.DelegatedVMNIC,
+					},
+				}),
+				report: &telemetry.CNIReport{},
+				tb:     &telemetry.TelemetryBuffer{},
+				netClient: &InterfaceGetterMock{
+					interfaces: []net.Interface{
+						{Name: "eth0"},
+					},
+				},
+			},
+			args:       args,
+			wantNumEps: 0,
+			wantErr:    true,
+			wantErrMsg: "failed to create endpoint: MockEndpointClient Error : AddEndpoints Delegated VM NIC failed",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.plugin.Add(tt.args)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Equal(t, tt.wantErrMsg, err.Error(), "Expected %v but got %+v", tt.wantErrMsg, err.Error())
+			} else {
+				require.NoError(t, err)
+			}
+			endpoints, _ := tt.plugin.nm.GetAllEndpoints(localNwCfg.Name)
+			require.Condition(t, assert.Comparison(func() bool { return len(endpoints) == tt.wantNumEps }))
+			for _, ep := range endpoints {
+				if ep.NICType == cns.InfraNIC {
+					require.Equal(t, "test-con-"+tt.args.IfName, ep.EndpointID, "infra nic must use ifname for its endpoint id")
+				} else {
+					require.Regexp(t, `test-con-\d+$`, ep.EndpointID, "other nics must use an index for their endpoint ids")
+				}
+			}
+		})
+	}
+}

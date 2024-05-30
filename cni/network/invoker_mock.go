@@ -31,6 +31,7 @@ type MockIpamInvoker struct {
 	delegatedVMNIC     bool
 	delegatedVMNICFail bool
 	ipMap              map[string]bool
+	customReturn       map[string]network.InterfaceInfo
 }
 
 func NewMockIpamInvoker(ipv6, v4Fail, v6Fail, delegatedVMNIC, delegatedVMNICFail bool) *MockIpamInvoker {
@@ -40,6 +41,13 @@ func NewMockIpamInvoker(ipv6, v4Fail, v6Fail, delegatedVMNIC, delegatedVMNICFail
 		v6Fail:             v6Fail,
 		delegatedVMNIC:     delegatedVMNIC,
 		delegatedVMNICFail: delegatedVMNICFail,
+
+		ipMap: make(map[string]bool),
+	}
+}
+func NewCustomMockIpamInvoker(customReturn map[string]network.InterfaceInfo) *MockIpamInvoker {
+	return &MockIpamInvoker{
+		customReturn: customReturn,
 
 		ipMap: make(map[string]bool),
 	}
@@ -102,6 +110,11 @@ func (invoker *MockIpamInvoker) Add(opt IPAMAddConfig) (ipamAddResult IPAMAddRes
 			IPConfigs: ipRes,
 			NICType:   cns.DelegatedVMNIC,
 		}
+	}
+
+	if invoker.customReturn != nil {
+		ipamAddResult.interfaceInfo = invoker.customReturn
+		return ipamAddResult, nil
 	}
 
 	return ipamAddResult, nil
