@@ -178,6 +178,7 @@ var _ = Describe("Test Endpoint", func() {
 				EndpointID: "768e8deb-eth1",
 				Data:       make(map[string]interface{}),
 				IfName:     eth0IfName,
+				NICType:    cns.InfraNIC,
 			}
 			epInfo.Data[VlanIDKey] = 100
 
@@ -204,6 +205,7 @@ var _ = Describe("Test Endpoint", func() {
 				Expect(len(ep.Gateways)).To(Equal(1))
 				Expect(ep.Gateways[0].String()).To(Equal("192.168.0.1"))
 				Expect(ep.VlanID).To(Equal(epInfo.Data[VlanIDKey].(int)))
+				Expect(ep.IfName).To(Equal(epInfo.IfName))
 			})
 			It("Should be not added", func() {
 				// Adding an endpoint with an id.
@@ -234,6 +236,33 @@ var _ = Describe("Test Endpoint", func() {
 				//nolint:errcheck // ignore error
 				nw.deleteEndpointImpl(netlink.NewMockNetlink(false, ""), platform.NewMockExecClient(false), mockCli, netio.NewMockNetIO(false, 0), NewMockNamespaceClient(), iptables.NewClient(), ep2)
 				Expect(len(mockCli.endpoints)).To(Equal(0))
+			})
+		})
+		Context("When endpoint added delegated", func() {
+			epInfo := &EndpointInfo{
+				EndpointID:   "768e8deb-eth1",
+				Data:         make(map[string]interface{}),
+				IfName:       eth0IfName,
+				MasterIfName: "masterIfName",
+				NICType:      cns.DelegatedVMNIC,
+			}
+			epInfo.Data[VlanIDKey] = 100
+
+			It("should have fields set", func() {
+				nw2 := &network{
+					Endpoints: map[string]*endpoint{},
+					extIf:     &externalInterface{IPv4Gateway: net.ParseIP("192.168.0.1")},
+				}
+				ep, err := nw2.newEndpointImpl(nil, netlink.NewMockNetlink(false, ""), platform.NewMockExecClient(false),
+					netio.NewMockNetIO(false, 0), NewMockEndpointClient(nil), NewMockNamespaceClient(), iptables.NewClient(), epInfo)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(ep).NotTo(BeNil())
+				Expect(ep.Id).To(Equal(epInfo.EndpointID))
+				Expect(ep.Gateways).NotTo(BeNil())
+				Expect(len(ep.Gateways)).To(Equal(1))
+				Expect(ep.Gateways[0].String()).To(Equal("192.168.0.1"))
+				Expect(ep.VlanID).To(Equal(epInfo.Data[VlanIDKey].(int)))
+				Expect(ep.IfName).To(Equal("masterIfName"))
 			})
 		})
 		Context("When endpoint add failed", func() {
