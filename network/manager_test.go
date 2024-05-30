@@ -287,7 +287,6 @@ var _ = Describe("Test Manager", func() {
 				Expect(epInfos[1].EndpointID).To(Equal("12345678-eth0"))
 				Expect(string(epInfos[1].NICType)).To(Equal(""))
 				Expect(epInfos[1].NetworkID).To(Equal("azure"))
-
 			})
 		})
 	})

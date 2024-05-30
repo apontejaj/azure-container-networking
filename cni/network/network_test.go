@@ -1305,7 +1305,7 @@ func TestPluginSwiftV2Add(t *testing.T) {
 	}
 }
 
-func TestPluginSwiftV2MultipleAdd(t *testing.T) {
+func TestPluginSwiftV2MultipleAddDelete(t *testing.T) {
 	// checks cases where we create multiple endpoints in one call (also checks endpoint id)
 	// assumes we never get two infras created in one add call
 	plugin, _ := cni.NewPlugin("name", "0.3.0")
@@ -1440,6 +1440,11 @@ func TestPluginSwiftV2MultipleAdd(t *testing.T) {
 					require.Regexp(t, `test-con-\d+$`, ep.EndpointID, "other nics must use an index for their endpoint ids")
 				}
 			}
+
+			err = tt.plugin.Delete(tt.args)
+			require.NoError(t, err)
+			endpoints, _ = tt.plugin.nm.GetAllEndpoints(localNwCfg.Name)
+			require.Condition(t, assert.Comparison(func() bool { return len(endpoints) == 0 }))
 		})
 	}
 }
