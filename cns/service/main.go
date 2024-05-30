@@ -544,7 +544,6 @@ func main() {
 	config.ErrChan = rootErrCh
 
 	// Create logging provider.
-	logDirectory = "."
 	logger.InitLogger(name, logLevel, logTarget, logDirectory)
 
 	if clientDebugCmd != "" {
@@ -693,17 +692,13 @@ func main() {
 	// Log platform information.
 	logger.Printf("Running on %v", platform.GetOSInfo())
 
-	// DO NOT MERGE
-	storeFileLocation = "./azure-cns.json"
 	err = platform.CreateDirectory(storeFileLocation)
 	if err != nil {
 		logger.Errorf("Failed to create File Store directory %s, due to Error:%v", storeFileLocation, err.Error())
 		return
 	}
 
-	// DO NOT MERGE
-	lockPath := "./"
-	lockclient, err := processlock.NewFileLock(lockPath + name + store.LockExtension)
+	lockclient, err := processlock.NewFileLock(platform.CNILockPath + name + store.LockExtension)
 	if err != nil {
 		log.Printf("Error initializing file lock:%v", err)
 		return
@@ -877,28 +872,28 @@ func main() {
 	}
 
 	// Conditionally initialize and start the gRPC server
-	if cnsconfig.GRPCSettings.EnableGRPC {
+	if cnsconfig.GRPCSettings.Enable {
 		// Define gRPC server settings
 		settings := grpc.GrpcServerSettings{
-			IPAddress: cnsconfig.GRPCSettings.GRPCServerIPAddress,
-			Port:      cnsconfig.GRPCSettings.GRPCServerPort,
+			IPAddress: cnsconfig.GRPCSettings.ServerIPAddress,
+			Port:      cnsconfig.GRPCSettings.ServerPort,
 		}
 
 		// Initialize CNS service
-		cnsService := &grpc.CNSService{Logger: z}
+		cnsService := &grpc.CNS{Logger: z}
 
 		// Create a new gRPC server
 		server, err := grpc.NewServer(settings, cnsService, z)
 		if err != nil {
 			logger.Errorf("[Listener] Could not initialize gRPC server: %v", err)
-			os.Exit(1)
+			return
 		}
 
 		// Start the gRPC server
 		go func() {
 			if err := server.Start(); err != nil {
 				logger.Errorf("[Listener] Could not start gRPC server: %v", err)
-				os.Exit(1)
+				return
 			}
 		}()
 	}

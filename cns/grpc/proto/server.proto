@@ -8,7 +8,7 @@ option go_package = "cns/grpc/cnsv1alpha";
 // and monitor nodes in an orchestrator's infrastructure.
 
 // CNSService defines the gRPC service exposed by CNS to interact with DNC.
-service CNSService {
+service CNS {
   // Sets the orchestrator information for a node.
   rpc SetOrchestratorInfo(SetOrchestratorInfoRequest) returns (SetOrchestratorInfoResponse);
 
