@@ -1446,3 +1446,115 @@ func Test_getInterfaceInfoKey(t *testing.T) {
 	require.Equal("", inv.getInterfaceInfoKey(cns.DelegatedVMNIC, ""))
 	require.Equal(string(cns.BackendNIC), inv.getInterfaceInfoKey(cns.BackendNIC, dummyMAC))
 }
+
+func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
+	require := require.New(t) //nolint further usage of require without passing t
+
+	macAddress := "12:34:56:78:9a:bc"
+	parsedMacAddress, _ := net.ParseMAC(macAddress)
+
+	type fields struct {
+		podName      string
+		podNamespace string
+		cnsClient    cnsclient
+	}
+
+	type args struct {
+		nwCfg            *cni.NetworkConfig
+		args             *cniSkel.CmdArgs
+		hostSubnetPrefix *net.IPNet
+		options          map[string]interface{}
+	}
+
+	tests := []struct {
+		name                        string
+		fields                      fields
+		args                        args
+		wantSecondaryInterfacesInfo map[string]network.InterfaceInfo
+		wantErr                     bool
+	}{
+		{
+			name: "Test happy CNI add with swiftv2 multitenant result",
+			fields: fields{
+				podName:      testPodInfo.PodName,
+				podNamespace: testPodInfo.PodNamespace,
+				cnsClient: &MockCNSClient{
+					require: require,
+					requestIPs: requestIPsHandler{
+						ipconfigArgument: cns.IPConfigsRequest{
+							PodInterfaceID:      "testcont-testifname1",
+							InfraContainerID:    "testcontainerid1",
+							OrchestratorContext: marshallPodInfo(testPodInfo),
+						},
+						result: &cns.IPConfigsResponse{
+							PodIPInfo: []cns.PodIpInfo{
+								{
+									PodIPConfig: cns.IPSubnet{
+										IPAddress:    "10.1.1.10",
+										PrefixLength: 24,
+									},
+									HostPrimaryIPInfo: cns.HostIPInfo{
+										Gateway:   "10.0.0.1",
+										PrimaryIP: "10.0.0.2",
+										Subnet:    "10.0.0.1/24",
+									},
+									NICType:    cns.DelegatedVMNIC,
+									MacAddress: macAddress,
+								},
+							},
+							Response: cns.Response{
+								ReturnCode: 0,
+								Message:    "",
+							},
+						},
+						err: nil,
+					},
+				},
+			},
+			args: args{
+				nwCfg: &cni.NetworkConfig{},
+				args: &cniSkel.CmdArgs{
+					ContainerID: "testcontainerid1",
+					Netns:       "testnetns1",
+					IfName:      "testifname1",
+				},
+				hostSubnetPrefix: getCIDRNotationForAddress("10.0.0.1/24"),
+				options:          map[string]interface{}{},
+			},
+			wantSecondaryInterfacesInfo: map[string]network.InterfaceInfo{
+				macAddress: network.InterfaceInfo{
+					IPConfigs: []*network.IPConfig{
+						{
+							Address: *getCIDRNotationForAddress("10.1.1.10/24"),
+						},
+					},
+					Routes:     []network.RouteInfo{},
+					NICType:    cns.DelegatedVMNIC,
+					MacAddress: parsedMacAddress,
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			invoker := &CNSIPAMInvoker{
+				podName:      tt.fields.podName,
+				podNamespace: tt.fields.podNamespace,
+				cnsClient:    tt.fields.cnsClient,
+			}
+			ipamAddResult, err := invoker.Add(IPAMAddConfig{nwCfg: tt.args.nwCfg, args: tt.args.args, options: tt.args.options})
+			if tt.wantErr {
+				require.Error(err)
+			} else {
+				require.NoError(err)
+			}
+
+			fmt.Printf("want:%+v\nrest:%+v\n", tt.wantSecondaryInterfacesInfo, ipamAddResult.interfaceInfo)
+			if len(tt.wantSecondaryInterfacesInfo[macAddress].IPConfigs) > 0 {
+				require.EqualValues(tt.wantSecondaryInterfacesInfo, ipamAddResult.interfaceInfo, "incorrect multitenant response")
+			}
+		})
+	}
+}
