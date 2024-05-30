@@ -25,6 +25,12 @@ var (
 
 	testPod4GUID = "b21e1ee1-fb7e-4e6d-8c68-22ee5049944e"
 	testPod4Info = cns.NewPodInfo("b21e1e-eth0", testPod4GUID, "testpod4", "testpod4namespace")
+
+	testPod5GUID = "898fb8f1-f93e-4c96-9c31-6b89098949a3"
+	testPod5Info = cns.NewPodInfo("898fb8-eth0", testPod5GUID, "testpod5", "testpod5namespace")
+
+	testPod6GUID = "898fb8f1-f93e-4c96-9c31-6b89098949a3"
+	testPod6Info = cns.NewPodInfo("898fb8-eth0", testPod6GUID, "testpod6", "testpod6namespace")
 )
 
 func TestMain(m *testing.M) {
@@ -69,8 +75,8 @@ func TestIPConfigsRequestHandlerWrapperSuccess(t *testing.T) {
 	happyReq.OrchestratorContext = b
 	resp, err := wrappedHandler(context.TODO(), happyReq)
 	assert.Equal(t, err, nil)
-	assert.Equal(t, resp.PodIPInfo[2].PodIPConfig.IPAddress, "192.168.0.1")
-	assert.Equal(t, resp.PodIPInfo[2].MacAddress, "00:00:00:00:00:00")
+	assert.Equal(t, resp.PodIPInfo[0].PodIPConfig.IPAddress, "192.168.0.1")
+	assert.Equal(t, resp.PodIPInfo[0].MacAddress, "00:00:00:00:00:00")
 }
 
 func TestIPConfigsRequestHandlerWrapperFailure(t *testing.T) {
@@ -179,10 +185,13 @@ func TestGetSWIFTv2IPConfigSuccess(t *testing.T) {
 
 	middleware := K8sSWIFTv2Middleware{Cli: mock.NewClient()}
 
-	ipInfo, err := middleware.getIPConfig(context.TODO(), testPod1Info)
+	ipInfos, err := middleware.getIPConfig(context.TODO(), testPod1Info)
 	assert.Equal(t, err, nil)
-	assert.Equal(t, ipInfo.NICType, cns.DelegatedVMNIC)
-	assert.Equal(t, ipInfo.SkipDefaultRoutes, false)
+	// Ensure that the length of ipInfos matches the number of InterfaceInfos
+	// Adjust this according to the test setup
+	assert.Equal(t, len(ipInfos), 1)
+	assert.Equal(t, ipInfos[0].NICType, cns.DelegatedVMNIC)
+	assert.Equal(t, ipInfos[0].SkipDefaultRoutes, false)
 }
 
 func TestGetSWIFTv2IPConfigFailure(t *testing.T) {
@@ -330,4 +339,39 @@ func TestSetRoutesFailure(t *testing.T) {
 			t.Errorf("SetRoutes should fail due to env var not set")
 		}
 	}
+}
+
+func TestAddRoutes(t *testing.T) {
+	cidrs := []string{"10.0.0.0/24", "20.0.0.0/24"}
+	gatewayIP := "192.168.1.1"
+	routes := addRoutes(cidrs, gatewayIP)
+	expectedRoutes := []cns.Route{
+		{
+			IPAddress:        "10.0.0.0/24",
+			GatewayIPAddress: gatewayIP,
+		},
+		{
+			IPAddress:        "20.0.0.0/24",
+			GatewayIPAddress: gatewayIP,
+		},
+	}
+	assert.Equal(t, expectedRoutes, routes, "expected routes to match the expected routes")
+}
+
+func TestNICTypeConfigSuccess(t *testing.T) {
+	middleware := K8sSWIFTv2Middleware{Cli: mock.NewClient()}
+
+	// Test Accelnet Frontend NIC type
+	ipInfos, err := middleware.getIPConfig(context.TODO(), testPod6Info)
+	assert.Equal(t, err, nil)
+	// Ensure that the length of ipInfos matches the number of InterfaceInfos
+	// Adjust this according to the test setup
+	assert.Equal(t, len(ipInfos), 1)
+	assert.Equal(t, ipInfos[0].NICType, cns.NodeNetworkInterfaceAccelnetFrontendNIC)
+
+	// Test Backend NIC type
+	ipInfos2, err := middleware.getIPConfig(context.TODO(), testPod5Info)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, len(ipInfos2), 1)
+	assert.Equal(t, ipInfos2[0].NICType, cns.BackendNIC)
 }
