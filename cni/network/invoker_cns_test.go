@@ -1522,7 +1522,7 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 				options:          map[string]interface{}{},
 			},
 			wantSecondaryInterfacesInfo: map[string]network.InterfaceInfo{
-				macAddress: network.InterfaceInfo{
+				macAddress: {
 					IPConfigs: []*network.IPConfig{
 						{
 							Address: *getCIDRNotationForAddress("10.1.1.10/24"),
