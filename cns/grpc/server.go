@@ -83,6 +83,12 @@ func (s *Server) Start() error {
 	return nil
 }
 
+// HealthCheck is a simple method to check if the server is running.
+func (s *CNS) HealthCheck(ctx context.Context, req *pb.HealthCheckRequest) (*pb.HealthCheckResponse, error) {
+	s.Logger.Info("HealthCheck called")
+	return &pb.HealthCheckResponse{Status: "Server is running"}, nil
+}
+
 // areNCsPresent returns true if NCs are present in CNS, false if no NCs are present.
 func (s *CNS) areNCsPresent() bool {
 	if len(s.state.ContainerStatus) == 0 && len(s.state.ContainerIDByOrchestratorContext) == 0 {

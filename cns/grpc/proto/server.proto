@@ -15,6 +15,9 @@ service CNS {
   // Retrieves detailed information about a specific node.
   // Primarily used for health checks.
   rpc GetNodeInfo(NodeInfoRequest) returns (NodeInfoResponse);
+
+  // HealthCheck is a simple method to check if the server is running.
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
 }
 
 // SetOrchestratorInfoRequest is the request message for setting the orchestrator information.
@@ -40,4 +43,12 @@ message NodeInfoResponse {
   bool isHealthy = 4; // Indicates whether the node is healthy or not.
   string status = 5; // The current status of the node (e.g., running, stopped).
   string message = 6; // Additional information about the node's health or status.
+}
+
+// HealthCheckRequest is the request message for health check.
+message HealthCheckRequest {}
+
+// HealthCheckResponse is the response message for health check.
+message HealthCheckResponse {
+  string status = 1; // The status message of the health check.
 }

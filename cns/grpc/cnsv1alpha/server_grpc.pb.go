@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion7
 const (
 	CNS_SetOrchestratorInfo_FullMethodName = "/cns.CNS/SetOrchestratorInfo"
 	CNS_GetNodeInfo_FullMethodName         = "/cns.CNS/GetNodeInfo"
+	CNS_HealthCheck_FullMethodName         = "/cns.CNS/HealthCheck"
 )
 
 // CNSClient is the client API for CNS service.
@@ -32,6 +33,8 @@ type CNSClient interface {
 	// Retrieves detailed information about a specific node.
 	// Primarily used for health checks.
 	GetNodeInfo(ctx context.Context, in *NodeInfoRequest, opts ...grpc.CallOption) (*NodeInfoResponse, error)
+	// HealthCheck is a simple method to check if the server is running.
+	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
 }
 
 type cNSClient struct {
@@ -60,6 +63,15 @@ func (c *cNSClient) GetNodeInfo(ctx context.Context, in *NodeInfoRequest, opts .
 	return out, nil
 }
 
+func (c *cNSClient) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
+	out := new(HealthCheckResponse)
+	err := c.cc.Invoke(ctx, CNS_HealthCheck_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CNSServer is the server API for CNS service.
 // All implementations must embed UnimplementedCNSServer
 // for forward compatibility
@@ -69,6 +81,8 @@ type CNSServer interface {
 	// Retrieves detailed information about a specific node.
 	// Primarily used for health checks.
 	GetNodeInfo(context.Context, *NodeInfoRequest) (*NodeInfoResponse, error)
+	// HealthCheck is a simple method to check if the server is running.
+	HealthCheck(context.Context, *HealthCheckRequest) (*HealthCheckResponse, error)
 	mustEmbedUnimplementedCNSServer()
 }
 
@@ -81,6 +95,9 @@ func (UnimplementedCNSServer) SetOrchestratorInfo(context.Context, *SetOrchestra
 }
 func (UnimplementedCNSServer) GetNodeInfo(context.Context, *NodeInfoRequest) (*NodeInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetNodeInfo not implemented")
+}
+func (UnimplementedCNSServer) HealthCheck(context.Context, *HealthCheckRequest) (*HealthCheckResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method HealthCheck not implemented")
 }
 func (UnimplementedCNSServer) mustEmbedUnimplementedCNSServer() {}
 
@@ -131,6 +148,24 @@ func _CNS_GetNodeInfo_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CNS_HealthCheck_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HealthCheckRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CNSServer).HealthCheck(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CNS_HealthCheck_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CNSServer).HealthCheck(ctx, req.(*HealthCheckRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CNS_ServiceDesc is the grpc.ServiceDesc for CNS service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -145,6 +180,10 @@ var CNS_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetNodeInfo",
 			Handler:    _CNS_GetNodeInfo_Handler,
+		},
+		{
+			MethodName: "HealthCheck",
+			Handler:    _CNS_HealthCheck_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
