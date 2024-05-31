@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	pb "github.com/Azure/azure-container-networking/cns/grpc/cnsv1alpha"
+	pb "github.com/Azure/azure-container-networking/cns/grpc/v1alpha"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -34,7 +34,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	// Example request to check server health
+	// Request to check server health
 	healthCheckRequest := &pb.HealthCheckRequest{}
 
 	// Make the gRPC call to HealthCheck
@@ -45,7 +45,21 @@ func main() {
 
 	log.Printf("HealthCheck response: %v", resp.Status)
 
-	// Example request to set orchestrator info
+	// Request to get node info
+	nodeInfoRequest := &pb.NodeInfoRequest{
+		NodeID: "Node123",
+	}
+
+	// Make the gRPC call to GetNodeInfo
+	nodeInfoResp, err := client.GetNodeInfo(ctx, nodeInfoRequest)
+	if err != nil {
+		log.Fatalf("failed to get node info: %v", err)
+	}
+
+	log.Printf("GetNodeInfo response: NodeID=%v, Name=%v, IP=%v, IsHealthy=%v, Status=%v, Message=%v",
+		nodeInfoResp.NodeID, nodeInfoResp.Name, nodeInfoResp.Ip, nodeInfoResp.IsHealthy, nodeInfoResp.Status, nodeInfoResp.Message)
+
+	// Request to set orchestrator info
 	// orchestratorRequest := &pb.SetOrchestratorInfoRequest{
 	// 	DncPartitionKey:  "examplePartitionKey",
 	// 	NodeID:           "exampleNodeID",

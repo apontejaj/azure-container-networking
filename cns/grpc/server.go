@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-container-networking/cns"
-	pb "github.com/Azure/azure-container-networking/cns/grpc/cnsv1alpha"
+	pb "github.com/Azure/azure-container-networking/cns/grpc/v1alpha"
 	"github.com/Azure/azure-container-networking/cns/logger"
 	"github.com/Azure/azure-container-networking/cns/restserver"
 	"github.com/Azure/azure-container-networking/cns/types"
@@ -126,7 +126,7 @@ func (s *CNS) SetOrchestratorInfo(ctx context.Context, req *pb.SetOrchestratorIn
 	var returnMessage string
 	var returnCode types.ResponseCode
 
-	if nodeID == "" || nodeID == req.NodeID || !s.areNCsPresent(){
+	if nodeID == "" || nodeID == req.NodeID || !s.areNCsPresent() {
 		switch req.OrchestratorType {
 		case cns.ServiceFabric, cns.Kubernetes, cns.KubernetesCRD, cns.WebApps, cns.Batch, cns.DBforPostgreSQL, cns.AzureFirstParty:
 			s.state.OrchestratorType = req.OrchestratorType
@@ -149,4 +149,25 @@ func (s *CNS) SetOrchestratorInfo(ctx context.Context, req *pb.SetOrchestratorIn
 
 	s.Unlock()
 	return resp, nil
+}
+
+// GetNodeInfo handles retrieving detailed information about a specific node.
+func (s *CNS) GetNodeInfo(ctx context.Context, req *pb.NodeInfoRequest) (*pb.NodeInfoResponse, error) {
+	s.Logger.Info("GetNodeInfo called", zap.String("nodeID", req.NodeID))
+
+	s.RLock()
+	defer s.RUnlock()
+
+	// Simulate getting node information.
+	nodeInfo := &pb.NodeInfoResponse{
+		NodeID:    req.NodeID,
+		Name:      "Sample",
+		Ip:        "192.168.1.1",
+		IsHealthy: true,
+		Status:    "running",
+		Message:   "Node is healthy",
+	}
+
+	s.Logger.Info("GetNodeInfo response", zap.String("nodeID", nodeInfo.NodeID), zap.String("status", nodeInfo.Status))
+	return nodeInfo, nil
 }
