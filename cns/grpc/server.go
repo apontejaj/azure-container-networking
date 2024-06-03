@@ -1,14 +1,12 @@
 package grpc
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net"
 	"strconv"
 
 	pb "github.com/Azure/azure-container-networking/cns/grpc/v1alpha"
-	"github.com/Azure/azure-container-networking/cns/restserver"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -26,13 +24,6 @@ type Server struct {
 type ServerSettings struct {
 	IPAddress string
 	Port      uint16
-}
-
-// CNSService defines the CNS gRPC service.
-type CNS struct {
-	pb.UnimplementedCNSServer
-	Logger *zap.Logger
-	State  *restserver.HTTPRestService
 }
 
 // NewServer initializes a new gRPC server instance.
@@ -72,11 +63,4 @@ func (s *Server) Start() error {
 	}
 
 	return nil
-}
-
-func (s *Server) SetOrchestratorInfo(context.Context, *pb.SetOrchestratorInfoRequest) (*pb.SetOrchestratorInfoResponse, error) {
-	return &pb.SetOrchestratorInfoResponse{}, nil
-}
-func (s *Server) GetNodeInfo(context.Context, *pb.NodeInfoRequest) (*pb.NodeInfoResponse, error) {
-	return &pb.NodeInfoResponse{}, nil
 }
