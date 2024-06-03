@@ -955,4 +955,7 @@ help: ## Display this help
 
 proto-gen: ## Generates source code from protobuf files
 	protoc --go_out=. --go-grpc_out=. cns/grpc/proto/server.proto
+<<<<<<< HEAD
 	
+=======
+>>>>>>> origin/master
