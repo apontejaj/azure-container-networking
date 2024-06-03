@@ -399,7 +399,9 @@ func FetchMacAddressPnpIDMapping(execClient ExecClient) (map[string]string, erro
 			parts := strings.Split(line, " ")
 			// Changing the format of macaddress from xx-xx-xx-xx to xx:xx:xx:xx
 			formattedMacaddress, err := net.ParseMAC(parts[0])
-			log.Errorf("Error in parsing MAC", err)
+			if err != nil {
+				return nil, err
+			}
 			key := formattedMacaddress.String()
 			value := parts[1]
 			result[key] = value
