@@ -433,8 +433,9 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		}
 
 		// stdout multiple cniResults for containerd to create multiple pods
-		for _, cniResult := range cniResults {
-			addSnatInterface(nwCfg, &cniResult) // TODO: check whether Linux supports adding secondary snatinterface
+		// containerd receives each cniResult as the stdout and create pod
+		for _, cniResult := range cniResults { //nolint
+			addSnatInterface(nwCfg, &cniResult) //nolint TODO: check whether Linux supports adding secondary snatinterface
 
 			// Convert result to the requested CNI version.
 			res, vererr := cniResult.GetAsVersion(nwCfg.CNIVersion)
@@ -1213,7 +1214,7 @@ func (plugin *NetPlugin) Update(args *cniSkel.CmdArgs) error {
 		res, vererr := result.GetAsVersion(nwCfg.CNIVersion)
 		if vererr != nil {
 			logger.Error("GetAsVersion failed", zap.Error(vererr))
-			plugin.Error(vererr)
+			plugin.Error(vererr) //nolint
 		}
 
 		if err == nil && res != nil {

@@ -406,12 +406,12 @@ func (nm *networkManager) newNetworkImplHnsV2(nwInfo *EndpointInfo, extIf *exter
 	// disable and dismount VF before hnsNetwork is created if NIC type is IB
 	if nwInfo.NICType == cns.BackendNIC {
 		// step 1: disable VF
-		if err := nm.DisableVFDevice(nwInfo.PnPID); err != nil {
+		if err := nm.DisableVFDevice(nwInfo.PnPID); err != nil { //nolint
 			return nil, err
 		}
 
 		// step 2: dismount VF
-		if err := nm.DisamountVFDevice(nwInfo.PnPID); err != nil {
+		if err := nm.DisamountVFDevice(nwInfo.PnPID); err != nil { //nolint
 			return nil, err
 		}
 	}
