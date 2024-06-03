@@ -22,7 +22,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-
 // This file contains the utility/helper functions called by either HTTP APIs or Exported/Internal APIs on HTTPRestService
 
 // Get the network info from the service network state
@@ -47,7 +46,7 @@ func (service *HTTPRestService) SetPnpIDMacaddressMapping() error {
 	p := platform.NewExecClient(nil)
 	VfMacAddressMapping, err := platform.FetchMacAddressPnpIDMapping(p)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to fetch MACAddressPnpIDMapping")
 	}
 	service.PnpIDByMacAddress = VfMacAddressMapping
 	return nil

@@ -820,15 +820,18 @@ func main() {
 	// Initialze state in if CNS is running in CRD mode
 	// State must be initialized before we start HTTPRestService
 	if config.ChannelMode == cns.CRD {
+
+		if cnsconfig.EnableSwiftV2 && cnsconfig.SWIFTV2Mode == configuration.K8sSWIFTV2 {
+			// No-op for linux, mapping is set for windows in aks swiftv2 scenario
+			httpRemoteRestService.SetPnpIDMacaddressMapping()
+		}
+
 		// Check the CNI statefile mount, and if the file is empty
 		// stub an empty JSON object
 		if err := cnireconciler.WriteObjectToCNIStatefile(); err != nil {
 			logger.Errorf("Failed to write empty object to CNI state: %v", err)
 			return
 		}
-
-		// No-op for linux, mapping is set for windows in aks swiftv2 scenario
-		httpRestService.SetPnpIDMacaddressMapping()
 
 		// We might be configured to reinitialize state from the CNI instead of the apiserver.
 		// If so, we should check that the CNI is new enough to support the state commands,
