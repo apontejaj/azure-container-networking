@@ -422,37 +422,37 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 		// Add Interfaces to result.
 		// previously just logged the default (infra) interface so this is equivalent behavior
-		cniResult := &cniTypesCurr.Result{}
+		cniResults := []cniTypesCurr.Result{}
 		for key := range ipamAddResult.interfaceInfo {
 			logger.Info("Exiting add, interface info retrieved", zap.Any("ifInfo", ipamAddResult.interfaceInfo[key]))
 			// previously we had a default interface info to select which interface info was the one to be returned from cni add
 			// now we have to infer which interface info should be returned
 			// we assume that we want to return the infra nic always, and if that is not found, return any one of the secondary interfaces
 			// if there is an infra nic + secondary, we will always return the infra nic (linux swift v2)
-			cniResult = convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[key], args.IfName)
-			if ipamAddResult.interfaceInfo[key].NICType == cns.InfraNIC {
-				break
+			cniResults = append(cniResults, *plugin.convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[key], args.IfName))
+		}
+
+		// stdout multiple cniResults for containerd to create multiple pods
+		for _, cniResult := range cniResults {
+			addSnatInterface(nwCfg, &cniResult) // TODO: check whether Linux supports adding secondary snatinterface
+
+			// Convert result to the requested CNI version.
+			res, vererr := cniResult.GetAsVersion(nwCfg.CNIVersion)
+			if vererr != nil {
+				logger.Error("GetAsVersion failed", zap.Error(vererr))
+				plugin.Error(vererr)
 			}
+
+			if err == nil && res != nil {
+				// Output the result to stdout.
+				res.Print()
+			}
+
+			logger.Info("ADD command completed for",
+				zap.String("pod", k8sPodName),
+				zap.Any("IPs", cniResult.IPs),
+				zap.Error(err))
 		}
-
-		addSnatInterface(nwCfg, cniResult)
-
-		// Convert result to the requested CNI version.
-		res, vererr := cniResult.GetAsVersion(nwCfg.CNIVersion)
-		if vererr != nil {
-			logger.Error("GetAsVersion failed", zap.Error(vererr))
-			plugin.Error(vererr)
-		}
-
-		if err == nil && res != nil {
-			// Output the result to stdout.
-			res.Print()
-		}
-
-		logger.Info("ADD command completed for",
-			zap.String("pod", k8sPodName),
-			zap.Any("IPs", cniResult.IPs),
-			zap.Error(err))
 	}()
 
 	ipamAddResult = IPAMAddResult{interfaceInfo: make(map[string]network.InterfaceInfo)}

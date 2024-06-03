@@ -53,6 +53,7 @@ type IPResultInfo struct {
 	macAddress         string
 	skipDefaultRoutes  bool
 	routes             []cns.Route
+	pnpID              string
 }
 
 func (i IPResultInfo) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
@@ -486,6 +487,7 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 		NICType:           info.nicType,
 		MacAddress:        macAddress,
 		SkipDefaultRoutes: info.skipDefaultRoutes,
+		PnPID:             info.pnpID,
 	}
 
 	return nil

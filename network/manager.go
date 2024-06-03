@@ -119,6 +119,7 @@ type NetworkManager interface {
 	SaveState(eps []*endpoint) error
 	DeleteState(epInfos []*EndpointInfo) error
 	GetEndpointInfosFromContainerID(containerID string) []*EndpointInfo
+	GetEndpointState(networkID, containerID string) ([]*EndpointInfo, error)
 
 	GetPnPDeviceID(instanceID string) (string, error)
 }
