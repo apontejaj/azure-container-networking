@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -71,4 +72,11 @@ func (s *Server) Start() error {
 	}
 
 	return nil
+}
+
+func (s *Server) SetOrchestratorInfo(context.Context, *pb.SetOrchestratorInfoRequest) (*pb.SetOrchestratorInfoResponse, error) {
+	return &pb.SetOrchestratorInfoResponse{}, nil
+}
+func (s *Server) GetNodeInfo(context.Context, *pb.NodeInfoRequest) (*pb.NodeInfoResponse, error) {
+	return &pb.NodeInfoResponse{}, nil
 }
