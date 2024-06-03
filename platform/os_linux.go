@@ -136,7 +136,7 @@ func (p *execClient) ExecutePowershellCommand(_ string) (string, error) {
 	return "", nil
 }
 
-func (p *execClient) ExecutePowershellCommandWithContext(_ string, ctx context.Context) (string, error) {
+func (p *execClient) ExecutePowershellCommandWithContext(_ string, _ context.Context) (string, error) {
 	return "", nil
 }
 
@@ -205,6 +205,6 @@ func HasMellanoxAdapter() bool {
 // Not needed for Linux
 func MonitorAndSetMellanoxRegKeyPriorityVLANTag(_ context.Context, _ int) {}
 
-func FetchMacAddressPnpIDMapping(execClient ExecClient) (map[string]string, error) {
+func FetchMacAddressPnpIDMapping(_ ExecClient) (map[string]string, error) {
 	return nil, nil
 }
