@@ -6,7 +6,7 @@ import (
 	"net"
 	"strconv"
 
-	pb "github.com/Azure/azure-container-networking/cns/grpc/cnsv1alpha"
+	pb "github.com/Azure/azure-container-networking/cns/grpc/v1alpha"
 	"github.com/Azure/azure-container-networking/cns/restserver"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
