@@ -109,8 +109,8 @@ type EndpointInfo struct {
 	Options                       map[string]interface{}
 	DisableHairpinOnHostInterface bool
 	IsIPv6Enabled                 bool
-
-	HostSubnetPrefix string // can be used later to add an external interface
+	PnPID                         string
+	HostSubnetPrefix              string // can be used later to add an external interface
 }
 
 // RouteInfo contains information about an IP route.

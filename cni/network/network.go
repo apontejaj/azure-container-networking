@@ -1404,12 +1404,18 @@ func convertNnsToIPConfigs(
 	return ipConfigs
 }
 
-func convertInterfaceInfoToCniResult(info network.InterfaceInfo, ifName string) *cniTypesCurr.Result {
+func (plugin *NetPlugin) convertInterfaceInfoToCniResult(info network.InterfaceInfo, ifName string) *cniTypesCurr.Result {
+	var pnpDeviceID string
+	if info.NICType == cns.BackendNIC {
+		pnpDeviceID, _ = plugin.nm.GetPnPDeviceID(info.PnPID)
+	}
+
 	result := &cniTypesCurr.Result{
 		Interfaces: []*cniTypesCurr.Interface{
 			{
-				Name: ifName,
-				Mac:  info.MacAddress.String(),
+				Name:  ifName,
+				Mac:   info.MacAddress.String(),
+				PciID: pnpDeviceID,
 			},
 		},
 		DNS: cniTypes.DNS{
