@@ -105,6 +105,7 @@ steps:
   - script: |
       echo "validate pod IP assignment before CNS restart"
       kubectl get pod -owide -A
+      cd test/integration/load
       CNI_TYPE=cilium_dualstack go test -timeout 30m -tags load -run ^TestValidateState$
       echo "restart CNS"
       kubectl rollout restart ds azure-cns -n kube-system
