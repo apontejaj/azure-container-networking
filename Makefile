@@ -127,8 +127,8 @@ all-binaries-platforms: ## Make all platform binaries
 
 # OS specific binaries/images
 ifeq ($(GOOS),linux)
-all-binaries: acncli azure-cni-plugin azure-cns azure-npm azure-ipam
-all-images: npm-image cns-image cni-manager-image
+all-binaries: acncli azure-cni-plugin azure-cns azure-npm azure-ipam ipv6-hp-bpf
+all-images: npm-image cns-image cni-manager-image ipv6-hp-bpf-image
 else
 all-binaries: azure-cni-plugin azure-cns azure-npm
 all-images:
@@ -392,7 +392,7 @@ ipv6-hp-bpf-image-name-and-tag: # util target to print the ipv6-hp-bpf image nam
 
 ipv6-hp-bpf-image: ## build ipv6-hp-bpf container image.
 	$(MAKE) container \
-		DOCKERFILE=bpf-prog/ipv6-hp-bpf/$(OS).Dockerfile \
+		DOCKERFILE=bpf-prog/ipv6-hp-bpf/$(OS)-$(ARCH).Dockerfile \
 		IMAGE=$(IPV6_HP_BPF_IMAGE) \
 		EXTRA_BUILD_ARGS='--build-arg OS=$(OS) --build-arg ARCH=$(ARCH) --build-arg OS_VERSION=$(OS_VERSION) --build-arg DEBUG=$(DEBUG)'\
 		PLATFORM=$(PLATFORM) \
@@ -622,6 +622,23 @@ azure-ipam-skopeo-archive: ## export tar archive of azure-ipam multiplat contain
 	$(MAKE) manifest-skopeo-archive \
 		IMAGE=$(AZURE_IPAM_IMAGE) \
 		TAG=$(AZURE_IPAM_VERSION)
+
+ipv6-hp-bpf-manifest-build: ## build ipv6-hp-bpf multiplat container manifest.
+	$(MAKE) manifest-build \
+		PLATFORMS="$(PLATFORMS)" \
+		IMAGE=$(IPV6_HP_BPF_IMAGE) \
+		TAG=$(IPV6_HP_BPF_VERSION) \
+		OS_VERSIONS="$(OS_VERSIONS)"
+
+ipv6-hp-bpf-manifest-push: ## push ipv6-hp-bpf multiplat container manifest
+	$(MAKE) manifest-push \
+		IMAGE=$(IPV6_HP_BPF_IMAGE) \
+		TAG=$(IPV6_HP_BPF_VERSION)
+
+ipv6-hp-bpf-skopeo-archive: ## export tar archive of ipv6-hp-bpf multiplat container manifest.
+	$(MAKE) manifest-skopeo-archive \
+		IMAGE=$(IPV6_HP_BPF_IMAGE) \
+		TAG=$(IPV6_HP_BPF_VERSION)
 
 cni-manifest-build: ## build cni multiplat container manifest.
 	$(MAKE) manifest-build \
