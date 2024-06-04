@@ -184,7 +184,7 @@ azure-ipam-binary:
 
 # Build the ipv6-hp-bpf binary.
 ipv6-hp-bpf-binary:
-	sudo apt-get update && apt-get install -y llvm clang linux-libc-dev linux-headers-generic libbpf-dev libc6-dev nftables iproute2
+	sudo apt-get update && sudo apt-get install -y llvm clang linux-libc-dev linux-headers-generic libbpf-dev libc6-dev nftables iproute2
 	cd $(IPV6_HP_BPF_DIR) && CGO_ENABLED=0 go generate ./... 
 	cd $(IPV6_HP_BPF_DIR)/cmd/ipv6-hp-bpf && CGO_ENABLED=0 go build -v -o $(IPV6_HP_BPF_BUILD_DIR)$(EXE_EXT) -ldflags "-X main.version=$(IPV6_HP_BPF_VERSION)" -gcflags="-dwarflocationlists=true"
 
