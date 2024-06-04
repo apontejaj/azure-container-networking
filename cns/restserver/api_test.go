@@ -261,7 +261,7 @@ func TestSetOrchestratorType_NCsPresent(t *testing.T) {
 		{
 			name: "Node already set, and has NCs, so registration should fail",
 			service: &HTTPRestService{
-				state: &httpRestServiceState{
+				state: &HttpRestServiceState{
 					NodeID: "node1",
 					ContainerStatus: map[string]containerstatus{
 						"nc1": {},
@@ -289,7 +289,7 @@ func TestSetOrchestratorType_NCsPresent(t *testing.T) {
 		{
 			name: "Node already set, with no NCs, so registration should succeed",
 			service: &HTTPRestService{
-				state: &httpRestServiceState{
+				state: &HttpRestServiceState{
 					NodeID: "node1",
 				},
 			},

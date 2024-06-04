@@ -1087,7 +1087,7 @@ func TestCNIConflistGenerationNewNC(t *testing.T) {
 	mockgen := &mockCNIConflistGenerator{}
 	service := &HTTPRestService{
 		cniConflistGenerator: mockgen,
-		state: &httpRestServiceState{
+		state: &HttpRestServiceState{
 			ContainerStatus: map[string]containerstatus{
 				ncID: {
 					ID:          ncID,
@@ -1124,7 +1124,7 @@ func TestCNIConflistGenerationExistingNC(t *testing.T) {
 	mockgen := &mockCNIConflistGenerator{}
 	service := &HTTPRestService{
 		cniConflistGenerator: mockgen,
-		state: &httpRestServiceState{
+		state: &HttpRestServiceState{
 			ContainerStatus: map[string]containerstatus{
 				ncID: {
 					ID:          ncID,
@@ -1150,7 +1150,7 @@ func TestCNIConflistGenerationNewNCTwice(t *testing.T) {
 	mockgen := &mockCNIConflistGenerator{}
 	service := &HTTPRestService{
 		cniConflistGenerator: mockgen,
-		state: &httpRestServiceState{
+		state: &HttpRestServiceState{
 			ContainerStatus: map[string]containerstatus{
 				ncID: {
 					ID:          ncID,
@@ -1192,7 +1192,7 @@ func TestCNIConflistNotGenerated(t *testing.T) {
 	mockgen := &mockCNIConflistGenerator{}
 	service := &HTTPRestService{
 		cniConflistGenerator: mockgen,
-		state: &httpRestServiceState{
+		state: &HttpRestServiceState{
 			ContainerStatus: map[string]containerstatus{
 				newNCID: {
 					ID:          newNCID,
@@ -1224,7 +1224,7 @@ func TestCNIConflistGenerationOnNMAError(t *testing.T) {
 	mockgen := &mockCNIConflistGenerator{}
 	service := &HTTPRestService{
 		cniConflistGenerator: mockgen,
-		state: &httpRestServiceState{
+		state: &HttpRestServiceState{
 			ContainerStatus: map[string]containerstatus{
 				newNCID: {
 					ID:          newNCID,
@@ -1362,7 +1362,7 @@ func TestMustEnsureNoStaleNCs(t *testing.T) {
 
 			svc := HTTPRestService{
 				store:            store.NewMockStore("foo"),
-				state:            &httpRestServiceState{ContainerStatus: tt.storedNCs},
+				state:            &HttpRestServiceState{ContainerStatus: tt.storedNCs},
 				PodIPConfigState: tt.ipStates,
 			}
 
@@ -1396,7 +1396,7 @@ func TestMustEnsureNoStaleNCs_PanicsWhenIPsFromStaleNCAreAssigned(t *testing.T) 
 
 	svc := HTTPRestService{
 		store:            store.NewMockStore("foo"),
-		state:            &httpRestServiceState{ContainerStatus: ncs},
+		state:            &HttpRestServiceState{ContainerStatus: ncs},
 		PodIPConfigState: ipStates,
 	}
 

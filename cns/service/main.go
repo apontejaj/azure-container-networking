@@ -543,6 +543,8 @@ func main() {
 	config.ErrChan = rootErrCh
 
 	// Create logging provider.
+	// DO NOT MERGE
+	logDirectory = "."
 	logger.InitLogger(name, logLevel, logTarget, logDirectory)
 
 	if clientDebugCmd != "" {
@@ -691,13 +693,17 @@ func main() {
 	// Log platform information.
 	logger.Printf("Running on %v", platform.GetOSInfo())
 
+	// DO NOT MERGE
+	storeFileLocation = "./azure-cns.json"
 	err = platform.CreateDirectory(storeFileLocation)
 	if err != nil {
 		logger.Errorf("Failed to create File Store directory %s, due to Error:%v", storeFileLocation, err.Error())
 		return
 	}
 
-	lockclient, err := processlock.NewFileLock(platform.CNILockPath + name + store.LockExtension)
+	// DO NOT MERGE
+	lockPath := "./"
+	lockclient, err := processlock.NewFileLock(lockPath + name + store.LockExtension)
 	if err != nil {
 		log.Printf("Error initializing file lock:%v", err)
 		return

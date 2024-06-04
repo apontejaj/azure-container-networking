@@ -16,7 +16,7 @@ func TestAreNCsPresent(t *testing.T) {
 		{
 			name: "container status present",
 			service: HTTPRestService{
-				state: &httpRestServiceState{
+				state: &HttpRestServiceState{
 					ContainerStatus: map[string]containerstatus{
 						"nc1": {},
 					},
@@ -27,7 +27,7 @@ func TestAreNCsPresent(t *testing.T) {
 		{
 			name: "containerIDByOrchestorContext present",
 			service: HTTPRestService{
-				state: &httpRestServiceState{
+				state: &HttpRestServiceState{
 					ContainerIDByOrchestratorContext: map[string]*ncList{
 						"nc1": &present,
 					},
@@ -38,7 +38,7 @@ func TestAreNCsPresent(t *testing.T) {
 		{
 			name: "neither containerStatus nor containerIDByOrchestratorContext present",
 			service: HTTPRestService{
-				state: &httpRestServiceState{},
+				state: &HttpRestServiceState{},
 			},
 			want: false,
 		},
