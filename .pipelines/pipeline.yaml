@@ -235,6 +235,11 @@ stages:
                 name: cni-dropgz
                 os: windows
                 os_version: ltsc2022
+              cni_dropgz_windows2025_amd64:
+                arch: amd64
+                name: cni-dropgz
+                os: windows
+                os_version: ltsc2022-KB5035857
               cns_linux_amd64:
                 arch: amd64
                 name: cns
@@ -249,6 +254,11 @@ stages:
                 name: cns
                 os: windows
                 os_version: ltsc2022
+              cns_windows2025_amd64:
+                arch: amd64
+                name: cns
+                os: windows
+                os_version: win2025
               npm_linux_amd64:
                 arch: amd64
                 name: npm
@@ -360,7 +370,7 @@ stages:
                 platforms: linux/amd64 linux/arm64 windows/amd64
               cns:
                 name: cns
-                os_versions: ltsc2019 ltsc2022
+                os_versions: ltsc2019 ltsc2022 win2025
                 platforms: linux/amd64 linux/arm64 windows/amd64
               npm:
                 name: npm
