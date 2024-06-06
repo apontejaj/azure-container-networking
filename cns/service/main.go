@@ -822,6 +822,7 @@ func main() {
 
 		if cnsconfig.EnableSwiftV2 && cnsconfig.SWIFTV2Mode == configuration.K8sSWIFTV2 {
 			// No-op for linux, mapping is set for windows in aks swiftv2 scenario
+			logger.Printf("Fetcing backend nics for debug")
 			httpRemoteRestService.SetPnpIDMacaddressMapping()
 		}
 
