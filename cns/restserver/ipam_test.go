@@ -1762,13 +1762,13 @@ func TestIPAMGetK8sInfinibandSuccess(t *testing.T) {
 	}
 	podIPInfo := resp.PodIPInfo
 
-	if len(podIPInfo) != 3 {
+	if len(podIPInfo) != 4 {
 		t.Fatalf("Expected to get 3 pod IP info (IPv4, IPv6, Multitenant IP), actual %d", len(podIPInfo))
 	}
 
 	// Asserting that SWIFT v2 IP is returned
-	assert.Equal(t, SWIFTv2IP, podIPInfo[2].PodIPConfig.IPAddress)
-	assert.Equal(t, SWIFTv2MAC, podIPInfo[2].MacAddress)
-	assert.Equal(t, cns.DelegatedVMNIC, podIPInfo[2].NICType)
-	assert.False(t, podIPInfo[2].SkipDefaultRoutes)
+	assert.Equal(t, SWIFTv2IP, podIPInfo[3].PodIPConfig.IPAddress)
+	assert.Equal(t, SWIFTv2MAC, podIPInfo[3].MacAddress)
+	assert.Equal(t, cns.DelegatedVMNIC, podIPInfo[3].NICType)
+	assert.False(t, podIPInfo[3].SkipDefaultRoutes)
 }
