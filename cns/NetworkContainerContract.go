@@ -600,16 +600,16 @@ type PublishNetworkContainerRequest struct {
 
 // PublishNetworkContainerBody specifies body of the network container to be published.
 type PublishNetworkContainerBody struct {
-	IPV4Addresses    []string
-	SubnetName       string
-	Version          string
-	Policies         []string
-	VirtualNetworkID string
-	VlanID           int
-	GreKey           int
-	AzID             uint
-	AZREnabled       bool
-	DisableSNAT      bool
+	IPV4Addresses    []string `json:"ipV4Addresses"`
+	SubnetName       string   `json:"subnetName"`
+	Version          string   `json:"version"`
+	Policies         []string `json:"policies"`
+	VirtualNetworkID string   `json:"virtualNetworkId"`
+	VlanID           int      `json:"vlanId"`
+	GreKey           int      `json:"greKey"`
+	AzID             uint     `json:"azID"`
+	AZREnabled       bool     `json:"azrEnabled"`
+	DisableSNAT      bool     `json:"disableSNAT"`
 }
 
 func (p PublishNetworkContainerRequest) String() string {
