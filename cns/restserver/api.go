@@ -37,6 +37,7 @@ var (
 // 5) the optional delete path
 const (
 	ncURLExpectedMatches = 5
+	disableSNATApiName   = "DisableSNATForSecondaryNCs"
 )
 
 // This file contains implementation of all HTTP APIs which are exposed to external clients.
@@ -1216,6 +1217,26 @@ func (service *HTTPRestService) publishNetworkContainer(w http.ResponseWriter, r
 	}
 
 	ctx := r.Context()
+
+	var ncBody cns.PublishNetworkContainerBody
+	if errUnmarshal := json.Unmarshal(req.CreateNetworkContainerRequestBody, &ncBody); errUnmarshal != nil {
+		http.Error(w, fmt.Sprintf("could not unmarshal nc body: %v", errUnmarshal), http.StatusInternalServerError)
+		return
+	}
+
+	if ncBody.DisableSNAT {
+		supportedAPIs, errSupportedAPIs := service.nma.SupportedAPIs(ctx)
+		if errSupportedAPIs != nil {
+			http.Error(w, fmt.Sprintf("could not fetch supported APIs list from NMAgent: %v", errSupportedAPIs), http.StatusInternalServerError
+			return
+		}
+
+		// check if disableSNAT api is supported by nmagent
+		if !isAPISupportedByNMAgent(supportedAPIs, disableSNATApiName) {
+			http.Error(w, fmt.Sprintf("disableSNAT api is not supported by NMAgent: %v", errSupportedAPIs), http.StatusInternalServerError)
+			return
+		}
+	}
 
 	joinResp, err := service.wsproxy.JoinNetwork(ctx, req.NetworkID) //nolint:govet // ok to shadow
 	if err != nil {

@@ -598,6 +598,20 @@ type PublishNetworkContainerRequest struct {
 	CreateNetworkContainerRequestBody []byte
 }
 
+// PublishNetworkContainerBody specifies body of the network container to be published.
+type PublishNetworkContainerBody struct {
+	IPV4Addresses    []string
+	SubnetName       string
+	Version          string
+	Policies         []string
+	VirtualNetworkID string
+	VlanID           int
+	GreKey           int
+	AzID             uint
+	AZREnabled       bool
+	DisableSNAT      bool
+}
+
 func (p PublishNetworkContainerRequest) String() string {
 	// %q as a verb on a byte slice prints safely escaped text instead of individual bytes
 	return fmt.Sprintf("{NetworkID:%s NetworkContainerID:%s JoinNetworkURL:%s CreateNetworkContainerURL:%s CreateNetworkContainerRequestBody:%q}",
