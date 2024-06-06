@@ -1227,7 +1227,7 @@ func (service *HTTPRestService) publishNetworkContainer(w http.ResponseWriter, r
 	if ncBody.DisableSNAT {
 		supportedAPIs, errSupportedAPIs := service.nma.SupportedAPIs(ctx)
 		if errSupportedAPIs != nil {
-			http.Error(w, fmt.Sprintf("could not fetch supported APIs list from NMAgent: %v", errSupportedAPIs), http.StatusInternalServerError
+			http.Error(w, fmt.Sprintf("could not fetch supported APIs list from NMAgent: %v", errSupportedAPIs), http.StatusInternalServerError)
 			return
 		}
 
