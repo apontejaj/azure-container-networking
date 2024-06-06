@@ -3,6 +3,7 @@ package middlewares
 import (
 	"context"
 	"fmt"
+
 	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/cns/configuration"
 	"github.com/Azure/azure-container-networking/cns/logger"
@@ -37,14 +38,9 @@ var _ cns.IPConfigsHandlerMiddleware = (*K8sSWIFTv2Middleware)(nil)
 
 // IPConfigsRequestHandlerWrapper is the middleware function for handling SWIFT v2 IP configs requests for AKS-SWIFT. This function wrapped the default SWIFT request
 // and release IP configs handlers.
-func (k *K8sSWIFTv2Middleware) IPConfigsRequestHandlerWrapper(defaultHandler, failureHandler cns.IPConfigsHandlerFunc) cns.IPConfigsHandlerFunc {
+func (m *K8sSWIFTv2Middleware) IPConfigsRequestHandlerWrapper(defaultHandler, failureHandler cns.IPConfigsHandlerFunc) cns.IPConfigsHandlerFunc {
 	return func(ctx context.Context, req cns.IPConfigsRequest) (*cns.IPConfigsResponse, error) {
-<<<<<<< HEAD
-		podInfo, respCode, message := k.validateIPConfigsRequest(ctx, &req)
-=======
 		podInfo, respCode, message := m.validateIPConfigsRequest(ctx, &req)
-		// Add a function to fetch the macaddresses
->>>>>>> 496b4e3f (Handling multiple interface information)
 
 		if respCode != types.Success {
 			return &cns.IPConfigsResponse{
@@ -72,7 +68,7 @@ func (k *K8sSWIFTv2Middleware) IPConfigsRequestHandlerWrapper(defaultHandler, fa
 		if err != nil {
 			return ipConfigsResp, err
 		}
-		SWIFTv2PodIPInfos, err := k.getIPConfig(ctx, podInfo)
+		SWIFTv2PodIPInfos, err := m.getIPConfig(ctx, podInfo)
 		if err != nil {
 			return &cns.IPConfigsResponse{
 				Response: cns.Response{
@@ -86,7 +82,7 @@ func (k *K8sSWIFTv2Middleware) IPConfigsRequestHandlerWrapper(defaultHandler, fa
 		// Set routes for the pod
 		for i := range ipConfigsResp.PodIPInfo {
 			ipInfo := &ipConfigsResp.PodIPInfo[i]
-			err = k.setRoutes(ipInfo)
+			err = m.setRoutes(ipInfo)
 			if err != nil {
 				return &cns.IPConfigsResponse{
 					Response: cns.Response{
@@ -133,7 +129,7 @@ func (k *K8sSWIFTv2Middleware) validateIPConfigsRequest(ctx context.Context, req
 		}
 		interfaceInfos := mtpnc.Status.InterfaceInfos
 		for index, interfaceInfo := range interfaceInfos {
-			if interfaceInfo.DeviceType == v1alpha1.DeviceTypeInfiniBandNIC {
+			if string(interfaceInfo.DeviceType) == string(cns.BackendNIC) {
 				if interfaceInfo.MacAddress == "" || interfaceInfo.NCID == "" || mtpnc.Status.NCID == "" {
 					return nil, types.UnexpectedError, errMTPNCNotReady.Error()
 				}

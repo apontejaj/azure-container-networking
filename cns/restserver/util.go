@@ -48,6 +48,7 @@ func (service *HTTPRestService) SetPnpIDMacaddressMapping() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch MACAddressPnpIDMapping")
 	}
+	logger.Printf("[DEBUG] Macaddress mapping: %d", len(VfMacAddressMapping))
 	service.PnpIDByMacAddress = VfMacAddressMapping
 	return nil
 }
