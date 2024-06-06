@@ -42,6 +42,10 @@ func NewClient() *Client {
 	testPod4.Labels = make(map[string]string)
 	testPod4.Labels[configuration.LabelPodSwiftV2] = podNetwork
 
+	testPod5 := v1.Pod{}
+	testPod5.Labels = make(map[string]string)
+	testPod5.Labels[configuration.LabelPodSwiftV2] = podNetwork
+
 	testMTPNC1 := v1alpha1.MultitenantPodNetworkConfig{
 		Status: v1alpha1.MultitenantPodNetworkConfigStatus{
 			PrimaryIP:  "192.168.0.1/32",
@@ -55,12 +59,29 @@ func NewClient() *Client {
 
 	testMTPNC4 := v1alpha1.MultitenantPodNetworkConfig{}
 
+	testMTPNC5 := v1alpha1.MultitenantPodNetworkConfig{
+		Status: v1alpha1.MultitenantPodNetworkConfigStatus{
+			PrimaryIP:  "192.168.0.1/32",
+			MacAddress: "00:00:00:00:00:00",
+			GatewayIP:  "10.0.0.1",
+			NCID:       "testncid",
+			InterfaceInfos: []v1alpha1.InterfaceInfo{{
+				PrimaryIP:  "192.168.0.1/32",
+				MacAddress: "00:00:00:00:00:00",
+				GatewayIP:  "10.0.0.1",
+				NCID:       "testncid",
+				DeviceType: v1alpha1.DeviceTypeInfiniBandNIC,
+			}},
+		},
+	}
+
 	return &Client{
-		mtPodCache: map[string]*v1.Pod{"testpod1namespace/testpod1": &testPod1, "testpod3namespace/testpod3": &testPod3, "testpod4namespace/testpod4": &testPod4},
+		mtPodCache: map[string]*v1.Pod{"testpod1namespace/testpod1": &testPod1, "testpod3namespace/testpod3": &testPod3, "testpod4namespace/testpod4": &testPod4, "testpod5namespace/testpod5": &testPod5},
 		mtpncCache: map[string]*v1alpha1.MultitenantPodNetworkConfig{
 			"testpod1namespace/testpod1": &testMTPNC1,
 			"testpod2namespace/testpod2": &testMTPNC2,
 			"testpod4namespace/testpod4": &testMTPNC4,
+			"testpod5namespace/testpod5": &testMTPNC5,
 		},
 	}
 }

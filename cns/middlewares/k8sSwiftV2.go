@@ -130,13 +130,13 @@ func (m *K8sSWIFTv2Middleware) validateIPConfigsRequest(ctx context.Context, req
 			return nil, types.UnexpectedError, errMTPNCNotReady.Error()
 		}
 		interfaceInfos := mtpnc.Status.InterfaceInfos
-		for index, interfaceInfo := range interfaceInfos {
+		for _, interfaceInfo := range interfaceInfos {
 			if interfaceInfo.DeviceType == v1alpha1.DeviceTypeInfiniBandNIC {
 				if interfaceInfo.MacAddress == "" || interfaceInfo.NCID == "" || mtpnc.Status.NCID == "" {
 					return nil, types.UnexpectedError, errMTPNCNotReady.Error()
 				}
 				req.BackendInterfaceExist = true
-				req.BackendInterfaceMacAddresses[index] = interfaceInfo.MacAddress
+				req.BackendInterfaceMacAddresses = append(req.BackendInterfaceMacAddresses, interfaceInfo.MacAddress)
 			}
 		}
 	}
