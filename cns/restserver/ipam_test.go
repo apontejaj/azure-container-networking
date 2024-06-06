@@ -52,6 +52,9 @@ var (
 	testIP4      = "10.0.0.4"
 	testPod4GUID = "718e04ac-5a13-4dce-84b3-040accaa9b42"
 
+	testPod5GUID = "2006cad4-e54d-472e-863d-c4bac66200a7"
+	testPod5Info = cns.NewPodInfo("2006cad4-eth0", testPod4GUID, "testpod5", "testpod5namespace")
+
 	ipIDs = [][]string{{testIPID1, testIPID2, testIPID3}, {testIPID1v6, testIPID2v6, testIPID3v6}}
 )
 
@@ -154,6 +157,13 @@ func UpdatePodIPConfigState(t *testing.T, svc *HTTPRestService, ipconfigs map[st
 		}
 	}
 	return nil
+}
+
+func updatePnpIDMacAddressState(svc *HTTPRestService) *HTTPRestService {
+	svc.PnpIDByMacAddress = map[string]string{
+		"00:00:00:00:00:00": "pnpid/pciid",
+	}
+	return svc
 }
 
 // create an endpoint with only one IP
@@ -1697,4 +1707,68 @@ func TestIPAMGetK8sSWIFTv2IPFailure(t *testing.T) {
 	if len(available) != 2 {
 		t.Fatal("Expected available ips to be 2 since we expect the IP to not be assigned")
 	}
+}
+
+func TestIPAMGetK8sInfinibandSuccess(t *testing.T) {
+	svc := getTestService()
+	middleware := middlewares.K8sSWIFTv2Middleware{Cli: mock.NewClient()}
+	svc.AttachIPConfigsHandlerMiddleware(&middleware)
+	updatePnpIDMacAddressState(svc)
+
+	t.Setenv(configuration.EnvPodCIDRs, "10.0.1.10/24")
+	t.Setenv(configuration.EnvServiceCIDRs, "10.0.2.10/24")
+	t.Setenv(configuration.EnvInfraVNETCIDRs, "10.0.3.10/24")
+
+	ncStates := []ncState{
+		{
+			ncID: testNCID,
+			ips: []string{
+				testIP1,
+			},
+		},
+		{
+			ncID: testNCIDv6,
+			ips: []string{
+				testIP1v6,
+			},
+		},
+	}
+
+	// Add Available Pod IP to state
+	for i := range ncStates {
+		ipconfigs := make(map[string]cns.IPConfigurationStatus, 0)
+		state := NewPodState(ncStates[i].ips[0], ipIDs[i][0], ncStates[i].ncID, types.Available, 0)
+		ipconfigs[state.ID] = state
+		err := UpdatePodIPConfigState(t, svc, ipconfigs, ncStates[i].ncID)
+		if err != nil {
+			t.Fatalf("Expected to not fail adding IPs to state: %+v", err)
+		}
+	}
+
+	req := cns.IPConfigsRequest{
+		PodInterfaceID:   testPod5Info.InterfaceID(),
+		InfraContainerID: testPod5Info.InfraContainerID(),
+	}
+	b, _ := testPod5Info.OrchestratorContext()
+	req.OrchestratorContext = b
+	req.DesiredIPAddresses = make([]string, 2)
+	req.DesiredIPAddresses[0] = testIP1
+	req.DesiredIPAddresses[1] = testIP1v6
+
+	wrappedHandler := svc.IPConfigsHandlerMiddleware.IPConfigsRequestHandlerWrapper(svc.requestIPConfigHandlerHelper, svc.ReleaseIPConfigHandlerHelper)
+	resp, err := wrappedHandler(context.TODO(), req)
+	if err != nil {
+		t.Fatalf("Expected to not fail requesting IPs: %+v", err)
+	}
+	podIPInfo := resp.PodIPInfo
+
+	if len(podIPInfo) != 3 {
+		t.Fatalf("Expected to get 3 pod IP info (IPv4, IPv6, Multitenant IP), actual %d", len(podIPInfo))
+	}
+
+	// Asserting that SWIFT v2 IP is returned
+	assert.Equal(t, SWIFTv2IP, podIPInfo[2].PodIPConfig.IPAddress)
+	assert.Equal(t, SWIFTv2MAC, podIPInfo[2].MacAddress)
+	assert.Equal(t, cns.DelegatedVMNIC, podIPInfo[2].NICType)
+	assert.False(t, podIPInfo[2].SkipDefaultRoutes)
 }
