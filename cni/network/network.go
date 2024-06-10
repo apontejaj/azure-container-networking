@@ -422,19 +422,17 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 		// Add Interfaces to result.
 		// previously just logged the default (infra) interface so this is equivalent behavior
-		cniResults := []cniTypesCurr.Result{}
+		cniResult := &cniTypesCurr.Result{}
 		for key := range ipamAddResult.interfaceInfo {
 			logger.Info("Exiting add, interface info retrieved", zap.Any("ifInfo", ipamAddResult.interfaceInfo[key]))
 			// previously we had a default interface info to select which interface info was the one to be returned from cni add
 			// now we have to infer which interface info should be returned
 			// we assume that we want to return the infra nic always, and if that is not found, return any one of the secondary interfaces
 			// if there is an infra nic + secondary, we will always return the infra nic (linux swift v2)
-			cniResults = append(cniResults, *plugin.convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[key], args.IfName))
-		}
+			cniResult = plugin.convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[key], args.IfName)
 
-		// stdout multiple cniResults for containerd to create multiple pods
-		// containerd receives each cniResult as the stdout and create pod
-		for _, cniResult := range cniResults { //nolint
+			// stdout multiple cniResults for containerd to create multiple pods
+			// containerd receives each cniResult as the stdout and create pod
 			addSnatInterface(nwCfg, &cniResult) //nolint TODO: check whether Linux supports adding secondary snatinterface
 
 			// Convert result to the requested CNI version.
