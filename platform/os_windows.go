@@ -378,8 +378,7 @@ func ReplaceFile(source, destination string) error {
 }
 
 /*
-	Sample output:  Get-NetAdapter | Select-Object MacAddress, PnpDeviceID| Format-Table -HideTableHeaders
-
+Output:
 6C-A1-00-50-E4-2D PCI\VEN_8086&DEV_2723&SUBSYS_00808086&REV_1A\4&328243d9&0&00E0
 80-6D-97-1E-CF-4E USB\VID_17EF&PID_A359\3010019E3
 */
