@@ -40,11 +40,11 @@ func (service *HTTPRestService) setNetworkInfo(networkName string, networkInfo *
 	service.state.Networks[networkName] = networkInfo
 }
 
-func (service *HTTPRestService) SetPnpIDMacaddressMapping() error {
+func (service *HTTPRestService) SetPnpIDMacaddressMapping(ctx context.Context) error {
 	service.Lock()
 	defer service.Unlock()
 	p := platform.NewExecClient(nil)
-	VfMacAddressMapping, err := platform.FetchMacAddressPnpIDMapping(p)
+	VfMacAddressMapping, err := platform.FetchMacAddressPnpIDMapping(ctx, p)
 	if err != nil {
 		return errors.Wrap(err, "failed to fetch MACAddressPnpIDMapping")
 	}
@@ -53,9 +53,9 @@ func (service *HTTPRestService) SetPnpIDMacaddressMapping() error {
 	return nil
 }
 
-func (service *HTTPRestService) getPNPIDFromMacAddress(macAddress string) (string, error) {
+func (service *HTTPRestService) getPNPIDFromMacAddress(macAddress string, ctx context.Context) (string, error) {
 	if _, ok := service.PnpIDByMacAddress[macAddress]; !ok {
-		if err := service.SetPnpIDMacaddressMapping(); err != nil {
+		if err := service.SetPnpIDMacaddressMapping(ctx); err != nil {
 			return "", err
 		}
 		// IB adapters can be absent from the list of adapters, checking for the value after the fetch

@@ -136,7 +136,7 @@ func (p *execClient) ExecutePowershellCommand(_ string) (string, error) {
 	return "", nil
 }
 
-func (p *execClient) ExecutePowershellCommandWithContext(_ string, _ context.Context) (string, error) {
+func (p *execClient) ExecutePowershellCommandWithContext(_ context.Context, _ string) (string, error) {
 	return "", nil
 }
 
