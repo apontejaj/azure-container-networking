@@ -52,8 +52,8 @@ var (
 	testIP4      = "10.0.0.4"
 	testPod4GUID = "718e04ac-5a13-4dce-84b3-040accaa9b42"
 
-	testPod5GUID = "2006cad4-e54d-472e-863d-c4bac66200a7"
-	testPod5Info = cns.NewPodInfo("2006cad4-eth0", testPod4GUID, "testpod5", "testpod5namespace")
+	testPod8GUID = "2006cad4-e54d-472e-863d-c4bac66200a7"
+	testPod8Info = cns.NewPodInfo("2006cad4-eth0", testPod8GUID, "testpod8", "testpod8namespace")
 
 	ipIDs = [][]string{{testIPID1, testIPID2, testIPID3}, {testIPID1v6, testIPID2v6, testIPID3v6}}
 )
@@ -1746,10 +1746,10 @@ func TestIPAMGetK8sInfinibandSuccess(t *testing.T) {
 	}
 
 	req := cns.IPConfigsRequest{
-		PodInterfaceID:   testPod5Info.InterfaceID(),
-		InfraContainerID: testPod5Info.InfraContainerID(),
+		PodInterfaceID:   testPod8Info.InterfaceID(),
+		InfraContainerID: testPod8Info.InfraContainerID(),
 	}
-	b, _ := testPod5Info.OrchestratorContext()
+	b, _ := testPod8Info.OrchestratorContext()
 	req.OrchestratorContext = b
 	req.DesiredIPAddresses = make([]string, 2)
 	req.DesiredIPAddresses[0] = testIP1

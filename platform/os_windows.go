@@ -201,7 +201,7 @@ func (p *execClient) ExecutePowershellCommand(command string) (string, error) {
 }
 
 // ExecutePowershellCommandWithContext executes powershell command wth context
-func (p *execClient) ExecutePowershellCommandWithContext(command string, ctx context.Context) (string, error) {
+func (p *execClient) ExecutePowershellCommandWithContext(ctx context.Context, command string) (string, error) {
 	ps, err := exec.LookPath("powershell.exe")
 	if err != nil {
 		return "", fmt.Errorf("Failed to find powershell executable")
@@ -382,15 +382,15 @@ Output:
 6C-A1-00-50-E4-2D PCI\VEN_8086&DEV_2723&SUBSYS_00808086&REV_1A\4&328243d9&0&00E0
 80-6D-97-1E-CF-4E USB\VID_17EF&PID_A359\3010019E3
 */
-func FetchMacAddressPnpIDMapping(execClient ExecClient) (map[string]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), ExecTimeout)
+func FetchMacAddressPnpIDMapping(ctx context.Context, execClient ExecClient) (map[string]string, error) {
+	ctx, cancel := context.WithTimeout(ctx, ExecTimeout)
 	defer cancel() // The cancel should be deferred so resources are cleaned up
-	output, err := execClient.ExecutePowershellCommandWithContext(GetMacAddressVFPPnpIDMapping, ctx)
+	output, err := execClient.ExecutePowershellCommandWithContext(ctx, GetMacAddressVFPPnpIDMapping)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to execute powershell command")
 	}
 	result := make(map[string]string)
-	if len(output) != 0 {
+	if output != "" {
 		// Split the output based on new line characters
 		lines := strings.Split(output, "\n")
 		for _, line := range lines {
@@ -399,7 +399,7 @@ func FetchMacAddressPnpIDMapping(execClient ExecClient) (map[string]string, erro
 			// Changing the format of macaddress from xx-xx-xx-xx to xx:xx:xx:xx
 			formattedMacaddress, err := net.ParseMAC(parts[0])
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrap(err, "failed to fetch MACAddressPnpIDMapping")
 			}
 			key := formattedMacaddress.String()
 			value := parts[1]

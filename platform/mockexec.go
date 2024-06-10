@@ -65,7 +65,7 @@ func (e *MockExecClient) KillProcessByName(_ string) error {
 	return nil
 }
 
-func (e *MockExecClient) ExecutePowershellCommandWithContext(cmd string, ctx context.Context) (string, error) {
+func (e *MockExecClient) ExecutePowershellCommandWithContext(ctx context.Context, cmd string) (string, error) {
 	if e.powershellCommandResponder != nil {
 		return e.powershellCommandResponder(cmd)
 	}
