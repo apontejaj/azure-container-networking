@@ -433,7 +433,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 			// stdout multiple cniResults for containerd to create multiple pods
 			// containerd receives each cniResult as the stdout and create pod
-			addSnatInterface(nwCfg, &cniResult) //nolint TODO: check whether Linux supports adding secondary snatinterface
+			addSnatInterface(nwCfg, cniResult) //nolint TODO: check whether Linux supports adding secondary snatinterface
 
 			// Convert result to the requested CNI version.
 			res, vererr := cniResult.GetAsVersion(nwCfg.CNIVersion)
