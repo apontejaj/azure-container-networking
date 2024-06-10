@@ -494,7 +494,7 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 }
 
 func (invoker *CNSIPAMInvoker) getInterfaceInfoKey(nicType cns.NICType, macAddress string) string {
-	if nicType == cns.DelegatedVMNIC {
+	if nicType == cns.DelegatedVMNIC && nicType == cns.BackendNIC {
 		return macAddress
 	}
 	return string(nicType)

@@ -441,7 +441,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			res, vererr := cniResult.GetAsVersion(nwCfg.CNIVersion)
 			if vererr != nil {
 				logger.Error("GetAsVersion failed", zap.Error(vererr))
-				plugin.Error(vererr)
+				plugin.Error(vererr) //nolint
 			}
 
 			if err == nil && res != nil {

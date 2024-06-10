@@ -109,7 +109,7 @@ type EndpointInfo struct {
 	Options                       map[string]interface{}
 	DisableHairpinOnHostInterface bool
 	IsIPv6Enabled                 bool
-	PnPID                         string
+	PnPID                         string // PnPID is the DeviceID and it does not need to be used during deletion phase
 	HostSubnetPrefix              string // can be used later to add an external interface
 }
 
