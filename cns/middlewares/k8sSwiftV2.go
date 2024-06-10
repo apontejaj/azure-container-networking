@@ -116,7 +116,7 @@ func (k *K8sSWIFTv2Middleware) validateIPConfigsRequest(ctx context.Context, req
 
 	// check the pod labels for Swift V2, set the request's SecondaryInterfaceSet flag to true and check if its MTPNC CRD is ready
 	if _, ok := pod.Labels[configuration.LabelPodSwiftV2]; ok {
-		req.SecondaryInterfacesExist = true
+
 		// Check if the MTPNC CRD exists for the pod, if not, return error
 		mtpnc := v1alpha1.MultitenantPodNetworkConfig{}
 		mtpncNamespacedName := k8stypes.NamespacedName{Namespace: podInfo.Namespace(), Name: podInfo.Name()}
@@ -126,6 +126,10 @@ func (k *K8sSWIFTv2Middleware) validateIPConfigsRequest(ctx context.Context, req
 		// Check if the MTPNC CRD is ready. If one of the fields is empty, return error
 		if !mtpnc.IsReady() {
 			return nil, types.UnexpectedError, errMTPNCNotReady.Error()
+		}
+		// If primary Ip is set in status field, it indicates the presence of secondary interfaces
+		if mtpnc.Status.PrimaryIP != "" {
+			req.SecondaryInterfacesExist = true
 		}
 		interfaceInfos := mtpnc.Status.InterfaceInfos
 		for index, interfaceInfo := range interfaceInfos {
