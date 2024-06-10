@@ -481,7 +481,7 @@ type PodIpInfo struct {
 	SkipDefaultRoutes bool
 	// Routes to configure on interface
 	Routes []Route
-	// PnpId is set for backend interfaces, Pnp Id identifies VF
+	// PnpId is set for backend interfaces, Pnp Id identifies VF. Plug and play id(pnp) is also called as PCI ID
 	PnPID string
 }
 
