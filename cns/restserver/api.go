@@ -1233,7 +1233,7 @@ func (service *HTTPRestService) publishNetworkContainer(w http.ResponseWriter, r
 
 		// check if disableSNAT api is supported by nmagent
 		if !isAPISupportedByNMAgent(supportedAPIs, disableSNATApiName) {
-			http.Error(w, fmt.Sprintf("disableSNAT api is not supported by NMAgent: %v", errSupportedAPIs), http.StatusInternalServerError)
+			http.Error(w, "disableSNAT api is not supported by NMAgent", http.StatusInternalServerError)
 			return
 		}
 	}
