@@ -117,13 +117,22 @@ func NewClient() *Client {
 			MacAddress: "00:00:00:00:00:00",
 			GatewayIP:  "10.0.0.1",
 			NCID:       "testncid",
-			InterfaceInfos: []v1alpha1.InterfaceInfo{{
-				PrimaryIP:  "192.168.0.1/32",
-				MacAddress: "00:00:00:00:00:00",
-				GatewayIP:  "10.0.0.1",
-				NCID:       "testncid",
-				DeviceType: v1alpha1.DeviceTypeInfiniBandNIC,
-			}},
+			InterfaceInfos: []v1alpha1.InterfaceInfo{
+				{
+					PrimaryIP:  "192.168.0.1/32",
+					MacAddress: "00:00:00:00:00:00",
+					GatewayIP:  "10.0.0.1",
+					NCID:       "testncid",
+					DeviceType: v1alpha1.DeviceTypeVnetNIC,
+				},
+				{
+					PrimaryIP:  "192.168.0.1/32",
+					MacAddress: "00:00:00:00:00:00",
+					GatewayIP:  "10.0.0.1",
+					NCID:       "testncid",
+					DeviceType: v1alpha1.DeviceTypeInfiniBandNIC,
+				},
+			},
 		},
 	}
 

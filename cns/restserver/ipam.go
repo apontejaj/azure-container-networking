@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/cns/filter"
@@ -32,6 +33,7 @@ var (
 const (
 	ContainerIDLength  = 8
 	InfraInterfaceName = "eth0"
+	ExecTimeout        = 5 * time.Second
 )
 
 // requestIPConfigHandlerHelper validates the request, assign IPs and return the IPConfigs
@@ -50,7 +52,9 @@ func (service *HTTPRestService) requestIPConfigHandlerHelper(ctx context.Context
 	var podIPInfoResult []cns.PodIpInfo
 	if ipconfigsRequest.BackendInterfaceExist {
 		for _, bNICMacAddress := range ipconfigsRequest.BackendInterfaceMacAddresses {
-			PnPID, err := service.getPNPIDFromMacAddress(bNICMacAddress, context.Background())
+			ctx, cancel := context.WithTimeout(ctx, ExecTimeout)
+			defer cancel() // The cancel should be deferred so resources are cleaned up
+			PnPID, err := service.getPNPIDFromMacAddress(bNICMacAddress, ctx)
 			if err != nil {
 				return &cns.IPConfigsResponse{
 					Response: cns.Response{
