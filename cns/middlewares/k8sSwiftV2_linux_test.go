@@ -34,6 +34,9 @@ var (
 
 	testPod8GUID = "2006cad4-e54d-472e-863d-c4bac66200a7"
 	testPod8Info = cns.NewPodInfo("2006cad4-eth0", testPod8GUID, "testpod8", "testpod8namespace")
+
+	testPod9GUID = "2006cad4-e54d-472e-863d-c4bac66200a7"
+	testPod9Info = cns.NewPodInfo("2006cad4-eth0", testPod9GUID, "testpod9", "testpod9namespace")
 )
 
 func TestMain(m *testing.M) {
@@ -158,6 +161,21 @@ func TestValidateMultitenantIPConfigsRequestSuccess(t *testing.T) {
 	assert.Equal(t, err, "")
 	assert.Equal(t, respCode, types.Success)
 	assert.Equal(t, happyReq.SecondaryInterfacesExist, true)
+
+	happyReq3 := &cns.IPConfigsRequest{
+		PodInterfaceID:   testPod9Info.InterfaceID(),
+		InfraContainerID: testPod9Info.InfraContainerID(),
+	}
+
+	b, _ = testPod9Info.OrchestratorContext()
+	happyReq3.OrchestratorContext = b
+	happyReq3.SecondaryInterfacesExist = false
+
+	_, respCode, err = middleware.validateIPConfigsRequest(context.TODO(), happyReq3)
+	assert.Equal(t, err, "")
+	assert.Equal(t, respCode, types.Success)
+	assert.Equal(t, happyReq3.SecondaryInterfacesExist, false)
+	assert.Equal(t, happyReq3.BackendInterfaceExist, true)
 }
 
 func TestValidateMultitenantIPConfigsRequestFailure(t *testing.T) {
