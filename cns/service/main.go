@@ -823,7 +823,7 @@ func main() {
 		if cnsconfig.EnableSwiftV2 && cnsconfig.SWIFTV2Mode == configuration.K8sSWIFTV2 {
 			// No-op for linux, mapping is set for windows in aks swiftv2 scenario
 			logger.Printf("Fetcing backend nics for debug")
-			if err := httpRemoteRestService.SetPnpIDMacaddressMapping(context.Background()); err != nil {
+			if err = httpRemoteRestService.SetPnpIDMacaddressMapping(context.Background()); err != nil {
 				logger.Errorf("Failed to fetch PnpIDMacaddress mapping")
 			}
 		}
