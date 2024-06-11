@@ -137,7 +137,7 @@ func (k *K8sSWIFTv2Middleware) validateIPConfigsRequest(ctx context.Context, req
 		interfaceInfos := mtpnc.Status.InterfaceInfos
 		for _, interfaceInfo := range interfaceInfos {
 			if interfaceInfo.DeviceType == v1alpha1.DeviceTypeInfiniBandNIC {
-				if interfaceInfo.MacAddress == "" || interfaceInfo.NCID == "" || mtpnc.Status.NCID == "" {
+				if interfaceInfo.MacAddress == "" || interfaceInfo.NCID == "" {
 					return nil, types.UnexpectedError, errMTPNCNotReady.Error()
 				}
 				req.BackendInterfaceExist = true
