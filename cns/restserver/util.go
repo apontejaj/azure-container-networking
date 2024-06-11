@@ -53,7 +53,7 @@ func (service *HTTPRestService) SetPnpIDMacaddressMapping(ctx context.Context) e
 	return nil
 }
 
-func (service *HTTPRestService) getPNPIDFromMacAddress(macAddress string, ctx context.Context) (string, error) {
+func (service *HTTPRestService) getPNPIDFromMacAddress(ctx context.Context, macAddress string) (string, error) {
 	if _, ok := service.PnpIDByMacAddress[macAddress]; !ok {
 		if err := service.SetPnpIDMacaddressMapping(ctx); err != nil {
 			return "", err

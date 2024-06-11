@@ -50,7 +50,7 @@ func (service *HTTPRestService) requestIPConfigHandlerHelper(ctx context.Context
 	var podIPInfoResult []cns.PodIpInfo
 	if ipconfigsRequest.BackendInterfaceExist {
 		for _, bNICMacAddress := range ipconfigsRequest.BackendInterfaceMacAddresses {
-			PnPID, err := service.getPNPIDFromMacAddress(bNICMacAddress, ctx)
+			PnPID, err := service.getPNPIDFromMacAddress(ctx, bNICMacAddress)
 			if err != nil {
 				return &cns.IPConfigsResponse{
 					Response: cns.Response{
