@@ -1443,8 +1443,9 @@ func Test_getInterfaceInfoKey(t *testing.T) {
 	dummyMAC := "12:34:56:78:9a:bc"
 	require.Equal(string(cns.InfraNIC), inv.getInterfaceInfoKey(cns.InfraNIC, dummyMAC))
 	require.Equal(dummyMAC, inv.getInterfaceInfoKey(cns.DelegatedVMNIC, dummyMAC))
-	require.Equal(string(cns.BackendNIC), inv.getInterfaceInfoKey(cns.BackendNIC, dummyMAC))
 	require.Equal("", inv.getInterfaceInfoKey(cns.DelegatedVMNIC, ""))
+	require.Equal(dummyMAC, inv.getInterfaceInfoKey(cns.BackendNIC, dummyMAC))
+	require.Equal("", inv.getInterfaceInfoKey(cns.BackendNIC, ""))
 	require.Equal(string(cns.NodeNetworkInterfaceBackendNIC), inv.getInterfaceInfoKey(cns.NodeNetworkInterfaceBackendNIC, dummyMAC))
 }
 
