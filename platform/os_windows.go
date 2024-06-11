@@ -86,8 +86,6 @@ const (
 	// reg key value for PriorityVLANTag = 3  --> Packet priority and VLAN enabled
 	// for more details goto https://learn.microsoft.com/en-us/windows-hardware/drivers/network/standardized-inf-keywords-for-ndis-qos
 	desiredVLANTagForMellanox = 3
-
-	ExecTimeout = 5 * time.Second
 )
 
 // Flag to check if sdnRemoteArpMacAddress registry key is set
@@ -204,7 +202,7 @@ func (p *execClient) ExecutePowershellCommand(command string) (string, error) {
 func (p *execClient) ExecutePowershellCommandWithContext(ctx context.Context, command string) (string, error) {
 	ps, err := exec.LookPath("powershell.exe")
 	if err != nil {
-		return "", fmt.Errorf("Failed to find powershell executable")
+		return "", errors.New("failed to find powershell executable")
 	}
 
 	if p.logger != nil {
@@ -221,7 +219,8 @@ func (p *execClient) ExecutePowershellCommandWithContext(ctx context.Context, co
 
 	err = cmd.Run()
 	if err != nil {
-		return "", fmt.Errorf("%s:%s", err.Error(), stderr.String())
+		ErrPowershellExecution := errors.New("failed to execute powershell command")
+		return "", fmt.Errorf("%s:%s", ErrPowershellExecution, stderr.String())
 	}
 
 	return strings.TrimSpace(stdout.String()), nil
@@ -383,8 +382,6 @@ Output:
 80-6D-97-1E-CF-4E USB\VID_17EF&PID_A359\3010019E3
 */
 func FetchMacAddressPnpIDMapping(ctx context.Context, execClient ExecClient) (map[string]string, error) {
-	ctx, cancel := context.WithTimeout(ctx, ExecTimeout)
-	defer cancel() // The cancel should be deferred so resources are cleaned up
 	output, err := execClient.ExecutePowershellCommandWithContext(ctx, GetMacAddressVFPPnpIDMapping)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute powershell command")

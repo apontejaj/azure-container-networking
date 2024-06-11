@@ -146,11 +146,11 @@ func TestValidateMultitenantIPConfigsRequestSuccess(t *testing.T) {
 	assert.Equal(t, happyReq.SecondaryInterfacesExist, true)
 
 	happyReq2 := &cns.IPConfigsRequest{
-		PodInterfaceID:   testPod5Info.InterfaceID(),
-		InfraContainerID: testPod5Info.InfraContainerID(),
+		PodInterfaceID:   testPod8Info.InterfaceID(),
+		InfraContainerID: testPod8Info.InfraContainerID(),
 	}
 
-	b, _ = testPod5Info.OrchestratorContext()
+	b, _ = testPod8Info.OrchestratorContext()
 	happyReq2.OrchestratorContext = b
 	happyReq2.SecondaryInterfacesExist = false
 
