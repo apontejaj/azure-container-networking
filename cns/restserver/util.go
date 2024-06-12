@@ -41,8 +41,6 @@ func (service *HTTPRestService) setNetworkInfo(networkName string, networkInfo *
 }
 
 func (service *HTTPRestService) SetPnpIDMacaddressMapping(ctx context.Context) error {
-	service.Lock()
-	defer service.Unlock()
 	p := platform.NewExecClient(nil)
 	VfMacAddressMapping, err := platform.FetchMacAddressPnpIDMapping(ctx, p)
 	if err != nil {

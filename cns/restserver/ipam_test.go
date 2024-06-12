@@ -162,11 +162,11 @@ func UpdatePodIPConfigState(t *testing.T, svc *HTTPRestService, ipconfigs map[st
 	return nil
 }
 
-func updatePnpIDMacAddressState(svc *HTTPRestService) *HTTPRestService {
+// nolint:unparam
+func updatePnpIDMacAddressState(svc *HTTPRestService) {
 	svc.PnpIDByMacAddress = map[string]string{
 		"00:00:00:00:00:00": "pnpid/pciid",
 	}
-	return svc
 }
 
 // create an endpoint with only one IP
