@@ -162,7 +162,6 @@ func UpdatePodIPConfigState(t *testing.T, svc *HTTPRestService, ipconfigs map[st
 	return nil
 }
 
-// nolint:unparam
 func updatePnpIDMacAddressState(svc *HTTPRestService) {
 	svc.PnpIDByMacAddress = map[string]string{
 		"00:00:00:00:00:00": "pnpid/pciid",
