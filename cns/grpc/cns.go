@@ -15,7 +15,7 @@ type CNS struct {
 	State  *restserver.HTTPRestService
 }
 
-func (s *Server) SetOrchestratorInfo(ctx context.Context, req *pb.SetOrchestratorInfoRequest) (*pb.SetOrchestratorInfoResponse, error) {
+func (s *CNS) SetOrchestratorInfo(ctx context.Context, req *pb.SetOrchestratorInfoRequest) (*pb.SetOrchestratorInfoResponse, error) {
 	s.Logger.Info("SetOrchestratorInfo called",
 		zap.String("NodeID", req.NodeID),
 		zap.String("OrchestratorType", req.OrchestratorType))
@@ -28,7 +28,7 @@ func (s *Server) SetOrchestratorInfo(ctx context.Context, req *pb.SetOrchestrato
 	}, nil
 }
 
-func (s *Server) GetNodeInfo(ctx context.Context, req *pb.NodeInfoRequest) (*pb.NodeInfoResponse, error) {
+func (s *CNS) GetNodeInfo(ctx context.Context, req *pb.NodeInfoRequest) (*pb.NodeInfoResponse, error) {
 	return &pb.NodeInfoResponse{}, nil
 }
 
