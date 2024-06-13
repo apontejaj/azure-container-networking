@@ -118,7 +118,9 @@ func (k *K8sSWIFTv2Middleware) validateIPConfigsRequest(ctx context.Context, req
 	}
 
 	// check the pod labels for Swift V2, set the request's SecondaryInterfaceSet flag to true and check if its MTPNC CRD is ready
-	if _, ok := pod.Labels[configuration.LabelPodSwiftV2]; ok {
+	_, swiftV2PodNetworkLabel := pod.Labels[configuration.LabelPodSwiftV2]
+	_, swiftV2PodNetworkInstanceLabel := pod.Labels[configuration.LabelPodNetworkInstanceSwiftV2]
+	if swiftV2PodNetworkLabel || swiftV2PodNetworkInstanceLabel {
 
 		// Check if the MTPNC CRD exists for the pod, if not, return error
 		mtpnc := v1alpha1.MultitenantPodNetworkConfig{}
