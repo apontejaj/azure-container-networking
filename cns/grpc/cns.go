@@ -31,3 +31,9 @@ func (s *Server) SetOrchestratorInfo(ctx context.Context, req *pb.SetOrchestrato
 func (s *Server) GetNodeInfo(ctx context.Context, req *pb.NodeInfoRequest) (*pb.NodeInfoResponse, error) {
 	return &pb.NodeInfoResponse{}, nil
 }
+
+func (s *CNS) UnregisterNode(ctx context.Context, req *pb.UnregisterNodeRequest) (*pb.UnregisterNodeResponse, error) {
+	s.Logger.Info("Unregistering node", zap.String("nodeID", req.NodeID))
+	// todo: Implement the logic
+	return &pb.UnregisterNodeResponse{}, nil
+}

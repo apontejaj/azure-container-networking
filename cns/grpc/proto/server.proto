@@ -15,6 +15,9 @@ service CNS {
   // Retrieves detailed information about a specific node.
   // Primarily used for health checks.
   rpc GetNodeInfo(NodeInfoRequest) returns (NodeInfoResponse);
+
+  // Unregisters a node.
+  rpc UnregisterNode(UnregisterNodeRequest) returns (UnregisterNodeResponse);
 }
 
 // SetOrchestratorInfoRequest is the request message for setting the orchestrator information.
@@ -44,3 +47,11 @@ message NodeInfoResponse {
   string status = 5; // The current status of the node (e.g., running, stopped).
   string message = 6; // Additional information about the node's health or status.
 }
+
+// UnregisterNodeRequest is the request message for unregistering a node.
+message UnregisterNodeRequest {
+  string nodeID = 1; // The node ID to unregister.
+}
+
+// UnregisterNodeResponse is the response message for unregistering a node.
+message UnregisterNodeResponse {}

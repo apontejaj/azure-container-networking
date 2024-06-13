@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion7
 const (
 	CNS_SetOrchestratorInfo_FullMethodName = "/cns.CNS/SetOrchestratorInfo"
 	CNS_GetNodeInfo_FullMethodName         = "/cns.CNS/GetNodeInfo"
+	CNS_UnregisterNode_FullMethodName      = "/cns.CNS/UnregisterNode"
 )
 
 // CNSClient is the client API for CNS service.
@@ -32,6 +33,8 @@ type CNSClient interface {
 	// Retrieves detailed information about a specific node.
 	// Primarily used for health checks.
 	GetNodeInfo(ctx context.Context, in *NodeInfoRequest, opts ...grpc.CallOption) (*NodeInfoResponse, error)
+	// Unregisters a node.
+	UnregisterNode(ctx context.Context, in *UnregisterNodeRequest, opts ...grpc.CallOption) (*UnregisterNodeResponse, error)
 }
 
 type cNSClient struct {
@@ -60,6 +63,15 @@ func (c *cNSClient) GetNodeInfo(ctx context.Context, in *NodeInfoRequest, opts .
 	return out, nil
 }
 
+func (c *cNSClient) UnregisterNode(ctx context.Context, in *UnregisterNodeRequest, opts ...grpc.CallOption) (*UnregisterNodeResponse, error) {
+	out := new(UnregisterNodeResponse)
+	err := c.cc.Invoke(ctx, CNS_UnregisterNode_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CNSServer is the server API for CNS service.
 // All implementations must embed UnimplementedCNSServer
 // for forward compatibility
@@ -69,6 +81,8 @@ type CNSServer interface {
 	// Retrieves detailed information about a specific node.
 	// Primarily used for health checks.
 	GetNodeInfo(context.Context, *NodeInfoRequest) (*NodeInfoResponse, error)
+	// Unregisters a node.
+	UnregisterNode(context.Context, *UnregisterNodeRequest) (*UnregisterNodeResponse, error)
 	mustEmbedUnimplementedCNSServer()
 }
 
@@ -81,6 +95,9 @@ func (UnimplementedCNSServer) SetOrchestratorInfo(context.Context, *SetOrchestra
 }
 func (UnimplementedCNSServer) GetNodeInfo(context.Context, *NodeInfoRequest) (*NodeInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetNodeInfo not implemented")
+}
+func (UnimplementedCNSServer) UnregisterNode(context.Context, *UnregisterNodeRequest) (*UnregisterNodeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnregisterNode not implemented")
 }
 func (UnimplementedCNSServer) mustEmbedUnimplementedCNSServer() {}
 
@@ -131,6 +148,24 @@ func _CNS_GetNodeInfo_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CNS_UnregisterNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnregisterNodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CNSServer).UnregisterNode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CNS_UnregisterNode_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CNSServer).UnregisterNode(ctx, req.(*UnregisterNodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CNS_ServiceDesc is the grpc.ServiceDesc for CNS service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -145,6 +180,10 @@ var CNS_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetNodeInfo",
 			Handler:    _CNS_GetNodeInfo_Handler,
+		},
+		{
+			MethodName: "UnregisterNode",
+			Handler:    _CNS_UnregisterNode_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
