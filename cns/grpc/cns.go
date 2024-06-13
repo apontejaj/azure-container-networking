@@ -16,19 +16,13 @@ type CNS struct {
 }
 
 func (s *CNS) SetOrchestratorInfo(ctx context.Context, req *pb.SetOrchestratorInfoRequest) (*pb.SetOrchestratorInfoResponse, error) {
-	s.Logger.Info("SetOrchestratorInfo called",
-		zap.String("NodeID", req.NodeID),
-		zap.String("OrchestratorType", req.OrchestratorType))
-	
-	// Implement your logic to handle the SetOrchestratorInfo request.
-	// Assume it's successful and return a success response.
-	return &pb.SetOrchestratorInfoResponse{
-		ReturnCode: 0,
-		Message:    "Successfully set orchestrator info",
-	}, nil
+	s.Logger.Info("SetOrchestratorInfo called", zap.String("NodeID", req.NodeID), zap.String("OrchestratorType", req.OrchestratorType))
+	// todo: Implement the logic
+	return &pb.SetOrchestratorInfoResponse{}, nil
 }
 
 func (s *CNS) GetNodeInfo(ctx context.Context, req *pb.NodeInfoRequest) (*pb.NodeInfoResponse, error) {
+	// todo: Implement the logic
 	return &pb.NodeInfoResponse{}, nil
 }
 

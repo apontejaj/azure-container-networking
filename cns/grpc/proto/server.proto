@@ -28,10 +28,7 @@ message SetOrchestratorInfoRequest {
 }
 
 // SetOrchestratorInfoResponse is the response message for setting the orchestrator information.
-message SetOrchestratorInfoResponse {
-  int32 returnCode = 1; // The return code of the operation.
-  string message = 2; // Additional information or message.
-}
+message SetOrchestratorInfoResponse {}
 
 // NodeInfoRequest is the request message for retrieving detailed information about a specific node.
 message NodeInfoRequest {
