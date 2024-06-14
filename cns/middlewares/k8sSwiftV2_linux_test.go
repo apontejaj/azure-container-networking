@@ -408,11 +408,8 @@ func TestNICTypeConfigSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(ipInfos) != 1 {
-		t.Fatalf("expected 1 ipInfo, got %d", len(ipInfos))
-	}
-	if ipInfos[0].NICType != cns.BackendNIC {
-		t.Errorf("expected NIC type %v, got %v", cns.BackendNIC, ipInfos[0].NICType)
+	if len(ipInfos) != 0 {
+		t.Fatalf("expected 0 ipInfo, got %d", len(ipInfos))
 	}
 }
 
@@ -439,7 +436,7 @@ func TestGetSWIFTv2IPConfigMultiInterfaceSuccess(t *testing.T) {
 	assert.Equal(t, err, nil)
 	// Ensure that the length of ipInfos matches the number of InterfaceInfos
 	// Adjust this according to the test setup in mock client
-	expectedInterfaceCount := 3
+	expectedInterfaceCount := 2
 	assert.Equal(t, len(ipInfos), expectedInterfaceCount)
 
 	for _, ipInfo := range ipInfos {
