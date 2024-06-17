@@ -820,14 +820,6 @@ func main() {
 	// State must be initialized before we start HTTPRestService
 	if config.ChannelMode == cns.CRD {
 
-		if cnsconfig.EnableSwiftV2 && cnsconfig.SWIFTV2Mode == configuration.K8sSWIFTV2 {
-			// No-op for linux, mapping is set for windows in aks swiftv2 scenario
-			logger.Printf("Fetcing backend nics for debug")
-			if httpRemoteRestService.PnpIDByMacAddress, err = restserver.GetPnpIDMacaddressMapping(rootCtx); err != nil {
-				logger.Errorf("Failed to fetch PnpIDMacaddress mapping")
-			}
-		}
-
 		// Check the CNI statefile mount, and if the file is empty
 		// stub an empty JSON object
 		if err := cnireconciler.WriteObjectToCNIStatefile(); err != nil {
@@ -867,6 +859,14 @@ func main() {
 		if err != nil {
 			logger.Errorf("Failed to start CRD Controller, err:%v.\n", err)
 			return
+		}
+
+		if cnsconfig.EnableSwiftV2 && cnsconfig.SWIFTV2Mode == configuration.K8sSWIFTV2 {
+			// No-op for linux, mapping is set for windows in aks swiftv2 scenario
+			logger.Printf("Fetcing backend nics for debug")
+			if httpRemoteRestService.PnpIDByMacAddress, err = restserver.GetPnpIDMacaddressMapping(rootCtx); err != nil {
+				logger.Errorf("Failed to fetch PnpIDMacaddress mapping")
+			}
 		}
 	}
 
