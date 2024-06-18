@@ -7,7 +7,7 @@ import (
 
 // setRoutes sets the routes for podIPInfo used in SWIFT V2 scenario. This is a no-op as route setting is not applicable for Windows.
 func (k *K8sSWIFTv2Middleware) setRoutes(podIPInfo *cns.PodIpInfo) error {
-	logger.Printf("[SWIFTv2Middleware] setRoutes is a no-op on Windows, only skipDefaultRoutes for InfraNIC")
+	logger.Printf("[SWIFTv2Middleware] setRoutes: only skipDefaultRoutes for InfraNIC")
 	if PodIpInfo.NICType == cns.InfraNIC {
 		podIpInfo.SkipDefaultRoutes = true
 	}
