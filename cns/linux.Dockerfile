@@ -24,5 +24,7 @@ COPY --from=iptables /usr/sbin/*tables* /usr/sbin/
 COPY --from=iptables /usr/lib /usr/lib
 COPY --from=builder /usr/local/bin/azure-cns \
 	/usr/local/bin/azure-cns
+COPY ./cns/configuration/cns_config.json /config.json
 ENTRYPOINT [ "/usr/local/bin/azure-cns" ]
 EXPOSE 10090
+EXPOSE 8080

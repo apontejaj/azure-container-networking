@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cns-deployment
+  labels:
+    app: cns-demo-cluster
+spec:
+  replicas: 10 # Increase the number of replicas
+  selector:
+    matchLabels:
+      app: cns
+  template:
+    metadata:
+      labels:
+        app: cns
+    spec:
+      containers:
+      - name: cns
+        image: acndev.azurecr.io/cns-dncgrpc:latest
+        command: ["/bin/bash", "-c", "--"]
+        args: ["sleep 10000000"]
+        ports:
+        - containerPort: 8080
+        env:
+        - name: GRPC_PORT
+          value: "8080"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cns-service
+spec:
+  selector:
+    app: cns
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
