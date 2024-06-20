@@ -41,7 +41,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: cns-container
-          image: acnpublic.azurecr.io/azure-cns:latest
+          image: mcr.microsoft.com/containernetworking/azure-cns:v1.5.26
           imagePullPolicy: IfNotPresent
           args: [ "-c", "tcp://$(CNSIpAddress):$(CNSPort)", "-t", "$(CNSLogTarget)"]
           securityContext:
@@ -83,38 +83,16 @@ spec:
                   fieldRef:
                     apiVersion: v1
                     fieldPath: spec.nodeName
-        - name: debug
-          image: mcr.microsoft.com/cbl-mariner/base/core:2.0
-          imagePullPolicy: IfNotPresent
-          command: ["sleep", "3600"]
-          securityContext:
-            capabilities:
-              add:
-                - NET_ADMIN
-          volumeMounts:
-            - name: log
-              mountPath: /var/log
-            - name: cns-state
-              mountPath: /var/lib/azure-network
-            - name: azure-endpoints
-              mountPath: /var/run/azure-cns/
-            - name: cns-config
-              mountPath: /etc/azure-cns
-            - name: cni-bin
-              mountPath: /opt/cni/bin
-            - name: azure-vnet
-              mountPath: /var/run/azure-vnet
-            - name: legacy-cni-state
-              mountPath: /var/run/azure-vnet.json
-            - name: xtables-lock
-              mountPath: /run/xtables.lock
-            - name: cni-conflist
-              mountPath: /etc/cni/net.d
       initContainers:
         - name: cni-installer
-          image: acnpublic.azurecr.io/cni-dropgz:latest
+          image: mcr.microsoft.com/containernetworking/cni-dropgz:v0.0.15
           imagePullPolicy: Always
           command: ["/dropgz"]
+          args:
+            - deploy
+            - azure-ipam
+            - -o
+            - /opt/cni/bin/azure-ipam
           volumeMounts:
             - name: cni-bin
               mountPath: /opt/cni/bin
@@ -158,4 +136,3 @@ spec:
             path: /run/xtables.lock
             type: File
       serviceAccountName: azure-cns
-
