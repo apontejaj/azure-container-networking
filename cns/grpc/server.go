@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
+	"time"
 
 	pb "github.com/Azure/azure-container-networking/cns/grpc/v1alpha"
 	"github.com/pkg/errors"
@@ -15,12 +19,15 @@ import (
 
 // Server struct to hold the gRPC server settings and the CNS service.
 type Server struct {
-	Settings   ServerSettings
-	CnsService pb.CNSServer
-	Logger     *zap.Logger
+	Settings    ServerSettings
+	CnsService  pb.CNSServer
+	Logger      *zap.Logger
+	grpcServer  *grpc.Server
+	listener    net.Listener
+	stopChannel chan os.Signal
 }
 
-// GrpcServerSettings holds the gRPC server settings.
+// ServerSettings holds the gRPC server settings.
 type ServerSettings struct {
 	IPAddress string
 	Port      uint16
@@ -34,9 +41,10 @@ func NewServer(settings ServerSettings, cnsService pb.CNSServer, logger *zap.Log
 	}
 
 	server := &Server{
-		Settings:   settings,
-		CnsService: cnsService,
-		Logger:     logger,
+		Settings:    settings,
+		CnsService:  cnsService,
+		Logger:      logger,
+		stopChannel: make(chan os.Signal, 1),
 	}
 
 	return server, nil
@@ -52,15 +60,38 @@ func (s *Server) Start() error {
 	}
 	log.Printf("[Listener] Started listening on gRPC endpoint %s.", address)
 
-	grpcServer := grpc.NewServer()
-	pb.RegisterCNSServer(grpcServer, s.CnsService)
+	s.grpcServer = grpc.NewServer()
+	pb.RegisterCNSServer(s.grpcServer, s.CnsService)
 
 	// Register reflection service on gRPC server.
-	reflection.Register(grpcServer)
+	reflection.Register(s.grpcServer)
 
-	if err := grpcServer.Serve(lis); err != nil {
-		return fmt.Errorf("failed to serve gRPC server: %w", err)
-	}
+	go func() {
+		if err := s.grpcServer.Serve(lis); err != nil {
+			log.Printf("[Server] Failed to serve gRPC server: %+v", err)
+		}
+	}()
+	s.listener = lis
+
+	// Handle shutdown signals
+	signal.Notify(s.stopChannel, syscall.SIGINT, syscall.SIGTERM)
+	<-s.stopChannel
+	s.Stop()
 
 	return nil
+}
+
+// Stop stops the gRPC server gracefully.
+func (s *Server) Stop() {
+	log.Println("[Server] Stopping gRPC server...")
+	s.grpcServer.GracefulStop()
+	s.listener.Close()
+	log.Println("[Server] gRPC server stopped.")
+}
+
+// Restart restarts the gRPC server.
+func (s *Server) Restart() error {
+	s.Stop()
+	time.Sleep(2 * time.Second) // Simulate a brief downtime
+	return s.Start()
 }
