@@ -92,6 +92,6 @@ func (s *Server) Stop() {
 // Restart restarts the gRPC server.
 func (s *Server) Restart() error {
 	s.Stop()
-	time.Sleep(2 * time.Second) // Simulate a brief downtime
+	time.Sleep(20 * time.Second) // Simulate a brief downtime
 	return s.Start()
 }

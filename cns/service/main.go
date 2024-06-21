@@ -903,6 +903,30 @@ func main() {
 				return
 			}
 		}()
+
+		// Simulate a server restart on receiving a SIGHUP signal
+		go func() {
+			restartChannel := make(chan os.Signal, 1)
+			signal.Notify(restartChannel, syscall.SIGHUP)
+			for {
+				<-restartChannel
+				logger.Printf("Received SIGHUP signal, restarting gRPC server")
+				if err := server.Restart(); err != nil {
+					logger.Errorf("Failed to restart gRPC server", zap.Error(err))
+				} else {
+					logger.Printf("gRPC server restarted successfully")
+				}
+			}
+		}()
+
+		// Wait for termination signal
+		stopChannel := make(chan os.Signal, 1)
+		signal.Notify(stopChannel, syscall.SIGINT, syscall.SIGTERM)
+		<-stopChannel
+
+		// Stop the gRPC server
+		server.Stop()
+		logger.Printf("gRPC server stopped")
 	}
 
 	// if user provides cns url by -c option, then only start HTTP remote server using this url
