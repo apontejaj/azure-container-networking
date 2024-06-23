@@ -406,6 +406,7 @@ func FetchMacAddressPnpIDMapping(ctx context.Context, execClient ExecClient) (ma
 				return nil, errors.Wrap(err, "failed to fetch MACAddressPnpIDMapping")
 			}
 			key := formattedMacaddress.String()
+			log.Printf("key: %s", key)
 			value := parts[1]
 			result[key] = value
 		}
