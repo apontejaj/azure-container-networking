@@ -867,7 +867,7 @@ func main() {
 			// No-op for linux, mapping is set for windows in aks swiftv2 scenario
 			logger.Printf("Fetcing backend nics for debug")
 			if httpRemoteRestService.PnpIDByMacAddress, err = restserver.GetPnpIDMacaddressMapping(rootCtx); err != nil {
-				logger.Errorf("Failed to fetch PnpIDMacaddress mapping")
+				logger.Errorf("Failed to fetch PnpIDMacaddress mapping: %v", err)
 			}
 		}
 	}
