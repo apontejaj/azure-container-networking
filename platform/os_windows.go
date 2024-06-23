@@ -87,7 +87,7 @@ const (
 	// for more details goto https://learn.microsoft.com/en-us/windows-hardware/drivers/network/standardized-inf-keywords-for-ndis-qos
 	desiredVLANTagForMellanox = 3
 	// Powershell command timeout
-	ExecTimeout = 5 * time.Second
+	ExecTimeout = 10 * time.Second
 )
 
 // Flag to check if sdnRemoteArpMacAddress registry key is set
@@ -222,6 +222,8 @@ func (p *execClient) ExecutePowershellCommandWithContext(ctx context.Context, co
 	err = cmd.Run()
 	if err != nil {
 		ErrPowershellExecution := errors.New("failed to execute powershell command")
+		log.Errorf("powershell error: %v", err)
+		log.Errorf("stdout powershell error: %s", stderr.String())
 		return "", fmt.Errorf("%w:%s", ErrPowershellExecution, stderr.String())
 	}
 
