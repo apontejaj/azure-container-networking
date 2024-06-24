@@ -228,7 +228,7 @@ func SetCNSConfigDefaults(config *CNSConfig) {
 	if config.AsyncPodDeletePath == "" {
 		config.AsyncPodDeletePath = "/var/run/azure-vnet/deleteIDs"
 	}
-	config.GRPCSettings.ServerIPAddress = "localhost"
+	config.GRPCSettings.ServerIPAddress = "0.0.0.0"
 	config.GRPCSettings.ServerPort = 8080
 	config.GRPCSettings.Enable = true
 	config.WatchPods = config.EnableIPAMv2 || config.EnableSwiftV2

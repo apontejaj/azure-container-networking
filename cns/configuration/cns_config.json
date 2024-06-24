@@ -33,5 +33,10 @@
     "MellanoxMonitorIntervalSecs": 30,
     "AZRSettings": {
         "PopulateHomeAzCacheRetryIntervalSecs": 60
+    },
+    "GRPCSettings": {
+        "Enable": true,
+        "ServerIPAddress": "0.0.0.0",
+        "ServerPort": 8080
     }
 }

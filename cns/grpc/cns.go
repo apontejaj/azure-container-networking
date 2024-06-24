@@ -15,9 +15,20 @@ type CNS struct {
 	State  *restserver.HTTPRestService
 }
 
-func (s *CNS) SetOrchestratorInfo(_ context.Context, req *pb.SetOrchestratorInfoRequest) (*pb.SetOrchestratorInfoResponse, error) {
+func (s *CNS) SetOrchestratorInfo(ctx context.Context, req *pb.SetOrchestratorInfoRequest) (*pb.SetOrchestratorInfoResponse, error) {
 	s.Logger.Info("SetOrchestratorInfo called", zap.String("nodeID", req.GetNodeID()), zap.String("orchestratorType", req.GetOrchestratorType()))
-	// todo: Implement the logic
+
+	// Update the CNS state with the orchestrator information
+	nodeInfo := restserver.NodeInfo{
+		ID:        req.GetNodeID(),
+		Name:      req.GetNodeID(),
+		IP:        req.GetDncPartitionKey(),
+		IsHealthy: true,
+		Status:    "running",
+		Message:   "Node is registered",
+	}
+	s.State.UpdateNodeInfo(nodeInfo)
+
 	return &pb.SetOrchestratorInfoResponse{}, nil
 }
 

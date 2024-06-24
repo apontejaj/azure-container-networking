@@ -14,7 +14,6 @@ COPY --from=builder /etc/group /etc/group
 COPY --from=builder /usr/local/bin/azure-cns /usr/local/bin/azure-cns
 COPY --from=builder /usr/local/bin/azure-vnet-telemetry /usr/local/bin/azure-vnet-telemetry
 
-ENV CNS_CONFIG_PATH=/usr/local/bin/cns_config.json
 ENTRYPOINT [ "/usr/local/bin/azure-cns" ]
 EXPOSE 10090
 EXPOSE 8080

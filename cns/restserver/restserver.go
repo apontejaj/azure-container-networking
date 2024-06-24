@@ -390,3 +390,8 @@ func (s *HTTPRestService) GetNodeInfo(nodeID string) (*NodeInfo, error) {
 	}
 	return &node, nil
 }
+
+// UpdateNodeInfo updates the information for a specific node.
+func (s *HTTPRestService) UpdateNodeInfo(node NodeInfo) {
+	s.nodes[node.ID] = node
+}
