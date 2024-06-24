@@ -705,6 +705,7 @@ func main() {
 	// DO NOT MERGE
 	lockPath := "./"
 	lockclient, err := processlock.NewFileLock(lockPath + name + store.LockExtension)
+	// lockclient, err := processlock.NewFileLock(platform.CNILockPath + name + store.LockExtension)
 	if err != nil {
 		log.Printf("Error initializing file lock:%v", err)
 		return
@@ -882,12 +883,12 @@ func main() {
 	if cnsconfig.GRPCSettings.Enable {
 		// Define gRPC server settings
 		settings := grpc.ServerSettings{
-			IPAddress: cnsconfig.GRPCSettings.IPAddress,
-			Port:      cnsconfig.GRPCSettings.Port,
+			IPAddress: cnsconfig.GRPCSettings.ServerIPAddress,
+			Port:      cnsconfig.GRPCSettings.ServerPort,
 		}
 
 		// Initialize CNS service
-		cnsService := &grpc.CNS{Logger: z}
+		cnsService := &grpc.CNS{Logger: z, State: httpRemoteRestService}
 
 		// Create a new gRPC server
 		server, grpcErr := grpc.NewServer(settings, cnsService, z)
@@ -904,29 +905,6 @@ func main() {
 			}
 		}()
 
-		// Simulate a server restart on receiving a SIGHUP signal
-		go func() {
-			restartChannel := make(chan os.Signal, 1)
-			signal.Notify(restartChannel, syscall.SIGHUP)
-			for {
-				<-restartChannel
-				logger.Printf("Received SIGHUP signal, restarting gRPC server")
-				if err := server.Restart(); err != nil {
-					logger.Errorf("Failed to restart gRPC server", zap.Error(err))
-				} else {
-					logger.Printf("gRPC server restarted successfully")
-				}
-			}
-		}()
-
-		// Wait for termination signal
-		stopChannel := make(chan os.Signal, 1)
-		signal.Notify(stopChannel, syscall.SIGINT, syscall.SIGTERM)
-		<-stopChannel
-
-		// Stop the gRPC server
-		server.Stop()
-		logger.Printf("gRPC server stopped")
 	}
 
 	// if user provides cns url by -c option, then only start HTTP remote server using this url

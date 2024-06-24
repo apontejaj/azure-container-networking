@@ -21,8 +21,25 @@ func (s *CNS) SetOrchestratorInfo(_ context.Context, req *pb.SetOrchestratorInfo
 	return &pb.SetOrchestratorInfoResponse{}, nil
 }
 
-func (s *CNS) GetNodeInfo(_ context.Context, req *pb.NodeInfoRequest) (*pb.NodeInfoResponse, error) {
+func (s *CNS) GetNodeInfo(ctx context.Context, req *pb.NodeInfoRequest) (*pb.NodeInfoResponse, error) {
 	s.Logger.Info("GetNodeInfo called", zap.String("nodeID", req.GetNodeID()))
-	// todo: Implement the logic
-	return &pb.NodeInfoResponse{}, nil
+
+	// Fetch the node information from the state
+	node, err := s.State.GetNodeInfo(req.GetNodeID())
+	if err != nil {
+		s.Logger.Error("Failed to get node info", zap.String("nodeID", req.GetNodeID()), zap.Error(err))
+		return nil, err
+	}
+
+	// Create the response based on the fetched node information
+	nodeInfo := &pb.NodeInfoResponse{
+		NodeID:    node.ID,
+		Name:      node.Name,
+		Ip:        node.IP,
+		IsHealthy: node.IsHealthy,
+		Status:    node.Status,
+		Message:   node.Message,
+	}
+
+	return nodeInfo, nil
 }

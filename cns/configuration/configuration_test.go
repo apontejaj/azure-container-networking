@@ -216,9 +216,9 @@ func TestSetCNSConfigDefaults(t *testing.T) {
 				WireserverIP:       "168.63.129.16",
 				AsyncPodDeletePath: "/var/run/azure-vnet/deleteIDs",
 				GRPCSettings: GRPCSettings{
-					Enable:    false,
-					IPAddress: "localhost",
-					Port:      8080,
+					Enable:          false,
+					ServerIPAddress: "localhost",
+					ServerPort:      8080,
 				},
 			},
 		},
@@ -246,9 +246,9 @@ func TestSetCNSConfigDefaults(t *testing.T) {
 					PopulateHomeAzCacheRetryIntervalSecs: 10,
 				},
 				GRPCSettings: GRPCSettings{
-					Enable:    false,
-					IPAddress: "192.168.1.1",
-					Port:      9090,
+					Enable:          false,
+					ServerIPAddress: "192.168.1.1",
+					ServerPort:      9090,
 				},
 			},
 			want: CNSConfig{
@@ -275,9 +275,9 @@ func TestSetCNSConfigDefaults(t *testing.T) {
 				WireserverIP:       "168.63.129.16",
 				AsyncPodDeletePath: "/var/run/azure-vnet/deleteIDs",
 				GRPCSettings: GRPCSettings{
-					Enable:    false,
-					IPAddress: "192.168.1.1",
-					Port:      9090,
+					Enable:          false,
+					ServerIPAddress: "192.168.1.1",
+					ServerPort:      9090,
 				},
 			},
 		},

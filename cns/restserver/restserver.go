@@ -2,6 +2,7 @@ package restserver
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -72,6 +73,7 @@ type HTTPRestService struct {
 	cniConflistGenerator       CNIConflistGenerator
 	generateCNIConflistOnce    sync.Once
 	IPConfigsHandlerMiddleware cns.IPConfigsHandlerMiddleware
+	nodes                      map[string]NodeInfo
 }
 
 type CNIConflistGenerator interface {
@@ -152,6 +154,16 @@ type httpRestServiceState struct {
 	primaryInterface                 *wireserver.InterfaceInfo
 }
 
+// NodeInfo represents the information about a node.
+type NodeInfo struct {
+	ID        string
+	Name      string
+	IP        string
+	IsHealthy bool
+	Status    string
+	Message   string
+}
+
 type networkInfo struct {
 	NetworkName string
 	NicInfo     *wireserver.InterfaceInfo
@@ -224,6 +236,7 @@ func NewHTTPRestService(config *common.ServiceConfig, wscli interfaceGetter, wsp
 		EndpointState:            make(map[string]*EndpointInfo),
 		homeAzMonitor:            homeAzMonitor,
 		cniConflistGenerator:     gen,
+		nodes:                    make(map[string]NodeInfo),
 	}, nil
 }
 
@@ -367,4 +380,13 @@ func (service *HTTPRestService) MustGenerateCNIConflistOnce() {
 
 func (service *HTTPRestService) AttachIPConfigsHandlerMiddleware(middleware cns.IPConfigsHandlerMiddleware) {
 	service.IPConfigsHandlerMiddleware = middleware
+}
+
+// GetNodeInfo retrieves the information for a specific node by its ID.
+func (s *HTTPRestService) GetNodeInfo(nodeID string) (*NodeInfo, error) {
+	node, exists := s.nodes[nodeID]
+	if !exists {
+		return nil, fmt.Errorf("node %s not found", nodeID)
+	}
+	return &node, nil
 }
