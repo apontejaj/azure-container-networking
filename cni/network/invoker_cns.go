@@ -144,7 +144,10 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 
 	addResult := IPAMAddResult{interfaceInfo: make(map[string]network.InterfaceInfo)}
 	numInterfacesWithDefaultRoutes := 0
+
 	for i := 0; i < len(response.PodIPInfo); i++ {
+		logger.Info("response.PodIPInfo pnpID", zap.String("response.PodIPInfo pnpID", response.PodIPInfo[i].PnPID))
+		logger.Info("response.PodIPInfo macAddress", zap.String("response.PodIPInfo macAddress", response.PodIPInfo[i].MacAddress))
 		info := IPResultInfo{
 			podIPAddress:       response.PodIPInfo[i].PodIPConfig.IPAddress,
 			ncSubnetPrefix:     response.PodIPInfo[i].NetworkContainerPrimaryIPConfig.IPSubnet.PrefixLength,
@@ -157,6 +160,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 			macAddress:         response.PodIPInfo[i].MacAddress,
 			skipDefaultRoutes:  response.PodIPInfo[i].SkipDefaultRoutes,
 			routes:             response.PodIPInfo[i].Routes,
+			pnpID:              response.PodIPInfo[i].PnPID,
 		}
 
 		logger.Info("Received info for pod",
@@ -169,7 +173,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 		switch info.nicType {
 		case cns.DelegatedVMNIC, cns.BackendNIC:
 			// only handling single v4 PodIPInfo for DelegatedVMNICs and BackendNIC at the moment, will have to update once v6 gets added
-			if !info.skipDefaultRoutes {
+			if info.skipDefaultRoutes {
 				numInterfacesWithDefaultRoutes++
 			}
 
@@ -177,6 +181,8 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 			info.hostSubnet = response.PodIPInfo[i].HostPrimaryIPInfo.Subnet
 			info.hostPrimaryIP = response.PodIPInfo[i].HostPrimaryIPInfo.PrimaryIP
 			info.hostGateway = response.PodIPInfo[i].HostPrimaryIPInfo.Gateway
+			info.pnpID = response.PodIPInfo[i].PnPID
+			logger.Info("info.pnpID", zap.String("info.pnpID", info.pnpID))
 
 			if err := configureSecondaryAddResult(&info, &addResult, &response.PodIPInfo[i].PodIPConfig, key); err != nil {
 				return IPAMAddResult{}, err
@@ -458,10 +464,13 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 }
 
 func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, podIPConfig *cns.IPSubnet, key string) error {
-	ip, ipnet, err := podIPConfig.GetIPNet()
-	if ip == nil {
-		return errors.Wrap(err, "Unable to parse IP from response: "+info.podIPAddress+" with err %w")
-	}
+
+	// if info.nicType != cns.BackendNIC {
+	// 	ip, ipnet, err := podIPConfig.GetIPNet()
+	// 	if ip == nil {
+	// 		return errors.Wrap(err, "Unable to parse IP from response: "+info.podIPAddress+" with err %w")
+	// 	}
+	// }
 
 	macAddress, err := net.ParseMAC(info.macAddress)
 	if err != nil {
@@ -473,13 +482,14 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 		return err
 	}
 
+	logger.Info("pnp id", zap.String("pnp id", info.pnpID))
 	addResult.interfaceInfo[key] = network.InterfaceInfo{
 		IPConfigs: []*network.IPConfig{
 			{
-				Address: net.IPNet{
-					IP:   ip,
-					Mask: ipnet.Mask,
-				},
+				// Address: net.IPNet{
+				// 	IP:   ip,
+				// 	Mask: ipnet.Mask,
+				// },
 				Gateway: net.ParseIP(info.ncGatewayIPAddress),
 			},
 		},
@@ -490,6 +500,7 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 		PnPID:             info.pnpID,
 	}
 
+	logger.Info("addResult interfaceInfo is", zap.Any("addResult interfaceInfo is", addResult.interfaceInfo))
 	return nil
 }
 

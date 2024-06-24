@@ -608,6 +608,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			ipv6Enabled:      ipamAddResult.ipv6Enabled,
 			infraSeen:        &infraSeen,
 			endpointIndex:    endpointIndex,
+			pnpID:            ifInfo.PnPID,
 		}
 		var epInfo *network.EndpointInfo
 		epInfo, err = plugin.createEpInfo(&createEpInfoOpt)
@@ -659,10 +660,8 @@ func (plugin *NetPlugin) findMasterInterface(opt *createEpInfoOpt) string {
 	switch opt.ifInfo.NICType {
 	case cns.InfraNIC:
 		return plugin.findMasterInterfaceBySubnet(opt.ipamAddConfig.nwCfg, &opt.ifInfo.HostSubnetPrefix)
-	case cns.DelegatedVMNIC:
+	case cns.DelegatedVMNIC, cns.BackendNIC:
 		return plugin.findInterfaceByMAC(opt.ifInfo.MacAddress.String())
-	case cns.BackendNIC:
-		return ""
 	default:
 		return ""
 	}
@@ -688,6 +687,7 @@ type createEpInfoOpt struct {
 
 	infraSeen     *bool // Only the first infra gets args.ifName, even if the second infra is on a different network
 	endpointIndex int
+	pnpID         string
 }
 
 func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointInfo, error) { // you can modify to pass in whatever else you need
@@ -775,13 +775,16 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		MacAddress:  opt.ifInfo.MacAddress,
 		// the following is used for creating an external interface if we can't find an existing network
 		HostSubnetPrefix: opt.ifInfo.HostSubnetPrefix.String(),
+		PnPID:            opt.pnpID,
 	}
 
-	if err = addSubnetToEndpointInfo(*opt.ifInfo, &endpointInfo); err != nil {
-		logger.Info("Failed to add subnets to endpointInfo", zap.Error(err))
-		return nil, err
+	if endpointInfo.NICType != cns.BackendNIC {
+		if err = addSubnetToEndpointInfo(*opt.ifInfo, &endpointInfo); err != nil {
+			logger.Info("Failed to add subnets to endpointInfo", zap.Error(err))
+			return nil, err
+		}
+		setNetworkOptions(opt.ifInfo.NCResponse, &endpointInfo)
 	}
-	setNetworkOptions(opt.ifInfo.NCResponse, &endpointInfo)
 
 	// update endpoint policies
 	policyArgs := PolicyArgs{
@@ -819,7 +822,9 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		plugin.multitenancyClient.SetupRoutingForMultitenancy(opt.nwCfg, opt.cnsNetworkConfig, opt.azIpamResult, &endpointInfo, opt.ifInfo)
 	}
 
-	setEndpointOptions(opt.cnsNetworkConfig, &endpointInfo, vethName)
+	if endpointInfo.NICType != cns.BackendNIC {
+		setEndpointOptions(opt.cnsNetworkConfig, &endpointInfo, vethName)
+	}
 
 	logger.Info("Generated endpoint info from fields", zap.String("epInfo", endpointInfo.PrettyString()))
 
