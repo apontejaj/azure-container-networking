@@ -1455,6 +1455,8 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 	macAddress := "12:34:56:78:9a:bc"
 	parsedMacAddress, _ := net.ParseMAC(macAddress)
 
+	pnpID := `PCI\VEN_15B3&DEV_101C&SUBSYS_000715B3&REV_00\5&8c5acce&0&0`
+
 	type fields struct {
 		podName      string
 		podNamespace string
@@ -1564,6 +1566,7 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 									},
 									NICType:    cns.BackendNIC,
 									MacAddress: macAddress,
+									PnPID:      pnpID,
 								},
 							},
 							Response: cns.Response{
@@ -1595,6 +1598,7 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 					Routes:     []network.RouteInfo{},
 					NICType:    cns.BackendNIC,
 					MacAddress: parsedMacAddress,
+					PnPID:      pnpID,
 				},
 			},
 			wantErr: false,
