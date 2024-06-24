@@ -14,11 +14,16 @@ func (m *MultitenantPodNetworkConfig) IsReady() bool {
 	} else {
 		// Check if each InterfaceInfo has all required fields populated
 		for _, interfaceInfo := range m.Status.InterfaceInfos {
-			if interfaceInfo.NCID == "" ||
+			if interfaceInfo.DeviceType == "" {
+				return false
+			}
+			if (interfaceInfo.DeviceType == DeviceTypeInfiniBandNIC) && (interfaceInfo.NCID == "" || interfaceInfo.MacAddress == "") {
+				return false
+			}
+			if (interfaceInfo.DeviceType == DeviceTypeVnetNIC) && (interfaceInfo.NCID == "" ||
 				interfaceInfo.PrimaryIP == "" ||
 				interfaceInfo.MacAddress == "" ||
-				interfaceInfo.GatewayIP == "" ||
-				interfaceInfo.DeviceType == "" {
+				interfaceInfo.GatewayIP == "") {
 				return false
 			}
 		}
