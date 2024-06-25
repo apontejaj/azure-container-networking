@@ -186,7 +186,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 			info.hostSubnet = response.PodIPInfo[i].HostPrimaryIPInfo.Subnet
 			info.hostPrimaryIP = response.PodIPInfo[i].HostPrimaryIPInfo.PrimaryIP
 			info.hostGateway = response.PodIPInfo[i].HostPrimaryIPInfo.Gateway
-			info.pnpID = ReplaceDoubleBackslash(response.PodIPInfo[i].PnPID)
+			info.pnpID = `"` + ReplaceDoubleBackslash(response.PodIPInfo[i].PnPID) + `"`
 			logger.Info("info.pnpID", zap.String("info.pnpID", info.pnpID))
 
 			if err := configureSecondaryAddResult(&info, &addResult, &response.PodIPInfo[i].PodIPConfig, key); err != nil {
