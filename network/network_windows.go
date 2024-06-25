@@ -354,66 +354,12 @@ func (nm *networkManager) addIPv6DefaultRoute() error {
 	return nil
 }
 
-// Disable VF device
-func (nm *networkManager) DisableVFDevice(instanceID string) error {
-	disableVFDevice := fmt.Sprintf("Disable-PnpDevice -InstanceId %s", instanceID)
-	_, err := nm.plClient.ExecutePowershellCommand(disableVFDevice)
-	if err != nil {
-		errMsg := fmt.Sprintf("Failed to disable VF device due to error %s", err.Error())
-		return errors.Errorf(errMsg)
-	}
-
-	return nil
-}
-
-// Get LocationPath
-func (nm *networkManager) GetLocationPath(instanceID string) (string, error) {
-	getLocationPath := fmt.Sprintf("(Get-PnpDeviceProperty -KeyName DEVPKEY_Device_LocationPaths –InstanceId %s).Data[0]", instanceID)
-	locationPath, err := nm.plClient.ExecutePowershellCommand(getLocationPath)
-	if err != nil {
-		errMsg := fmt.Sprintf("Failed to get VF locationPath due to error %s", err.Error())
-		return "", errors.Errorf(errMsg)
-	}
-
-	return locationPath, nil
-}
-
-// Dismount VF device
-func (nm *networkManager) DisamountVFDevice(instanceID string) error {
-	locationPath, err := nm.GetLocationPath(instanceID)
-	if err != nil {
-		return err
-	}
-
-	disamountVFDevice := fmt.Sprintf("Dismount-VMHostAssignableDevice -Force -LocationPath %s", locationPath)
-	_, err = nm.plClient.ExecutePowershellCommand(disamountVFDevice)
-	if err != nil {
-		errMsg := fmt.Sprintf("Failed to disamount VF device due to error %s", err.Error())
-		return errors.Errorf(errMsg)
-	}
-
-	return nil
-}
-
 // newNetworkImplHnsV2 creates a new container network for HNSv2.
 func (nm *networkManager) newNetworkImplHnsV2(nwInfo *EndpointInfo, extIf *externalInterface) (*network, error) {
 	hcnNetwork, err := nm.configureHcnNetwork(nwInfo, extIf)
 	if err != nil {
 		logger.Error("Failed to configure hcn network due to", zap.Error(err))
 		return nil, err
-	}
-
-	// disable and dismount VF before hnsNetwork is created if NIC type is IB
-	if nwInfo.NICType == cns.BackendNIC {
-		// step 1: disable VF
-		if err := nm.DisableVFDevice(nwInfo.PnPID); err != nil { //nolint
-			return nil, err
-		}
-
-		// step 2: dismount VF
-		if err := nm.DisamountVFDevice(nwInfo.PnPID); err != nil { //nolint
-			return nil, err
-		}
 	}
 
 	// check if network exists, only create the network does not exist

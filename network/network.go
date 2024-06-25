@@ -302,7 +302,7 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 	eps := []*endpoint{} // save endpoints for stateless
 
 	for _, epInfo := range epInfos {
-		logger.Info("Creating endpoint and network", zap.String("endpointInfo", epInfo.PrettyString()))
+		logger.Info("Creating network and endpoint", zap.String("endpointInfo", epInfo.PrettyString()))
 		// check if network exists by searching through all external interfaces for the network
 		_, nwGetErr := nm.GetNetworkInfo(epInfo.NetworkID)
 		if nwGetErr != nil {

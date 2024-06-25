@@ -1598,7 +1598,7 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 					Routes:     []network.RouteInfo{},
 					NICType:    cns.BackendNIC,
 					MacAddress: parsedMacAddress,
-					PnPID:      `"` + pnpID + `"`,
+					PnPID:      pnpID,
 				},
 			},
 			wantErr: false,

@@ -587,6 +587,21 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 	for key := range ipamAddResult.interfaceInfo {
 		ifInfo := ipamAddResult.interfaceInfo[key]
 
+		// disable and dismount VF if NIC type is IB
+		if ifInfo.NICType == cns.BackendNIC {
+			// step 1: disable VF
+			if err := plugin.nm.DisableVFDevice(ifInfo.PnPID); err != nil { //nolint
+				return errors.Wrap(err, "failed to disable VF device")
+			}
+
+			// step 2: dismount VF
+			if err := plugin.nm.DisamountVFDevice(ifInfo.PnPID); err != nil { //nolint
+				return errors.Wrap(err, "failed to dismount VF device")
+			}
+
+			continue // break here; do not create network and endpoint for IB NIC interface
+		}
+
 		natInfo := getNATInfo(nwCfg, options[network.SNATIPKey], enableSnatForDNS)
 		networkID, _ := plugin.getNetworkID(args.Netns, &ifInfo, nwCfg)
 
@@ -608,8 +623,8 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			ipv6Enabled:      ipamAddResult.ipv6Enabled,
 			infraSeen:        &infraSeen,
 			endpointIndex:    endpointIndex,
-			pnpID:            ifInfo.PnPID,
 		}
+
 		var epInfo *network.EndpointInfo
 		epInfo, err = plugin.createEpInfo(&createEpInfoOpt)
 		if err != nil {
@@ -687,7 +702,6 @@ type createEpInfoOpt struct {
 
 	infraSeen     *bool // Only the first infra gets args.ifName, even if the second infra is on a different network
 	endpointIndex int
-	pnpID         string
 }
 
 func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointInfo, error) { // you can modify to pass in whatever else you need
@@ -775,16 +789,13 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		MacAddress:  opt.ifInfo.MacAddress,
 		// the following is used for creating an external interface if we can't find an existing network
 		HostSubnetPrefix: opt.ifInfo.HostSubnetPrefix.String(),
-		PnPID:            opt.pnpID,
 	}
 
-	if endpointInfo.NICType != cns.BackendNIC {
-		if err = addSubnetToEndpointInfo(*opt.ifInfo, &endpointInfo); err != nil {
-			logger.Info("Failed to add subnets to endpointInfo", zap.Error(err))
-			return nil, err
-		}
-		setNetworkOptions(opt.ifInfo.NCResponse, &endpointInfo)
+	if err = addSubnetToEndpointInfo(*opt.ifInfo, &endpointInfo); err != nil {
+		logger.Info("Failed to add subnets to endpointInfo", zap.Error(err))
+		return nil, err
 	}
+	setNetworkOptions(opt.ifInfo.NCResponse, &endpointInfo)
 
 	// update endpoint policies
 	policyArgs := PolicyArgs{
@@ -822,9 +833,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		plugin.multitenancyClient.SetupRoutingForMultitenancy(opt.nwCfg, opt.cnsNetworkConfig, opt.azIpamResult, &endpointInfo, opt.ifInfo)
 	}
 
-	if endpointInfo.NICType != cns.BackendNIC {
-		setEndpointOptions(opt.cnsNetworkConfig, &endpointInfo, vethName)
-	}
+	setEndpointOptions(opt.cnsNetworkConfig, &endpointInfo, vethName)
 
 	logger.Info("Generated endpoint info from fields", zap.String("epInfo", endpointInfo.PrettyString()))
 
@@ -1409,6 +1418,8 @@ func convertNnsToIPConfigs(
 }
 
 func (plugin *NetPlugin) convertInterfaceInfoToCniResult(info network.InterfaceInfo, ifName string) *cniTypesCurr.Result {
+
+	// get an updated PnP Device ID(PciID)
 	var pnpDeviceID string
 	if info.NICType == cns.BackendNIC {
 		pnpDeviceID, _ = plugin.nm.GetPnPDeviceID(info.PnPID)

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"strings"
 
 	"github.com/Azure/azure-container-networking/cni"
 	"github.com/Azure/azure-container-networking/cni/util"
@@ -82,10 +81,6 @@ func NewCNSInvoker(podName, namespace string, cnsClient cnsclient, executionMode
 	}
 }
 
-func ReplaceDoubleBackslash(input string) string {
-	return strings.ReplaceAll(input, "\\\\", "\\")
-}
-
 // Add uses the requestipconfig API in cns, and returns ipv4 and a nil ipv6 as CNS doesn't support IPv6 yet
 func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, error) {
 	// Parse Pod arguments.
@@ -151,8 +146,6 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 	numInterfacesWithDefaultRoutes := 0
 
 	for i := 0; i < len(response.PodIPInfo); i++ {
-		logger.Info("response.PodIPInfo pnpID", zap.String("response.PodIPInfo pnpID", response.PodIPInfo[i].PnPID))
-		logger.Info("response.PodIPInfo macAddress", zap.String("response.PodIPInfo macAddress", response.PodIPInfo[i].MacAddress))
 		info := IPResultInfo{
 			podIPAddress:       response.PodIPInfo[i].PodIPConfig.IPAddress,
 			ncSubnetPrefix:     response.PodIPInfo[i].NetworkContainerPrimaryIPConfig.IPSubnet.PrefixLength,
@@ -186,7 +179,6 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 			info.hostSubnet = response.PodIPInfo[i].HostPrimaryIPInfo.Subnet
 			info.hostPrimaryIP = response.PodIPInfo[i].HostPrimaryIPInfo.PrimaryIP
 			info.hostGateway = response.PodIPInfo[i].HostPrimaryIPInfo.Gateway
-			info.pnpID = `"` + ReplaceDoubleBackslash(response.PodIPInfo[i].PnPID) + `"`
 			logger.Info("info.pnpID", zap.String("info.pnpID", info.pnpID))
 
 			if err := configureSecondaryAddResult(&info, &addResult, &response.PodIPInfo[i].PodIPConfig, key); err != nil {
@@ -469,13 +461,16 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 }
 
 func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, podIPConfig *cns.IPSubnet, key string) error {
+	var address net.IPNet
 
-	// if info.nicType != cns.BackendNIC {
-	// 	ip, ipnet, err := podIPConfig.GetIPNet()
-	// 	if ip == nil {
-	// 		return errors.Wrap(err, "Unable to parse IP from response: "+info.podIPAddress+" with err %w")
-	// 	}
-	// }
+	if info.nicType != cns.BackendNIC {
+		ip, ipnet, err := podIPConfig.GetIPNet()
+		if ip == nil {
+			return errors.Wrap(err, "Unable to parse IP from response: "+info.podIPAddress+" with err %w")
+		}
+		address.IP = ip
+		address.Mask = ipnet.Mask
+	}
 
 	macAddress, err := net.ParseMAC(info.macAddress)
 	if err != nil {
@@ -487,15 +482,11 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 		return err
 	}
 
-	logger.Info("pnp id", zap.String("pnp id", info.pnpID))
 	addResult.interfaceInfo[key] = network.InterfaceInfo{
 		IPConfigs: []*network.IPConfig{
 			{
-				// Address: net.IPNet{
-				// 	IP:   ip,
-				// 	Mask: ipnet.Mask,
-				// },
-				Gateway: net.ParseIP(info.ncGatewayIPAddress),
+				Address: address,
+				Gateway: net.ParseIP(info.ncGatewayIPAddress), // TODO: IB NIC default route should be set on IB NIC interface?
 			},
 		},
 		Routes:            routes,
@@ -505,7 +496,6 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 		PnPID:             info.pnpID,
 	}
 
-	logger.Info("addResult interfaceInfo is", zap.Any("addResult interfaceInfo is", addResult.interfaceInfo))
 	return nil
 }
 
