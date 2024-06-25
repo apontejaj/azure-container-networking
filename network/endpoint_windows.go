@@ -331,11 +331,6 @@ func (nw *network) createHostNCApipaEndpoint(cli apipaClient, epInfo *EndpointIn
 
 // newEndpointImplHnsV2 creates a new endpoint in the network using Hnsv2
 func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (*endpoint, error) {
-	if epInfo.NICType == cns.BackendNIC {
-		// no need to create endpoint if NICType is BackendNIC since HNS does not program the endpoint
-		return nil, nil
-	}
-
 	hcnEndpoint, err := nw.configureHcnEndpoint(epInfo)
 	if err != nil {
 		logger.Error("Failed to configure hcn endpoint due to", zap.Error(err))
@@ -473,11 +468,6 @@ func (nw *network) deleteEndpointImplHnsV1(ep *endpoint) error {
 
 // deleteEndpointImplHnsV2 deletes an existing endpoint from the network using HNS v2.
 func (nw *network) deleteEndpointImplHnsV2(ep *endpoint) error {
-	if ep.NICType == cns.BackendNIC {
-		// no need to delete endpoint if NICType is BackendNIC
-		return nil
-	}
-
 	var (
 		hcnEndpoint *hcn.HostComputeEndpoint
 		err         error
