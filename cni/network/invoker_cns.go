@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/Azure/azure-container-networking/cni"
 	"github.com/Azure/azure-container-networking/cni/util"
@@ -79,6 +80,10 @@ func NewCNSInvoker(podName, namespace string, cnsClient cnsclient, executionMode
 		executionMode: executionMode,
 		ipamMode:      ipamMode,
 	}
+}
+
+func ReplaceDoubleBackslash(input string) string {
+	return strings.ReplaceAll(input, "\\\\", "\\")
 }
 
 // Add uses the requestipconfig API in cns, and returns ipv4 and a nil ipv6 as CNS doesn't support IPv6 yet
@@ -173,7 +178,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 		switch info.nicType {
 		case cns.DelegatedVMNIC, cns.BackendNIC:
 			// only handling single v4 PodIPInfo for DelegatedVMNICs and BackendNIC at the moment, will have to update once v6 gets added
-			if !info.skipDefaultRoutes {
+			if info.skipDefaultRoutes {
 				numInterfacesWithDefaultRoutes++
 			}
 
@@ -181,7 +186,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 			info.hostSubnet = response.PodIPInfo[i].HostPrimaryIPInfo.Subnet
 			info.hostPrimaryIP = response.PodIPInfo[i].HostPrimaryIPInfo.PrimaryIP
 			info.hostGateway = response.PodIPInfo[i].HostPrimaryIPInfo.Gateway
-			info.pnpID = response.PodIPInfo[i].PnPID
+			info.pnpID = ReplaceDoubleBackslash(response.PodIPInfo[i].PnPID)
 			logger.Info("info.pnpID", zap.String("info.pnpID", info.pnpID))
 
 			if err := configureSecondaryAddResult(&info, &addResult, &response.PodIPInfo[i].PodIPConfig, key); err != nil {
