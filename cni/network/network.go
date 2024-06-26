@@ -430,6 +430,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			// we assume that we want to return the infra nic always, and if that is not found, return any one of the secondary interfaces
 			// if there is an infra nic + secondary, we will always return the infra nic (linux swift v2)
 			cniResult = plugin.convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[key], args.IfName)
+			logger.Info("cniResult", zap.Any("CNI ADD()", cniResult))
 
 			// stdout multiple cniResults for containerd to create multiple pods
 			// containerd receives each cniResult as the stdout and create pod
