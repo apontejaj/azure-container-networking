@@ -46,9 +46,6 @@ func GetPnpIDMacaddressMapping(ctx context.Context) (map[string]string, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to fetch MACAddressPnpIDMapping")
 	}
-	for key, value := range VfMacAddressMapping {
-		logger.Printf("[DEBUG] Macaddress mapping: %s: %s\n", key, value)
-	}
 	return VfMacAddressMapping, nil
 }
 
