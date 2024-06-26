@@ -1419,7 +1419,6 @@ func convertNnsToIPConfigs(
 }
 
 func (plugin *NetPlugin) convertInterfaceInfoToCniResult(info network.InterfaceInfo, ifName string) *cniTypesCurr.Result {
-
 	// get an updated PnP Device ID(PciID)
 	var pnpDeviceID string
 	if info.NICType == cns.BackendNIC {
