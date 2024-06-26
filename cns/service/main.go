@@ -862,7 +862,6 @@ func main() {
 			return
 		}
 
-		logger.Printf("[DEBUG] cnsconfig: %t swiftv2mode: %s", cnsconfig.EnableSwiftV2, cnsconfig.SWIFTV2Mode)
 		if cnsconfig.EnableSwiftV2 {
 			// No-op for linux, mapping is set for windows in aks swiftv2 scenario
 			logger.Printf("Fetcing backend nics for debug")
