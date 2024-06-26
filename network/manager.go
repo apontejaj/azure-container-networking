@@ -815,14 +815,14 @@ func (nm *networkManager) GetEndpointInfosFromContainerID(containerID string) []
 
 // Get PnP Device ID
 func (nm *networkManager) GetPnPDeviceID(instanceID string) (string, error) {
-	getLocationPath := fmt.Sprintf("(Get-PnpDeviceProperty -KeyName DEVPKEY_Device_LocationPaths –InstanceId \"%s\").Data[0]", instanceID)
+	getLocationPath := fmt.Sprintf("(Get-PnpDeviceProperty -KeyName DEVPKEY_Device_LocationPaths –InstanceId \"%q\").Data[0]", instanceID)
 	locationPath, err := nm.plClient.ExecutePowershellCommand(getLocationPath)
 	if err != nil {
-		errMsg := fmt.Sprintf("Failed to get VF locationPath due to error \"%s\"", err.Error())
+		errMsg := fmt.Sprintf("Failed to get VF locationPath due to error \"%q\"", err.Error())
 		return "", errors.Errorf(errMsg)
 	}
 
-	getPnPDeviceID := fmt.Sprintf("(Get-VMHostAssignableDevice | Where-Object LocationPath -eq \"%s\").InstanceID", locationPath)
+	getPnPDeviceID := fmt.Sprintf("(Get-VMHostAssignableDevice | Where-Object LocationPath -eq \"%q\").InstanceID", locationPath)
 	pnpDeviceID, err := nm.plClient.ExecutePowershellCommand(getPnPDeviceID)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to get PnP device ID due to error %s", err.Error())
@@ -835,7 +835,7 @@ func (nm *networkManager) GetPnPDeviceID(instanceID string) (string, error) {
 
 // Disable VF device
 func (nm *networkManager) DisableVFDevice(instanceID string) error {
-	disableVFDevice := fmt.Sprintf("Disable-PnpDevice -InstanceId \"%s\" -confirm:$false", instanceID)
+	disableVFDevice := fmt.Sprintf("Disable-PnpDevice -InstanceId \"%q\" -confirm:$false", instanceID)
 	res, err := nm.plClient.ExecutePowershellCommand(disableVFDevice)
 	if res != "" && err != nil {
 		errMsg := fmt.Sprintf("Failed to disable VF device due to error %s", err.Error())
@@ -853,7 +853,7 @@ func (nm *networkManager) DisamountVFDevice(instanceID string) error {
 		return err
 	}
 
-	disamountVFDevice := fmt.Sprintf("Dismount-VMHostAssignableDevice -Force -LocationPath \"%s\" -confirm:$false", locationPath)
+	disamountVFDevice := fmt.Sprintf("Dismount-VMHostAssignableDevice -Force -LocationPath \"%q\" -confirm:$false", locationPath)
 	res, err := nm.plClient.ExecutePowershellCommand(disamountVFDevice)
 	if res != "" && err != nil {
 		errMsg := fmt.Sprintf("Failed to disamount VF device due to error %s", err.Error())
@@ -866,7 +866,7 @@ func (nm *networkManager) DisamountVFDevice(instanceID string) error {
 
 // Get LocationPath
 func (nm *networkManager) GetLocationPath(instanceID string) (string, error) {
-	getLocationPath := fmt.Sprintf("(Get-PnpDeviceProperty -KeyName DEVPKEY_Device_LocationPaths –InstanceId \"%s\").Data[0]", instanceID)
+	getLocationPath := fmt.Sprintf("(Get-PnpDeviceProperty -KeyName DEVPKEY_Device_LocationPaths –InstanceId \"%q\").Data[0]", instanceID)
 	locationPath, err := nm.plClient.ExecutePowershellCommand(getLocationPath)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to get VF locationPath due to error %s", err.Error())
