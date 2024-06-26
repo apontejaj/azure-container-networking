@@ -592,12 +592,12 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		if ifInfo.NICType == cns.BackendNIC {
 			// step 1: disable VF
 			if err := plugin.nm.DisableVFDevice(ifInfo.PnPID); err != nil { //nolint
-				return errors.Wrap(err, "failed to disable VF device")
+				return err
 			}
 
 			// step 2: dismount VF
 			if err := plugin.nm.DisamountVFDevice(ifInfo.PnPID); err != nil { //nolint
-				return errors.Wrap(err, "failed to dismount VF device")
+				return err
 			}
 
 			continue // break here; do not create network and endpoint for IB NIC interface
