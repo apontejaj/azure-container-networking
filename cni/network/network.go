@@ -676,7 +676,7 @@ func (plugin *NetPlugin) findMasterInterface(opt *createEpInfoOpt) string {
 	switch opt.ifInfo.NICType {
 	case cns.InfraNIC:
 		return plugin.findMasterInterfaceBySubnet(opt.ipamAddConfig.nwCfg, &opt.ifInfo.HostSubnetPrefix)
-	case cns.DelegatedVMNIC, cns.BackendNIC:
+	case cns.DelegatedVMNIC:
 		return plugin.findInterfaceByMAC(opt.ifInfo.MacAddress.String())
 	default:
 		return ""
