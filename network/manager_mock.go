@@ -27,10 +27,6 @@ func (nm *MockNetworkManager) Initialize(config *common.PluginConfig, isRehydrat
 	return nil
 }
 
-func (nm *MockNetworkManager) GetPnPDeviceID(_ string) (string, error) {
-	return "", nil
-}
-
 // Uninitialize mock
 func (nm *MockNetworkManager) Uninitialize() {}
 
@@ -224,5 +220,9 @@ func (nm *MockNetworkManager) DisamountVFDevice(_ string) error {
 }
 
 func (nm *MockNetworkManager) GetLocationPath(_ string) (string, error) {
+	return "", nil
+}
+
+func (nm *MockNetworkManager) GetPnPDeviceID(_ string) (string, error) {
 	return "", nil
 }

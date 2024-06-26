@@ -170,7 +170,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 		key := invoker.getInterfaceInfoKey(info.nicType, info.macAddress)
 		switch info.nicType {
 		case cns.DelegatedVMNIC, cns.BackendNIC:
-			// only handling single v4 PodIPInfo for DelegatedVMNICs and BackendNIC at the moment, will have to update once v6 gets added
+			// only handling single v4 PodIPInfo for DelegatedVMNIC and BackendNIC at the moment, will have to update once v6 gets added
 			if info.skipDefaultRoutes {
 				numInterfacesWithDefaultRoutes++
 			}
@@ -485,7 +485,7 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 		IPConfigs: []*network.IPConfig{
 			{
 				Address: address,
-				Gateway: net.ParseIP(info.ncGatewayIPAddress), // TODO: IB NIC default route should be set on IB NIC interface?
+				Gateway: net.ParseIP(info.ncGatewayIPAddress), // TODO: the default route should be set on IB NIC interface?
 			},
 		},
 		Routes:            routes,
