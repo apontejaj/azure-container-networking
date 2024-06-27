@@ -421,16 +421,11 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		telemetry.SendCNIMetric(&cniMetric, plugin.tb)
 
 		// Add Interfaces to result.
-		// previously just logged the default (infra) interface so this is equivalent behavior
-		// cniResult := &cniTypesCurr.Result{}
-		// for key := range ipamAddResult.interfaceInfo {
-		// logger.Info("Exiting add, interface info retrieved", zap.Any("ifInfo", ipamAddResult.interfaceInfo[key]))
 		// previously we had a default interface info to select which interface info was the one to be returned from cni add
 		// now we have to infer which interface info should be returned
 		// we assume that we want to return the infra nic always, and if that is not found, return any one of the secondary interfaces
 		// if there is an infra nic + secondary, we will always return the infra nic (linux swift v2)
 		cniResult := plugin.convertInterfaceInfoToCniResult(ipamAddResult, args.IfName)
-		// }
 
 		logger.Info("cniResult", zap.Any("CNI ADD()", cniResult))
 
@@ -592,6 +587,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 		// disable and dismount VF if NIC type is IB
 		if ifInfo.NICType == cns.BackendNIC {
+
 			// step 1: disable VF
 			if err := plugin.nm.DisableVFDevice(ifInfo.PnPID); err != nil { //nolint
 				return err
@@ -1430,7 +1426,7 @@ func (plugin *NetPlugin) convertInterfaceInfoToCniResult(info IPAMAddResult, ifN
 			// get an updated PnP Device ID(PciID)
 			pnpDeviceID, _ := plugin.nm.GetPnPDeviceID(interfaceInfo.PnPID)
 			result.Interfaces = append(result.Interfaces, &cniTypesCurr.Interface{
-				Name:  "ib1",
+				Name:  "ib" + key,
 				Mac:   interfaceInfo.MacAddress.String(),
 				PciID: pnpDeviceID,
 			})

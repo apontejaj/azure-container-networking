@@ -226,3 +226,7 @@ func (nm *MockNetworkManager) GetLocationPath(_ string) (string, error) {
 func (nm *MockNetworkManager) GetPnPDeviceID(_ string) (string, error) {
 	return "", nil
 }
+
+func (nm *MockNetworkManager) GetPnpDeviceState(_ string) (string, error) {
+	return "", nil
+}

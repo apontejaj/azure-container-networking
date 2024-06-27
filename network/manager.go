@@ -125,6 +125,7 @@ type NetworkManager interface {
 	DisableVFDevice(instanceID string) error
 	DisamountVFDevice(instanceID string) error
 	GetLocationPath(instanceID string) (string, error)
+	GetPnpDeviceState(instanceID string) (string, error)
 }
 
 // Creates a new network manager.
@@ -813,6 +814,22 @@ func (nm *networkManager) GetEndpointInfosFromContainerID(containerID string) []
 	return ret
 }
 
+func generateCNSIPInfoMap(eps []*endpoint) map[string]*restserver.IPInfo {
+	ifNametoIPInfoMap := make(map[string]*restserver.IPInfo) // key : interface name, value : IPInfo
+
+	for _, ep := range eps {
+		ifNametoIPInfoMap[ep.IfName] = &restserver.IPInfo{ // in windows, the nicname is args ifname, in linux, it's ethX
+			NICType:       ep.NICType,
+			HnsEndpointID: ep.HnsId,
+			HnsNetworkID:  ep.HNSNetworkID,
+			HostVethName:  ep.HostIfName,
+			MacAddress:    ep.MacAddress.String(),
+		}
+	}
+
+	return ifNametoIPInfoMap
+}
+
 // Get PnP Device ID
 func (nm *networkManager) GetPnPDeviceID(instanceID string) (string, error) {
 	getLocationPath := fmt.Sprintf("(Get-PnpDeviceProperty -KeyName DEVPKEY_Device_LocationPaths –InstanceId \"%s\").Data[0]", instanceID)
@@ -825,6 +842,7 @@ func (nm *networkManager) GetPnPDeviceID(instanceID string) (string, error) {
 	getPnPDeviceID := fmt.Sprintf("(Get-VMHostAssignableDevice | Where-Object LocationPath -eq \"%s\").InstanceID", locationPath)
 	pnpDeviceID, err := nm.plClient.ExecutePowershellCommand(getPnPDeviceID)
 	if err != nil {
+		logger.Error("Failed to get PnP device ID", zap.Error(err))
 		errMsg := fmt.Sprintf("Failed to get PnP device ID due to error %s", err.Error())
 		return "", errors.Errorf(errMsg)
 	}
@@ -871,6 +889,7 @@ func (nm *networkManager) GetLocationPath(instanceID string) (string, error) {
 	getLocationPath := fmt.Sprintf("(Get-PnpDeviceProperty -KeyName DEVPKEY_Device_LocationPaths –InstanceId \"%s\").Data[0]", instanceID)
 	locationPath, err := nm.plClient.ExecutePowershellCommand(getLocationPath)
 	if err != nil {
+		logger.Error("Failed to get VF locationPath", zap.Error(err))
 		errMsg := fmt.Sprintf("Failed to get VF locationPath due to error %s", err.Error())
 		return "", errors.Errorf(errMsg)
 	}
@@ -879,18 +898,17 @@ func (nm *networkManager) GetLocationPath(instanceID string) (string, error) {
 	return locationPath, nil
 }
 
-func generateCNSIPInfoMap(eps []*endpoint) map[string]*restserver.IPInfo {
-	ifNametoIPInfoMap := make(map[string]*restserver.IPInfo) // key : interface name, value : IPInfo
-
-	for _, ep := range eps {
-		ifNametoIPInfoMap[ep.IfName] = &restserver.IPInfo{ // in windows, the nicname is args ifname, in linux, it's ethX
-			NICType:       ep.NICType,
-			HnsEndpointID: ep.HnsId,
-			HnsNetworkID:  ep.HNSNetworkID,
-			HostVethName:  ep.HostIfName,
-			MacAddress:    ep.MacAddress.String(),
-		}
+// Get PnP device state
+func (nm *networkManager) GetPnpDeviceState(instanceID string) (string, error) {
+	getPnpDeviceState := fmt.Sprintf("Get-PnpDevice -PresentOnly -InstanceId \"%s\"", instanceID)
+	deviceState, err := nm.plClient.ExecutePowershellCommand(getPnpDeviceState)
+	if err != nil {
+		logger.Error("Failed to get PnP device state", zap.Error(err))
+		errMsg := fmt.Sprintf("Failed to get get PnP device state due to error %s", err.Error())
+		return "", errors.Errorf(errMsg)
 	}
 
-	return ifNametoIPInfoMap
+	logger.Info("Successfully got", zap.String("device state", deviceState))
+	return deviceState, nil
+
 }
