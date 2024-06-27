@@ -300,10 +300,6 @@ stages:
                 arch: arm64
                 name: cni-dropgz
                 os: linux
-              cns_linux_arm64:
-                arch: arm64
-                name: cns
-                os: linux
               ipv6_hp_bpf_linux_arm64:
                 arch: arm64
                 name: ipv6-hp-bpf
