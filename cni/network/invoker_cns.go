@@ -460,7 +460,10 @@ func configureDefaultAddResult(info *IPResultInfo, addConfig *IPAMAddConfig, add
 }
 
 func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, podIPConfig *cns.IPSubnet, key string) error {
-	var address net.IPNet
+	var (
+		address   net.IPNet
+		ipConfigs []*network.IPConfig
+	)
 
 	if info.nicType != cns.BackendNIC {
 		ip, ipnet, err := podIPConfig.GetIPNet()
@@ -469,6 +472,13 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 		}
 		address.IP = ip
 		address.Mask = ipnet.Mask
+
+		ipConfigs = []*network.IPConfig{
+			{
+				Address: address,
+				Gateway: net.ParseIP(info.ncGatewayIPAddress), // TODO: the default route should be set on IB NIC interface?
+			},
+		}
 	}
 
 	macAddress, err := net.ParseMAC(info.macAddress)
@@ -482,12 +492,7 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 	}
 
 	addResult.interfaceInfo[key] = network.InterfaceInfo{
-		IPConfigs: []*network.IPConfig{
-			{
-				Address: address,
-				Gateway: net.ParseIP(info.ncGatewayIPAddress), // TODO: the default route should be set on IB NIC interface?
-			},
-		},
+		IPConfigs:         ipConfigs,
 		Routes:            routes,
 		NICType:           info.nicType,
 		MacAddress:        macAddress,

@@ -422,37 +422,39 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 		// Add Interfaces to result.
 		// previously just logged the default (infra) interface so this is equivalent behavior
-		cniResult := &cniTypesCurr.Result{}
-		for key := range ipamAddResult.interfaceInfo {
-			logger.Info("Exiting add, interface info retrieved", zap.Any("ifInfo", ipamAddResult.interfaceInfo[key]))
-			// previously we had a default interface info to select which interface info was the one to be returned from cni add
-			// now we have to infer which interface info should be returned
-			// we assume that we want to return the infra nic always, and if that is not found, return any one of the secondary interfaces
-			// if there is an infra nic + secondary, we will always return the infra nic (linux swift v2)
-			cniResult = plugin.convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[key], args.IfName)
-			logger.Info("cniResult", zap.Any("CNI ADD()", cniResult))
+		// cniResult := &cniTypesCurr.Result{}
+		// for key := range ipamAddResult.interfaceInfo {
+		// logger.Info("Exiting add, interface info retrieved", zap.Any("ifInfo", ipamAddResult.interfaceInfo[key]))
+		// previously we had a default interface info to select which interface info was the one to be returned from cni add
+		// now we have to infer which interface info should be returned
+		// we assume that we want to return the infra nic always, and if that is not found, return any one of the secondary interfaces
+		// if there is an infra nic + secondary, we will always return the infra nic (linux swift v2)
+		cniResult := plugin.convertInterfaceInfoToCniResult(ipamAddResult, args.IfName)
+		// }
 
-			// stdout multiple cniResults for containerd to create multiple pods
-			// containerd receives each cniResult as the stdout and create pod
-			addSnatInterface(nwCfg, cniResult) //nolint TODO: check whether Linux supports adding secondary snatinterface
+		logger.Info("cniResult", zap.Any("CNI ADD()", cniResult))
 
-			// Convert result to the requested CNI version.
-			res, vererr := cniResult.GetAsVersion(nwCfg.CNIVersion)
-			if vererr != nil {
-				logger.Error("GetAsVersion failed", zap.Error(vererr))
-				plugin.Error(vererr) //nolint
-			}
+		// stdout multiple cniResults for containerd to create multiple pods
+		// containerd receives each cniResult as the stdout and create pod
+		addSnatInterface(nwCfg, cniResult) //nolint TODO: check whether Linux supports adding secondary snatinterface
 
-			if err == nil && res != nil {
-				// Output the result to stdout.
-				res.Print()
-			}
-
-			logger.Info("ADD command completed for",
-				zap.String("pod", k8sPodName),
-				zap.Any("IPs", cniResult.IPs),
-				zap.Error(err))
+		// Convert result to the requested CNI version.
+		res, vererr := cniResult.GetAsVersion(nwCfg.CNIVersion)
+		if vererr != nil {
+			logger.Error("GetAsVersion failed", zap.Error(vererr))
+			plugin.Error(vererr) //nolint
 		}
+
+		if err == nil && res != nil {
+			// Output the result to stdout.
+			res.Print()
+		}
+
+		logger.Info("ADD command completed for",
+			zap.String("pod", k8sPodName),
+			zap.Any("IPs", cniResult.IPs),
+			zap.Error(err))
+
 	}()
 
 	ipamAddResult = IPAMAddResult{interfaceInfo: make(map[string]network.InterfaceInfo)}
@@ -1418,34 +1420,40 @@ func convertNnsToIPConfigs(
 	return ipConfigs
 }
 
-func (plugin *NetPlugin) convertInterfaceInfoToCniResult(info network.InterfaceInfo, ifName string) *cniTypesCurr.Result {
-	// get an updated PnP Device ID(PciID)
-	var pnpDeviceID string
-	if info.NICType == cns.BackendNIC {
-		pnpDeviceID, _ = plugin.nm.GetPnPDeviceID(info.PnPID)
-	}
+func (plugin *NetPlugin) convertInterfaceInfoToCniResult(info IPAMAddResult, ifName string) *cniTypesCurr.Result {
+	result := &cniTypesCurr.Result{}
 
-	result := &cniTypesCurr.Result{
-		Interfaces: []*cniTypesCurr.Interface{
-			{
-				Name:  ifName,
-				Mac:   info.MacAddress.String(),
+	for key := range info.interfaceInfo {
+		interfaceInfo := info.interfaceInfo[key]
+
+		if interfaceInfo.NICType == cns.BackendNIC {
+			// get an updated PnP Device ID(PciID)
+			pnpDeviceID, _ := plugin.nm.GetPnPDeviceID(interfaceInfo.PnPID)
+			result.Interfaces = append(result.Interfaces, &cniTypesCurr.Interface{
+				Name:  "ib1",
+				Mac:   interfaceInfo.MacAddress.String(),
 				PciID: pnpDeviceID,
-			},
-		},
-		DNS: cniTypes.DNS{
-			Domain:      info.DNS.Suffix,
-			Nameservers: info.DNS.Servers,
-		},
-	}
-
-	if len(info.IPConfigs) > 0 {
-		for _, ipconfig := range info.IPConfigs {
-			result.IPs = append(result.IPs, &cniTypesCurr.IPConfig{Address: ipconfig.Address, Gateway: ipconfig.Gateway})
+			})
+		} else {
+			result.Interfaces = append(result.Interfaces, &cniTypesCurr.Interface{
+				Name: ifName,
+			})
+			result.DNS = cniTypes.DNS{
+				Domain:      interfaceInfo.DNS.Suffix,
+				Nameservers: interfaceInfo.DNS.Servers,
+			}
 		}
 
-		for i := range info.Routes {
-			result.Routes = append(result.Routes, &cniTypes.Route{Dst: info.Routes[i].Dst, GW: info.Routes[i].Gw})
+		if interfaceInfo.NICType != cns.BackendNIC {
+			if len(interfaceInfo.IPConfigs) > 0 {
+				for _, ipconfig := range interfaceInfo.IPConfigs {
+					result.IPs = append(result.IPs, &cniTypesCurr.IPConfig{Address: ipconfig.Address, Gateway: ipconfig.Gateway})
+				}
+
+				for i := range interfaceInfo.Routes {
+					result.Routes = append(result.Routes, &cniTypes.Route{Dst: interfaceInfo.Routes[i].Dst, GW: interfaceInfo.Routes[i].Gw})
+				}
+			}
 		}
 	}
 
