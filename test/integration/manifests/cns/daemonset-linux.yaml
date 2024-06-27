@@ -48,6 +48,7 @@ spec:
             capabilities:
               add:
                 - NET_ADMIN
+                - NET_RAW
           volumeMounts:
             - name: log
               mountPath: /var/log
