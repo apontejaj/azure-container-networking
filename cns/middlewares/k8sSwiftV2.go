@@ -248,9 +248,7 @@ func (k *K8sSWIFTv2Middleware) getIPConfig(ctx context.Context, podInfo cns.PodI
 					},
 				})
 			}
-
 		}
 	}
-
 	return podIPInfos, nil
 }
