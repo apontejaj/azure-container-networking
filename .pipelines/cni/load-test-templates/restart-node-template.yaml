@@ -50,10 +50,11 @@ steps:
       displayName: Restart Kubeproxy on Windows nodes
       retryCountOnTaskFailure: 3
 
-  - template: ../../templates/log-template.yaml
-    parameters:
-      clusterName: ${{ parameters.clusterName }}
-      logType: restartNode
-      os: ${{ parameters.os }}
-      cni: ${{ parameters.cni }}
-      jobName: ${{ parameters.jobName }}
+  - ${{ if contains(parameters.jobName, 'restart_nodes') }}:
+    - template: ../../templates/log-template.yaml
+      parameters:
+        clusterName: ${{ parameters.clusterName }}
+        logType: restartNode
+        os: ${{ parameters.os }}
+        cni: ${{ parameters.cni }}
+        jobName: ${{ parameters.jobName }}
