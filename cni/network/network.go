@@ -707,6 +707,7 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 	// ensure we can find the master interface
 	opt.ifInfo.HostSubnetPrefix.IP = opt.ifInfo.HostSubnetPrefix.IP.Mask(opt.ifInfo.HostSubnetPrefix.Mask)
 	opt.ipamAddConfig.nwCfg.IPAM.Subnet = opt.ifInfo.HostSubnetPrefix.String()
+
 	// populate endpoint info section
 	masterIfName := plugin.findMasterInterface(opt)
 	if masterIfName == "" {
@@ -1430,7 +1431,7 @@ func (plugin *NetPlugin) convertInterfaceInfoToCniResult(info IPAMAddResult, ifN
 				Mac:   interfaceInfo.MacAddress.String(),
 				PciID: pnpDeviceID,
 			})
-		} else {
+		} else if interfaceInfo.NICType == cns.InfraNIC {
 			result.Interfaces = append(result.Interfaces, &cniTypesCurr.Interface{
 				Name: ifName,
 			})
@@ -1440,7 +1441,7 @@ func (plugin *NetPlugin) convertInterfaceInfoToCniResult(info IPAMAddResult, ifN
 			}
 		}
 
-		if interfaceInfo.NICType != cns.BackendNIC {
+		if interfaceInfo.NICType == cns.InfraNIC {
 			if len(interfaceInfo.IPConfigs) > 0 {
 				for _, ipconfig := range interfaceInfo.IPConfigs {
 					result.IPs = append(result.IPs, &cniTypesCurr.IPConfig{Address: ipconfig.Address, Gateway: ipconfig.Gateway})
