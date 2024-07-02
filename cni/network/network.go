@@ -447,7 +447,6 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			zap.String("pod", k8sPodName),
 			zap.Any("IPs", cniResult.IPs),
 			zap.Error(err))
-
 	}()
 
 	ipamAddResult = IPAMAddResult{interfaceInfo: make(map[string]network.InterfaceInfo)}

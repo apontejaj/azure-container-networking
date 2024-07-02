@@ -914,5 +914,4 @@ func (nm *networkManager) GetPnpDeviceState(instanceID string) (string, error) {
 
 	logger.Info("Successfully got", zap.String("device state", deviceState))
 	return deviceState, nil
-
 }
