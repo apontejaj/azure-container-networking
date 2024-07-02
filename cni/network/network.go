@@ -427,8 +427,6 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		// if there is an infra nic + secondary, we will always return the infra nic (linux swift v2)
 		cniResult := plugin.convertInterfaceInfoToCniResult(ipamAddResult, args.IfName)
 
-		logger.Info("cniResult", zap.Any("CNI ADD()", cniResult))
-
 		// stdout multiple cniResults for containerd to create multiple pods
 		// containerd receives each cniResult as the stdout and create pod
 		addSnatInterface(nwCfg, cniResult) //nolint TODO: check whether Linux supports adding secondary snatinterface
@@ -590,12 +588,12 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 			// step 1: disable VF
 			if err := plugin.nm.DisableVFDevice(ifInfo.PnPID); err != nil { //nolint
-				return err
+				return errors.Wrap(err, "failed to disable VF device")
 			}
 
 			// step 2: dismount VF
 			if err := plugin.nm.DisamountVFDevice(ifInfo.PnPID); err != nil { //nolint
-				return err
+				return errors.Wrap(err, "failed to dismount VF device")
 			}
 
 			continue // break here; do not create network and endpoint for IB NIC interface
@@ -675,7 +673,7 @@ func (plugin *NetPlugin) findMasterInterface(opt *createEpInfoOpt) string {
 	switch opt.ifInfo.NICType {
 	case cns.InfraNIC:
 		return plugin.findMasterInterfaceBySubnet(opt.ipamAddConfig.nwCfg, &opt.ifInfo.HostSubnetPrefix)
-	case cns.DelegatedVMNIC, cns.NodeNetworkInterfaceAccelnetFrontendNIC:
+	case cns.DelegatedVMNIC:
 		return plugin.findInterfaceByMAC(opt.ifInfo.MacAddress.String())
 	default:
 		return ""

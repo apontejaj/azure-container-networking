@@ -169,7 +169,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 		// Do we want to leverage this lint skip in other places of our code?
 		key := invoker.getInterfaceInfoKey(info.nicType, info.macAddress)
 		switch info.nicType {
-		case cns.DelegatedVMNIC, cns.BackendNIC, cns.NodeNetworkInterfaceAccelnetFrontendNIC:
+		case cns.DelegatedVMNIC, cns.BackendNIC:
 			// only handling single v4 PodIPInfo for DelegatedVMNIC and BackendNIC at the moment, will have to update once v6 gets added
 			if !info.skipDefaultRoutes {
 				numInterfacesWithDefaultRoutes++

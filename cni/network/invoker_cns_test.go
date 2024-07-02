@@ -1446,8 +1446,6 @@ func Test_getInterfaceInfoKey(t *testing.T) {
 	require.Equal("", inv.getInterfaceInfoKey(cns.DelegatedVMNIC, ""))
 	require.Equal(dummyMAC, inv.getInterfaceInfoKey(cns.BackendNIC, dummyMAC))
 	require.Equal("", inv.getInterfaceInfoKey(cns.BackendNIC, ""))
-	require.Equal(dummyMAC, inv.getInterfaceInfoKey(cns.NodeNetworkInterfaceAccelnetFrontendNIC, dummyMAC))
-	require.Equal("", inv.getInterfaceInfoKey(cns.NodeNetworkInterfaceAccelnetFrontendNIC, ""))
 	require.Equal(string(cns.NodeNetworkInterfaceBackendNIC), inv.getInterfaceInfoKey(cns.NodeNetworkInterfaceBackendNIC, dummyMAC))
 }
 
@@ -1536,68 +1534,6 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 					},
 					Routes:     []network.RouteInfo{},
 					NICType:    cns.DelegatedVMNIC,
-					MacAddress: parsedMacAddress,
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "Test happy CNI add with swiftv2 multitenant result with accelnetNIC type",
-			fields: fields{
-				podName:      testPodInfo.PodName,
-				podNamespace: testPodInfo.PodNamespace,
-				cnsClient: &MockCNSClient{
-					require: require,
-					requestIPs: requestIPsHandler{
-						ipconfigArgument: cns.IPConfigsRequest{
-							PodInterfaceID:      "testcont-testifname1",
-							InfraContainerID:    "testcontainerid1",
-							OrchestratorContext: marshallPodInfo(testPodInfo),
-						},
-						result: &cns.IPConfigsResponse{
-							PodIPInfo: []cns.PodIpInfo{
-								{
-									PodIPConfig: cns.IPSubnet{
-										IPAddress:    "10.1.1.10",
-										PrefixLength: 24,
-									},
-									HostPrimaryIPInfo: cns.HostIPInfo{
-										Gateway:   "10.0.0.1",
-										PrimaryIP: "10.0.0.2",
-										Subnet:    "10.0.0.1/24",
-									},
-									NICType:    cns.NodeNetworkInterfaceAccelnetFrontendNIC,
-									MacAddress: macAddress,
-								},
-							},
-							Response: cns.Response{
-								ReturnCode: 0,
-								Message:    "",
-							},
-						},
-						err: nil,
-					},
-				},
-			},
-			args: args{
-				nwCfg: &cni.NetworkConfig{},
-				args: &cniSkel.CmdArgs{
-					ContainerID: "testcontainerid1",
-					Netns:       "testnetns1",
-					IfName:      "testifname1",
-				},
-				hostSubnetPrefix: getCIDRNotationForAddress("10.0.0.1/24"),
-				options:          map[string]interface{}{},
-			},
-			wantSecondaryInterfacesInfo: map[string]network.InterfaceInfo{
-				macAddress: {
-					IPConfigs: []*network.IPConfig{
-						{
-							Address: *getCIDRNotationForAddress("10.1.1.10/24"),
-						},
-					},
-					Routes:     []network.RouteInfo{},
-					NICType:    cns.NodeNetworkInterfaceAccelnetFrontendNIC,
 					MacAddress: parsedMacAddress,
 				},
 			},
