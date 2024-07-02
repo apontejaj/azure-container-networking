@@ -303,20 +303,13 @@ func (nm *networkManager) configureHcnNetwork(nwInfo *EndpointInfo, extIf *exter
 	}
 
 	// Populate subnets.
-	var nextHop string
 	for _, subnet := range nwInfo.Subnets {
-		if subnet.Gateway == nil {
-			nextHop = "10.240.2.1"
-		} else {
-			nextHop = subnet.Gateway.String()
-		}
-
 		hnsSubnet := hcn.Subnet{
 			IpAddressPrefix: subnet.Prefix.String(),
 			// Set the Gateway route
 			Routes: []hcn.Route{
 				{
-					NextHop:           nextHop,
+					NextHop:           subnet.Gateway.String(),
 					DestinationPrefix: defaultRouteCIDR,
 				},
 			},
