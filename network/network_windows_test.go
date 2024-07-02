@@ -23,6 +23,8 @@ var (
 	errTestFailure     = errors.New("test failure")
 	failedCaseReturn   = "false"
 	succededCaseReturn = "true"
+	instanceID         = "12345-abcde-789"
+	locationPath       = "12345-abcde-789-fea14"
 )
 
 func TestNewAndDeleteNetworkImplHnsV2(t *testing.T) {
@@ -402,7 +404,6 @@ func TestAddIPv6DefaultRouteUnhappyPathAddRoute(t *testing.T) {
 }
 
 func TestDisableVFDeviceHappyPath(t *testing.T) {
-	instanceID := "12345-abcde-789"
 	mockExecClient := platform.NewMockExecClient(false)
 
 	nm := &networkManager{
@@ -424,7 +425,6 @@ func TestDisableVFDeviceHappyPath(t *testing.T) {
 }
 
 func TestDisableVFDeviceUnHappyPath(t *testing.T) {
-	instanceID := "12345-abcde-789"
 	mockExecClient := platform.NewMockExecClient(false)
 
 	nm := &networkManager{
@@ -446,7 +446,6 @@ func TestDisableVFDeviceUnHappyPath(t *testing.T) {
 }
 
 func TestGetLocationPathHappyPath(t *testing.T) {
-	instanceID := "12345-abcde-789"
 	mockExecClient := platform.NewMockExecClient(false)
 
 	nm := &networkManager{
@@ -468,7 +467,6 @@ func TestGetLocationPathHappyPath(t *testing.T) {
 }
 
 func TestGetLocationPathUnHappyPath(t *testing.T) {
-	instanceID := "12345-abcde-789"
 	mockExecClient := platform.NewMockExecClient(false)
 
 	nm := &networkManager{
@@ -490,7 +488,6 @@ func TestGetLocationPathUnHappyPath(t *testing.T) {
 }
 
 func TestDismountVFDeviceHappyPath(t *testing.T) {
-	locationPath := "12345-abcde-789-fea14"
 	mockExecClient := platform.NewMockExecClient(false)
 
 	nm := &networkManager{
@@ -512,7 +509,6 @@ func TestDismountVFDeviceHappyPath(t *testing.T) {
 }
 
 func TestDismountVFDeviceUnHappyPath(t *testing.T) {
-	locationPath := "12345-abcde-789-fea14"
 	mockExecClient := platform.NewMockExecClient(false)
 
 	nm := &networkManager{
@@ -533,7 +529,6 @@ func TestDismountVFDeviceUnHappyPath(t *testing.T) {
 }
 
 func TestGetPnPDeviceIDHappyPath(t *testing.T) {
-	instanceID := "12345-abcde-789"
 	mockExecClient := platform.NewMockExecClient(false)
 
 	nm := &networkManager{
@@ -556,7 +551,6 @@ func TestGetPnPDeviceIDHappyPath(t *testing.T) {
 }
 
 func TestGetPnPDeviceIDUnHappyPath(t *testing.T) {
-	instanceID := "12345-abcde-789"
 	mockExecClient := platform.NewMockExecClient(false)
 
 	nm := &networkManager{
@@ -583,7 +577,6 @@ func TestGetPnPDeviceIDUnHappyPath(t *testing.T) {
 }
 
 func TestGetPnPDeviceStateHappyPath(t *testing.T) {
-	instanceID := "12345-abcde-789"
 	mockExecClient := platform.NewMockExecClient(false)
 
 	nm := &networkManager{
@@ -606,7 +599,6 @@ func TestGetPnPDeviceStateHappyPath(t *testing.T) {
 }
 
 func TestGetPnPDeviceStateUnHappyPath(t *testing.T) {
-	instanceID := "12345-abcde-789"
 	mockExecClient := platform.NewMockExecClient(false)
 
 	nm := &networkManager{
