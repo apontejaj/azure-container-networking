@@ -303,8 +303,7 @@ func (nm *networkManager) configureHcnNetwork(nwInfo *EndpointInfo, extIf *exter
 	}
 
 	if nwInfo.NICType == cns.NodeNetworkInterfaceAccelnetFrontendNIC {
-		hcnNetwork.Type = hcn.Transparent
-		hcnNetwork.Flags = 9216 // temp hardcode until hcsshim supports the flag
+		hcnNetwork.Flags = hcn.DisableHostPort || 8192 // temp hardcode until hcsshim supports the flag
 	}
 
 	// Populate subnets.
