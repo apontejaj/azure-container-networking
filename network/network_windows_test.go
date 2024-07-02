@@ -581,3 +581,49 @@ func TestGetPnPDeviceIDUnHappyPath(t *testing.T) {
 		t.Fatal("Failed to test unhappy path with failing to Get PnpDevice ID command")
 	}
 }
+
+func TestGetPnPDeviceStateHappyPath(t *testing.T) {
+	instanceID := "12345-abcde-789"
+	mockExecClient := platform.NewMockExecClient(false)
+
+	nm := &networkManager{
+		plClient: mockExecClient,
+	}
+
+	// happy path
+	mockExecClient.SetPowershellCommandResponder(func(cmd string) (string, error) {
+		if strings.Contains(cmd, "Get-PnpDevice") {
+			return succededCaseReturn, nil
+		}
+
+		return "", nil
+	})
+
+	_, err := nm.GetPnpDeviceState(instanceID)
+	if err != nil {
+		t.Fatal("Failed to test happy path")
+	}
+}
+
+func TestGetPnPDeviceStateUnHappyPath(t *testing.T) {
+	instanceID := "12345-abcde-789"
+	mockExecClient := platform.NewMockExecClient(false)
+
+	nm := &networkManager{
+		plClient: mockExecClient,
+	}
+
+	mockExecClient.SetPowershellCommandResponder(func(cmd string) (string, error) {
+		// fail command execution
+		if strings.Contains(cmd, "Get-PnpDevice") {
+			return failedCaseReturn, errTestFailure
+		}
+
+		return "", nil
+	})
+
+	_, err := nm.GetPnpDeviceState(instanceID)
+	if err == nil {
+		t.Fatal("Failed to test unhappy path with failing to Get PnpDevice state command")
+	}
+}

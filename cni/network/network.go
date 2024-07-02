@@ -1440,9 +1440,7 @@ func (plugin *NetPlugin) convertInterfaceInfoToCniResult(info IPAMAddResult, ifN
 				Domain:      interfaceInfo.DNS.Suffix,
 				Nameservers: interfaceInfo.DNS.Servers,
 			}
-		}
 
-		if interfaceInfo.NICType == cns.InfraNIC {
 			if len(interfaceInfo.IPConfigs) > 0 {
 				for _, ipconfig := range interfaceInfo.IPConfigs {
 					result.IPs = append(result.IPs, &cniTypesCurr.IPConfig{Address: ipconfig.Address, Gateway: ipconfig.Gateway})
