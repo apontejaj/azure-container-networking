@@ -222,7 +222,7 @@ func (k *K8sSWIFTv2Middleware) getIPConfig(ctx context.Context, podInfo cns.PodI
 					return nil, errors.Wrapf(errInvalidMTPNCPrefixLength, "mtpnc primaryIP prefix length is %d", prefixSize)
 				}
 				// Parse MTPNC SubnetAddressSpace to get the subnet prefix length
-				subnet, subnetPrefix, err := utils.ParseIPAndPrefix(interfaceInfo.PrimaryIP)
+				subnet, subnetPrefix, err := utils.ParseIPAndPrefix(interfaceInfo.SubnetAddressSpace)
 				if err != nil {
 					return nil, errors.Wrap(err, "failed to parse mtpnc subnetAddressSpace prefix")
 				}
