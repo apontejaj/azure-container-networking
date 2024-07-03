@@ -63,28 +63,31 @@ func NewClient() *Client {
 	testPod9.Labels[configuration.LabelPodSwiftV2] = podNetwork
 
 	testInterfaceInfos1 := v1alpha1.InterfaceInfo{
-		NCID:            "testncid",
-		PrimaryIP:       "192.168.0.1/32",
-		MacAddress:      "00:00:00:00:00:00",
-		GatewayIP:       "10.0.0.1",
-		DeviceType:      v1alpha1.DeviceTypeVnetNIC,
-		AccelnetEnabled: false,
+		NCID:               "testncid",
+		PrimaryIP:          "192.168.0.1/32",
+		MacAddress:         "00:00:00:00:00:00",
+		GatewayIP:          "10.0.0.1",
+		DeviceType:         v1alpha1.DeviceTypeVnetNIC,
+		AccelnetEnabled:    false,
+		SubnetAddressSpace: "192.168.0.0/24",
 	}
 	testInterfaceInfos3 := v1alpha1.InterfaceInfo{
-		NCID:            "testncid",
-		PrimaryIP:       "192.168.0.1/32",
-		MacAddress:      "00:00:00:00:00:00",
-		GatewayIP:       "10.0.0.1",
-		DeviceType:      v1alpha1.DeviceTypeVnetNIC,
-		AccelnetEnabled: false,
+		NCID:               "testncid",
+		PrimaryIP:          "192.168.0.1/32",
+		MacAddress:         "00:00:00:00:00:00",
+		GatewayIP:          "10.0.0.1",
+		DeviceType:         v1alpha1.DeviceTypeVnetNIC,
+		AccelnetEnabled:    false,
+		SubnetAddressSpace: "192.168.0.0/24",
 	}
 	testInterfaceInfos5 := v1alpha1.InterfaceInfo{
-		NCID:            "testncid",
-		PrimaryIP:       "192.168.0.1/32",
-		MacAddress:      "00:00:00:00:00:00",
-		GatewayIP:       "10.0.0.1",
-		DeviceType:      v1alpha1.DeviceTypeInfiniBandNIC,
-		AccelnetEnabled: true,
+		NCID:               "testncid",
+		PrimaryIP:          "192.168.0.1/32",
+		MacAddress:         "00:00:00:00:00:00",
+		GatewayIP:          "10.0.0.1",
+		DeviceType:         v1alpha1.DeviceTypeInfiniBandNIC,
+		AccelnetEnabled:    true,
+		SubnetAddressSpace: "192.168.0.0/24",
 	}
 
 	testMTPNC1 := v1alpha1.MultitenantPodNetworkConfig{
@@ -123,18 +126,20 @@ func NewClient() *Client {
 			NCID:       "testncid",
 			InterfaceInfos: []v1alpha1.InterfaceInfo{
 				{
-					PrimaryIP:  "192.168.0.1/32",
-					MacAddress: "00:00:00:00:00:00",
-					GatewayIP:  "10.0.0.1",
-					NCID:       "testncid",
-					DeviceType: v1alpha1.DeviceTypeVnetNIC,
+					PrimaryIP:          "192.168.0.1/32",
+					MacAddress:         "00:00:00:00:00:00",
+					GatewayIP:          "10.0.0.1",
+					NCID:               "testncid",
+					DeviceType:         v1alpha1.DeviceTypeVnetNIC,
+					SubnetAddressSpace: "192.168.0.0/24",
 				},
 				{
-					PrimaryIP:  "192.168.0.1/32",
-					MacAddress: "00:00:00:00:00:00",
-					GatewayIP:  "10.0.0.1",
-					NCID:       "testncid",
-					DeviceType: v1alpha1.DeviceTypeInfiniBandNIC,
+					PrimaryIP:          "192.168.0.1/32",
+					MacAddress:         "00:00:00:00:00:00",
+					GatewayIP:          "10.0.0.1",
+					NCID:               "testncid",
+					DeviceType:         v1alpha1.DeviceTypeInfiniBandNIC,
+					SubnetAddressSpace: "192.168.0.0/24",
 				},
 			},
 		},
@@ -144,11 +149,12 @@ func NewClient() *Client {
 		Status: v1alpha1.MultitenantPodNetworkConfigStatus{
 			InterfaceInfos: []v1alpha1.InterfaceInfo{
 				{
-					PrimaryIP:  "192.168.0.1/32",
-					MacAddress: "00:00:00:00:00:00",
-					GatewayIP:  "10.0.0.1",
-					NCID:       "testncid",
-					DeviceType: v1alpha1.DeviceTypeInfiniBandNIC,
+					PrimaryIP:          "192.168.0.1/32",
+					MacAddress:         "00:00:00:00:00:00",
+					GatewayIP:          "10.0.0.1",
+					NCID:               "testncid",
+					DeviceType:         v1alpha1.DeviceTypeInfiniBandNIC,
+					SubnetAddressSpace: "192.168.0.0/24",
 				},
 			},
 		},
@@ -199,12 +205,13 @@ func (c *Client) Get(_ context.Context, key client.ObjectKey, obj client.Object,
 
 func (c *Client) SetMTPNCReady() {
 	testInterfaceInfos1 := v1alpha1.InterfaceInfo{
-		NCID:            "testncid",
-		PrimaryIP:       "192.168.0.1/32",
-		MacAddress:      "00:00:00:00:00:00",
-		GatewayIP:       "10.0.0.1",
-		DeviceType:      v1alpha1.DeviceTypeVnetNIC,
-		AccelnetEnabled: false,
+		NCID:               "testncid",
+		PrimaryIP:          "192.168.0.1/32",
+		MacAddress:         "00:00:00:00:00:00",
+		GatewayIP:          "10.0.0.1",
+		DeviceType:         v1alpha1.DeviceTypeVnetNIC,
+		AccelnetEnabled:    false,
+		SubnetAddressSpace: "192.168.0.0/24",
 	}
 
 	testMTPNC1 := v1alpha1.MultitenantPodNetworkConfig{}
