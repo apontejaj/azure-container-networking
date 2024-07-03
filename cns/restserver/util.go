@@ -40,26 +40,35 @@ func (service *HTTPRestService) setNetworkInfo(networkName string, networkInfo *
 	service.state.Networks[networkName] = networkInfo
 }
 
-func GetPnpIDMacaddressMapping(ctx context.Context) (map[string]string, error) {
-	p := platform.NewExecClient(nil)
-	VfMacAddressMapping, err := platform.FetchMacAddressPnpIDMapping(ctx, p)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to fetch MACAddressPnpIDMapping")
+func (service *HTTPRestService) SavePnpIDMacaddressMapping(ctx context.Context) error {
+	// If mapping is already set, skip setting it again.
+	if len(service.state.PnpIDByMacAddress) != 0 {
+		logger.Printf("[Debug]State file already has mapping")
+		for key, value := range service.state.PnpIDByMacAddress {
+			fmt.Printf("%s: %s\n", key, value)
+		}
+
+		return nil
 	}
-	return VfMacAddressMapping, nil
+	p := platform.NewExecClient(nil)
+	vfMacAddressMapping, err := platform.FetchMacAddressPnpIDMapping(ctx, p)
+	if err != nil {
+		return errors.Wrap(err, "failed to fetch MACAddressPnpIDMapping")
+	}
+	service.state.PnpIDByMacAddress = vfMacAddressMapping
+	service.saveState()
+	return nil
 }
 
 func (service *HTTPRestService) getPNPIDFromMacAddress(ctx context.Context, macAddress string) (string, error) {
 	var err error
-	if _, ok := service.PnpIDByMacAddress[macAddress]; !ok {
-		if service.PnpIDByMacAddress, err = GetPnpIDMacaddressMapping(ctx); err != nil {
+	if len(service.state.PnpIDByMacAddress) != 0 {
+		if err = service.SavePnpIDMacaddressMapping(ctx); err != nil {
 			return "", err
 		}
-		// IB adapters can be absent from the list of adapters, checking for the value after the fetch
-		if _, ok := service.PnpIDByMacAddress[macAddress]; !ok {
-			return "", errors.New("Backend Network adapter not found")
-		}
-
+	}
+	if _, ok := service.state.PnpIDByMacAddress[macAddress]; !ok {
+		return "", errors.New("Backend Network adapter not found")
 	}
 	return service.PnpIDByMacAddress[macAddress], nil
 }

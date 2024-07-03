@@ -397,6 +397,7 @@ func FetchMacAddressPnpIDMapping(ctx context.Context, execClient ExecClient) (ma
 		// Split the output based on new line characters
 		lines := strings.Split(output, "\n")
 		for _, line := range lines {
+			line = strings.TrimSpace(line)
 			// Split based on " " to fetch the macaddress and pci id
 			parts := strings.Split(line, " ")
 			// Changing the format of macaddress from xx-xx-xx-xx to xx:xx:xx:xx

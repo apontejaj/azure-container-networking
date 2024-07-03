@@ -805,7 +805,6 @@ func main() {
 		logger.Errorf("Failed to set remote ARP MAC address: %v", err)
 		return
 	}
-
 	// We are only setting the PriorityVLANTag in 'cns.Direct' mode, because it neatly maps today, to 'isUsingMultitenancy'
 	// In the future, we would want to have a better CNS flag, to explicitly say, this CNS is using multitenancy
 	if cnsconfig.ChannelMode == cns.Direct {
@@ -865,7 +864,7 @@ func main() {
 		if cnsconfig.EnableSwiftV2 {
 			// No-op for linux, mapping is set for windows in aks swiftv2 scenario
 			logger.Printf("Fetcing backend nics for debug")
-			if httpRemoteRestService.PnpIDByMacAddress, err = restserver.GetPnpIDMacaddressMapping(rootCtx); err != nil {
+			if err = httpRemoteRestService.SavePnpIDMacaddressMapping(rootCtx); err != nil {
 				logger.Errorf("Failed to fetch PnpIDMacaddress mapping: %v", err)
 			}
 		}
