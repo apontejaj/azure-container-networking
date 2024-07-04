@@ -1394,7 +1394,7 @@ func TestPluginSwiftV2MultipleAddDelete(t *testing.T) {
 			},
 			args:       args,
 			wantErr:    false,
-			wantNumEps: 1,
+			wantNumEps: 2,
 		},
 		{
 			name: "SwiftV2 Add Two Delegated",

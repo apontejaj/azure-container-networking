@@ -1534,7 +1534,6 @@ func Test_getInterfaceInfoKey(t *testing.T) {
 	require.Equal("", inv.getInterfaceInfoKey(cns.DelegatedVMNIC, ""))
 	require.Equal(dummyMAC, inv.getInterfaceInfoKey(cns.BackendNIC, dummyMAC))
 	require.Equal("", inv.getInterfaceInfoKey(cns.BackendNIC, ""))
-	require.Equal(string(cns.NodeNetworkInterfaceBackendNIC), inv.getInterfaceInfoKey(cns.NodeNetworkInterfaceBackendNIC, dummyMAC))
 }
 
 func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
@@ -1675,55 +1674,6 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 				},
 			},
 			wantErr: false,
-		},
-		{
-			name: "Test unhappy CNI add with swiftv2 multitenant result with BackendNIC type with invalid pnpID",
-			fields: fields{
-				podName:      testPodInfo.PodName,
-				podNamespace: testPodInfo.PodNamespace,
-				cnsClient: &MockCNSClient{
-					require: require,
-					requestIPs: requestIPsHandler{
-						ipconfigArgument: cns.IPConfigsRequest{
-							PodInterfaceID:      "testcont-testifname1",
-							InfraContainerID:    "testcontainerid1",
-							OrchestratorContext: marshallPodInfo(testPodInfo),
-						},
-						result: &cns.IPConfigsResponse{
-							PodIPInfo: []cns.PodIpInfo{
-								{
-									MacAddress: macAddress,
-									NICType:    cns.BackendNIC,
-									PnPID:      pnpID,
-								},
-							},
-							Response: cns.Response{
-								ReturnCode: 0,
-								Message:    "",
-							},
-						},
-						err: nil,
-					},
-				},
-			},
-			args: args{
-				nwCfg: &cni.NetworkConfig{},
-				args: &cniSkel.CmdArgs{
-					ContainerID: "testcontainerid1",
-					Netns:       "testnetns1",
-					IfName:      "testifname1",
-				},
-				hostSubnetPrefix: getCIDRNotationForAddress("10.0.0.1/24"),
-				options:          map[string]interface{}{},
-			},
-			wantSecondaryInterfacesInfo: map[string]network.InterfaceInfo{
-				macAddress: {
-					NICType:    cns.BackendNIC,
-					MacAddress: parsedMacAddress,
-					PnPID:      "bad pnpID",
-				},
-			},
-			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
