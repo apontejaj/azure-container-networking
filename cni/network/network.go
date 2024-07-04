@@ -43,6 +43,7 @@ const (
 	defaultRequestTimeout = 15 * time.Second
 	ipv4FullMask          = 32
 	ipv6FullMask          = 128
+	ibIntfPrefix          = "ib"
 )
 
 // CNI Operation Types
@@ -675,7 +676,7 @@ func (plugin *NetPlugin) findMasterInterface(opt *createEpInfoOpt) string {
 	case cns.DelegatedVMNIC:
 		return plugin.findInterfaceByMAC(opt.ifInfo.MacAddress.String())
 	case cns.BackendNIC: // TODO: how to find interface with IB NIC by mac address
-		opt.ifInfo.Name = "ib" + string(opt.endpointIndex)
+		opt.ifInfo.Name = ibIntfPrefix + strconv.Itoa(opt.endpointIndex)
 		return opt.ifInfo.Name
 	default:
 		return ""

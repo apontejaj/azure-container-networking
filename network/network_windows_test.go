@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/network/hnswrapper"
 	"github.com/Azure/azure-container-networking/platform"
 	"github.com/Microsoft/hcsshim/hcn"
@@ -23,8 +24,6 @@ var (
 	errTestFailure     = errors.New("test failure")
 	failedCaseReturn   = "false"
 	succededCaseReturn = "true"
-	instanceID         = "12345-abcde-789"
-	locationPath       = "12345-abcde-789-fea14"
 )
 
 func TestNewAndDeleteNetworkImplHnsV2(t *testing.T) {
@@ -400,5 +399,34 @@ func TestAddIPv6DefaultRouteUnhappyPathAddRoute(t *testing.T) {
 	err := nm.addIPv6DefaultRoute()
 	if err == nil {
 		t.Fatal("Failed to test unhappy path with failing to add default route command")
+	}
+}
+
+func TestNewNetworkImplHnsV2ForBackendNIC(t *testing.T) {
+	pnpID := "PCI\\VEN_15B3&DEV_101C&SUBSYS_000715B3&REV_00\\5&8c5acce&0&0"
+
+	nm := &networkManager{
+		ExternalInterfaces: map[string]*externalInterface{},
+		plClient:           platform.NewMockExecClient(false),
+	}
+
+	nwInfo := &EndpointInfo{
+		NetworkID:    "d3f97a83-ba4c-45d5-ba88-dc56757ece28",
+		MasterIfName: "ib1",
+		Mode:         "transparent",
+		NICType:      cns.BackendNIC,
+		PnPID:        pnpID,
+	}
+
+	extInterface := &externalInterface{
+		Name: "eth1",
+	}
+
+	Hnsv2 = hnswrapper.NewHnsv2wrapperFake()
+
+	// should return nil if nicType is BackendNIC when creating network
+	network, err := nm.newNetworkImplHnsV2(nwInfo, extInterface)
+	if network != nil || err != nil {
+		t.Fatal("HNS network is created with BackendNIC interface")
 	}
 }
