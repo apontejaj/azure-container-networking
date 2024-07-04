@@ -385,6 +385,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		enableSnatForDNS bool
 		k8sPodName       string
 		cniMetric        telemetry.AIMetric
+		epInfos          []*network.EndpointInfo
 	)
 
 	startTime := time.Now()
@@ -422,14 +423,30 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 
 		// Add Interfaces to result.
 		// previously we had a default interface info to select which interface info was the one to be returned from cni add
-		// now we have to infer which interface info should be returned
-		// we assume that we want to return the infra nic always, and if that is not found, return any one of the secondary interfaces
-		// if there is an infra nic + secondary, we will always return the infra nic (linux swift v2)
-		cniResult := plugin.convertInterfaceInfoToCniResult(ipamAddResult, args.IfName)
+		cniResult := &cniTypesCurr.Result{}
+		for _, epInfo := range epInfos {
+			// now we have to infer which interface info should be returned
+			// we assume that we want to return the infra nic always, and if that is not found, return any one of the secondary interfaces
+			// if there is an infra nic + secondary, we will always return the infra nic (linux swift v2)
+			cniResult = plugin.convertInterfaceInfoToCniResult(epInfo, args.IfName)
+			if epInfo.NICType == cns.InfraNIC {
+				break
+			}
+		}
 
 		// stdout multiple cniResults for containerd to create multiple pods
 		// containerd receives each cniResult as the stdout and create pod
 		addSnatInterface(nwCfg, cniResult) //nolint TODO: check whether Linux supports adding secondary snatinterface
+
+		// add IB NIC interfaceInfo to cniResult
+		for _, epInfo := range epInfos {
+			if epInfo.NICType == cns.BackendNIC {
+				cniResult = plugin.addIBInterfaceInfoToCniResult(cniResult, epInfo)
+				break
+			}
+		}
+
+		logger.Info("CNIResult", zap.Any("Add Call()", cniResult))
 
 		// Convert result to the requested CNI version.
 		res, vererr := cniResult.GetAsVersion(nwCfg.CNIVersion)
@@ -576,27 +593,10 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		}
 	}()
 
-	epInfos := []*network.EndpointInfo{}
 	infraSeen := false
 	endpointIndex := 0
 	for key := range ipamAddResult.interfaceInfo {
 		ifInfo := ipamAddResult.interfaceInfo[key]
-
-		// disable and dismount VF if NIC type is IB
-		if ifInfo.NICType == cns.BackendNIC {
-
-			// step 1: disable VF
-			if err := plugin.nm.DisableVFDevice(ifInfo.PnPID); err != nil { //nolint
-				return errors.Wrap(err, "failed to disable VF device")
-			}
-
-			// step 2: dismount VF
-			if err := plugin.nm.DisamountVFDevice(ifInfo.PnPID); err != nil { //nolint
-				return errors.Wrap(err, "failed to dismount VF device")
-			}
-
-			continue // break here; do not create network and endpoint for IB NIC interface
-		}
 
 		natInfo := getNATInfo(nwCfg, options[network.SNATIPKey], enableSnatForDNS)
 		networkID, _ := plugin.getNetworkID(args.Netns, &ifInfo, nwCfg)
@@ -674,6 +674,9 @@ func (plugin *NetPlugin) findMasterInterface(opt *createEpInfoOpt) string {
 		return plugin.findMasterInterfaceBySubnet(opt.ipamAddConfig.nwCfg, &opt.ifInfo.HostSubnetPrefix)
 	case cns.DelegatedVMNIC:
 		return plugin.findInterfaceByMAC(opt.ifInfo.MacAddress.String())
+	case cns.BackendNIC: // TODO: how to find interface with IB NIC by mac address
+		opt.ifInfo.Name = "ib" + string(opt.endpointIndex)
+		return opt.ifInfo.Name
 	default:
 		return ""
 	}
@@ -787,6 +790,9 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		MacAddress:  opt.ifInfo.MacAddress,
 		// the following is used for creating an external interface if we can't find an existing network
 		HostSubnetPrefix: opt.ifInfo.HostSubnetPrefix.String(),
+		PnPID:            opt.ifInfo.PnPID,
+		IPConfigs:        opt.ifInfo.IPConfigs,
+		CNIResultDNS:     opt.ifInfo.DNS,
 	}
 
 	if err = addSubnetToEndpointInfo(*opt.ifInfo, &endpointInfo); err != nil {
@@ -1143,7 +1149,7 @@ func (plugin *NetPlugin) Delete(args *cniSkel.CmdArgs) error {
 			zap.String("endpointID", epInfo.EndpointID))
 		sendEvent(plugin, fmt.Sprintf("Deleting endpoint:%v", epInfo.EndpointID))
 
-		if !nwCfg.MultiTenancy && epInfo.NICType != cns.DelegatedVMNIC {
+		if !nwCfg.MultiTenancy && (epInfo.NICType == cns.InfraNIC || epInfo.NICType == "") {
 			// Delegated/secondary nic ips are statically allocated so we don't need to release
 			// Call into IPAM plugin to release the endpoint's addresses.
 			for i := range epInfo.IPAddresses {
@@ -1415,38 +1421,37 @@ func convertNnsToIPConfigs(
 	return ipConfigs
 }
 
-func (plugin *NetPlugin) convertInterfaceInfoToCniResult(info IPAMAddResult, ifName string) *cniTypesCurr.Result {
-	result := &cniTypesCurr.Result{}
+func (plugin *NetPlugin) addIBInterfaceInfoToCniResult(cniResult *cniTypesCurr.Result, epInfo *network.EndpointInfo) *cniTypesCurr.Result {
+	cniResult.Interfaces = append(cniResult.Interfaces, &cniTypesCurr.Interface{
+		Name:  epInfo.MasterIfName,
+		Mac:   epInfo.MacAddress.String(),
+		PciID: epInfo.PnPID,
+	})
 
-	for key := range info.interfaceInfo {
-		interfaceInfo := info.interfaceInfo[key]
+	return cniResult
+}
 
-		if interfaceInfo.NICType == cns.BackendNIC {
-			// get an updated PnP Device ID(PciID)
-			pnpDeviceID, _ := plugin.nm.GetPnPDeviceID(interfaceInfo.PnPID)
-			result.Interfaces = append(result.Interfaces, &cniTypesCurr.Interface{
-				Name:  "ib" + key,
-				Mac:   interfaceInfo.MacAddress.String(),
-				PciID: pnpDeviceID,
-			})
-		} else if interfaceInfo.NICType == cns.InfraNIC {
-			result.Interfaces = append(result.Interfaces, &cniTypesCurr.Interface{
+func (plugin *NetPlugin) convertInterfaceInfoToCniResult(epInfo *network.EndpointInfo, ifName string) *cniTypesCurr.Result {
+	result := &cniTypesCurr.Result{
+		Interfaces: []*cniTypesCurr.Interface{
+			{
 				Name: ifName,
-			})
-			result.DNS = cniTypes.DNS{
-				Domain:      interfaceInfo.DNS.Suffix,
-				Nameservers: interfaceInfo.DNS.Servers,
-			}
+				Mac:  epInfo.MacAddress.String(),
+			},
+		},
+		DNS: cniTypes.DNS{
+			Domain:      epInfo.CNIResultDNS.Suffix,
+			Nameservers: epInfo.CNIResultDNS.Servers,
+		},
+	}
 
-			if len(interfaceInfo.IPConfigs) > 0 {
-				for _, ipconfig := range interfaceInfo.IPConfigs {
-					result.IPs = append(result.IPs, &cniTypesCurr.IPConfig{Address: ipconfig.Address, Gateway: ipconfig.Gateway})
-				}
+	if len(epInfo.IPConfigs) > 0 {
+		for _, ipconfig := range epInfo.IPConfigs {
+			result.IPs = append(result.IPs, &cniTypesCurr.IPConfig{Address: ipconfig.Address, Gateway: ipconfig.Gateway})
+		}
 
-				for i := range interfaceInfo.Routes {
-					result.Routes = append(result.Routes, &cniTypes.Route{Dst: interfaceInfo.Routes[i].Dst, GW: interfaceInfo.Routes[i].Gw})
-				}
-			}
+		for i := range epInfo.Routes {
+			result.Routes = append(result.Routes, &cniTypes.Route{Dst: epInfo.Routes[i].Dst, GW: epInfo.Routes[i].Gw})
 		}
 	}
 

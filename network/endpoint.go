@@ -110,6 +110,9 @@ type EndpointInfo struct {
 	DisableHairpinOnHostInterface bool
 	IsIPv6Enabled                 bool
 	HostSubnetPrefix              string // can be used later to add an external interface
+	PnPID                         string
+	IPConfigs                     []*IPConfig
+	CNIResultDNS                  DNSInfo // receive DNS info from network interfaceInfo
 }
 
 // RouteInfo contains information about an IP route.

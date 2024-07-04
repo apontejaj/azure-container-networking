@@ -465,6 +465,7 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 		ipConfigs []*network.IPConfig
 	)
 
+	// backendNIC info has no ip and subnet
 	if info.nicType != cns.BackendNIC {
 		ip, ipnet, err := podIPConfig.GetIPNet()
 		if ip == nil {

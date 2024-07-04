@@ -356,6 +356,10 @@ func (nm *networkManager) addIPv6DefaultRoute() error {
 
 // newNetworkImplHnsV2 creates a new container network for HNSv2.
 func (nm *networkManager) newNetworkImplHnsV2(nwInfo *EndpointInfo, extIf *externalInterface) (*network, error) {
+	if nwInfo.NICType == cns.BackendNIC {
+		return nil, nil
+	}
+
 	hcnNetwork, err := nm.configureHcnNetwork(nwInfo, extIf)
 	if err != nil {
 		logger.Error("Failed to configure hcn network due to", zap.Error(err))
