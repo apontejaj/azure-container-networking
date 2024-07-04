@@ -92,8 +92,11 @@ func (nw *network) newEndpointImpl(
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get updated VF device ID")
 		}
+
+		// assign updated PciID back to containerd
 		epInfo.PnPID = pnpDeviceID
 
+		// do not create endpoint for IB NIC interface
 		return nil, nil
 	}
 
