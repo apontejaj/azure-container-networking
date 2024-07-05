@@ -425,12 +425,12 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		// Add Interfaces to result.
 		// previously we had a default interface info to select which interface info was the one to be returned from cni add
 		cniResult := &cniTypesCurr.Result{}
-		for _, epInfo := range epInfos {
+		for key := range ipamAddResult.interfaceInfo {
 			// now we have to infer which interface info should be returned
 			// we assume that we want to return the infra nic always, and if that is not found, return any one of the secondary interfaces
 			// if there is an infra nic + secondary, we will always return the infra nic (linux swift v2)
-			cniResult = plugin.convertInterfaceInfoToCniResult(epInfo, args.IfName)
-			if epInfo.NICType == cns.InfraNIC {
+			cniResult = plugin.convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[key], args.IfName)
+			if ipamAddResult.interfaceInfo[key].NICType == cns.InfraNIC {
 				break
 			}
 		}
@@ -792,8 +792,6 @@ func (plugin *NetPlugin) createEpInfo(opt *createEpInfoOpt) (*network.EndpointIn
 		// the following is used for creating an external interface if we can't find an existing network
 		HostSubnetPrefix: opt.ifInfo.HostSubnetPrefix.String(),
 		PnPID:            opt.ifInfo.PnPID,
-		IPConfigs:        opt.ifInfo.IPConfigs,
-		CNIResultDNS:     opt.ifInfo.DNS,
 	}
 
 	if err = addSubnetToEndpointInfo(*opt.ifInfo, &endpointInfo); err != nil {
@@ -1432,27 +1430,27 @@ func (plugin *NetPlugin) addIBInterfaceInfoToCniResult(cniResult *cniTypesCurr.R
 	return cniResult
 }
 
-func (plugin *NetPlugin) convertInterfaceInfoToCniResult(epInfo *network.EndpointInfo, ifName string) *cniTypesCurr.Result {
+func (plugin *NetPlugin) convertInterfaceInfoToCniResult(info network.InterfaceInfo, ifName string) *cniTypesCurr.Result {
 	result := &cniTypesCurr.Result{
 		Interfaces: []*cniTypesCurr.Interface{
 			{
 				Name: ifName,
-				Mac:  epInfo.MacAddress.String(),
+				Mac:  info.MacAddress.String(),
 			},
 		},
 		DNS: cniTypes.DNS{
-			Domain:      epInfo.CNIResultDNS.Suffix,
-			Nameservers: epInfo.CNIResultDNS.Servers,
+			Domain:      info.DNS.Suffix,
+			Nameservers: info.DNS.Servers,
 		},
 	}
 
-	if len(epInfo.IPConfigs) > 0 {
-		for _, ipconfig := range epInfo.IPConfigs {
+	if len(info.IPConfigs) > 0 {
+		for _, ipconfig := range info.IPConfigs {
 			result.IPs = append(result.IPs, &cniTypesCurr.IPConfig{Address: ipconfig.Address, Gateway: ipconfig.Gateway})
 		}
 
-		for i := range epInfo.Routes {
-			result.Routes = append(result.Routes, &cniTypes.Route{Dst: epInfo.Routes[i].Dst, GW: epInfo.Routes[i].Gw})
+		for i := range info.Routes {
+			result.Routes = append(result.Routes, &cniTypes.Route{Dst: info.Routes[i].Dst, GW: info.Routes[i].Gw})
 		}
 	}
 

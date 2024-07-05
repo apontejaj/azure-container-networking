@@ -247,7 +247,7 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Test happy CNI add with multitenant result with InfraNIC+DelegatedNIC interfaces",
+			name: "Test happy CNI add with InfraNIC + DelegatedNIC interfaces",
 			fields: fields{
 				podName:      testPodInfo.PodName,
 				podNamespace: testPodInfo.PodNamespace,
@@ -342,7 +342,7 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Test happy CNI add with multitenant result with InfraNIC+IBNIC interfaces",
+			name: "Test happy CNI add with InfraNIC + IBNIC interfaces",
 			fields: fields{
 				podName:      testPodInfo.PodName,
 				podNamespace: testPodInfo.PodNamespace,

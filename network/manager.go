@@ -464,11 +464,6 @@ func (nm *networkManager) DeleteEndpoint(networkID, endpointID string, epInfo *E
 	nm.Lock()
 	defer nm.Unlock()
 
-	// return nil if nicType is backendNIC
-	if epInfo.NICType == cns.BackendNIC {
-		return nil
-	}
-
 	if nm.IsStatelessCNIMode() {
 		// Calls deleteEndpointImpl directly, skipping the get network check; does not call cns
 		return nm.DeleteEndpointState(networkID, epInfo)

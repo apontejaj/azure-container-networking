@@ -8,6 +8,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/network/policy"
 	"github.com/Azure/azure-container-networking/platform"
 	"go.uber.org/zap"
@@ -310,16 +311,20 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 
 			logger.Info("Found master interface", zap.String("masterIfName", epInfo.MasterIfName))
 
-			// Add the master as an external interface.
-			err := nm.AddExternalInterface(epInfo.MasterIfName, epInfo.HostSubnetPrefix)
-			if err != nil {
-				return err
-			}
+			// temp workaround for IB NIC
+			// TODO: find a way to get windows IB interface name
+			if epInfo.NICType != cns.BackendNIC {
+				// Add the master as an external interface.
+				err := nm.AddExternalInterface(epInfo.MasterIfName, epInfo.HostSubnetPrefix)
+				if err != nil {
+					return err
+				}
 
-			// Create the network if it is not found
-			err = nm.CreateNetwork(epInfo)
-			if err != nil {
-				return err
+				// Create the network if it is not found
+				err = nm.CreateNetwork(epInfo)
+				if err != nil {
+					return err
+				}
 			}
 		}
 

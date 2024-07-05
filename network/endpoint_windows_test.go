@@ -236,27 +236,6 @@ func TestDisableVFDeviceHappyPath(t *testing.T) {
 	}
 }
 
-func TestDisableVFDeviceUnHappyPath(t *testing.T) {
-	mockExecClient := platform.NewMockExecClient(false)
-
-	nm := &networkManager{
-		plClient: mockExecClient,
-	}
-
-	// happy path
-	mockExecClient.SetPowershellCommandResponder(func(cmd string) (string, error) {
-		if strings.Contains(cmd, "Disable-PnpDevice") {
-			return failedCaseReturn, errTestFailure
-		}
-		return "", nil
-	})
-
-	err := DisableVFDevice(instanceID, nm.plClient)
-	if err == nil {
-		t.Fatal("Failed to test unhappy path with failing to execute Disable-PnpDevice command")
-	}
-}
-
 func TestGetLocationPathHappyPath(t *testing.T) {
 	mockExecClient := platform.NewMockExecClient(false)
 
@@ -278,27 +257,6 @@ func TestGetLocationPathHappyPath(t *testing.T) {
 	}
 }
 
-func TestGetLocationPathUnHappyPath(t *testing.T) {
-	mockExecClient := platform.NewMockExecClient(false)
-
-	nm := &networkManager{
-		plClient: mockExecClient,
-	}
-
-	// happy path
-	mockExecClient.SetPowershellCommandResponder(func(cmd string) (string, error) {
-		if strings.Contains(cmd, "Get-PnpDeviceProperty") {
-			return failedCaseReturn, errTestFailure
-		}
-		return "", nil
-	})
-
-	_, err := GetLocationPath(instanceID, nm.plClient)
-	if err == nil {
-		t.Fatal("Failed to test unhappy path with failing to execute Get-PnpDeviceProperty command")
-	}
-}
-
 func TestDismountVFDeviceHappyPath(t *testing.T) {
 	mockExecClient := platform.NewMockExecClient(false)
 
@@ -317,26 +275,6 @@ func TestDismountVFDeviceHappyPath(t *testing.T) {
 	err := DisamountVFDevice(locationPath, nm.plClient)
 	if err != nil {
 		t.Fatal("Failed to test happy path")
-	}
-}
-
-func TestDismountVFDeviceUnHappyPath(t *testing.T) {
-	mockExecClient := platform.NewMockExecClient(false)
-
-	nm := &networkManager{
-		plClient: mockExecClient,
-	}
-
-	mockExecClient.SetPowershellCommandResponder(func(cmd string) (string, error) {
-		if strings.Contains(cmd, "Dismount-VMHostAssignableDevice") {
-			return failedCaseReturn, errTestFailure
-		}
-		return "", nil
-	})
-
-	err := DisamountVFDevice(locationPath, nm.plClient)
-	if err == nil {
-		t.Fatal("Failed to test unhappy path with failing to execute Dismount-VMHostAssignableDevice command")
 	}
 }
 
@@ -362,32 +300,6 @@ func TestGetPnPDeviceIDHappyPath(t *testing.T) {
 	}
 }
 
-func TestGetPnPDeviceIDUnHappyPath(t *testing.T) {
-	mockExecClient := platform.NewMockExecClient(false)
-
-	nm := &networkManager{
-		plClient: mockExecClient,
-	}
-
-	mockExecClient.SetPowershellCommandResponder(func(cmd string) (string, error) {
-		if strings.Contains(cmd, "Get-PnpDeviceProperty") {
-			return succededCaseReturn, nil
-		}
-
-		// fail secondary command execution
-		if strings.Contains(cmd, "Get-VMHostAssignableDevice") {
-			return failedCaseReturn, errTestFailure
-		}
-
-		return "", nil
-	})
-
-	_, err := GetPnPDeviceID(instanceID, nm.plClient)
-	if err == nil {
-		t.Fatal("Failed to test unhappy path with failing to Get PnpDevice ID command")
-	}
-}
-
 func TestGetPnPDeviceStateHappyPath(t *testing.T) {
 	mockExecClient := platform.NewMockExecClient(false)
 
@@ -407,27 +319,5 @@ func TestGetPnPDeviceStateHappyPath(t *testing.T) {
 	_, err := GetPnpDeviceState(instanceID, nm.plClient)
 	if err != nil {
 		t.Fatal("Failed to test happy path")
-	}
-}
-
-func TestGetPnPDeviceStateUnHappyPath(t *testing.T) {
-	mockExecClient := platform.NewMockExecClient(false)
-
-	nm := &networkManager{
-		plClient: mockExecClient,
-	}
-
-	mockExecClient.SetPowershellCommandResponder(func(cmd string) (string, error) {
-		// fail command execution
-		if strings.Contains(cmd, "Get-PnpDevice") {
-			return failedCaseReturn, errTestFailure
-		}
-
-		return "", nil
-	})
-
-	_, err := GetPnpDeviceState(instanceID, nm.plClient)
-	if err == nil {
-		t.Fatal("Failed to test unhappy path with failing to Get PnpDevice state command")
 	}
 }

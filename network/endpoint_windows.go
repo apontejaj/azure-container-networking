@@ -87,7 +87,7 @@ func (nw *network) newEndpointImpl(
 			return nil, errors.Wrap(err, "failed to dismount VF device")
 		}
 
-		// step 3: assign new PciID back to interfaceInfo
+		// step 3: get new pnp id after VF dismount
 		pnpDeviceID, err := GetPnPDeviceID(epInfo.PnPID, plc)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get updated VF device ID")
@@ -457,6 +457,11 @@ func (nw *network) newEndpointImplHnsV2(cli apipaClient, epInfo *EndpointInfo) (
 func (nw *network) deleteEndpointImpl(_ netlink.NetlinkInterface, _ platform.ExecClient, _ EndpointClient, _ netio.NetIOInterface, _ NamespaceClientInterface,
 	_ ipTablesClient, ep *endpoint,
 ) error {
+	// endpoint deletion is not required for IB
+	if ep.NICType == cns.BackendNIC {
+		return nil
+	}
+
 	if useHnsV2, err := UseHnsV2(ep.NetNs); useHnsV2 {
 		if err != nil {
 			return err
