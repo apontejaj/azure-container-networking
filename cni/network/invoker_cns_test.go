@@ -581,7 +581,7 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 			}
 
 			for _, ifInfo := range ipamAddResult.interfaceInfo {
-				if ifInfo.NICType == cns.DelegatedVMNIC || ifInfo.NICType == cns.BackendNIC {
+				if ifInfo.NICType == cns.DelegatedVMNIC {
 					fmt.Printf("want:%+v\nrest:%+v\n", tt.wantSecondaryInterfacesInfo, ifInfo)
 					if len(tt.wantSecondaryInterfacesInfo.IPConfigs) > 0 {
 						require.EqualValues(tt.wantSecondaryInterfacesInfo, ifInfo, "incorrect multitenant response")
@@ -589,6 +589,10 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 				}
 				if ifInfo.NICType == cns.InfraNIC {
 					require.Equalf(tt.wantDefaultResult, ifInfo, "incorrect default response")
+				}
+				if ifInfo.NICType == cns.BackendNIC {
+					fmt.Printf("want IB NIC interface:%+v\nrest IB NIC interface:%+v\n", tt.wantSecondaryInterfacesInfo, ifInfo)
+					require.EqualValues(tt.wantSecondaryInterfacesInfo, ifInfo, "incorrect multitenant response")
 				}
 			}
 		})
@@ -889,7 +893,7 @@ func TestCNSIPAMInvoker_Add(t *testing.T) {
 
 			for _, ifInfo := range ipamAddResult.interfaceInfo {
 				require.NotEqual("", string(ifInfo.NICType), "nictype should be auto populated if empty")
-				if ifInfo.NICType == cns.DelegatedVMNIC || ifInfo.NICType == cns.BackendNIC {
+				if ifInfo.NICType == cns.DelegatedVMNIC {
 					fmt.Printf("want:%+v\nrest:%+v\n", tt.wantMultitenantResult, ifInfo)
 					if len(tt.wantMultitenantResult.IPConfigs) > 0 {
 						require.Equalf(tt.wantMultitenantResult, ifInfo, "incorrect multitenant response")

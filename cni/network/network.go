@@ -442,16 +442,14 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		// add IB NIC interfaceInfo to cniResult
 		for _, epInfo := range epInfos {
 			if epInfo.NICType == cns.BackendNIC {
-                cniResult.Interfaces = append(cniResult.Interfaces, &cniTypesCurr.Interface{
-		            Name:  epInfo.MasterIfName,
-		            Mac:   epInfo.MacAddress.String(),
-		            PciID: epInfo.PnPID,
-                    })
+				cniResult.Interfaces = append(cniResult.Interfaces, &cniTypesCurr.Interface{
+					Name:  epInfo.MasterIfName,
+					Mac:   epInfo.MacAddress.String(),
+					PciID: epInfo.PnPID,
+				})
 				break
 			}
 		}
-
-		logger.Info("CNIResult", zap.Any("Add Call()", cniResult))
 
 		// Convert result to the requested CNI version.
 		res, vererr := cniResult.GetAsVersion(nwCfg.CNIVersion)
@@ -1422,16 +1420,6 @@ func convertNnsToIPConfigs(
 	}
 
 	return ipConfigs
-}
-
-func (plugin *NetPlugin) addIBInterfaceInfoToCniResult(cniResult *cniTypesCurr.Result, epInfo *network.EndpointInfo) *cniTypesCurr.Result {
-	cniResult.Interfaces = append(cniResult.Interfaces, &cniTypesCurr.Interface{
-		Name:  epInfo.MasterIfName,
-		Mac:   epInfo.MacAddress.String(),
-		PciID: epInfo.PnPID,
-	})
-
-	return cniResult
 }
 
 func (plugin *NetPlugin) convertInterfaceInfoToCniResult(info network.InterfaceInfo, ifName string) *cniTypesCurr.Result {
