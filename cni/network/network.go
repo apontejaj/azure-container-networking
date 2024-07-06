@@ -442,7 +442,11 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		// add IB NIC interfaceInfo to cniResult
 		for _, epInfo := range epInfos {
 			if epInfo.NICType == cns.BackendNIC {
-				cniResult = plugin.addIBInterfaceInfoToCniResult(cniResult, epInfo)
+                cniResult.Interfaces = append(cniResult.Interfaces, &cniTypesCurr.Interface{
+		            Name:  epInfo.MasterIfName,
+		            Mac:   epInfo.MacAddress.String(),
+		            PciID: epInfo.PnPID,
+                    })
 				break
 			}
 		}
