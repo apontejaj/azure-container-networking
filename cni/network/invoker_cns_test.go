@@ -1632,7 +1632,7 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 							PodIPInfo: []cns.PodIpInfo{
 								{
 									PodIPConfig: cns.IPSubnet{
-										IPAddress:    "10.1.1.10",
+										IPAddress:    "10.0.1.10",
 										PrefixLength: 24,
 									},
 									NetworkContainerPrimaryIPConfig: cns.IPConfiguration{
@@ -1645,15 +1645,15 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 									},
 									HostPrimaryIPInfo: cns.HostIPInfo{
 										Gateway:   "10.0.0.1",
-										PrimaryIP: "10.0.0.2",
-										Subnet:    "10.0.0.1/24",
+										PrimaryIP: "10.0.0.1",
+										Subnet:    "10.0.0.0/24",
 									},
 									NICType:           cns.InfraNIC,
 									SkipDefaultRoutes: true,
 								},
 								{
 									PodIPConfig: cns.IPSubnet{
-										IPAddress:    "20.1.1.20",
+										IPAddress:    "20.1.1.10",
 										PrefixLength: 24,
 									},
 									HostPrimaryIPInfo: cns.HostIPInfo{
