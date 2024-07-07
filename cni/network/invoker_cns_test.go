@@ -375,7 +375,8 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 										PrimaryIP: "10.0.0.1",
 										Subnet:    "10.0.0.0/24",
 									},
-									NICType: cns.InfraNIC,
+									NICType:           cns.InfraNIC,
+									SkipDefaultRoutes: true,
 								},
 								{
 									NICType:    cns.BackendNIC,
@@ -1650,9 +1651,10 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 						result: &cns.IPConfigsResponse{
 							PodIPInfo: []cns.PodIpInfo{
 								{
-									MacAddress: macAddress,
-									NICType:    cns.BackendNIC,
-									PnPID:      pnpID,
+									MacAddress:        macAddress,
+									NICType:           cns.BackendNIC,
+									PnPID:             pnpID,
+									SkipDefaultRoutes: true,
 								},
 							},
 							Response: cns.Response{
