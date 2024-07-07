@@ -376,7 +376,7 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 										Subnet:    "10.0.0.0/24",
 									},
 									NICType:           cns.InfraNIC,
-									SkipDefaultRoutes: true,
+									SkipDefaultRoutes: false,
 								},
 								{
 									NICType:    cns.BackendNIC,
@@ -1636,56 +1636,6 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Test happy CNI add with swiftv2 multitenant result with BackendNIC type",
-			fields: fields{
-				podName:      testPodInfo.PodName,
-				podNamespace: testPodInfo.PodNamespace,
-				cnsClient: &MockCNSClient{
-					require: require,
-					requestIPs: requestIPsHandler{
-						ipconfigArgument: cns.IPConfigsRequest{
-							PodInterfaceID:      "testcont-testifname1",
-							InfraContainerID:    "testcontainerid1",
-							OrchestratorContext: marshallPodInfo(testPodInfo),
-						},
-						result: &cns.IPConfigsResponse{
-							PodIPInfo: []cns.PodIpInfo{
-								{
-									MacAddress:        macAddress,
-									NICType:           cns.BackendNIC,
-									PnPID:             pnpID,
-									SkipDefaultRoutes: true,
-								},
-							},
-							Response: cns.Response{
-								ReturnCode: 0,
-								Message:    "",
-							},
-						},
-						err: nil,
-					},
-				},
-			},
-			args: args{
-				nwCfg: &cni.NetworkConfig{},
-				args: &cniSkel.CmdArgs{
-					ContainerID: "testcontainerid1",
-					Netns:       "testnetns1",
-					IfName:      "testifname1",
-				},
-				hostSubnetPrefix: getCIDRNotationForAddress("10.0.0.1/24"),
-				options:          map[string]interface{}{},
-			},
-			wantSecondaryInterfacesInfo: map[string]network.InterfaceInfo{
-				macAddress: {
-					NICType:    cns.BackendNIC,
-					MacAddress: parsedMacAddress,
-					PnPID:      pnpID,
-				},
-			},
-			wantErr: false,
-		},
-		{
 			name: "Test happy CNI add with swiftv2 with DelegatedNIC + BackendNIC interfaces",
 			fields: fields{
 				podName:      testPodInfo.PodName,
@@ -1710,8 +1660,9 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 										PrimaryIP: "10.0.0.2",
 										Subnet:    "10.0.0.1/24",
 									},
-									NICType:    cns.DelegatedVMNIC,
-									MacAddress: macAddress,
+									NICType:           cns.DelegatedVMNIC,
+									MacAddress:        macAddress,
+									SkipDefaultRoutes: false,
 								},
 								{
 									MacAddress: secondMacAddress,

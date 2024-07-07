@@ -211,6 +211,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 	}
 
 	// Make sure default routes exist for 1 interface
+	logger.Info("numInterfacesWithDefaultRoutes is", zap.Int("numInterfacesWithDefaultRoutes", numInterfacesWithDefaultRoutes))
 	if numInterfacesWithDefaultRoutes != expectedNumInterfacesWithDefaultRoutes {
 		return IPAMAddResult{}, errInvalidDefaultRouting
 	}
