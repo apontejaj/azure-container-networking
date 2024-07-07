@@ -52,8 +52,6 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 	macAddress := "12:34:56:78:9a:bc"
 	parsedMacAddress, _ := net.ParseMAC(macAddress)
 
-	pnpID := "PCI\\VEN_15B3&DEV_101C&SUBSYS_000715B3&REV_00\\5&8c5acce&0&0"
-
 	type fields struct {
 		podName      string
 		podNamespace string
