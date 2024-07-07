@@ -342,92 +342,6 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Test happy CNI add with InfraNIC + IBNIC interfaces",
-			fields: fields{
-				podName:      testPodInfo.PodName,
-				podNamespace: testPodInfo.PodNamespace,
-				ipamMode:     util.Overlay,
-				cnsClient: &MockCNSClient{
-					require: require,
-					requestIPs: requestIPsHandler{
-						ipconfigArgument: cns.IPConfigsRequest{
-							PodInterfaceID:      "testcont-testifname3",
-							InfraContainerID:    "testcontainerid3",
-							OrchestratorContext: marshallPodInfo(testPodInfo),
-						},
-						result: &cns.IPConfigsResponse{
-							PodIPInfo: []cns.PodIpInfo{
-								{
-									PodIPConfig: cns.IPSubnet{
-										IPAddress:    "10.0.1.10",
-										PrefixLength: 24,
-									},
-									NetworkContainerPrimaryIPConfig: cns.IPConfiguration{
-										IPSubnet: cns.IPSubnet{
-											IPAddress:    "10.0.1.0",
-											PrefixLength: 24,
-										},
-										DNSServers:       nil,
-										GatewayIPAddress: "10.0.0.1",
-									},
-									HostPrimaryIPInfo: cns.HostIPInfo{
-										Gateway:   "10.0.0.1",
-										PrimaryIP: "10.0.0.1",
-										Subnet:    "10.0.0.0/24",
-									},
-									NICType:           cns.InfraNIC,
-									SkipDefaultRoutes: true,
-								},
-								{
-									NICType:    cns.BackendNIC,
-									MacAddress: macAddress,
-									PnPID:      pnpID,
-								},
-							},
-							Response: cns.Response{
-								ReturnCode: 0,
-								Message:    "",
-							},
-						},
-						err: nil,
-					},
-				},
-			},
-			args: args{
-				nwCfg: &cni.NetworkConfig{},
-				args: &cniSkel.CmdArgs{
-					ContainerID: "testcontainerid3",
-					Netns:       "testnetns3",
-					IfName:      "testifname3",
-				},
-				hostSubnetPrefix: getCIDRNotationForAddress("10.0.0.1/24"),
-				options:          map[string]interface{}{},
-			},
-			wantDefaultResult: network.InterfaceInfo{
-				IPConfigs: []*network.IPConfig{
-					{
-						Address: *getCIDRNotationForAddress("10.0.1.10/24"),
-						Gateway: net.ParseIP("10.0.0.1"),
-					},
-				},
-				Routes: []network.RouteInfo{
-					{
-						Dst: network.Ipv4DefaultRouteDstPrefix,
-						Gw:  net.ParseIP("10.0.0.1"),
-					},
-				},
-				NICType:           cns.InfraNIC,
-				SkipDefaultRoutes: true,
-				HostSubnetPrefix:  *parseCIDR("10.0.0.0/24"),
-			},
-			wantSecondaryInterfacesInfo: network.InterfaceInfo{
-				NICType:    cns.BackendNIC,
-				MacAddress: parsedMacAddress,
-				PnPID:      pnpID,
-			},
-			wantErr: false,
-		},
-		{
 			name: "Test fail CNI add with invalid mac in delegated VM nic response",
 			fields: fields{
 				podName:      testPodInfo.PodName,
@@ -589,10 +503,6 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 				}
 				if ifInfo.NICType == cns.InfraNIC {
 					require.Equalf(tt.wantDefaultResult, ifInfo, "incorrect default response")
-				}
-				if ifInfo.NICType == cns.BackendNIC {
-					fmt.Printf("want IB NIC interface:%+v\nrest IB NIC interface:%+v\n", tt.wantSecondaryInterfacesInfo, ifInfo)
-					require.EqualValues(tt.wantSecondaryInterfacesInfo, ifInfo, "incorrect multitenant response")
 				}
 			}
 		})
@@ -1693,6 +1603,12 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 				require.Error(err)
 			} else {
 				require.NoError(err)
+			}
+
+			// IB does not receive IPConfigs from CNS
+			if tt.wantSecondaryInterfacesInfo[macAddress].NICType == cns.BackendNIC {
+				fmt.Printf("want IB InterfaceInfo:%+v\nrest IB InterfaceInfo:%+v\n", tt.wantSecondaryInterfacesInfo, ipamAddResult.interfaceInfo)
+				require.EqualValues(tt.wantSecondaryInterfacesInfo, ipamAddResult.interfaceInfo, "incorrect multitenant response for IB NIC")
 			}
 
 			fmt.Printf("want:%+v\nrest:%+v\n", tt.wantSecondaryInterfacesInfo, ipamAddResult.interfaceInfo)
