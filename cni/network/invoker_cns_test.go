@@ -1454,8 +1454,8 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 	macAddress := "12:34:56:78:9a:bc"
 	parsedMacAddress, _ := net.ParseMAC(macAddress)
 
-	secondMacAddress := "bc:9a:78:56:34:12"
-	secondParsedMacAddress, _ := net.ParseMAC(secondMacAddress)
+	ibMacAddress := "bc:9a:78:56:34:12"
+	ibParsedMacAddress, _ := net.ParseMAC(ibMacAddress)
 
 	pnpID := "PCI\\VEN_15B3&DEV_101C&SUBSYS_000715B3&REV_00\\5&8c5acce&0&0"
 
@@ -1572,7 +1572,7 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 									SkipDefaultRoutes: false,
 								},
 								{
-									MacAddress: secondMacAddress,
+									MacAddress: ibMacAddress,
 									NICType:    cns.BackendNIC,
 									PnPID:      pnpID,
 								},
@@ -1607,9 +1607,9 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 					NICType:    cns.DelegatedVMNIC,
 					MacAddress: parsedMacAddress,
 				},
-				secondMacAddress: {
+				ibMacAddress: {
 					NICType:    cns.BackendNIC,
-					MacAddress: secondParsedMacAddress,
+					MacAddress: ibParsedMacAddress,
 					PnPID:      pnpID,
 				},
 			},
@@ -1666,7 +1666,7 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 									SkipDefaultRoutes: false,
 								},
 								{
-									MacAddress: secondMacAddress,
+									MacAddress: ibMacAddress,
 									NICType:    cns.BackendNIC,
 									PnPID:      pnpID,
 								},
@@ -1718,9 +1718,9 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 					NICType:    cns.DelegatedVMNIC,
 					MacAddress: parsedMacAddress,
 				},
-				secondMacAddress: {
+				ibMacAddress: {
 					NICType:    cns.BackendNIC,
-					MacAddress: secondParsedMacAddress,
+					MacAddress: ibParsedMacAddress,
 					PnPID:      pnpID,
 				},
 			},
@@ -1744,12 +1744,20 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 
 			for _, ifInfo := range ipamAddResult.interfaceInfo {
 				if ifInfo.NICType == cns.InfraNIC {
+					fmt.Printf("want:%+v\nrest:%+v\n", tt.wantDefaultResult, ifInfo)
 					require.Equalf(tt.wantDefaultResult, ifInfo, "incorrect ipv4 response")
 				}
-			}
 
-			fmt.Printf("want:%+v\nrest:%+v\n", tt.wantSecondaryInterfacesInfo, ipamAddResult.interfaceInfo)
-			require.EqualValues(tt.wantSecondaryInterfacesInfo, ipamAddResult.interfaceInfo, "incorrect multitenant response")
+				if ifInfo.NICType == cns.BackendNIC {
+					fmt.Printf("want:%+v\nrest:%+v\n", tt.wantSecondaryInterfacesInfo, ipamAddResult.interfaceInfo[ibMacAddress])
+					require.EqualValues(tt.wantSecondaryInterfacesInfo[ibMacAddress], ipamAddResult.interfaceInfo[ibMacAddress], "incorrect multitenant response for IB")
+				}
+
+				if ifInfo.NICType == cns.DelegatedVMNIC {
+					fmt.Printf("want:%+v\nrest:%+v\n", tt.wantSecondaryInterfacesInfo[macAddress], ipamAddResult.interfaceInfo[macAddress])
+					require.EqualValues(tt.wantSecondaryInterfacesInfo[macAddress], ipamAddResult.interfaceInfo[macAddress], "incorrect multitenant response for Delegated")
+				}
+			}
 		})
 	}
 }
