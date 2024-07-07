@@ -1635,6 +1635,14 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 										IPAddress:    "10.1.1.10",
 										PrefixLength: 24,
 									},
+									NetworkContainerPrimaryIPConfig: cns.IPConfiguration{
+										IPSubnet: cns.IPSubnet{
+											IPAddress:    "10.0.1.0",
+											PrefixLength: 24,
+										},
+										DNSServers:       nil,
+										GatewayIPAddress: "10.0.0.1",
+									},
 									HostPrimaryIPInfo: cns.HostIPInfo{
 										Gateway:   "10.0.0.1",
 										PrimaryIP: "10.0.0.2",
