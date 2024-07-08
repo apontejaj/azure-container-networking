@@ -312,7 +312,7 @@ func TestGetLocationPathHappyPath(t *testing.T) {
 func TestGetLocationPathUnHappyPath(t *testing.T) {
 	mockExecClient := platform.NewMockExecClient(true)
 	_, err := GetLocationPath(instanceID, mockExecClient)
-	if err != nil {
+	if err == nil {
 		t.Fatal("Failed to test get locationPath unhappy path")
 	}
 }
@@ -385,7 +385,7 @@ func TestGetPnPDeviceIDHappyPath(t *testing.T) {
 func TestGetPnPDeviceIDUnHappyPath(t *testing.T) {
 	mockExecClient := platform.NewMockExecClient(true)
 	_, err := GetPnPDeviceID(instanceID, mockExecClient)
-	if err != nil {
+	if err == nil {
 		t.Fatal("Failed to test get pnp device id unhappy path")
 	}
 }
@@ -415,7 +415,7 @@ func TestGetPnPDeviceStateHappyPath(t *testing.T) {
 func TestGetPnPDeviceStateUnHappyPath(t *testing.T) {
 	mockExecClient := platform.NewMockExecClient(true)
 	_, err := GetPnpDeviceState(instanceID, mockExecClient)
-	if err != nil {
+	if err == nil {
 		t.Fatal("Failed to test get pnp device state unhappy path")
 	}
 }
