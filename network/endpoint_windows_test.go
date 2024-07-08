@@ -7,7 +7,6 @@
 package network
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -60,7 +59,6 @@ func TestNewAndDeleteEndpointImplHnsV2(t *testing.T) {
 	}
 
 	err = nw.deleteEndpointImplHnsV2(endpoint)
-
 	if err != nil {
 		fmt.Printf("+%v", err)
 		t.Fatal(err)
@@ -78,7 +76,7 @@ func TestDeleteEndpointImplHnsV2ForIB(t *testing.T) {
 		Hnsv2: hnswrapper.NewHnsv2wrapperFake(),
 	}
 
-	endpoint := endpoint{
+	ep := endpoint{
 		HnsId:      "753d3fb6-e9b3-49e2-a109-2acc5dda61f1",
 		IfName:     "ib1",
 		MacAddress: net.HardwareAddr("00:00:5e:00:53:01"),
@@ -86,8 +84,7 @@ func TestDeleteEndpointImplHnsV2ForIB(t *testing.T) {
 	}
 
 	mockCli := NewMockEndpointClient(nil)
-	err := nw.deleteEndpointImpl(netlink.NewMockNetlink(false, ""), platform.NewMockExecClient(false), mockCli, netio.NewMockNetIO(false, 0), NewMockNamespaceClient(), iptables.NewClient(), &endpoint)
-
+	err := nw.deleteEndpointImpl(netlink.NewMockNetlink(false, ""), platform.NewMockExecClient(false), mockCli, netio.NewMockNetIO(false, 0), NewMockNamespaceClient(), iptables.NewClient(), &ep)
 	if err != nil {
 		t.Fatal("endpoint deletion for IB is executed")
 	}
@@ -282,7 +279,7 @@ func TestDisableVFDeviceUnHappyPathTwo(t *testing.T) {
 	mockExecClient := platform.NewMockExecClient(false)
 	// set unhappy path
 	mockExecClient.SetPowershellCommandResponder(func(cmd string) (string, error) {
-		return "", errors.New("Failed to disable VF device")
+		return failedCaseReturn, errTestFailure
 	})
 
 	err := DisableVFDevice(instanceID, mockExecClient)
@@ -354,7 +351,7 @@ func TestDismountVFDeviceUnHappyPathTwo(t *testing.T) {
 	mockExecClient := platform.NewMockExecClient(false)
 	// set unhappy path
 	mockExecClient.SetPowershellCommandResponder(func(cmd string) (string, error) {
-		return "", errors.New("Failed to dismount VF device")
+		return failedCaseReturn, errTestFailure
 	})
 
 	err := DisamountVFDevice(instanceID, mockExecClient)
@@ -492,7 +489,10 @@ func TestNoHnsEndpointCallInvokedForIB(t *testing.T) {
 	hnsFake := hnswrapper.NewHnsv2wrapperFake()
 
 	endpoint := &hcn.HostComputeEndpoint{}
-	hnsFake.CreateEndpoint(endpoint)
+	_, err := hnsFake.CreateEndpoint(endpoint)
+	if err != nil {
+		t.Fatal("Failed to create endpoint")
+	}
 
 	if numOfEndpoints := hnsFake.NumOfEndpoints(); numOfEndpoints != 0 {
 		t.Fatal("HNS endpoint creation call is invoked")

@@ -435,7 +435,10 @@ func TestNoHnsNetworkCallInvokedForIB(t *testing.T) {
 	hnsFake := hnswrapper.NewHnsv2wrapperFake()
 
 	network := &hcn.HostComputeNetwork{}
-	hnsFake.CreateNetwork(network)
+	_, err := hnsFake.CreateNetwork(network)
+	if err != nil {
+		t.Fatal("Failed to create network")
+	}
 
 	if numOfNetworks := hnsFake.NumOfNetworks(); numOfNetworks != 0 {
 		t.Fatal("HNS network creation call is invoked")
