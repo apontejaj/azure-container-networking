@@ -184,6 +184,7 @@ func (invoker *CNSIPAMInvoker) Add(addConfig IPAMAddConfig) (IPAMAddResult, erro
 				return IPAMAddResult{}, err
 			}
 		case cns.BackendNIC:
+			// TODO: check whether setting default route on IB interface
 			// handle ipv4 PodIPInfo for BackendNIC
 			if err := addBackendNICToResult(&info, &addResult, key); err != nil {
 				return IPAMAddResult{}, err

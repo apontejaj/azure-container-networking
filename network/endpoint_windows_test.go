@@ -88,7 +88,7 @@ func TestDeleteEndpointImplHnsV2ForIB(t *testing.T) {
 	err := nw.deleteEndpointImpl(netlink.NewMockNetlink(false, ""), platform.NewMockExecClient(false), mockCli, netio.NewMockNetIO(false, 0), NewMockNamespaceClient(), iptables.NewClient(), &endpoint)
 
 	if err != nil {
-		t.Fatal("endpoint deletion for IB is deleted")
+		t.Fatal("endpoint deletion for IB is executed")
 	}
 }
 
