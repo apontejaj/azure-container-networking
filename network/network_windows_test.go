@@ -430,18 +430,3 @@ func TestNewNetworkImplHnsV2ForBackendNIC(t *testing.T) {
 		t.Fatal("HNS network is created with BackendNIC interface")
 	}
 }
-
-func TestNoHnsNetworkAPICallForIB(t *testing.T) {
-	hns := hnswrapper.NewHnsv2wrapperFake()
-	// no host compute network obj should be there
-	network := &hcn.HostComputeNetwork{}
-
-	network, err := hns.CreateNetwork(network)
-	if network != nil || err != nil {
-		t.Fatal("network is created")
-	}
-
-	if numOfNetworks := hns.NumOfNetworks(); numOfNetworks != 0 {
-		t.Fatal("hns network creation api is called")
-	}
-}

@@ -334,14 +334,6 @@ func (f Hnsv2wrapperFake) GetEndpointByName(endpointName string) (*hcn.HostCompu
 	return nil, hcn.EndpointNotFoundError{EndpointName: endpointName}
 }
 
-// return the number of hns networks
-func (f Hnsv2wrapperFake) NumOfNetworks() int {
-	f.Lock()
-	defer f.Unlock()
-
-	return len(f.Cache.networks)
-}
-
 type FakeHNSCache struct {
 	// networks maps network name to network object
 	networks map[string]*FakeHostComputeNetwork
