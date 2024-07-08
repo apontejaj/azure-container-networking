@@ -50,7 +50,9 @@ func (f Hnsv2wrapperFake) CreateNetwork(network *hcn.HostComputeNetwork) (*hcn.H
 	defer f.Unlock()
 
 	delayHnsCall(f.Delay)
-	f.Cache.networks[network.Name] = NewFakeHostComputeNetwork(network)
+	if network.Name != "" {
+		f.Cache.networks[network.Name] = NewFakeHostComputeNetwork(network)
+	}
 	return network, nil
 }
 
@@ -216,7 +218,9 @@ func (f Hnsv2wrapperFake) CreateEndpoint(endpoint *hcn.HostComputeEndpoint) (*hc
 	f.Lock()
 	defer f.Unlock()
 	delayHnsCall(f.Delay)
-	f.Cache.endpoints[endpoint.Id] = NewFakeHostComputeEndpoint(endpoint)
+	if endpoint.Id != "" {
+		f.Cache.endpoints[endpoint.Id] = NewFakeHostComputeEndpoint(endpoint)
+	}
 	return endpoint, nil
 }
 
@@ -332,6 +336,22 @@ func (f Hnsv2wrapperFake) ApplyEndpointPolicy(endpoint *hcn.HostComputeEndpoint,
 func (f Hnsv2wrapperFake) GetEndpointByName(endpointName string) (*hcn.HostComputeEndpoint, error) {
 	delayHnsCall(f.Delay)
 	return nil, hcn.EndpointNotFoundError{EndpointName: endpointName}
+}
+
+// check the number of networks from cache
+func (f Hnsv2wrapperFake) NumOfNetworks() int {
+	f.Lock()
+	defer f.Unlock()
+
+	return len(f.Cache.networks)
+}
+
+// check the number of endpoints from cache
+func (f Hnsv2wrapperFake) NumOfEndpoints() int {
+	f.Lock()
+	defer f.Unlock()
+
+	return len(f.Cache.endpoints)
 }
 
 type FakeHNSCache struct {

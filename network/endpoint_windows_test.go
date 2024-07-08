@@ -20,6 +20,7 @@ import (
 	"github.com/Azure/azure-container-networking/netlink"
 	"github.com/Azure/azure-container-networking/network/hnswrapper"
 	"github.com/Azure/azure-container-networking/platform"
+	"github.com/Microsoft/hcsshim/hcn"
 )
 
 var (
@@ -484,5 +485,16 @@ func TestNewEndpointImplHnsv2ForIBUnHappyPath(t *testing.T) {
 
 	if err == nil {
 		t.Fatal("Failed to test Endpoint creation for IB with unhappy path")
+	}
+}
+
+func TestNoHnsEndpointCallInvokedForIB(t *testing.T) {
+	hnsFake := hnswrapper.NewHnsv2wrapperFake()
+
+	endpoint := &hcn.HostComputeEndpoint{}
+	hnsFake.CreateEndpoint(endpoint)
+
+	if numOfEndpoints := hnsFake.NumOfEndpoints(); numOfEndpoints != 0 {
+		t.Fatal("HNS endpoint creation call is invoked")
 	}
 }
