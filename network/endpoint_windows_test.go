@@ -66,6 +66,32 @@ func TestNewAndDeleteEndpointImplHnsV2(t *testing.T) {
 	}
 }
 
+func TestDeleteEndpointImplHnsV2ForIB(t *testing.T) {
+	nw := &network{
+		Endpoints: map[string]*endpoint{},
+	}
+
+	// this hnsv2 variable overwrites the package level variable in network
+	// we do this to avoid passing around os specific objects in platform agnostic code
+	Hnsv2 = hnswrapper.Hnsv2wrapperwithtimeout{
+		Hnsv2: hnswrapper.NewHnsv2wrapperFake(),
+	}
+
+	endpoint := endpoint{
+		HnsId:      "753d3fb6-e9b3-49e2-a109-2acc5dda61f1",
+		IfName:     "ib1",
+		MacAddress: net.HardwareAddr("00:00:5e:00:53:01"),
+		NICType:    cns.BackendNIC,
+	}
+
+	mockCli := NewMockEndpointClient(nil)
+	err := nw.deleteEndpointImpl(netlink.NewMockNetlink(false, ""), platform.NewMockExecClient(false), mockCli, netio.NewMockNetIO(false, 0), NewMockNamespaceClient(), iptables.NewClient(), &endpoint)
+
+	if err != nil {
+		t.Fatal("endpoint deletion for IB is deleted")
+	}
+}
+
 func TestNewEndpointImplHnsv2Timesout(t *testing.T) {
 	nw := &network{
 		Endpoints: map[string]*endpoint{},
@@ -397,16 +423,14 @@ func TestGetPnPDeviceStateUnHappyPath(t *testing.T) {
 }
 
 // endpoint creation is not required for IB
-func TestNewEndpointImplHnsv2ForIB(t *testing.T) {
+func TestNewEndpointImplHnsv2ForIBHappyPath(t *testing.T) {
 	nw := &network{
 		Endpoints: map[string]*endpoint{},
 	}
 
 	// this hnsv2 variable overwrites the package level variable in network
 	// we do this to avoid passing around os specific objects in platform agnostic code
-
 	hnsFake := hnswrapper.NewHnsv2wrapperFake()
-
 	hnsFake.Delay = 10 * time.Second
 
 	Hnsv2 = hnswrapper.Hnsv2wrapperwithtimeout{
@@ -428,5 +452,37 @@ func TestNewEndpointImplHnsv2ForIB(t *testing.T) {
 
 	if endpoint != nil || err != nil {
 		t.Fatal("Endpoint is created for IB")
+	}
+}
+
+func TestNewEndpointImplHnsv2ForIBUnHappyPath(t *testing.T) {
+	nw := &network{
+		Endpoints: map[string]*endpoint{},
+	}
+
+	// this hnsv2 variable overwrites the package level variable in network
+	// we do this to avoid passing around os specific objects in platform agnostic code
+	hnsFake := hnswrapper.NewHnsv2wrapperFake()
+	hnsFake.Delay = 10 * time.Second
+
+	Hnsv2 = hnswrapper.Hnsv2wrapperwithtimeout{
+		Hnsv2:          hnsFake,
+		HnsCallTimeout: 5 * time.Second,
+	}
+
+	epInfo := &EndpointInfo{
+		EndpointID: "768e8deb-eth1",
+		Data:       make(map[string]interface{}),
+		IfName:     "eth1",
+		NICType:    cns.BackendNIC,
+		PnPID:      pnpID,
+	}
+
+	// Set UnHappy Path
+	_, err := nw.newEndpointImpl(nil, netlink.NewMockNetlink(false, ""), platform.NewMockExecClient(true),
+		netio.NewMockNetIO(false, 0), NewMockEndpointClient(nil), NewMockNamespaceClient(), iptables.NewClient(), epInfo)
+
+	if err == nil {
+		t.Fatal("Failed to test Endpoint creation for IB with unhappy path")
 	}
 }
