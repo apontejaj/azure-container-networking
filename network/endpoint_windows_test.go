@@ -7,6 +7,7 @@
 package network
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -24,6 +25,7 @@ import (
 var (
 	instanceID   = "12345-abcde-789"
 	locationPath = "12345-abcde-789-fea14"
+	pnpID        = "PCI\\VEN_15B3&DEV_101C&SUBSYS_000715B3&REV_00\\5&8c5acce&0&0"
 )
 
 func TestNewAndDeleteEndpointImplHnsV2(t *testing.T) {
@@ -236,7 +238,29 @@ func TestDisableVFDeviceHappyPath(t *testing.T) {
 
 	err := DisableVFDevice(instanceID, nm.plClient)
 	if err != nil {
-		t.Fatal("Failed to test happy path")
+		t.Fatal("Failed to test disable VF happy path")
+	}
+}
+
+func TestDisableVFDeviceUnHappyPathOne(t *testing.T) {
+	// set unhappy path
+	mockExecClient := platform.NewMockExecClient(true)
+	err := DisableVFDevice(instanceID, mockExecClient)
+	if err == nil {
+		t.Fatal("Failed to test disable VF unhappy path")
+	}
+}
+
+func TestDisableVFDeviceUnHappyPathTwo(t *testing.T) {
+	mockExecClient := platform.NewMockExecClient(false)
+	// set unhappy path
+	mockExecClient.SetPowershellCommandResponder(func(cmd string) (string, error) {
+		return "", errors.New("Failed to disable VF device")
+	})
+
+	err := DisableVFDevice(instanceID, mockExecClient)
+	if err == nil {
+		t.Fatal("Failed to test disable VF unhappy path")
 	}
 }
 
@@ -257,7 +281,15 @@ func TestGetLocationPathHappyPath(t *testing.T) {
 
 	_, err := GetLocationPath(instanceID, nm.plClient)
 	if err != nil {
-		t.Fatal("Failed to test happy path")
+		t.Fatal("Failed to test get locationPath happy path")
+	}
+}
+
+func TestGetLocationPathUnHappyPath(t *testing.T) {
+	mockExecClient := platform.NewMockExecClient(true)
+	_, err := GetLocationPath(instanceID, mockExecClient)
+	if err != nil {
+		t.Fatal("Failed to test get locationPath unhappy path")
 	}
 }
 
@@ -278,7 +310,29 @@ func TestDismountVFDeviceHappyPath(t *testing.T) {
 
 	err := DisamountVFDevice(locationPath, nm.plClient)
 	if err != nil {
-		t.Fatal("Failed to test happy path")
+		t.Fatal("Failed to test dismount vf device happy path")
+	}
+}
+
+func TestDismountVFDeviceUnHappyPathOne(t *testing.T) {
+	// set unhappy path
+	mockExecClient := platform.NewMockExecClient(true)
+	err := DisamountVFDevice(instanceID, mockExecClient)
+	if err == nil {
+		t.Fatal("Failed to test dismount VF unhappy path")
+	}
+}
+
+func TestDismountVFDeviceUnHappyPathTwo(t *testing.T) {
+	mockExecClient := platform.NewMockExecClient(false)
+	// set unhappy path
+	mockExecClient.SetPowershellCommandResponder(func(cmd string) (string, error) {
+		return "", errors.New("Failed to dismount VF device")
+	})
+
+	err := DisamountVFDevice(instanceID, mockExecClient)
+	if err == nil {
+		t.Fatal("Failed to test dismount VF unhappy path")
 	}
 }
 
@@ -300,7 +354,15 @@ func TestGetPnPDeviceIDHappyPath(t *testing.T) {
 
 	_, err := GetPnPDeviceID(instanceID, nm.plClient)
 	if err != nil {
-		t.Fatal("Failed to test happy path")
+		t.Fatal("Failed to test get pnp device id happy path")
+	}
+}
+
+func TestGetPnPDeviceIDUnHappyPath(t *testing.T) {
+	mockExecClient := platform.NewMockExecClient(true)
+	_, err := GetPnPDeviceID(instanceID, mockExecClient)
+	if err != nil {
+		t.Fatal("Failed to test get pnp device id unhappy path")
 	}
 }
 
@@ -323,6 +385,14 @@ func TestGetPnPDeviceStateHappyPath(t *testing.T) {
 	_, err := GetPnpDeviceState(instanceID, nm.plClient)
 	if err != nil {
 		t.Fatal("Failed to test happy path")
+	}
+}
+
+func TestGetPnPDeviceStateUnHappyPath(t *testing.T) {
+	mockExecClient := platform.NewMockExecClient(true)
+	_, err := GetPnpDeviceState(instanceID, mockExecClient)
+	if err != nil {
+		t.Fatal("Failed to test get pnp device state unhappy path")
 	}
 }
 
@@ -349,12 +419,14 @@ func TestNewEndpointImplHnsv2ForIB(t *testing.T) {
 		Data:       make(map[string]interface{}),
 		IfName:     "eth1",
 		NICType:    cns.BackendNIC,
+		PnPID:      pnpID,
 	}
 
-	_, err := nw.newEndpointImpl(nil, netlink.NewMockNetlink(false, ""), platform.NewMockExecClient(false),
+	// Happy Path
+	endpoint, err := nw.newEndpointImpl(nil, netlink.NewMockNetlink(false, ""), platform.NewMockExecClient(false),
 		netio.NewMockNetIO(false, 0), NewMockEndpointClient(nil), NewMockNamespaceClient(), iptables.NewClient(), epInfo)
 
-	if err == nil {
-		t.Fatal("Failed to timeout HNS calls for creating endpoint")
+	if endpoint != nil || err != nil {
+		t.Fatal("Endpoint is created for IB")
 	}
 }

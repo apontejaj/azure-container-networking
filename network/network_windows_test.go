@@ -430,32 +430,3 @@ func TestNewNetworkImplHnsV2ForBackendNIC(t *testing.T) {
 		t.Fatal("HNS network is created with BackendNIC interface")
 	}
 }
-
-func TestNoNetworkCreationCallForIB(t *testing.T) {
-	pnpID := "PCI\\VEN_15B3&DEV_101C&SUBSYS_000715B3&REV_00\\5&8c5acce&0&0"
-
-	nm := &networkManager{
-		ExternalInterfaces: map[string]*externalInterface{},
-		plClient:           platform.NewMockExecClient(false),
-	}
-
-	nwInfo := &EndpointInfo{
-		NetworkID:    "d3f97a83-ba4c-45d5-ba88-dc56757ece28",
-		MasterIfName: "ib1",
-		Mode:         "transparent",
-		NICType:      cns.BackendNIC,
-		PnPID:        pnpID,
-	}
-
-	extInterface := &externalInterface{
-		Name: "eth1",
-	}
-
-	Hnsv2 = hnswrapper.NewHnsv2wrapperFake()
-
-	// should return nil if nicType is BackendNIC when creating network
-	network, err := nm.newNetworkImplHnsV2(nwInfo, extInterface)
-	if network != nil || err != nil {
-		t.Fatal("HNS network is created with BackendNIC interface")
-	}
-}
