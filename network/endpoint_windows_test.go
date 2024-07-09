@@ -399,14 +399,14 @@ func TestGetPnPDeviceStateHappyPath(t *testing.T) {
 
 	// happy path
 	mockExecClient.SetPowershellCommandResponder(func(cmd string) (string, error) {
-		if strings.Contains(cmd, "Get-PnpDevice") {
+		if strings.Contains(cmd, "Get-PnpDeviceProperty") {
 			return succededCaseReturn, nil
 		}
 
 		return "", nil
 	})
 
-	_, err := GetPnpDeviceState(instanceID, nm.plClient)
+	_, _, err := GetPnpDeviceState(instanceID, nm.plClient)
 	if err != nil {
 		t.Fatal("Failed to test happy path")
 	}
@@ -414,7 +414,7 @@ func TestGetPnPDeviceStateHappyPath(t *testing.T) {
 
 func TestGetPnPDeviceStateUnHappyPath(t *testing.T) {
 	mockExecClient := platform.NewMockExecClient(true)
-	_, err := GetPnpDeviceState(instanceID, mockExecClient)
+	_, _, err := GetPnpDeviceState(instanceID, mockExecClient)
 	if err == nil {
 		t.Fatal("Failed to test get pnp device state unhappy path")
 	}

@@ -215,7 +215,7 @@ func (nm *networkManager) newNetwork(nwInfo *EndpointInfo) (*network, error) {
 	if err != nil {
 		return nil, err
 	}
-	logger.Info("nw is", zap.Any("newNetwork", nw))
+
 	// Add the network object.
 	nw.Subnets = nwInfo.Subnets
 	extIf.Networks[nwInfo.NetworkID] = nw

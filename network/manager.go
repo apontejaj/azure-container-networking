@@ -348,7 +348,6 @@ func (nm *networkManager) GetNetworkInfo(networkID string) (EndpointInfo, error)
 	nm.Lock()
 	defer nm.Unlock()
 
-	logger.Info("GetNetworkInfo networkID", zap.String("networkID", networkID))
 	nw, err := nm.getNetwork(networkID)
 	if err != nil {
 		return EndpointInfo{}, err
@@ -368,7 +367,6 @@ func (nm *networkManager) GetNetworkInfo(networkID string) (EndpointInfo, error)
 		nwInfo.BridgeName = nw.extIf.BridgeName
 	}
 
-	logger.Info("GetNetworkInfo nw", zap.Any("nwInfo", nwInfo))
 	return nwInfo, nil
 }
 
