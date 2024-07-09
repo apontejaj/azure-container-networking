@@ -888,7 +888,7 @@ func main() {
 		}
 
 		// Initialize CNS service
-		cnsService := &grpc.CNS{Logger: z, State: httpRemoteRestService}
+		cnsService := &grpc.CNS{Logger: z}
 
 		// Create a new gRPC server
 		server, grpcErr := grpc.NewServer(settings, cnsService, z)
@@ -904,7 +904,6 @@ func main() {
 				return
 			}
 		}()
-
 	}
 
 	// if user provides cns url by -c option, then only start HTTP remote server using this url
