@@ -39,6 +39,11 @@ const (
 	// hostNCApipaEndpointName indicates the prefix for the name of the apipa endpoint used for
 	// the host container connectivity
 	hostNCApipaEndpointNamePrefix = "HostNCApipaEndpoint"
+
+	// device is not dismounted flag "0"
+	deviceMounted = "0"
+	// device is dismounted flag "22"
+	deviceDisMounted = "22"
 )
 
 // ConstructEndpointID constructs endpoint name from netNsPath.
@@ -75,7 +80,7 @@ func (nw *network) hostVFDeviceOperate(plc platform.ExecClient, epInfo *Endpoint
 	}
 
 	// state machine, use devicePresence and problemCode to determine actions
-	if devicePresence == "True" && problemCode == "0" {
+	if devicePresence == "True" && problemCode == deviceMounted { //nolint
 		// device is enabled
 		// disable and dismount vf
 		if err := DisableVFDevice(epInfo.PnPID, plc); err != nil { //nolint
@@ -87,21 +92,21 @@ func (nw *network) hostVFDeviceOperate(plc platform.ExecClient, epInfo *Endpoint
 		}
 
 		// get new pnp id after VF dismount
-		pnpDeviceID, err := GetPnPDeviceID(epInfo.PnPID, plc)
+		pnpDeviceID, err := GetPnPDeviceID(epInfo.PnPID, plc) //nolint
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get updated VF device ID")
 		}
 
 		// assign updated PciID back to containerd
 		epInfo.PnPID = pnpDeviceID
-	} else if devicePresence == "True" && problemCode == "22" {
+	} else if devicePresence == "True" && problemCode == deviceDisMounted {
 		// device is disabled but not dismounted
 		if err := DisamountVFDevice(epInfo.PnPID, plc); err != nil { //nolint
 			return nil, errors.Wrap(err, "failed to dismount VF device")
 		}
 
 		// get new pnp id after VF dismount
-		pnpDeviceID, err := GetPnPDeviceID(epInfo.PnPID, plc)
+		pnpDeviceID, err := GetPnPDeviceID(epInfo.PnPID, plc) //nolint
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get updated VF device ID")
 		}
@@ -110,7 +115,7 @@ func (nw *network) hostVFDeviceOperate(plc platform.ExecClient, epInfo *Endpoint
 		epInfo.PnPID = pnpDeviceID
 	} else if devicePresence == "False" {
 		// device is disabled and dismounted, just get the new PciID and assign back to containerd
-		pnpDeviceID, err := GetPnPDeviceID(epInfo.PnPID, plc)
+		pnpDeviceID, err := GetPnPDeviceID(epInfo.PnPID, plc) //nolint
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get updated VF device ID")
 		}
@@ -640,7 +645,6 @@ func GetPnPDeviceID(instanceID string, plc platform.ExecClient) (string, error) 
 
 // Disable VF device
 func DisableVFDevice(instanceID string, plc platform.ExecClient) error {
-
 	disableVFDevice := fmt.Sprintf("Disable-PnpDevice -InstanceId \"%s\" -confirm:$false", instanceID) //nolint
 	_, err := plc.ExecutePowershellCommand(disableVFDevice)
 	if err != nil {
@@ -688,7 +692,7 @@ func GetLocationPath(instanceID string, plc platform.ExecClient) (string, error)
 
 // Get PnP device state
 // return devpkeyDeviceIsPresent and devpkeyDeviceProblemCode
-func GetPnpDeviceState(instanceID string, plc platform.ExecClient) (string, string, error) {
+func GetPnpDeviceState(instanceID string, plc platform.ExecClient) (string, string, error) { //nolint
 	getDeviceIsPresent := fmt.Sprintf("(Get-PnpDeviceProperty -InstanceId \"%s\" | Where-Object KeyName -eq DEVPKEY_Device_IsPresent).Data[0]", instanceID) //nolint
 	devpkeyDeviceIsPresent, err := plc.ExecutePowershellCommand(getDeviceIsPresent)
 	if err != nil {
@@ -699,7 +703,7 @@ func GetPnpDeviceState(instanceID string, plc platform.ExecClient) (string, stri
 	logger.Info("Successfully got", zap.String("device state presence", devpkeyDeviceIsPresent))
 
 	// DEVPKEY_Device_ProblemCode is not there once device is disabled and dismounted, so need to check if DEVPKEY_Device_ProblemCode exists first
-	getDeviceProblemCodeExist := fmt.Sprintf("(Get-PnpDeviceProperty -InstanceId \"%s\" | Where-Object KeyName -eq DEVPKEY_Device_ProblemCode)", instanceID)
+	getDeviceProblemCodeExist := fmt.Sprintf("(Get-PnpDeviceProperty -InstanceId \"%s\" | Where-Object KeyName -eq DEVPKEY_Device_ProblemCode)", instanceID) //nolint
 	devpkeyDeviceProblemCodeExist, _ := plc.ExecutePowershellCommand(getDeviceProblemCodeExist)
 	// only return isPresent flag and empty string as problemCode
 	if devpkeyDeviceProblemCodeExist == "" {

@@ -100,7 +100,7 @@ func (nwInfo *NetworkInfo) PrettyString() string {
 }
 
 // NewExternalInterface adds a host interface to the list of available external interfaces.
-func (nm *networkManager) newExternalInterface(ifName string, subnet string, nicType string) error {
+func (nm *networkManager) newExternalInterface(ifName, subnet, nicType string) error {
 	// Check whether the external interface is already configured.
 	if nm.ExternalInterfaces[ifName] != nil {
 		return nil
@@ -111,7 +111,7 @@ func (nm *networkManager) newExternalInterface(ifName string, subnet string, nic
 	if nicType != string(cns.BackendNIC) {
 		hostIf, err := net.InterfaceByName(ifName)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "failed to find host interface")
 		}
 		macAddress = hostIf.HardwareAddr
 	}
