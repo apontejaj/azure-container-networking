@@ -123,6 +123,7 @@ func (nw *network) hostVFDeviceOperate(plc platform.ExecClient, epInfo *Endpoint
 
 	// Create the endpoint object.
 	ep := &endpoint{
+		IfName:     epInfo.MasterIfName,
 		MacAddress: epInfo.MacAddress,
 		NICType:    cns.BackendNIC,
 	}
