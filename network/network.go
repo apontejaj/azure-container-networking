@@ -11,6 +11,7 @@ import (
 	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/network/policy"
 	"github.com/Azure/azure-container-networking/platform"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -99,22 +100,26 @@ func (nwInfo *NetworkInfo) PrettyString() string {
 }
 
 // NewExternalInterface adds a host interface to the list of available external interfaces.
-func (nm *networkManager) newExternalInterface(ifName string, subnet string) error {
+func (nm *networkManager) newExternalInterface(ifName string, subnet string, nicType string) error {
 	// Check whether the external interface is already configured.
 	if nm.ExternalInterfaces[ifName] != nil {
 		return nil
 	}
 
 	// Find the host interface.
-	hostIf, err := net.InterfaceByName(ifName)
-	if err != nil {
-		return err
+	macAddress := net.HardwareAddr{}
+	if nicType != string(cns.BackendNIC) {
+		hostIf, err := net.InterfaceByName(ifName)
+		if err != nil {
+			return err
+		}
+		macAddress = hostIf.HardwareAddr
 	}
 
 	extIf := externalInterface{
 		Name:        ifName,
 		Networks:    make(map[string]*network),
-		MacAddress:  hostIf.HardwareAddr,
+		MacAddress:  macAddress,
 		IPv4Gateway: net.IPv4zero,
 		IPv6Gateway: net.IPv6unspecified,
 	}
@@ -160,6 +165,27 @@ func (nm *networkManager) findExternalInterfaceByName(ifName string) *externalIn
 	return nil
 }
 
+func (nm *networkManager) findExternalInterface(nwInfo *EndpointInfo) (*externalInterface, error) {
+	extIf := &externalInterface{}
+
+	if len(strings.TrimSpace(nwInfo.MasterIfName)) > 0 {
+		extIf = nm.findExternalInterfaceByName(nwInfo.MasterIfName)
+	} else {
+		extIf = nm.findExternalInterfaceBySubnet(nwInfo.Subnets[0].Prefix.String())
+	}
+	if extIf == nil {
+		err := errSubnetNotFound
+		return nil, err
+	}
+	// Make sure this network does not already exist.
+	if extIf.Networks[nwInfo.NetworkID] != nil {
+		err := errNetworkExists
+		return nil, err
+	}
+
+	return extIf, nil
+}
+
 // NewNetwork creates a new container network.
 func (nm *networkManager) newNetwork(nwInfo *EndpointInfo) (*network, error) {
 	var nw *network
@@ -179,21 +205,9 @@ func (nm *networkManager) newNetwork(nwInfo *EndpointInfo) (*network, error) {
 
 	// If the master interface name is provided, find the external interface by name
 	// else use subnet to to find the interface
-	var extIf *externalInterface
-	if len(strings.TrimSpace(nwInfo.MasterIfName)) > 0 {
-		extIf = nm.findExternalInterfaceByName(nwInfo.MasterIfName)
-	} else {
-		extIf = nm.findExternalInterfaceBySubnet(nwInfo.Subnets[0].Prefix.String())
-	}
-	if extIf == nil {
-		err = errSubnetNotFound
-		return nil, err
-	}
-
-	// Make sure this network does not already exist.
-	if extIf.Networks[nwInfo.NetworkID] != nil {
-		err = errNetworkExists
-		return nil, err
+	extIf, err := nm.findExternalInterface(nwInfo)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to find external interface")
 	}
 
 	// Call the OS-specific implementation.
@@ -201,7 +215,7 @@ func (nm *networkManager) newNetwork(nwInfo *EndpointInfo) (*network, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	logger.Info("nw is", zap.Any("newNetwork", nw))
 	// Add the network object.
 	nw.Subnets = nwInfo.Subnets
 	extIf.Networks[nwInfo.NetworkID] = nw
@@ -311,20 +325,16 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 
 			logger.Info("Found master interface", zap.String("masterIfName", epInfo.MasterIfName))
 
-			// temp workaround for IB NIC
-			// TODO: find a way to get windows IB interface name
-			if epInfo.NICType != cns.BackendNIC {
-				// Add the master as an external interface.
-				err := nm.AddExternalInterface(epInfo.MasterIfName, epInfo.HostSubnetPrefix)
-				if err != nil {
-					return err
-				}
+			// Add the master as an external interface.
+			err := nm.AddExternalInterface(epInfo.MasterIfName, epInfo.HostSubnetPrefix, string(epInfo.NICType))
+			if err != nil {
+				return err
+			}
 
-				// Create the network if it is not found
-				err = nm.CreateNetwork(epInfo)
-				if err != nil {
-					return err
-				}
+			// Create the network if it is not found
+			err = nm.CreateNetwork(epInfo)
+			if err != nil {
+				return err
 			}
 		}
 
@@ -333,7 +343,10 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 			return err
 		}
 
-		eps = append(eps, ep)
+		// do not save endpoint state for IB
+		if ep != nil {
+			eps = append(eps, ep)
+		}
 	}
 
 	// save endpoints

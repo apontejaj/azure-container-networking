@@ -65,6 +65,66 @@ func ConstructEndpointID(containerID string, netNsPath string, ifName string) (s
 	return infraEpName, workloadEpName
 }
 
+func (nw *network) hostVFDeviceOperate(plc platform.ExecClient, epInfo *EndpointInfo) (*endpoint, error) {
+	logger.Info("disable and dismount VF device")
+
+	// check device state before disabling and dismounting vf device
+	devicePresence, problemCode, err := GetPnpDeviceState(epInfo.PnPID, plc)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get VF device state")
+	}
+
+	// state machine, use devicePresence and problemCode to determine actions
+	if devicePresence == "True" && problemCode == "0" {
+		// device is enabled
+		// disable and dismount vf
+		if err := DisableVFDevice(epInfo.PnPID, plc); err != nil { //nolint
+			return nil, errors.Wrap(err, "failed to disable VF device")
+		}
+
+		if err := DisamountVFDevice(epInfo.PnPID, plc); err != nil { //nolint
+			return nil, errors.Wrap(err, "failed to dismount VF device")
+		}
+
+		// get new pnp id after VF dismount
+		pnpDeviceID, err := GetPnPDeviceID(epInfo.PnPID, plc)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get updated VF device ID")
+		}
+
+		// assign updated PciID back to containerd
+		epInfo.PnPID = pnpDeviceID
+	} else if devicePresence == "True" && problemCode == "22" {
+		// device is disabled but not dismounted
+		if err := DisamountVFDevice(epInfo.PnPID, plc); err != nil { //nolint
+			return nil, errors.Wrap(err, "failed to dismount VF device")
+		}
+
+		// get new pnp id after VF dismount
+		pnpDeviceID, err := GetPnPDeviceID(epInfo.PnPID, plc)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get updated VF device ID")
+		}
+
+		// assign updated PciID back to containerd
+		epInfo.PnPID = pnpDeviceID
+	} else if devicePresence == "False" {
+		// device is disabled and dismounted, just get the new PciID and assign back to containerd
+		pnpDeviceID, err := GetPnPDeviceID(epInfo.PnPID, plc)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get updated VF device ID")
+		}
+		// assign updated PciID back to containerd
+		epInfo.PnPID = pnpDeviceID
+	} else {
+		// return unexpected error
+		return nil, errors.Wrap(err, "unexpected error")
+	}
+
+	// do not create endpoint for IB NIC interface
+	return nil, nil
+}
+
 // newEndpointImpl creates a new endpoint in the network.
 func (nw *network) newEndpointImpl(
 	cli apipaClient,
@@ -77,27 +137,7 @@ func (nw *network) newEndpointImpl(
 	epInfo *EndpointInfo,
 ) (*endpoint, error) {
 	if epInfo.NICType == cns.BackendNIC {
-		// step 1: disable VF
-		if err := DisableVFDevice(epInfo.PnPID, plc); err != nil { //nolint
-			return nil, errors.Wrap(err, "failed to disable VF device")
-		}
-
-		// step 2: dismount VF
-		if err := DisamountVFDevice(epInfo.PnPID, plc); err != nil { //nolint
-			return nil, errors.Wrap(err, "failed to dismount VF device")
-		}
-
-		// step 3: get new pnp id after VF dismount
-		pnpDeviceID, err := GetPnPDeviceID(epInfo.PnPID, plc)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get updated VF device ID")
-		}
-
-		// assign updated PciID back to containerd
-		epInfo.PnPID = pnpDeviceID
-
-		// do not create endpoint for IB NIC interface
-		return nil, nil
+		return nw.hostVFDeviceOperate(plc, epInfo)
 	}
 
 	if useHnsV2, err := UseHnsV2(epInfo.NetNsPath); useHnsV2 {
@@ -593,6 +633,7 @@ func GetPnPDeviceID(instanceID string, plc platform.ExecClient) (string, error) 
 
 // Disable VF device
 func DisableVFDevice(instanceID string, plc platform.ExecClient) error {
+
 	disableVFDevice := fmt.Sprintf("Disable-PnpDevice -InstanceId \"%s\" -confirm:$false", instanceID) //nolint
 	_, err := plc.ExecutePowershellCommand(disableVFDevice)
 	if err != nil {
@@ -639,15 +680,33 @@ func GetLocationPath(instanceID string, plc platform.ExecClient) (string, error)
 }
 
 // Get PnP device state
-func GetPnpDeviceState(instanceID string, plc platform.ExecClient) (string, error) {
-	getPnpDeviceState := fmt.Sprintf("Get-PnpDevice -PresentOnly -InstanceId \"%s\"", instanceID) //nolint
-	deviceState, err := plc.ExecutePowershellCommand(getPnpDeviceState)
+// return devpkeyDeviceIsPresent and devpkeyDeviceProblemCode
+func GetPnpDeviceState(instanceID string, plc platform.ExecClient) (string, string, error) {
+	getDeviceIsPresent := fmt.Sprintf("(Get-PnpDeviceProperty -InstanceId \"%s\" | Where-Object KeyName -eq DEVPKEY_Device_IsPresent).Data[0]", instanceID) //nolint
+	devpkeyDeviceIsPresent, err := plc.ExecutePowershellCommand(getDeviceIsPresent)
 	if err != nil {
-		logger.Error("Failed to get PnP device state", zap.Error(err))
-		errMsg := fmt.Sprintf("Failed to get get PnP device state due to error %s", err.Error())
-		return "", errors.Errorf(errMsg)
+		logger.Error("Failed to get if PnP device present or not", zap.Error(err))
+		errMsg := fmt.Sprintf("Failed to get if PnP device present or not due to error %s", err.Error())
+		return "", "", errors.Errorf(errMsg)
+	}
+	logger.Info("Successfully got", zap.String("device state presence", devpkeyDeviceIsPresent))
+
+	// DEVPKEY_Device_ProblemCode is not there once device is disabled and dismounted, so need to check if DEVPKEY_Device_ProblemCode exists first
+	getDeviceProblemCodeExist := fmt.Sprintf("(Get-PnpDeviceProperty -InstanceId \"%s\" | Where-Object KeyName -eq DEVPKEY_Device_ProblemCode)", instanceID)
+	devpkeyDeviceProblemCodeExist, _ := plc.ExecutePowershellCommand(getDeviceProblemCodeExist)
+	// only return isPresent flag and empty string as problemCode
+	if devpkeyDeviceProblemCodeExist == "" {
+		return devpkeyDeviceIsPresent, "", nil
 	}
 
-	logger.Info("Successfully got", zap.String("device state", deviceState))
-	return deviceState, nil
+	getDeviceProblemCode := fmt.Sprintf("(Get-PnpDeviceProperty -InstanceId \"%s\" | Where-Object KeyName -eq DEVPKEY_Device_ProblemCode).Data[0]", instanceID) //nolint
+	devpkeyDeviceProblemCode, err := plc.ExecutePowershellCommand(getDeviceProblemCode)
+	if err != nil {
+		logger.Error("Failed to get if PnP device problemCode", zap.Error(err))
+		errMsg := fmt.Sprintf("Failed to get if PnP device problemCode due to error %s", err.Error())
+		return "", "", errors.Errorf(errMsg)
+	}
+
+	logger.Info("Successfully got", zap.String("device problemCode", devpkeyDeviceProblemCode))
+	return devpkeyDeviceIsPresent, devpkeyDeviceProblemCode, nil
 }

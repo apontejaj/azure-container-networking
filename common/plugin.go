@@ -27,7 +27,7 @@ type PluginApi interface {
 
 // Network internal interface.
 type NetApi interface {
-	AddExternalInterface(ifName string, subnet string) error
+	AddExternalInterface(ifName string, subnet string, nicType string) error
 }
 
 // IPAM internal interface.

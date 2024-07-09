@@ -358,7 +358,7 @@ func (nm *networkManager) addIPv6DefaultRoute() error {
 func (nm *networkManager) newNetworkImplHnsV2(nwInfo *EndpointInfo, extIf *externalInterface) (*network, error) {
 	// network creation is not required for IB
 	if nwInfo.NICType == cns.BackendNIC {
-		return nil, nil
+		return &network{}, nil
 	}
 
 	hcnNetwork, err := nm.configureHcnNetwork(nwInfo, extIf)

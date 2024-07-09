@@ -94,7 +94,7 @@ type NetworkManager interface {
 	Initialize(config *common.PluginConfig, isRehydrationRequired bool) error
 	Uninitialize()
 
-	AddExternalInterface(ifName string, subnet string) error
+	AddExternalInterface(ifName string, subnet string, nicType string) error
 
 	CreateNetwork(nwInfo *EndpointInfo) error
 	DeleteNetwork(networkID string) error
@@ -300,11 +300,11 @@ func (nm *networkManager) save() error {
 //
 
 // AddExternalInterface adds a host interface to the list of available external interfaces.
-func (nm *networkManager) AddExternalInterface(ifName string, subnet string) error {
+func (nm *networkManager) AddExternalInterface(ifName string, subnet string, nicType string) error {
 	nm.Lock()
 	defer nm.Unlock()
 
-	err := nm.newExternalInterface(ifName, subnet)
+	err := nm.newExternalInterface(ifName, subnet, nicType)
 	if err != nil {
 		return err
 	}
@@ -348,6 +348,7 @@ func (nm *networkManager) GetNetworkInfo(networkID string) (EndpointInfo, error)
 	nm.Lock()
 	defer nm.Unlock()
 
+	logger.Info("GetNetworkInfo networkID", zap.String("networkID", networkID))
 	nw, err := nm.getNetwork(networkID)
 	if err != nil {
 		return EndpointInfo{}, err
@@ -367,6 +368,7 @@ func (nm *networkManager) GetNetworkInfo(networkID string) (EndpointInfo, error)
 		nwInfo.BridgeName = nw.extIf.BridgeName
 	}
 
+	logger.Info("GetNetworkInfo nw", zap.Any("nwInfo", nwInfo))
 	return nwInfo, nil
 }
 
