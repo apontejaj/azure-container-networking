@@ -343,10 +343,7 @@ func (nm *networkManager) EndpointCreate(cnsclient apipaClient, epInfos []*Endpo
 			return err
 		}
 
-		// do not save endpoint state for IB
-		if ep != nil {
-			eps = append(eps, ep)
-		}
+		eps = append(eps, ep)
 	}
 
 	// save endpoints

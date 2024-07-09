@@ -121,8 +121,14 @@ func (nw *network) hostVFDeviceOperate(plc platform.ExecClient, epInfo *Endpoint
 		return nil, errors.Wrap(err, "unexpected error")
 	}
 
+	// Create the endpoint object.
+	ep := &endpoint{
+		MacAddress: epInfo.MacAddress,
+		NICType:    cns.BackendNIC,
+	}
+
 	// do not create endpoint for IB NIC interface
-	return nil, nil
+	return ep, nil
 }
 
 // newEndpointImpl creates a new endpoint in the network.
