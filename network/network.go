@@ -207,7 +207,7 @@ func (nm *networkManager) newNetwork(nwInfo *EndpointInfo) (*network, error) {
 	// else use subnet to to find the interface
 	extIf, err := nm.findExternalInterface(nwInfo)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to find external interface")
+		return nil, err // nolint
 	}
 
 	// Call the OS-specific implementation.
