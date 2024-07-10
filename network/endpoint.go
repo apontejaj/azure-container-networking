@@ -28,7 +28,7 @@ type AzureHNSEndpoint struct{}
 
 // Endpoint represents a container network interface.
 type endpoint struct {
-	Id                       string // unique endpoint id
+	Id                       string
 	HnsId                    string `json:",omitempty"`
 	HNSNetworkID             string `json:",omitempty"`
 	SandboxKey               string
