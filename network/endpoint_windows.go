@@ -657,7 +657,7 @@ func disableVFDevice(instanceID string, plc platform.ExecClient) error {
 		return fmt.Errorf("Failed to disable VF device due to error:%w", err)
 	}
 
-	logger.Info("Get pnp device disabled succeeded", zap.String("VF device", instanceID))
+	logger.Info("pnp device disable succeeded", zap.String("VF device", instanceID))
 	return nil
 }
 
