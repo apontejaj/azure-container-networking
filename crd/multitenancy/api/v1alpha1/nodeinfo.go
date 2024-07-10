@@ -15,13 +15,9 @@ import (
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName=ni,scope=Cluster,path=nodeinfo
 // +kubebuilder:printcolumn:name="VMUniqueID",type=string,priority=0,JSONPath=`.spec.vmUniqueID`
-// +kubebuilder:printcolumn:name="Status",type=string,priority=1,JSONPath=`.status.status`
 type NodeInfo struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   NodeInfoSpec   `json:"spec,omitempty"`
-	Status NodeInfoStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -37,17 +33,6 @@ type NodeInfoList struct {
 type NodeInfoSpec struct {
 	// +kubebuilder:validation:Optional
 	VMUniqueID string `json:"vmUniqueID,omitempty"`
-}
-
-// NodeInfoStatus defines the observed state of NodeInfo
-type NodeInfoStatus struct {
-	// +kubebuilder:validation:Optional
-	DeviceInfos []DeviceInfo `json:"deviceInfos,omitempty"`
-}
-
-type DeviceInfo struct {
-	DeviceType  DeviceType `json:"deviceType,omitempty"`
-	DeviceCount int        `json:"deviceCount"`
 }
 
 func init() {
