@@ -1481,7 +1481,7 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 		wantErr                     bool
 	}{
 		{
-			name: "Test happy CNI add with swiftv2 multitenant result with delegatedVMNIC type",
+			name: "Test happy CNI add delegatedVMNIC type",
 			fields: fields{
 				podName:      testPodInfo.PodName,
 				podNamespace: testPodInfo.PodNamespace,
@@ -1543,7 +1543,7 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Test happy CNI add with swiftv2 with DelegatedNIC + BackendNIC interfaces",
+			name: "Test happy CNI add with DelegatedNIC + BackendNIC interfaces",
 			fields: fields{
 				podName:      testPodInfo.PodName,
 				podNamespace: testPodInfo.PodNamespace,
@@ -1616,7 +1616,7 @@ func TestCNSIPAMInvoker_Add_SwiftV2(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Test happy CNI add with swiftv2 with InfraNIC + DelegatedNIC + BackendNIC interfaces",
+			name: "Test happy CNI add with InfraNIC + DelegatedNIC + BackendNIC interfaces",
 			fields: fields{
 				podName:      testPodInfo.PodName,
 				podNamespace: testPodInfo.PodNamespace,

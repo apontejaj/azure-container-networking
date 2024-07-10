@@ -676,7 +676,7 @@ func dismountVFDevice(instanceID string, plc platform.ExecClient) error {
 		return fmt.Errorf("Failed to disamount VF device due to error:%w", err)
 	}
 
-	logger.Info("Get pnp device dismounted succeeded", zap.String("VF device", instanceID))
+	logger.Info("PnP device dismount succeeded", zap.String("VF device", instanceID))
 	return nil
 }
 

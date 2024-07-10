@@ -428,7 +428,6 @@ func TestNewEndpointImplHnsv2ForIBHappyPath(t *testing.T) {
 	// this hnsv2 variable overwrites the package level variable in network
 	// we do this to avoid passing around os specific objects in platform agnostic code
 	hnsFake := hnswrapper.NewHnsv2wrapperFake()
-	hnsFake.Delay = 10 * time.Second
 
 	Hnsv2 = hnswrapper.Hnsv2wrapperwithtimeout{
 		Hnsv2:          hnsFake,
@@ -460,7 +459,6 @@ func TestNewEndpointImplHnsv2ForIBUnHappyPath(t *testing.T) {
 	// this hnsv2 variable overwrites the package level variable in network
 	// we do this to avoid passing around os specific objects in platform agnostic code
 	hnsFake := hnswrapper.NewHnsv2wrapperFake()
-	hnsFake.Delay = 10 * time.Second
 
 	Hnsv2 = hnswrapper.Hnsv2wrapperwithtimeout{
 		Hnsv2:          hnsFake,
@@ -481,5 +479,9 @@ func TestNewEndpointImplHnsv2ForIBUnHappyPath(t *testing.T) {
 
 	if err == nil {
 		t.Fatal("Failed to test Endpoint creation for IB with unhappy path")
+	}
+
+	if err != platform.ErrMockExec {
+		t.Fatalf("Unexpected Error:%w; Error should be %w", err, platform.ErrMockExec)
 	}
 }
