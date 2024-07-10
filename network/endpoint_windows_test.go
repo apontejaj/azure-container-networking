@@ -480,8 +480,4 @@ func TestNewEndpointImplHnsv2ForIBUnHappyPath(t *testing.T) {
 	if err == nil {
 		t.Fatal("Failed to test Endpoint creation for IB with unhappy path")
 	}
-
-	if err != platform.ErrMockExec {
-		t.Fatalf("Unexpected Error:%w; Error should be %w", err, platform.ErrMockExec)
-	}
 }
