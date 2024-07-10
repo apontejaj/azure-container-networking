@@ -9,6 +9,7 @@ package network
 import (
 	"fmt"
 	"net"
+	"errors"
 	"strings"
 	"testing"
 	"time"
