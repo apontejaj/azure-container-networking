@@ -186,10 +186,6 @@ func (nw *network) newEndpoint(
 		return nil, err
 	}
 
-	if nw.Endpoints == nil {
-		nw.Endpoints = make(map[string]*endpoint)
-	}
-
 	nw.Endpoints[ep.Id] = ep
 	logger.Info("Created endpoint. Num of endpoints", zap.Any("ep", ep), zap.Int("numEndpoints", len(nw.Endpoints)))
 
