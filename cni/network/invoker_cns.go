@@ -473,6 +473,7 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 
 	macAddress, err := net.ParseMAC(info.macAddress)
 	if err != nil {
+		logger.Error("Invalid mac address", zap.Error(err))
 		return errors.Wrap(err, "Invalid mac address")
 	}
 
@@ -503,6 +504,7 @@ func configureSecondaryAddResult(info *IPResultInfo, addResult *IPAMAddResult, p
 func addBackendNICToResult(info *IPResultInfo, addResult *IPAMAddResult, key string) error {
 	macAddress, err := net.ParseMAC(info.macAddress)
 	if err != nil {
+		logger.Error("Invalid mac address", zap.Error(err))
 		return errors.Wrap(err, "Invalid mac address")
 	}
 
