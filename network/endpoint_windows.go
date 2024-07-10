@@ -132,6 +132,7 @@ func (nw *network) getEndpointWithVFDevice(plc platform.ExecClient, epInfo *Endp
 	ep := &endpoint{
 		Id:         epInfo.MasterIfName,
 		IfName:     epInfo.MasterIfName,
+		ContainerID: epInfo.ContainerID,
 		MacAddress: epInfo.MacAddress,
 		NICType:    cns.BackendNIC,
 	}
