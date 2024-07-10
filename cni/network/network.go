@@ -429,7 +429,7 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 			// now we have to infer which interface info should be returned
 			// we assume that we want to return the infra nic always, and if that is not found, return any one of the secondary interfaces
 			// if there is an infra nic + secondary, we will always return the infra nic (linux swift v2)
-			cniResult = plugin.convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[key], args.IfName)
+			cniResult = convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[key], args.IfName)
 			if ipamAddResult.interfaceInfo[key].NICType == cns.InfraNIC {
 				break
 			}
@@ -1421,7 +1421,7 @@ func convertNnsToIPConfigs(
 	return ipConfigs
 }
 
-func (plugin *NetPlugin) convertInterfaceInfoToCniResult(info network.InterfaceInfo, ifName string) *cniTypesCurr.Result {
+func convertInterfaceInfoToCniResult(info network.InterfaceInfo, ifName string) *cniTypesCurr.Result {
 	result := &cniTypesCurr.Result{
 		Interfaces: []*cniTypesCurr.Interface{
 			{
