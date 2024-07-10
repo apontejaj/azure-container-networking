@@ -7,9 +7,9 @@
 package network
 
 import (
+	"errors"
 	"fmt"
 	"net"
-	"errors"
 	"strings"
 	"testing"
 	"time"
