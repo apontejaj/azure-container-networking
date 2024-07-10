@@ -130,11 +130,11 @@ func (nw *network) getEndpointWithVFDevice(plc platform.ExecClient, epInfo *Endp
 
 	// Create the endpoint object.
 	ep := &endpoint{
-		Id:         epInfo.MasterIfName,
-		IfName:     epInfo.MasterIfName,
+		Id:          epInfo.MasterIfName,
+		IfName:      epInfo.MasterIfName,
 		ContainerID: epInfo.ContainerID,
-		MacAddress: epInfo.MacAddress,
-		NICType:    cns.BackendNIC,
+		MacAddress:  epInfo.MacAddress,
+		NICType:     cns.BackendNIC,
 	}
 
 	// do not create endpoint for IB NIC interface
