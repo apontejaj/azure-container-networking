@@ -19,7 +19,6 @@ import (
 	"github.com/Azure/azure-container-networking/netlink"
 	"github.com/Azure/azure-container-networking/network/hnswrapper"
 	"github.com/Azure/azure-container-networking/platform"
-	"github.com/Microsoft/hcsshim/hcn"
 )
 
 var (
@@ -260,7 +259,7 @@ func TestDisableVFDeviceHappyPath(t *testing.T) {
 		return "", nil
 	})
 
-	err := DisableVFDevice(instanceID, nm.plClient)
+	err := disableVFDevice(instanceID, nm.plClient)
 	if err != nil {
 		t.Fatal("Failed to test disable VF happy path")
 	}
@@ -269,7 +268,7 @@ func TestDisableVFDeviceHappyPath(t *testing.T) {
 func TestDisableVFDeviceUnHappyPathOne(t *testing.T) {
 	// set unhappy path
 	mockExecClient := platform.NewMockExecClient(true)
-	err := DisableVFDevice(instanceID, mockExecClient)
+	err := disableVFDevice(instanceID, mockExecClient)
 	if err == nil {
 		t.Fatal("Failed to test disable VF unhappy path")
 	}
@@ -282,7 +281,7 @@ func TestDisableVFDeviceUnHappyPathTwo(t *testing.T) {
 		return failedCaseReturn, errTestFailure
 	})
 
-	err := DisableVFDevice(instanceID, mockExecClient)
+	err := disableVFDevice(instanceID, mockExecClient)
 	if err == nil {
 		t.Fatal("Failed to test disable VF unhappy path")
 	}
@@ -303,7 +302,7 @@ func TestGetLocationPathHappyPath(t *testing.T) {
 		return "", nil
 	})
 
-	_, err := GetLocationPath(instanceID, nm.plClient)
+	_, err := getLocationPath(instanceID, nm.plClient)
 	if err != nil {
 		t.Fatal("Failed to test get locationPath happy path")
 	}
@@ -311,7 +310,7 @@ func TestGetLocationPathHappyPath(t *testing.T) {
 
 func TestGetLocationPathUnHappyPath(t *testing.T) {
 	mockExecClient := platform.NewMockExecClient(true)
-	_, err := GetLocationPath(instanceID, mockExecClient)
+	_, err := getLocationPath(instanceID, mockExecClient)
 	if err == nil {
 		t.Fatal("Failed to test get locationPath unhappy path")
 	}
@@ -332,7 +331,7 @@ func TestDismountVFDeviceHappyPath(t *testing.T) {
 		return "", nil
 	})
 
-	err := DisamountVFDevice(locationPath, nm.plClient)
+	err := dismountVFDevice(locationPath, nm.plClient)
 	if err != nil {
 		t.Fatal("Failed to test dismount vf device happy path")
 	}
@@ -341,7 +340,7 @@ func TestDismountVFDeviceHappyPath(t *testing.T) {
 func TestDismountVFDeviceUnHappyPathOne(t *testing.T) {
 	// set unhappy path
 	mockExecClient := platform.NewMockExecClient(true)
-	err := DisamountVFDevice(instanceID, mockExecClient)
+	err := dismountVFDevice(instanceID, mockExecClient)
 	if err == nil {
 		t.Fatal("Failed to test dismount VF unhappy path")
 	}
@@ -354,7 +353,7 @@ func TestDismountVFDeviceUnHappyPathTwo(t *testing.T) {
 		return failedCaseReturn, errTestFailure
 	})
 
-	err := DisamountVFDevice(instanceID, mockExecClient)
+	err := dismountVFDevice(instanceID, mockExecClient)
 	if err == nil {
 		t.Fatal("Failed to test dismount VF unhappy path")
 	}
@@ -376,7 +375,7 @@ func TestGetPnPDeviceIDHappyPath(t *testing.T) {
 		return "", nil
 	})
 
-	_, err := GetPnPDeviceID(instanceID, nm.plClient)
+	_, err := getPnPDeviceID(instanceID, nm.plClient)
 	if err != nil {
 		t.Fatal("Failed to test get pnp device id happy path")
 	}
@@ -384,7 +383,7 @@ func TestGetPnPDeviceIDHappyPath(t *testing.T) {
 
 func TestGetPnPDeviceIDUnHappyPath(t *testing.T) {
 	mockExecClient := platform.NewMockExecClient(true)
-	_, err := GetPnPDeviceID(instanceID, mockExecClient)
+	_, err := getPnPDeviceID(instanceID, mockExecClient)
 	if err == nil {
 		t.Fatal("Failed to test get pnp device id unhappy path")
 	}
@@ -406,7 +405,7 @@ func TestGetPnPDeviceStateHappyPath(t *testing.T) {
 		return "", nil
 	})
 
-	_, _, err := GetPnpDeviceState(instanceID, nm.plClient)
+	_, _, err := getPnpDeviceState(instanceID, nm.plClient)
 	if err != nil {
 		t.Fatal("Failed to test happy path")
 	}
@@ -414,7 +413,7 @@ func TestGetPnPDeviceStateHappyPath(t *testing.T) {
 
 func TestGetPnPDeviceStateUnHappyPath(t *testing.T) {
 	mockExecClient := platform.NewMockExecClient(true)
-	_, _, err := GetPnpDeviceState(instanceID, mockExecClient)
+	_, _, err := getPnpDeviceState(instanceID, mockExecClient)
 	if err == nil {
 		t.Fatal("Failed to test get pnp device state unhappy path")
 	}
@@ -482,19 +481,5 @@ func TestNewEndpointImplHnsv2ForIBUnHappyPath(t *testing.T) {
 
 	if err == nil {
 		t.Fatal("Failed to test Endpoint creation for IB with unhappy path")
-	}
-}
-
-func TestNoHnsEndpointCallInvokedForIB(t *testing.T) {
-	hnsFake := hnswrapper.NewHnsv2wrapperFake()
-
-	endpoint := &hcn.HostComputeEndpoint{}
-	_, err := hnsFake.CreateEndpoint(endpoint)
-	if err != nil {
-		t.Fatal("Failed to create endpoint")
-	}
-
-	if numOfEndpoints := hnsFake.NumOfEndpoints(); numOfEndpoints != 0 {
-		t.Fatal("HNS endpoint creation call is invoked")
 	}
 }

@@ -186,10 +186,8 @@ func (nw *network) newEndpoint(
 		return nil, err
 	}
 
-	if epInfo.NICType != cns.BackendNIC {
-		nw.Endpoints[ep.Id] = ep
-		logger.Info("Created endpoint. Num of endpoints", zap.Any("ep", ep), zap.Int("numEndpoints", len(nw.Endpoints)))
-	}
+	nw.Endpoints[ep.Id] = ep
+	logger.Info("Created endpoint. Num of endpoints", zap.Any("ep", ep), zap.Int("numEndpoints", len(nw.Endpoints)))
 
 	return ep, nil
 }

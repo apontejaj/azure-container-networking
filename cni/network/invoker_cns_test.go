@@ -496,7 +496,7 @@ func TestCNSIPAMInvoker_Add_Overlay(t *testing.T) {
 				if ifInfo.NICType == cns.DelegatedVMNIC {
 					fmt.Printf("want:%+v\nrest:%+v\n", tt.wantSecondaryInterfacesInfo, ifInfo)
 					if len(tt.wantSecondaryInterfacesInfo.IPConfigs) > 0 {
-						require.EqualValues(tt.wantSecondaryInterfacesInfo, ifInfo, "incorrect multitenant response for delegatedNIC")
+						require.EqualValues(tt.wantSecondaryInterfacesInfo, ifInfo, "incorrect response for delegatedNIC")
 					}
 				}
 				if ifInfo.NICType == cns.InfraNIC {
