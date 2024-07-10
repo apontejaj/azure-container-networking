@@ -631,8 +631,7 @@ func getPnPDeviceID(instanceID string, plc platform.ExecClient) (string, error) 
 	getLocationPath := fmt.Sprintf("(Get-PnpDeviceProperty -KeyName DEVPKEY_Device_LocationPaths –InstanceId \"%s\").Data[0]", instanceID) //nolint
 	locationPath, err := plc.ExecutePowershellCommand(getLocationPath)
 	if err != nil {
-		errMsg := fmt.Sprintf("Failed to get VF locationPath due to error \"%s\"", err.Error()) //nolint
-		return "", fmt.Errorf(errMsg)
+		return "", fmt.Errorf("Failed to get VF locationPath due to error:%v", err)
 	}
 
 	// get device PnP id by locationPath
@@ -640,8 +639,7 @@ func getPnPDeviceID(instanceID string, plc platform.ExecClient) (string, error) 
 	pnpDeviceID, err := plc.ExecutePowershellCommand(getPnPDeviceID)
 	if err != nil {
 		logger.Error("Failed to get PnP device ID", zap.Error(err))
-		errMsg := fmt.Sprintf("Failed to get PnP device ID due to error %s", err.Error())
-		return "", fmt.Errorf(errMsg)
+		return "", fmt.Errorf("Failed to get PnP device ID due to error:%v", err)
 	}
 
 	logger.Info("Get PnP device ID succeeded", zap.String("new device pciID", pnpDeviceID))
@@ -655,8 +653,7 @@ func disableVFDevice(instanceID string, plc platform.ExecClient) error {
 	_, err := plc.ExecutePowershellCommand(disableVFDevice)
 	if err != nil {
 		logger.Error("Failed to disable VF device", zap.Error(err))
-		errMsg := fmt.Sprintf("Failed to disable VF device due to error %s", err.Error())
-		return fmt.Errorf(errMsg)
+		return fmt.Errorf("Failed to disable VF device due to error:%v", err)
 	}
 
 	logger.Info("Get pnp device disabled succeeded", zap.String("VF device", instanceID))
@@ -675,8 +672,7 @@ func dismountVFDevice(instanceID string, plc platform.ExecClient) error {
 	_, err = plc.ExecutePowershellCommand(dismountVFDevice)
 	if err != nil {
 		logger.Error("Failed to dismount VF device", zap.Error(err))
-		errMsg := fmt.Sprintf("Failed to disamount VF device due to error %s", err.Error())
-		return fmt.Errorf(errMsg)
+		return fmt.Errorf("Failed to disamount VF device due to error:%v", err)
 	}
 
 	logger.Info("Get pnp device dismounted succeeded", zap.String("VF device", instanceID))
@@ -690,8 +686,7 @@ func getLocationPath(instanceID string, plc platform.ExecClient) (string, error)
 	locationPath, err := plc.ExecutePowershellCommand(getLocationPath)
 	if err != nil {
 		logger.Error("Failed to get VF locationPath", zap.Error(err))
-		errMsg := fmt.Sprintf("Failed to get VF locationPath due to error %s", err.Error())
-		return "", fmt.Errorf(errMsg)
+		return "", fmt.Errorf("Failed to get VF locationPath due to error:%v", err)
 	}
 
 	logger.Info("Get pnp device locationPath succeeded", zap.String("locationPath", locationPath))
@@ -705,9 +700,8 @@ func getPnpDeviceState(instanceID string, plc platform.ExecClient) (string, stri
 	getDeviceIsPresent := fmt.Sprintf("(Get-PnpDeviceProperty -InstanceId \"%s\" | Where-Object KeyName -eq DEVPKEY_Device_IsPresent).Data[0]", instanceID) //nolint
 	devpkeyDeviceIsPresent, err := plc.ExecutePowershellCommand(getDeviceIsPresent)
 	if err != nil {
-		logger.Error("Failed to get if PnP device present or not", zap.Error(err))
-		errMsg := fmt.Sprintf("Failed to get if PnP device present or not due to error %s", err.Error())
-		return "", "", fmt.Errorf(errMsg)
+		logger.Error("Failed to get PnP device devpKeyIsPresent", zap.Error(err))
+		return "", "", fmt.Errorf("Failed to get PnP device devpKeyIsPresent due to error:%v", err)
 	}
 	logger.Info("Get pnp device property succeeded", zap.String("deviceKeyExists", devpkeyDeviceIsPresent))
 
@@ -716,8 +710,7 @@ func getPnpDeviceState(instanceID string, plc platform.ExecClient) (string, stri
 	devpkeyDeviceProblemCodeExist, err := plc.ExecutePowershellCommand(getDeviceProblemCodeExist)
 	if err != nil {
 		logger.Error("problemCode is unknown", zap.Error(err))
-		errMsg := fmt.Sprintf("problemCode is unknown %s", err.Error())
-		return "", "", fmt.Errorf(errMsg)
+		return "", "", fmt.Errorf("problemCode is unknown due to error:%v", err)
 	}
 
 	// only return isPresent flag and empty string as problemCode
@@ -730,8 +723,7 @@ func getPnpDeviceState(instanceID string, plc platform.ExecClient) (string, stri
 	devpkeyDeviceProblemCode, err := plc.ExecutePowershellCommand(getDeviceProblemCode)
 	if err != nil {
 		logger.Error("Failed to get PnP device problemCode", zap.Error(err))
-		errMsg := fmt.Sprintf("Failed to get if PnP device problemCode due to error %s", err.Error())
-		return "", "", fmt.Errorf(errMsg)
+		return "", "", fmt.Errorf("Failed to get if PnP device problemCode due to error:%v", err)
 	}
 
 	logger.Info("Retrieved device problem code", zap.String("code", devpkeyDeviceProblemCode))

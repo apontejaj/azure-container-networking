@@ -51,7 +51,6 @@ func (f Hnsv2wrapperFake) CreateNetwork(network *hcn.HostComputeNetwork) (*hcn.H
 
 	delayHnsCall(f.Delay)
 	f.Cache.networks[network.Name] = NewFakeHostComputeNetwork(network)
-
 	return network, nil
 }
 
@@ -218,7 +217,6 @@ func (f Hnsv2wrapperFake) CreateEndpoint(endpoint *hcn.HostComputeEndpoint) (*hc
 	defer f.Unlock()
 	delayHnsCall(f.Delay)
 	f.Cache.endpoints[endpoint.Id] = NewFakeHostComputeEndpoint(endpoint)
-
 	return endpoint, nil
 }
 
