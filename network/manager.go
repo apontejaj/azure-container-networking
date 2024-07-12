@@ -94,7 +94,7 @@ type NetworkManager interface {
 	Initialize(config *common.PluginConfig, isRehydrationRequired bool) error
 	Uninitialize()
 
-	AddExternalInterface(ifName string, subnet string) error
+	AddExternalInterface(ifName, subnet, nicType string) error
 
 	CreateNetwork(nwInfo *EndpointInfo) error
 	DeleteNetwork(networkID string) error
@@ -300,11 +300,11 @@ func (nm *networkManager) save() error {
 //
 
 // AddExternalInterface adds a host interface to the list of available external interfaces.
-func (nm *networkManager) AddExternalInterface(ifName string, subnet string) error {
+func (nm *networkManager) AddExternalInterface(ifName, subnet, nicType string) error {
 	nm.Lock()
 	defer nm.Unlock()
 
-	err := nm.newExternalInterface(ifName, subnet)
+	err := nm.newExternalInterface(ifName, subnet, nicType)
 	if err != nil {
 		return err
 	}
@@ -419,6 +419,10 @@ func (nm *networkManager) UpdateEndpointState(eps []*endpoint) error {
 	}
 
 	ifnameToIPInfoMap := generateCNSIPInfoMap(eps) // key : interface name, value : IPInfo
+	for _, ipinfo := range ifnameToIPInfoMap {
+		logger.Info("Update endpoint state", zap.String("hnsEndpointID", ipinfo.HnsEndpointID), zap.String("hnsNetworkID", ipinfo.HnsNetworkID),
+			zap.String("hostVethName", ipinfo.HostVethName), zap.String("macAddress", ipinfo.MacAddress), zap.String("nicType", string(ipinfo.NICType)))
+	}
 	// logger.Info("Calling cns updateEndpoint API with ", zap.String("containerID: ", ep.ContainerID), zap.String("HnsId: ", ep.HnsId), zap.String("HostIfName: ", ep.HostIfName))
 	// we assume all endpoints have the same container id
 	response, err := nm.CnsClient.UpdateEndpoint(context.TODO(), eps[0].ContainerID, ifnameToIPInfoMap)
