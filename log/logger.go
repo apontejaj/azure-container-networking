@@ -38,7 +38,7 @@ const (
 
 	// Log file rotation default limits, in bytes.
 	maxLogFileSize   = 5 * 1024 * 1024
-	maxLogFileCount  = 8
+	maxLogFileCount  = 20
 	rotationCheckFrq = 8
 )
 

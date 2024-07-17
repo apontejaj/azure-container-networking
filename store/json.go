@@ -170,6 +170,37 @@ func (kvs *jsonFileStore) flush() error {
 	if err = f.Close(); err != nil {
 		return fmt.Errorf("temp file close failed with: %v", err)
 	}
+	// Verify json written to file
+	// Open and parse the file if it exists.
+	tempFile, err := os.Open(tmpFileName)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return ErrKeyNotFound
+		}
+		return err
+	}
+
+	b, err := io.ReadAll(tempFile)
+	if err != nil {
+		tempFile.Close()
+		return err
+	}
+
+	if len(b) == 0 {
+		if kvs.logger != nil {
+			kvs.logger.Info("Unable to read empty file", zap.String("fileName", kvs.fileName))
+		} else {
+			log.Printf("Unable to read file %s, was empty", kvs.fileName)
+		}
+		tempFile.Close()
+		return ErrStoreEmpty
+	}
+
+	// Decode to raw JSON messages.
+	if err := json.Unmarshal(b, &kvs.data); err != nil {
+		return err
+	}
+	tempFile.Close()
 
 	// atomic replace
 	if err = platform.ReplaceFile(tmpFileName, kvs.fileName); err != nil {

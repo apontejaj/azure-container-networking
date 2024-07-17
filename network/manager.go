@@ -284,12 +284,23 @@ func (nm *networkManager) save() error {
 	// Update time stamp.
 	nm.TimeStamp = time.Now()
 
+	logger.Info("Written to store", zap.Any("network manager", nm))
+
 	err := nm.store.Write(storeKey, nm)
 	if err == nil {
 		logger.Info("Save succeeded")
+		// testing
+		testNetworkManager := &networkManager{}
+		err = nm.store.Read(storeKey, testNetworkManager)
+		if err != nil {
+			logger.Error("Validate read failed")
+		} else {
+			logger.Info("Validate read succeeded", zap.Any("value", nm))
+		}
 	} else {
 		logger.Error("Save failed", zap.Error(err))
 	}
+
 	return err
 }
 
@@ -752,6 +763,7 @@ func (nm *networkManager) SaveState(eps []*endpoint) error {
 	}
 
 	// once endpoints and networks are in-memory, save once
+
 	return nm.save()
 }
 
