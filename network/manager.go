@@ -295,7 +295,7 @@ func (nm *networkManager) save() error {
 		if err != nil {
 			logger.Error("Validate read failed")
 		} else {
-			logger.Info("Validate read succeeded", zap.Any("value", nm))
+			logger.Info("Validate read succeeded", zap.Any("value", testNetworkManager))
 		}
 	} else {
 		logger.Error("Save failed", zap.Error(err))
