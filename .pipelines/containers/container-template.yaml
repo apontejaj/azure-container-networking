@@ -2,7 +2,7 @@ parameters:
   arch: ""
   name: ""
   os: ""
-  os_version: ""
+  os_version: "only-windows"
 
 steps:
 - task: AzureCLI@1

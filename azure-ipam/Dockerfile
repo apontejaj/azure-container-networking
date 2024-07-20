@@ -31,6 +31,12 @@ FROM scratch as linux
 COPY --from=dropgz /go/bin/dropgz dropgz
 ENTRYPOINT [ "/dropgz" ]
 
-FROM mcr.microsoft.com/windows/nanoserver:${OS_VERSION} as windows
+# intermediate for win-ltsc2019
+FROM mcr.microsoft.com/windows/nanoserver:ltsc2019 as ltsc2019
+
+# intermediate for win-ltsc2022
+FROM mcr.microsoft.com/windows/nanoserver:ltsc2022 as ltsc2022
+
+FROM ${OS_VERSION} as windows
 COPY --from=dropgz /go/bin/dropgz dropgz.exe
 ENTRYPOINT [ "/dropgz.exe" ]
