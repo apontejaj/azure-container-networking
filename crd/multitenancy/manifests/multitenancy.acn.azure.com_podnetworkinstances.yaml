@@ -115,7 +115,8 @@ spec:
     schema:
       openAPIV3Schema:
         description: PodNetworkInstance is the Schema for the PodNetworkInstances
-          API
+          API size(filter(flatten(map(self.podNetworkConfigs, p, p.routes)), x, toLower(x)
+          == "default")) <= 1`
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -136,6 +137,11 @@ spec:
                 description: ClusterNetworkConfig describes how to attach the infra
                   network to a Pod
                 properties:
+                  policyBasedRouting:
+                    default: true
+                    description: PolicyBasedRouting is a flag to enable policy based
+                      routing
+                    type: boolean
                   routes:
                     description: Routes is a list of routes to add to the Pod through
                       interface assigned to the infra network
@@ -158,6 +164,11 @@ spec:
                     podNetwork:
                       description: PodNetwork is the name of a PodNetwork resource
                       type: string
+                    policyBasedRouting:
+                      default: true
+                      description: PolicyBasedRouting is a flag to enable policy based
+                        routing
+                      type: boolean
                     routes:
                       description: Routes is a list of routes to add to the Pod through
                         interface assigned to this PodNetwork
@@ -175,20 +186,24 @@ spec:
           status:
             description: PodNetworkInstanceStatus defines the observed state of PodNetworkInstance
             properties:
-              podIPAddresses:
+              PodNetworkConfigStatuses:
                 items:
-                  type: string
+                  description: PodNetworkStatus describes the status of a PodNetwork
+                  properties:
+                    podIPAddresses:
+                      items:
+                        type: string
+                      type: array
+                    status:
+                      description: PNIStatus indicates the status of PNI
+                      enum:
+                      - Ready
+                      - CreateReservationSetError
+                      - PodNetworkNotReady
+                      - InsufficientIPAddressesOnSubnet
+                      type: string
+                  type: object
                 type: array
-              podNetworkStatuses:
-                additionalProperties:
-                  description: PNIStatus indicates the status of PNI
-                  enum:
-                  - Ready
-                  - CreateReservationSetError
-                  - PodNetworkNotReady
-                  - InsufficientIPAddressesOnSubnet
-                  type: string
-                type: object
               status:
                 description: PNIStatus indicates the status of PNI
                 enum:
