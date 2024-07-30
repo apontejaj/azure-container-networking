@@ -55,7 +55,8 @@ spec:
                 description: name of the requesting cx pod
                 type: string
               podNetwork:
-                description: name of PN object from requesting cx pod
+                description: Deprecated - use InterfaceInfos. name of PN object from
+                  requesting cx pod
                 type: string
               podNetworkInstance:
                 description: name of PNI object from requesting cx pod
@@ -96,6 +97,10 @@ spec:
                     ncID:
                       description: NCID is the network container id
                       type: string
+                    network:
+                      description: name of PN object or cluster network from requesting
+                        cx pod
+                      type: string
                     primaryIP:
                       description: PrimaryIP is the ip allocated to the network container
                       type: string
@@ -114,89 +119,6 @@ spec:
               primaryIP:
                 description: Deprecated - use InterfaceInfos
                 type: string
-            type: object
-        type: object
-    served: true
-    storage: false
-    subresources:
-      status: {}
-  - additionalPrinterColumns:
-    - jsonPath: .spec.podNetworkInstance
-      name: PodNetworkInstance
-      type: string
-    name: v1alpha2
-    schema:
-      openAPIV3Schema:
-        description: MultitenantPodNetworkConfig is the Schema for the multitenantpodnetworkconfigs
-          API
-        properties:
-          apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-            type: string
-          kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-            type: string
-          metadata:
-            type: object
-          spec:
-            description: MultitenantPodNetworkConfigSpec defines the desired state
-              of PodNetworkConfig
-            properties:
-              podName:
-                description: name of the requesting cx pod
-                type: string
-              podNetworkInstance:
-                description: name of PNI object from requesting cx pod
-                type: string
-            type: object
-          status:
-            description: MultitenantPodNetworkConfigStatus defines the observed state
-              of PodNetworkConfig
-            properties:
-              interfaceInfos:
-                description: InterfaceInfos describes all of the network container
-                  goal state for this Pod
-                items:
-                  properties:
-                    accelnetEnabled:
-                      description: AccelnetEnabled determines if the CNI will provision
-                        the NIC with accelerated networking enabled
-                      type: boolean
-                    deviceType:
-                      description: DeviceType is the device type that this NC was
-                        created for
-                      enum:
-                      - acn.azure.com/vnet-nic
-                      - acn.azure.com/infiniband-nic
-                      type: string
-                    gatewayIP:
-                      description: GatewayIP is the gateway ip of the injected subnet
-                      type: string
-                    macAddress:
-                      description: MacAddress is the MAC Address of the VM's NIC which
-                        this network container was created for
-                      type: string
-                    ncID:
-                      description: NCID is the network container id
-                      type: string
-                    podNetwork:
-                      description: name of PN object from requesting cx pod
-                      type: string
-                    primaryIP:
-                      description: PrimaryIP is the ip allocated to the network container
-                      type: string
-                    subnetAddressSpace:
-                      description: SubnetAddressSpace is the subnet address space
-                        of the injected subnet
-                      type: string
-                  required:
-                  - podNetwork
-                  type: object
-                type: array
             type: object
         type: object
     served: true

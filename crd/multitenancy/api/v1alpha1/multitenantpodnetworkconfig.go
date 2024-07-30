@@ -41,6 +41,7 @@ type MultitenantPodNetworkConfigSpec struct {
 	// name of PNI object from requesting cx pod
 	// +kubebuilder:validation:Optional
 	PodNetworkInstance string `json:"podNetworkInstance,omitempty"`
+	// Deprecated - use InterfaceInfos.
 	// name of PN object from requesting cx pod
 	PodNetwork string `json:"podNetwork"`
 	// name of the requesting cx pod
@@ -66,6 +67,9 @@ type InterfaceInfo struct {
 	// AccelnetEnabled determines if the CNI will provision the NIC with accelerated networking enabled
 	// +kubebuilder:validation:Optional
 	AccelnetEnabled bool `json:"accelnetEnabled,omitempty"`
+	// name of PN object or cluster network from requesting cx pod
+	// +kubebuilder:validation:Optional
+	Network string `json:"network"`
 }
 
 // MultitenantPodNetworkConfigStatus defines the observed state of PodNetworkConfig
