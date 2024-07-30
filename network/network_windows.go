@@ -356,6 +356,11 @@ func (nm *networkManager) addIPv6DefaultRoute() error {
 
 // newNetworkImplHnsV2 creates a new container network for HNSv2.
 func (nm *networkManager) newNetworkImplHnsV2(nwInfo *EndpointInfo, extIf *externalInterface) (*network, error) {
+	// network creation is not required for IB
+	if nwInfo.NICType == cns.BackendNIC {
+		return &network{Endpoints: make(map[string]*endpoint)}, nil
+	}
+
 	hcnNetwork, err := nm.configureHcnNetwork(nwInfo, extIf)
 	if err != nil {
 		logger.Error("Failed to configure hcn network due to", zap.Error(err))
@@ -373,13 +378,19 @@ func (nm *networkManager) newNetworkImplHnsV2(nwInfo *EndpointInfo, extIf *exter
 			if err != nil {
 				return nil, fmt.Errorf("Failed to create hcn network: %s due to error: %v", hcnNetwork.Name, err)
 			}
-
 			logger.Info("Successfully created hcn network with response", zap.Any("hnsResponse", hnsResponse))
 		} else {
 			// we can't validate if the network already exists, don't continue
 			return nil, fmt.Errorf("Failed to create hcn network: %s, failed to query for existing network with error: %v", hcnNetwork.Name, err)
 		}
 	} else {
+		if hcnNetwork.Type == hcn.Transparent {
+			// CNI triggers Add() for new pod first and then delete older pod later
+			// for transparent network type, do not ignore network creation if network already exists
+			// return error to avoid creating second endpoint
+			logger.Error("HNS network with name already exists. Returning error for transparent network", zap.String("networkName", hcnNetwork.Name))
+			return nil, fmt.Errorf("HNS network with name:%s already exists. Returning error for transparent network", hcnNetwork.Name) //nolint
+		}
 		logger.Info("Network with name already exists", zap.String("name", hcnNetwork.Name))
 	}
 

@@ -4,6 +4,7 @@
 package network
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"testing"
@@ -14,6 +15,7 @@ import (
 	"github.com/Azure/azure-container-networking/network/hnswrapper"
 	"github.com/Azure/azure-container-networking/network/policy"
 	"github.com/Azure/azure-container-networking/telemetry"
+	hnsv2 "github.com/Microsoft/hcsshim/hcn"
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -219,8 +221,10 @@ func TestSetPoliciesFromNwCfg(t *testing.T) {
 		name          string
 		nwCfg         cni.NetworkConfig
 		isIPv6Enabled bool
+		expected      []hnsv2.PortMappingPolicySetting
 	}{
 		{
+			// ipv6 disabled, ipv4 host ip --> ipv4 host ip policy only
 			name: "Runtime network polices",
 			nwCfg: cni.NetworkConfig{
 				RuntimeConfig: cni.RuntimeConfig{
@@ -235,9 +239,19 @@ func TestSetPoliciesFromNwCfg(t *testing.T) {
 				},
 			},
 			isIPv6Enabled: false,
+			expected: []hnsv2.PortMappingPolicySetting{
+				{
+					ExternalPort: uint16(8000),
+					InternalPort: uint16(80),
+					VIP:          "192.168.0.4",
+					Protocol:     policy.ProtocolTcp,
+					Flags:        hnsv2.NatFlagsLocalRoutedVip,
+				},
+			},
 		},
 		{
-			name: "Runtime hostPort mapping polices",
+			// ipv6 disabled, no host ip --> ipv4 policy only
+			name: "Runtime hostPort mapping polices without hostIP",
 			nwCfg: cni.NetworkConfig{
 				RuntimeConfig: cni.RuntimeConfig{
 					PortMappings: []cni.PortMapping{
@@ -250,8 +264,17 @@ func TestSetPoliciesFromNwCfg(t *testing.T) {
 				},
 			},
 			isIPv6Enabled: false,
+			expected: []hnsv2.PortMappingPolicySetting{
+				{
+					ExternalPort: uint16(44000),
+					InternalPort: uint16(80),
+					Protocol:     policy.ProtocolTcp,
+					Flags:        hnsv2.NatFlagsLocalRoutedVip,
+				},
+			},
 		},
 		{
+			// ipv6 enabled, ipv6 host ip --> ipv6 host ip policy only
 			name: "Runtime hostPort mapping polices with ipv6 hostIP",
 			nwCfg: cni.NetworkConfig{
 				RuntimeConfig: cni.RuntimeConfig{
@@ -266,6 +289,99 @@ func TestSetPoliciesFromNwCfg(t *testing.T) {
 				},
 			},
 			isIPv6Enabled: true,
+			expected: []hnsv2.PortMappingPolicySetting{
+				{
+					ExternalPort: uint16(44000),
+					InternalPort: uint16(80),
+					VIP:          "2001:2002:2003::1",
+					Protocol:     policy.ProtocolTcp,
+					Flags:        hnsv2.NatFlagsIPv6,
+				},
+			},
+		},
+		{
+			// ipv6 enabled, ipv4 host ip --> ipv4 host ip policy only
+			name: "Runtime hostPort mapping polices with ipv4 hostIP on ipv6 enabled cluster",
+			nwCfg: cni.NetworkConfig{
+				RuntimeConfig: cni.RuntimeConfig{
+					PortMappings: []cni.PortMapping{
+						{
+							Protocol:      "tcp",
+							HostPort:      44000,
+							ContainerPort: 80,
+							HostIp:        "192.168.0.4",
+						},
+					},
+				},
+			},
+			isIPv6Enabled: true,
+			expected: []hnsv2.PortMappingPolicySetting{
+				{
+					ExternalPort: uint16(44000),
+					InternalPort: uint16(80),
+					VIP:          "192.168.0.4",
+					Protocol:     policy.ProtocolTcp,
+					Flags:        hnsv2.NatFlagsLocalRoutedVip,
+				},
+			},
+		},
+		{
+			// ipv6 enabled, no host ip --> ipv4 and ipv6 policies
+			name: "Runtime hostPort mapping polices with ipv6 without hostIP",
+			nwCfg: cni.NetworkConfig{
+				RuntimeConfig: cni.RuntimeConfig{
+					PortMappings: []cni.PortMapping{
+						{
+							Protocol:      "tcp",
+							HostPort:      44000,
+							ContainerPort: 80,
+						},
+					},
+				},
+			},
+			isIPv6Enabled: true,
+			expected: []hnsv2.PortMappingPolicySetting{
+				{
+					ExternalPort: uint16(44000),
+					InternalPort: uint16(80),
+					VIP:          "",
+					Protocol:     policy.ProtocolTcp,
+					Flags:        hnsv2.NatFlagsLocalRoutedVip,
+				},
+				{
+					ExternalPort: uint16(44000),
+					InternalPort: uint16(80),
+					VIP:          "",
+					Protocol:     policy.ProtocolTcp,
+					Flags:        hnsv2.NatFlagsIPv6,
+				},
+			},
+		},
+		{
+			// ipv6 enabled, ipv6 localhost ip --> ipv6 host ip policy only
+			name: "Runtime hostPort mapping polices with ipv6 localhost hostIP on ipv6 enabled cluster",
+			nwCfg: cni.NetworkConfig{
+				RuntimeConfig: cni.RuntimeConfig{
+					PortMappings: []cni.PortMapping{
+						{
+							Protocol:      "tcp",
+							HostPort:      44000,
+							ContainerPort: 80,
+							HostIp:        "::1",
+						},
+					},
+				},
+			},
+			isIPv6Enabled: true,
+			expected: []hnsv2.PortMappingPolicySetting{
+				{
+					ExternalPort: uint16(44000),
+					InternalPort: uint16(80),
+					VIP:          "::1",
+					Protocol:     policy.ProtocolTcp,
+					Flags:        hnsv2.NatFlagsIPv6,
+				},
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -276,6 +392,18 @@ func TestSetPoliciesFromNwCfg(t *testing.T) {
 			require.Condition(t, assert.Comparison(func() bool {
 				return len(policies) > 0 && policies[0].Type == policy.EndpointPolicy
 			}))
+			require.Equal(t, len(tt.expected), len(policies), "expected number of policies not equal to actual")
+			for index, policy := range policies {
+				var hnsv2Policy hnsv2.EndpointPolicy
+				err = json.Unmarshal(policy.Data, &hnsv2Policy)
+				require.NoError(t, err, "failed to unmarshal hnsv2 policy")
+
+				var rawPolicy hnsv2.PortMappingPolicySetting
+				err = json.Unmarshal(hnsv2Policy.Settings, &rawPolicy)
+				require.NoError(t, err, "failed to unmarshal hnsv2 port mapping policy")
+
+				require.Equal(t, tt.expected[index], rawPolicy, "policies are not expected")
+			}
 		})
 	}
 }
@@ -523,32 +651,24 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 }
 
 func TestGetNetworkNameSwiftv2FromCNS(t *testing.T) {
-	// TODO: Add IB and Accelnet NIC test to this test
+	// TODO: Add Accelnet NIC test to this test
 	plugin, _ := cni.NewPlugin("name", "0.3.0")
 
 	macAddress := "00:00:5e:00:53:01"
 	swiftv2NetworkNamePrefix := "azure-"
 	parsedMacAddress, _ := net.ParseMAC(macAddress)
-	swiftv2L1VHSecondaryInterfacesInfo := make(map[string]network.InterfaceInfo)
-
-	swiftv2L1VHInterfaceInfo := network.InterfaceInfo{
-		Name:       "swiftv2L1VHinterface",
-		MacAddress: parsedMacAddress,
-		NICType:    cns.DelegatedVMNIC,
-	}
-	swiftv2L1VHSecondaryInterfacesInfo[macAddress] = swiftv2L1VHInterfaceInfo
 
 	tests := []struct {
 		name          string
 		plugin        *NetPlugin
 		netNs         string
 		nwCfg         *cni.NetworkConfig
-		ipamAddResult *IPAMAddResult
+		interfaceInfo *network.InterfaceInfo
 		want          net.HardwareAddr
 		wantErr       bool
 	}{
 		{
-			name: "Get Network Name from CNS for swiftv2",
+			name: "Get Network Name from CNS for swiftv2 DelegatedNIC",
 			plugin: &NetPlugin{
 				Plugin:      plugin,
 				nm:          network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
@@ -561,8 +681,32 @@ func TestGetNetworkNameSwiftv2FromCNS(t *testing.T) {
 				CNIVersion:   "0.3.0",
 				MultiTenancy: false,
 			},
-			ipamAddResult: &IPAMAddResult{
-				interfaceInfo: swiftv2L1VHSecondaryInterfacesInfo,
+			interfaceInfo: &network.InterfaceInfo{
+				Name:       "swiftv2L1VHDelegatedInterface",
+				MacAddress: parsedMacAddress,
+				NICType:    cns.DelegatedVMNIC,
+			},
+			want:    parsedMacAddress,
+			wantErr: false,
+		},
+		{
+			name: "Get Network Name from CNS for swiftv2 BackendNIC",
+			plugin: &NetPlugin{
+				Plugin:      plugin,
+				nm:          network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
+				ipamInvoker: NewMockIpamInvoker(false, false, false, true, false),
+				report:      &telemetry.CNIReport{},
+				tb:          &telemetry.TelemetryBuffer{},
+			},
+			netNs: "azure",
+			nwCfg: &cni.NetworkConfig{
+				CNIVersion:   "0.3.0",
+				MultiTenancy: false,
+			},
+			interfaceInfo: &network.InterfaceInfo{
+				Name:       "swiftv2L1VHIBinterface",
+				MacAddress: parsedMacAddress,
+				NICType:    cns.BackendNIC,
 			},
 			want:    parsedMacAddress,
 			wantErr: false,
@@ -572,8 +716,8 @@ func TestGetNetworkNameSwiftv2FromCNS(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			t.Log(tt.ipamAddResult.interfaceInfo)
-			networkName, err := tt.plugin.getNetworkName(tt.netNs, &swiftv2L1VHInterfaceInfo, tt.nwCfg)
+			t.Log(tt.interfaceInfo)
+			networkName, err := tt.plugin.getNetworkName(tt.netNs, tt.interfaceInfo, tt.nwCfg)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -582,7 +726,7 @@ func TestGetNetworkNameSwiftv2FromCNS(t *testing.T) {
 				require.Equal(t, expectedMacAddress, networkName)
 			}
 
-			networkID, err := tt.plugin.getNetworkID(tt.netNs, &swiftv2L1VHInterfaceInfo, tt.nwCfg)
+			networkID, err := tt.plugin.getNetworkID(tt.netNs, tt.interfaceInfo, tt.nwCfg)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
