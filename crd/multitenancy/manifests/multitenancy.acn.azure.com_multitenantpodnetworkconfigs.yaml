@@ -97,7 +97,7 @@ spec:
                     ncID:
                       description: NCID is the network container id
                       type: string
-                    network:
+                    podNetwork:
                       description: name of PN object or cluster network from requesting
                         cx pod
                       type: string

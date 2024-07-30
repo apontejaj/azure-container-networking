@@ -79,23 +79,12 @@ type PodNetworkInstanceSpec struct {
 	ClusterNetworkConfig ClusterNetworkConfig `json:"clusterNetworkConfig"`
 }
 
-// PodNetworkStatus describes the status of a PodNetwork
-type NetworkStatus struct {
-	Network        string    `json:"network,omitempty"`
-	Status         PNIStatus `json:"status,omitempty"`
-	PodIPAddresses []string  `json:"podIPAddresses,omitempty"`
-}
-
 // PodNetworkInstanceStatus defines the observed state of PodNetworkInstance
 type PodNetworkInstanceStatus struct {
 	// +kubebuilder:validation:Optional
-	// Deprecated - use PodNetworkConfigStatuses
-	PodIPAddresses []string  `json:"podIPAddresses,omitempty"`
-	Status         PNIStatus `json:"status,omitempty"`
-	// Deprecated - use PodNetworkConfigStatuses
+	PodIPAddresses     []string             `json:"podIPAddresses,omitempty"`
+	Status             PNIStatus            `json:"status,omitempty"`
 	PodNetworkStatuses map[string]PNIStatus `json:"podNetworkStatuses,omitempty"`
-	// +kubebuilder:validation:Optional
-	NetworkStatuses []NetworkStatus `json:"networkStatuses,omitempty"`
 }
 
 // PNIStatus indicates the status of PNI

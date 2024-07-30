@@ -69,7 +69,7 @@ type InterfaceInfo struct {
 	AccelnetEnabled bool `json:"accelnetEnabled,omitempty"`
 	// name of PN object or cluster network from requesting cx pod
 	// +kubebuilder:validation:Optional
-	Network string `json:"network"`
+	PodNetwork string `json:"podNetwork"`
 }
 
 // MultitenantPodNetworkConfigStatus defines the observed state of PodNetworkConfig

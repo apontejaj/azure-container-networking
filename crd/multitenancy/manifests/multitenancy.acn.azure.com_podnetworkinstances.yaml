@@ -115,28 +115,7 @@ spec:
           status:
             description: PodNetworkInstanceStatus defines the observed state of PodNetworkInstance
             properties:
-              networkStatuses:
-                items:
-                  description: PodNetworkStatus describes the status of a PodNetwork
-                  properties:
-                    network:
-                      type: string
-                    podIPAddresses:
-                      items:
-                        type: string
-                      type: array
-                    status:
-                      description: PNIStatus indicates the status of PNI
-                      enum:
-                      - Ready
-                      - CreateReservationSetError
-                      - PodNetworkNotReady
-                      - InsufficientIPAddressesOnSubnet
-                      type: string
-                  type: object
-                type: array
               podIPAddresses:
-                description: Deprecated - use PodNetworkConfigStatuses
                 items:
                   type: string
                 type: array
@@ -149,7 +128,6 @@ spec:
                   - PodNetworkNotReady
                   - InsufficientIPAddressesOnSubnet
                   type: string
-                description: Deprecated - use PodNetworkConfigStatuses
                 type: object
               status:
                 description: PNIStatus indicates the status of PNI
