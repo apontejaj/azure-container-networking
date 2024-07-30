@@ -60,10 +60,6 @@ spec:
                     items:
                       type: string
                     type: array
-                    x-kubernetes-validations:
-                    - message: DelegatedSubnet is not allowed in cluster network configuration
-                        routes.
-                      rule: '!(self.routes.all(x, toLower(x) == "delegatedsubnet"))'
                 type: object
                 x-kubernetes-validations:
                 - message: Routes list shouldn't be empty if policybasedRouting is
@@ -139,12 +135,6 @@ spec:
                 type: string
             type: object
         type: object
-        x-kubernetes-validations:
-        - message: Only one default route is allowed across cluster and pod network
-            configurations.
-          rule: size(filter(self.clusterNetworkConfig.routes, x, toLower(x) == 'default'))
-            + size(filter(flatten(map(self.podNetworkConfigs, p, p.routes)), x, toLower(x)
-            == 'default')) <= 1
     served: true
     storage: true
     subresources:

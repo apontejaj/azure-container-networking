@@ -17,7 +17,6 @@ import (
 // +kubebuilder:metadata:labels=managed=
 // +kubebuilder:metadata:labels=owner=
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.status`
-// +kubebuilder:validation:XValidation:rule="size(filter(self.clusterNetworkConfig.routes, x, toLower(x) == 'default')) + size(filter(flatten(map(self.podNetworkConfigs, p, p.routes)), x, toLower(x) == 'default')) <= 1",message="Only one default route is allowed across cluster and pod network configurations."
 type PodNetworkInstance struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -54,7 +53,6 @@ type PodNetworkConfig struct {
 // +kubebuilder:validation:XValidation:rule="self.policyBasedRouting || self.routes.size() > 0",message="Routes list shouldn't be empty if policybasedRouting is disabled."
 type ClusterNetworkConfig struct {
 	// Routes is a list of routes to add to the Pod through interface assigned to the infra network
-	// +kubebuilder:validation:XValidation:rule=`!(self.routes.all(x, toLower(x) == "delegatedsubnet"))`,message="DelegatedSubnet is not allowed in cluster network configuration routes."
 	Routes []string `json:"routes,omitempty"`
 	// PolicyBasedRouting is a flag to enable policy based routing
 	// +kubebuilder:default=true
