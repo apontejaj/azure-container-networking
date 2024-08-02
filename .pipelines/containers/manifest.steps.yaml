@@ -50,7 +50,6 @@ steps:
 
 - task: PublishPipelineArtifact@1
   inputs:
-    artifactName: "output"
+    artifactName: drop_binaries_build
     targetPath: "$(Build.ArtifactStagingDirectory)"
   condition: succeeded()
-
