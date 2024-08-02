@@ -169,7 +169,7 @@ stages:
 
       - task: PublishPipelineArtifact@1
         inputs:
-          artifactName: drop_binaries_build
+          artifactName: "drop_binaries_build"
           targetPath: "$(Build.ArtifactStagingDirectory)"
         condition: succeeded()
 
@@ -263,6 +263,7 @@ stages:
           name: $(name)
           os: $(os)
           os_version: $(os_version)
+
     - job: containerize_linux_arm64
       displayName: Build Images
       pool:
