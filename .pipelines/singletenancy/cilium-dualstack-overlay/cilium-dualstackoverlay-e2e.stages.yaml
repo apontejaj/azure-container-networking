@@ -49,7 +49,7 @@ stages:
       - agent.os -equals Linux
       - Role -equals $(CUSTOM_E2E_ROLE)
     steps:
-    - template: /.pipelines/cilium-dualstack-overlay/cilium-dualstackoverlay-e2e-step-template.yaml@azure-container-networking
+    - template: /.pipelines/singletenancy/cilium-dualstack-overlay/cilium-dualstackoverlay-e2e-step-template.yaml@azure-container-networking
       parameters:
         name: ${{ parameters.name }}
         clusterName: ${{ parameters.clusterName }}-$(commitID)

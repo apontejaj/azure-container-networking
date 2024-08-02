@@ -53,7 +53,7 @@ stages:
       - agent.os -equals Linux
       - Role -equals $(CUSTOM_E2E_ROLE)
     steps:
-    - template: /.pipelines/aks-swift/e2e-step-template.yaml@azure-container-networking
+    - template: /.pipelines/singletenancy/aks-swift/e2e-step-template.yaml@azure-container-networking
       parameters:
         name: ${{ parameters.name }}
         clusterName: ${{ parameters.clusterName }}-$(commitID)
