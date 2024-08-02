@@ -1,0 +1,38 @@
+parameters:
+- name: testGroup
+  type: string
+  default:
+  - windows
+  - ubuntu
+  - mariner
+
+jobs:
+- template: template.unittests.jobs.yaml
+  parameters:
+    exec:
+    - job:
+      ${{ if eq(parameters.testGroup, 'windows') }}:
+        displayName: Windows
+        templateContext:
+          Suffix: windows
+          testGroup: windows
+        steps: []
+  
+      ${{ elseif eq(parameters.testGroup, 'ubuntu') }}:
+        displayName: Ubuntu
+        templateContext:
+          Suffix: ubuntu
+          LinuxContainerImage: "ubuntu:22.04"
+          testGroup: ubuntu
+        steps: []
+  
+      ${{ elseif eq(parameters.testGroup, 'mariner') }}:
+        displayName: Mariner
+        templateContext:
+          Suffix: mariner
+          testGroup: mariner
+        steps: []
+
+      ${{ else }}:
+        displayName: Invalid
+        steps: []

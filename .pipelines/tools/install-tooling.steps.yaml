@@ -1,0 +1,204 @@
+#########################
+#### Install Tooling ####
+#########################
+parameters: 
+#
+# The operating system of the test env.
+# Required.
+- name: os
+  type: string
+  values:
+  - mariner
+  - ubuntu
+  - windows
+#
+# The list of packages to install.
+- name: install
+  type: object
+  default: []
+#
+# Whether to update the build agent's 
+# package manager cache before installing 
+# any tooling. 
+- name: cacheUpdate
+  type: boolean
+  default: true
+#
+# Dependency Order
+# Do not change.
+#
+# Specified here specifically to avoid needing to manage install order in many files.
+# Install order is declared here and iterated.
+# Also ensures that each tool is only installed once (self de-dupping).
+#
+# This is the dependency order here.
+# Install selected tooling
+- name: dependencyOrder
+  type: object
+  default:
+  - 'sudo'
+  - 'nettools'
+  - 'lsof'
+  - 'procps'
+  - 'golang'
+  - 'kubectl'
+  - 'docker'
+  - 'podman'
+  - 'docker-podman'
+  - 'skopeo'
+  - 'buildah'
+
+
+steps: # 
+
+# Update Package Manager Cache
+- ${{ if eq(parameters.os, 'mariner') }}:
+  - bash: |
+      set -e
+      sudo tdnf -y update
+    displayName: 'Update Package Cache'
+
+- ${{ elseif eq(parameters.os, 'ubuntu') }}: 
+  - bash: |
+      set -e
+      [[ -n $(which sudo) ]] && sudo apt-get -y update || apt-get -y update
+    displayName: 'Update Package Cache'
+
+- ${{ else }}:
+  - bash: |
+      echo "Skipping Cache Update."
+    displayName: 'Skipping Cache Update'
+
+
+# InstallTool
+- ${{ each tool in parameters.dependencyOrder }}:
+  - ${{ if containsValue(parameters.install, tool) }}:
+
+    #### Install Kubectl ####
+    - ${{ if eq(tool, 'kubectl') }}:
+      - task: KubectlInstaller@0
+        displayName: 'Install Kubectl'
+        inputs:
+          kubectlVersion: latest
+  
+    #### Install Golang ####
+    - ${{ elseif eq(tool, 'golang') }}:
+      - task: GoTool@0
+        displayName: 'Install Golang (1.22.5)'
+        inputs:
+          version: '1.22.5'
+  
+    #### Install Docker ####
+    - ${{ elseif eq(tool, 'docker') }}:
+      ## Mariner - Any arch ##
+      - ${{ if eq(parameters.os, 'mariner') }}: # Docker Install for Mariner
+        - bash: |
+            sudo tdnf remove -y \
+              docker \
+              docker-client \
+              docker-client-latest \
+              docker-common \
+              docker-latest \
+              docker-latest-logrotate \
+              docker-logrotate \
+              docker-selinux \
+              docker-engine-selinux \
+              docker-engine
+    
+            set -e
+            sudo tdnf install -y ca-certificates \
+              moby-engine \
+              moby-cli \
+              moby-buildx \
+              moby-compose
+          displayName: 'Install Docker'
+  
+      ## Ubuntu - Any arch ##
+      - ${{ elseif eq(parameters.os, 'ubuntu') }}: # Docker Install for Ubuntu
+        - bash: |
+            sudo apt-get remove -y \
+              docker.io \
+              docker-doc \
+              docker-compose \
+              docker-compose-v2 \
+              podman-docker \
+              containerd \
+              runc
+    
+            set -e
+            sudo apt-get install -y ca-certificates curl
+              docker-ce \
+              docker-ce-cli \
+              containerd.io \
+              docker-buildx-plugin \
+              docker-compose-plugin
+          displayName: 'Install Docker'
+  
+      ## Windows - Any arch ##
+      - ${{ else }}:
+        - bash: |
+            echo >&2 "[warning]Skipping Docker Install due to 'Not Implemented'."
+          displayName: "Skip - Install Docker"
+  
+    #### Simple Misc Tool Installation ####
+    - ${{ else }}:  
+      - template: template.install-tool.steps.yaml
+        parameters:
+          tool: ${{ tool }}
+          os: ${{ parameters.os }}
+          # There is no difference in handling between pkg managers
+          # so we do not yet make that distinction now.
+          ${{ if eq(tool, 'nettools') }}:
+            printVersion: false
+            installCmd: 'net-tools' # Add the pkg name & parameters - pkgmgr will be determined by template
+          ${{ elseif eq(tool, 'sudo') }}:
+            printVersion: false
+            installCmd: 'sudo' # Add the pkg name & parameters - pkgmgr will be determined by template
+          ${{ elseif eq(tool, 'lsof') }}:
+            printVersion: true
+            installCmd: 'lsof' # Add the pkg name & parameters - pkgmgr will be determined by template
+            versionCmd: 'lsof -v'
+          ${{ elseif eq(tool, 'docker-podman') }}:
+            printVersion: false 
+            installCmd: 'docker-podman' 
+          ${{ elseif eq(tool, 'buildah') }}:
+            printVersion: false # if we check the version, the command fails b.c. we have not initializaed any cni plugins
+            installCmd: 'buildah' 
+            versionCmd: 'buildah version'
+          ${{ elseif eq(tool, 'podman') }}:
+            installCmd: 'podman' 
+            printVersion: true
+            versionCmd: 'podman version'
+            postInstall:
+            - template: podman/post-install.steps.yaml
+            #- bash: |
+                #set -e
+                #ls -l /usr/share/containers/
+                ##sudo ls -l /etc/containers || echo "No folder named /etc/containers"
+                #BUILD_USER="$(whoami)"
+                #sudo groupadd podman
+                #usermod -aG podman "$BUILD_USER"
+                ##mkdir -p /home/"$BUILD_USER" /home/"$BUILD_USER"/.config/containers -p /home/"$BUILD_USER"/.local/share/containers
+                ##usermod -d /home/"$BUILD_USER" "$BUILD_USER"
+                #echo podman:10000:5000 > /etc/subuid
+                #echo podman:10000:5000 > /etc/subgid
+                ##echo -e "$BUILD_USER:1:999\n$BUILD_USER:1001:124535" > /etc/subuid
+                ##echo -e "$BUILD_USER:1:999\n$BUILD_USER:1001:124535" > /etc/subgid
+                ##
+                ##echo "${BUILD_USER}:x:$BUILD_USER_ID:0:${BUILD_USER} user:/home/$BUILD_USER:/bin/bash" >> /etc/passwd
+                ##echo "${BUILD_USER}:x:$BUILD_USER_ID:" >> /etc/group
+                ##chmod 644 /etc/containers/containers.conf && \
+                ##chmod 644 /etc/containers/storage.conf || echo "unable to update permissions."
+                #setcap cap_setuid+ep /usr/bin/newuidmap
+                #setcap cap_setgid+ep /usr/bin/newgidmap
+                ##chmod 555 /etc/passwd /etc/group /etc/subuid /etc/subgid /usr/bin/newgidmap
+                #podman system migrate
+              #displayName: "Set up Build User Permissions for Podman"
+
+          ${{ elseif eq(tool, 'skopeo') }}:
+            installCmd: 'skopeo' # Add the pkg name & parameters - pkgmgr will be determined by template
+            printVersion: true
+            versionCmd: 'skopeo --version'
+          ${{ elseif eq(tool, 'procps') }}:
+            installCmd: 'procps'
+            printVersion: false

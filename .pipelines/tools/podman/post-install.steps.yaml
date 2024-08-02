@@ -1,0 +1,83 @@
+
+steps:
+- bash: |
+    sudo touch /etc/subuid
+    sudo touch /etc/subgid
+    
+    sudo chmod 644 /etc/subuid
+    sudo chmod 644 /etc/subgid
+    
+    sudo usermod --add-subuids 10000-75535 $(whoami)
+    sudo usermod --add-subgids 10000-75535 $(whoami)
+    podman system migrate
+# Based off of https://github.com/containers/image_build/blob/main/podman/Containerfile
+#- bash: |
+#    PODMAN_USER=podman
+#    sudo useradd "$PODMAN_USER"
+#    echo -e "podman:1:999\npodman:1001:64535" > /etc/subuid
+#    echo -e "podman:1:999\npodman:1001:64535" > /etc/subgid
+#    
+#    ls -l
+#    mkdir -p /etc/azure/azure-vnet/
+#    mkdir -p /home/"$PODMAN_USER"/.config/containers
+#    mkdir -p /home/"$PODMAN_USER"/.config/systemd/user/
+#    mkdir -p /home/"$PODMAN_USER"/.local/share/containers/
+#    cp azure-container-networking/.pipelines/tools/podman-containers.conf /home/"$PODMAN_USER"/.config/containers/containers.config
+#    cp azure-container-networking/.pipelines/tools/storage.conf /home/"$PODMAN_USER"/.config/containers/storage.config
+#    cp azure-container-networking/.pipelines/tools/test.service /home/"$PODMAN_USER"/.local/share/containers/
+#    cp azure-container-networking/npm/azure-npm.json /etc/azure/azure-vnet/
+#    
+#    chown podman:podman -R /home/"$PODMAN_USER"
+#    # Assign ownership to user
+#    #chmod 644 /etc/containers/containers.conf
+#    
+#    # Copy & modify the defaults to provide reference if runtime changes needed.
+#    # Changes here are required for running with fuse-overlay storage inside container.
+#    #sed -e 's|^#mount_program|mount_program|g' \
+#        #-e '/additionalimage.*/a "/var/lib/shared",' \
+#        #-e 's|^mountopt[[:space:]]*=.*$|mountopt = "nodev,fsync=0"|g' \
+#        #/usr/share/containers/storage.conf > /etc/containers/storage.conf
+#    
+#    # Setup internal Podman to pass subscriptions down from host to internal container
+#    printf '/run/secrets/etc-pki-entitlement:/run/secrets/etc-pki-entitlement\n/run/secrets/rhsm:/run/secrets/rhsm\n' > /etc/containers/mounts.conf
+#    sudo sysctl kernel.unprivileged_userns_clone=1
+#    
+#    # Note VOLUME options must always happen after the chown call above
+#    # RUN commands can not modify existing volumes
+#    mkdir -p /var/lib/shared/overlay-images \
+#             /var/lib/shared/overlay-layers \
+#             /var/lib/shared/vfs-images \
+#             /var/lib/shared/vfs-layers
+#    touch /var/lib/shared/overlay-images/images.lock
+#    touch /var/lib/shared/overlay-layers/layers.lock
+#    touch /var/lib/shared/vfs-images/images.lock
+#    touch /var/lib/shared/vfs-layers/layers.lock
+#    /etc/init.d/dbus reload
+#    
+#    # Allow Build Env to take advantage of variable exports
+#    echo >&2 "##vso[task.setvariable variable=_CONTAINERS_USERNS_CONFIGURED]"""
+#    echo >&2 "##vso[task.setvariable variable=BUILDAH_ISOLATION]chroot"
+#
+#    #- bash: |
+#        #set -e
+#        #ls -l /usr/share/containers/
+#        ##sudo ls -l /etc/containers || echo "No folder named /etc/containers"
+#        #BUILD_USER="$(whoami)"
+#        #sudo groupadd podman
+#        #usermod -aG podman "$BUILD_USER"
+#        ##mkdir -p /home/"$BUILD_USER" /home/"$BUILD_USER"/.config/containers -p /home/"$BUILD_USER"/.local/share/containers
+#        ##usermod -d /home/"$BUILD_USER" "$BUILD_USER"
+#        #echo podman:10000:5000 > /etc/subuid
+#        #echo podman:10000:5000 > /etc/subgid
+#        ##echo -e "$BUILD_USER:1:999\n$BUILD_USER:1001:124535" > /etc/subuid
+#        ##echo -e "$BUILD_USER:1:999\n$BUILD_USER:1001:124535" > /etc/subgid
+#        ##
+#        ##echo "${BUILD_USER}:x:$BUILD_USER_ID:0:${BUILD_USER} user:/home/$BUILD_USER:/bin/bash" >> /etc/passwd
+#        ##echo "${BUILD_USER}:x:$BUILD_USER_ID:" >> /etc/group
+#        ##chmod 644 /etc/containers/containers.conf && \
+#        ##chmod 644 /etc/containers/storage.conf || echo "unable to update permissions."
+#        #setcap cap_setuid+ep /usr/bin/newuidmap
+#        #setcap cap_setgid+ep /usr/bin/newgidmap
+#        ##chmod 555 /etc/passwd /etc/group /etc/subuid /etc/subgid /usr/bin/newgidmap
+#        #podman system migrate
+#      #displayName: "Set up Build User Permissions for Podman"
