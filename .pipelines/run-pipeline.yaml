@@ -167,11 +167,11 @@ stages:
           targetFolder: $(Build.ArtifactStagingDirectory)
         condition: succeeded()
 
-      - task: PublishPipelineArtifact@1
-        inputs:
-          artifactName: "drop_binaries_build"
-          targetPath: "$(Build.ArtifactStagingDirectory)"
-        condition: succeeded()
+#      - task: PublishPipelineArtifact@1
+#        inputs:
+#          artifactName: "drop_binaries_build"
+#          targetPath: "$(Build.ArtifactStagingDirectory)"
+#        condition: succeeded()
 
   - stage: containerize
     displayName: Build Images
