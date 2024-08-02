@@ -5,6 +5,7 @@ package ipam
 
 import (
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -25,6 +26,8 @@ const (
 	// http response header timeout
 	responseHeaderTimeout = 10
 )
+
+var errEmptyIPListRetrieved = errors.New("ip list retrieved from azure host is empty")
 
 // Microsoft Azure IPAM configuration source.
 type azureSource struct {
@@ -115,6 +118,13 @@ func (s *azureSource) refresh() error {
 		return err
 	}
 
+	log.Printf("[ipam] xml name received:%v interfaces:%d", doc.XMLName, len(doc.Interface))
+
+	if len(doc.Interface) == 0 {
+		log.Errorf("[ipam] ip list retrieved from azure host is empty, doc:%v", doc)
+		return errEmptyIPListRetrieved
+	}
+
 	// For each interface...
 	for _, i := range doc.Interface {
 		ifName := ""
@@ -142,6 +152,8 @@ func (s *azureSource) refresh() error {
 			continue
 		}
 
+		log.Printf("[ipam] processing interface:%s IsPrimary:%t macAddress:%s ips:%d", ifName, i.IsPrimary, i.MacAddress, len(i.IPSubnet))
+
 		// For each subnet on the interface...
 		for _, s := range i.IPSubnet {
 			_, subnet, err := net.ParseCIDR(s.Prefix)
@@ -156,6 +168,7 @@ func (s *azureSource) refresh() error {
 				continue
 			}
 
+			log.Printf("[ipam] Number of IPAddress found in ipsubnet %s: %d", s.Prefix, len(s.IPAddress))
 			addressCount := 0
 			// For each address in the subnet...
 			for _, a := range s.IPAddress {
