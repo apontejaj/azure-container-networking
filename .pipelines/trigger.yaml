@@ -1,0 +1,45 @@
+pr:
+  branches:
+    include:
+      - master
+      - release/*
+  paths:
+    exclude:
+      - ".devcontainer"
+      - ".hooks"
+      - ".vscode"
+      - ".github"
+      - docs
+
+trigger:
+  branches:
+    include:
+      - gh-readonly-queue/master/*
+  tags:
+    include:
+      - "*"
+
+jobs:
+- job: trigger
+  steps:
+  - task: TriggerBuild@4
+    displayName: Trigger Compliant Build
+    timeoutInMinutes: 120
+    inputs:
+      definitionIsInCurrentTeamProject: false
+      tfsServer: 'https://msazure.visualstudio.com/DefaultCollection'
+      teamProject: $(ADO_COMPLIANT_BUILD_ORG)
+      buildDefinition: $(ADO_COMPLIANT_PIPELINE_ID)
+      queueBuildForUserThatTriggeredBuild: true
+      useSameBranch: true
+      authenticationMethod: $(ADO_AUTH_METHOD)
+      password: $(ADO_AUTHORIZATION)
+      storeInEnvironmentVariable: true
+      waitForQueuedBuildsToFinish: true
+      treatPartiallySucceededBuildAsSuccessful: false
+      downloadBuildArtifacts: false
+      failTaskIfBuildsNotSuccessful: true
+      waitForQueuedBuildsToFinishRefreshTime: 120
+      ignoreSslCertificateErrors: false
+ 
+
