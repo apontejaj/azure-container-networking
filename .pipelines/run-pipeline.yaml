@@ -167,10 +167,10 @@ stages:
           targetFolder: $(Build.ArtifactStagingDirectory)
         condition: succeeded()
 
-      - task: PublishBuildArtifacts@1
+      - task: PublishPipelineArtifact@1
         inputs:
           artifactName: "output"
-          pathtoPublish: "$(Build.ArtifactStagingDirectory)"
+          targetPath: "$(Build.ArtifactStagingDirectory)"
         condition: succeeded()
 
   - stage: containerize
@@ -341,7 +341,7 @@ stages:
             os_versions: ltsc2022
             platforms: linux/amd64 linux/arm64 windows/amd64
       steps:
-      - template: /.pipelines/containers/manifest-template.yaml@azure-container-networking
+      - template: /.pipelines/containers/manifest.steps.yaml@azure-container-networking
         parameters:
           name: $(name)
           os_versions: $(os_versions)
