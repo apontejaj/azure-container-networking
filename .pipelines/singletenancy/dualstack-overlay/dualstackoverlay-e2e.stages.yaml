@@ -118,8 +118,6 @@ stages:
     condition: in(dependencies.${{ parameters.name }}_windows.result, 'Failed')
     pool:
       type: windows
-    variables:
-      ob_outputDirectory: $(System.DefaultWorkingDirectory)/logs
     steps:
     - checkout: azure-container-networking
 

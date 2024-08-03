@@ -75,8 +75,6 @@ stages:
     condition: failed()
     pool:
       type: windows
-    variables:
-      ob_outputDirectory: $(System.DefaultWorkingDirectory)/logs
     steps:
     - checkout: azure-container-networking
 
