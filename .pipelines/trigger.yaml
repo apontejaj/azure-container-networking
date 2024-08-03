@@ -27,7 +27,7 @@ jobs:
     timeoutInMinutes: 120
     inputs:
       definitionIsInCurrentTeamProject: false
-      tfsServer: 'https://msazure.visualstudio.com/DefaultCollection'
+      tfsServer: $(ADO_COMPLIANT_BUILD_PROJECT_URI)
       teamProject: $(ADO_COMPLIANT_BUILD_ORG)
       buildDefinition: $(ADO_COMPLIANT_PIPELINE_ID)
       queueBuildForUserThatTriggeredBuild: true
@@ -41,5 +41,3 @@ jobs:
       failTaskIfBuildsNotSuccessful: true
       waitForQueuedBuildsToFinishRefreshTime: 120
       ignoreSslCertificateErrors: false
- 
-
