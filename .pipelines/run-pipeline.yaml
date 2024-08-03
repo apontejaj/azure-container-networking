@@ -173,382 +173,382 @@ stages:
           targetPath: "$(Build.ArtifactStagingDirectory)"
           publishLocation: 'pipeline'
 
-  - stage: containerize
-    displayName: Build Images
-    dependsOn:
-    - setup
-    - test
-    jobs:
-    - job: containerize_amd64
-      displayName: Build Images
-      pool:
-        type: linux
-      strategy:
-        matrix:
-          azure_ipam_linux_amd64:
-            arch: amd64
-            name: azure-ipam
-            os: linux
-          azure_ipam_windows2019_amd64:
-            arch: amd64
-            name: azure-ipam
-            os: windows
-            os_version: ltsc2019
-          azure_ipam_windows2022_amd64:
-            arch: amd64
-            name: azure-ipam
-            os: windows
-            os_version: ltsc2022
-          cni_linux_amd64:
-            arch: amd64
-            name: cni
-            os: linux
-          cni_windows2019_amd64:
-            arch: amd64
-            name: cni
-            os: windows
-            os_version: ltsc2019
-          cni_windows2022_amd64:
-            arch: amd64
-            name: cni
-            os: windows
-            os_version: ltsc2022
-          cni_dropgz_linux_amd64:
-            arch: amd64
-            name: cni-dropgz
-            os: linux
-          cni_dropgz_windows2019_amd64:
-            arch: amd64
-            name: cni-dropgz
-            os: windows
-            os_version: ltsc2019
-          cni_dropgz_windows2022_amd64:
-            arch: amd64
-            name: cni-dropgz
-            os: windows
-            os_version: ltsc2022
-          cns_linux_amd64:
-            arch: amd64
-            name: cns
-            os: linux
-          cns_windows2019_amd64:
-            arch: amd64
-            name: cns
-            os: windows
-            os_version: ltsc2019
-          cns_windows2022_amd64:
-            arch: amd64
-            name: cns
-            os: windows
-            os_version: ltsc2022
-          ipv6_hp_bpf_linux_amd64:
-            arch: amd64
-            name: ipv6-hp-bpf
-            os: linux
-          npm_linux_amd64:
-            arch: amd64
-            name: npm
-            os: linux
-          npm_windows2022_amd64:
-            arch: amd64
-            name: npm
-            os: windows
-            os_version: ltsc2022
-      steps:
-      - checkout: azure-container-networking
-
-      - template: /.pipelines/containers/container-template.yaml@azure-container-networking
-        parameters:
-          arch: $(arch)
-          name: $(name)
-          os: $(os)
-          os_version: $(os_version)
-
-    - job: containerize_linux_arm64
-      displayName: Build Images
-      pool:
-        type: linux
-      strategy:
-        matrix:
-          azure_ipam_linux_arm64:
-            arch: arm64
-            name: azure-ipam
-            os: linux
-          cni_linux_arm64:
-            arch: arm64
-            name: cni
-            os: linux
-          cni_dropgz_linux_arm64:
-            arch: arm64
-            name: cni-dropgz
-            os: linux
-          cns_linux_arm64:
-            arch: arm64
-            name: cns
-            os: linux
-          ipv6_hp_bpf_linux_arm64:
-            arch: arm64
-            name: ipv6-hp-bpf
-            os: linux
-          npm_linux_arm64:
-            arch: arm64
-            name: npm
-            os: linux
-      steps:
-      - checkout: azure-container-networking
-
-      - template: /.pipelines/containers/container-template.yaml@azure-container-networking
-        parameters:
-          arch: $(arch)
-          name: $(name)
-          os: $(os)
-
-  - stage: publish
-    displayName: Publish Multiarch Manifests
-    dependsOn:
-    - containerize
-    variables:
-      Packaging.EnableSBOMSigning: false
-    jobs:
-    - job: manifest
-      displayName: Compile Manifests
-      pool:
-        type: windows
-      strategy:
-        matrix:
-          azure_ipam:
-            name: azure-ipam
-            os_versions: ltsc2019 ltsc2022
-            platforms: linux/amd64 linux/arm64 windows/amd64
-          cni:
-            name: cni
-            os_versions: ltsc2019 ltsc2022
-            platforms: linux/amd64 linux/arm64 windows/amd64
-          cni_dropgz:
-            name: cni-dropgz
-            os_versions: ltsc2019 ltsc2022
-            platforms: linux/amd64 linux/arm64 windows/amd64
-          cns:
-            name: cns
-            os_versions: ltsc2019 ltsc2022
-            platforms: linux/amd64 linux/arm64 windows/amd64
-          ipv6_hp_bpf:
-            name: ipv6-hp-bpf
-            platforms: linux/amd64 linux/arm64
-          npm:
-            name: npm
-            os_versions: ltsc2022
-            platforms: linux/amd64 linux/arm64 windows/amd64
-      steps:
-      - checkout: azure-container-networking
-
-      - template: /.pipelines/containers/manifest.steps.yaml@azure-container-networking
-        parameters:
-          name: $(name)
-          os_versions: $(os_versions)
-          platforms: $(platforms)
-
-  # Cilium Podsubnet E2E tests
-  - template: /.pipelines/singletenancy/cilium/cilium-e2e.stages.yaml@azure-container-networking
-    parameters:
-      name: "cilium_e2e"
-      displayName: Cilium
-      clusterType: swift-byocni-nokubeproxy-up
-      clusterName: "ciliume2e"
-      vmSize: Standard_B2ms
-      k8sVersion: ""
-      dependsOn: "containerize"
-
-  # Cilium Overlay E2E tests
-  - template: /.pipelines/singletenancy/cilium-overlay/cilium-overlay-e2e.stages.yaml@azure-container-networking
-    parameters:
-      name: "cilium_overlay_e2e"
-      displayName: Cilium on AKS Overlay
-      clusterType: overlay-byocni-nokubeproxy-up
-      clusterName: "cilovere2e"
-      vmSize: Standard_B2ms
-      k8sVersion: ""
-      dependsOn: "containerize"
-
-  # Cilium Dualstack Overlay E2E tests
-  - template: /.pipelines/singletenancy/cilium-dualstack-overlay/cilium-dualstackoverlay-e2e.stages.yaml@azure-container-networking
-    parameters:
-      name: "cilium_dualstackoverlay_e2e"
-      displayName: Cilium on AKS DualStack Overlay
-      os: linux
-      clusterType: dualstack-byocni-nokubeproxy-up
-      clusterName: "cildsovere2e"
-      vmSize: Standard_B2ms
-      k8sVersion: ""
-      dependsOn: "containerize"
-
-      # Cilium Overlay with hubble E2E tests
-  - template: /.pipelines/singletenancy/cilium-overlay-withhubble/cilium-overlay-e2e.stages.yaml@azure-container-networking
-    parameters:
-      name: "cilium_h_overlay_e2e"
-      displayName: Cilium on AKS Overlay with Hubble
-      clusterType: overlay-byocni-nokubeproxy-up
-      clusterName: "cilwhleovere2e"
-      vmSize: Standard_B2ms
-      k8sVersion: ""
-      dependsOn: "containerize"
-      testHubble: true
-
-  # Azure Overlay E2E tests
-  - template: /.pipelines/singletenancy/azure-cni-overlay/azure-cni-overlay-e2e.stages.yaml@azure-container-networking
-    parameters:
-      name: "azure_overlay_e2e"
-      displayName: Azure Overlay
-      os: linux
-      clusterType: overlay-byocni-up
-      clusterName: "azovere2e"
-      vmSize: Standard_B2ms
-      k8sVersion: ""
-      dependsOn: "containerize"
-
-  # AKS Swift E2E tests
-  - template: /.pipelines/singletenancy/aks-swift/aks-e2e.stages.yaml@azure-container-networking
-    parameters:
-      name: "aks_swift_e2e"
-      displayName: AKS Swift Ubuntu
-      os: linux
-      clusterType: swift-byocni-up
-      clusterName: "swifte2e"
-      vmSize: Standard_B2ms
-      k8sVersion: ""
-      dependsOn: "containerize"
-
-  # AKS Swift Vnet Scale E2E tests
-  - template: /.pipelines/singletenancy/aks-swift/aks-e2e.stages.yaml@azure-container-networking
-    parameters:
-      name: "aks_swift_vnetscale_e2e"
-      displayName: AKS Swift Vnet Scale Ubuntu
-      os: linux
-      clusterType: vnetscale-swift-byocni-up
-      clusterName: "vscaleswifte2e"
-      vmSize: Standard_B2ms
-      k8sVersion: "1.28"
-      dependsOn: "containerize"
-
-  # CNIv1 E2E tests
-  - template: /.pipelines/singletenancy/aks/aks-e2e.stages.yaml@azure-container-networking
-    parameters:
-      name: "aks_ubuntu_22_linux_e2e"
-      displayName: AKS Ubuntu 22
-      arch: "amd64"
-      os: "linux"
-      clusterType: linux-cniv1-up
-      clusterName: "ubuntu22e2e"
-      vmSize: Standard_B2s
-      k8sVersion: 1.25
-      scaleup: 100
-      dependsOn: "containerize"
-
-  - template: /.pipelines/singletenancy/aks/aks-e2e.stages.yaml@azure-container-networking
-    parameters:
-      name: "aks_windows_22_e2e"
-      displayName: AKS Windows 2022
-      arch: amd64
-      os: windows
-      clusterType: windows-cniv1-up
-      clusterName: "win22e2e"
-      vmSize: Standard_B2ms
-      os_version: "ltsc2022"
-      scaleup: 50
-      dependsOn: "containerize"
-
-  # CNI dual stack overlay E2E tests
-  - template: /.pipelines/singletenancy/dualstack-overlay/dualstackoverlay-e2e.stages.yaml@azure-container-networking
-    parameters:
-      name: "dualstackoverlay_e2e"
-      displayName: AKS DualStack Overlay
-      os: linux
-      clusterType: dualstack-overlay-byocni-up
-      clusterName: "dsovere2e"
-      vmSize: Standard_B2ms
-      dependsOn: "containerize"
-
-  # Swiftv2 E2E tests with multitenancy cluster start up
-  - template: /.pipelines/multitenancy/swiftv2-e2e.stages.yaml@azure-container-networking
-    parameters:
-      name: "swiftv2_e2e"
-      displayName: Swiftv2 Multitenancy
-      os: linux
-      clusterType: swiftv2-multitenancy-cluster-up
-      clusterName: "mtacluster"
-      nodePoolName: "mtapool"
-      vmSize: $(SWIFTV2_MT_CLUSTER_SKU)
-      dependsOn: "containerize"
-      dummyClusterName: "swiftv2dummy"
-      dummyClusterType: "swiftv2-dummy-cluster-up"
-      dummyClusterDisplayName: Swiftv2 Multitenancy Dummy Cluster
-
-  - stage: delete
-    displayName: Delete Clusters
-    condition: always()
-    dependsOn:
-    - setup
-    - azure_overlay_e2e
-    - aks_swift_e2e
-    - cilium_e2e
-    - cilium_overlay_e2e
-    - cilium_h_overlay_e2e
-    - aks_ubuntu_22_linux_e2e
-    - aks_swift_vnetscale_e2e
-    - aks_windows_22_e2e
-    - dualstackoverlay_e2e
-    - cilium_dualstackoverlay_e2e
-    - swiftv2_e2e
-    variables:
-      commitID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.commitID'] ]
-    jobs:
-    - job: delete
-      displayName: Delete Cluster
-      pool:
-        type: windows
-      strategy:
-        matrix:
-          cilium_e2e:
-            name: cilium_e2e
-            clusterName: "ciliume2e"
-          cilium_overlay_e2e:
-            name: cilium_overlay_e2e
-            clusterName: "cilovere2e"
-          cilium_h_overlay_e2e:
-            name: cilium_h_overlay_e2e
-            clusterName: "cilwhleovere2e"
-          azure_overlay_e2e:
-            name: azure_overlay_e2e
-            clusterName: "azovere2e"
-          aks_swift_e2e:
-            name: aks_swift_e2e
-            clusterName: "swifte2e"
-          aks_swift_vnetscale_e2e:
-            name: aks_swift_vnetscale_e2e
-            clusterName: "vscaleswifte2e"
-          aks_ubuntu_22_linux_e2e:
-            name: aks_ubuntu_22_linux_e2e
-            clusterName: "ubuntu22e2e"
-          aks_windows_22_e2e:
-            name: aks_windows_22_e2e
-            clusterName: "win22e2e"
-          dualstackoverlay_e2e:
-            name: dualstackoverlay_e2e
-            clusterName: "dsovere2e"
-          cilium_dualstackoverlay_e2e:
-            name: cilium_dualstackoverlay_e2e
-            clusterName: "cildsovere2e"
-          swiftv2_e2e:
-            name: swiftv2_e2e
-            clusterName: "mtcluster"
-          swiftv2_dummy_e2e:
-            name: swiftv2_dummy_e2e
-            clusterName: "swiftv2dummy"
-      steps:
-      - checkout: azure-container-networking
-
-      - template: /.pipelines/templates/delete-cluster.yaml@azure-container-networking
-        parameters:
-          name: $(name)
-          clusterName: $(clusterName)-$(commitID)
-          region: $(REGION_AKS_CLUSTER_TEST)
+#  - stage: containerize
+#    displayName: Build Images
+#    dependsOn:
+#    - setup
+#    - test
+#    jobs:
+#    - job: containerize_amd64
+#      displayName: Build Images
+#      pool:
+#        type: linux
+#      strategy:
+#        matrix:
+#          azure_ipam_linux_amd64:
+#            arch: amd64
+#            name: azure-ipam
+#            os: linux
+#          azure_ipam_windows2019_amd64:
+#            arch: amd64
+#            name: azure-ipam
+#            os: windows
+#            os_version: ltsc2019
+#          azure_ipam_windows2022_amd64:
+#            arch: amd64
+#            name: azure-ipam
+#            os: windows
+#            os_version: ltsc2022
+#          cni_linux_amd64:
+#            arch: amd64
+#            name: cni
+#            os: linux
+#          cni_windows2019_amd64:
+#            arch: amd64
+#            name: cni
+#            os: windows
+#            os_version: ltsc2019
+#          cni_windows2022_amd64:
+#            arch: amd64
+#            name: cni
+#            os: windows
+#            os_version: ltsc2022
+#          cni_dropgz_linux_amd64:
+#            arch: amd64
+#            name: cni-dropgz
+#            os: linux
+#          cni_dropgz_windows2019_amd64:
+#            arch: amd64
+#            name: cni-dropgz
+#            os: windows
+#            os_version: ltsc2019
+#          cni_dropgz_windows2022_amd64:
+#            arch: amd64
+#            name: cni-dropgz
+#            os: windows
+#            os_version: ltsc2022
+#          cns_linux_amd64:
+#            arch: amd64
+#            name: cns
+#            os: linux
+#          cns_windows2019_amd64:
+#            arch: amd64
+#            name: cns
+#            os: windows
+#            os_version: ltsc2019
+#          cns_windows2022_amd64:
+#            arch: amd64
+#            name: cns
+#            os: windows
+#            os_version: ltsc2022
+#          ipv6_hp_bpf_linux_amd64:
+#            arch: amd64
+#            name: ipv6-hp-bpf
+#            os: linux
+#          npm_linux_amd64:
+#            arch: amd64
+#            name: npm
+#            os: linux
+#          npm_windows2022_amd64:
+#            arch: amd64
+#            name: npm
+#            os: windows
+#            os_version: ltsc2022
+#      steps:
+#      - checkout: azure-container-networking
+#
+#      - template: /.pipelines/containers/container-template.yaml@azure-container-networking
+#        parameters:
+#          arch: $(arch)
+#          name: $(name)
+#          os: $(os)
+#          os_version: $(os_version)
+#
+#    - job: containerize_linux_arm64
+#      displayName: Build Images
+#      pool:
+#        type: linux
+#      strategy:
+#        matrix:
+#          azure_ipam_linux_arm64:
+#            arch: arm64
+#            name: azure-ipam
+#            os: linux
+#          cni_linux_arm64:
+#            arch: arm64
+#            name: cni
+#            os: linux
+#          cni_dropgz_linux_arm64:
+#            arch: arm64
+#            name: cni-dropgz
+#            os: linux
+#          cns_linux_arm64:
+#            arch: arm64
+#            name: cns
+#            os: linux
+#          ipv6_hp_bpf_linux_arm64:
+#            arch: arm64
+#            name: ipv6-hp-bpf
+#            os: linux
+#          npm_linux_arm64:
+#            arch: arm64
+#            name: npm
+#            os: linux
+#      steps:
+#      - checkout: azure-container-networking
+#
+#      - template: /.pipelines/containers/container-template.yaml@azure-container-networking
+#        parameters:
+#          arch: $(arch)
+#          name: $(name)
+#          os: $(os)
+#
+#  - stage: publish
+#    displayName: Publish Multiarch Manifests
+#    dependsOn:
+#    - containerize
+#    variables:
+#      Packaging.EnableSBOMSigning: false
+#    jobs:
+#    - job: manifest
+#      displayName: Compile Manifests
+#      pool:
+#        type: windows
+#      strategy:
+#        matrix:
+#          azure_ipam:
+#            name: azure-ipam
+#            os_versions: ltsc2019 ltsc2022
+#            platforms: linux/amd64 linux/arm64 windows/amd64
+#          cni:
+#            name: cni
+#            os_versions: ltsc2019 ltsc2022
+#            platforms: linux/amd64 linux/arm64 windows/amd64
+#          cni_dropgz:
+#            name: cni-dropgz
+#            os_versions: ltsc2019 ltsc2022
+#            platforms: linux/amd64 linux/arm64 windows/amd64
+#          cns:
+#            name: cns
+#            os_versions: ltsc2019 ltsc2022
+#            platforms: linux/amd64 linux/arm64 windows/amd64
+#          ipv6_hp_bpf:
+#            name: ipv6-hp-bpf
+#            platforms: linux/amd64 linux/arm64
+#          npm:
+#            name: npm
+#            os_versions: ltsc2022
+#            platforms: linux/amd64 linux/arm64 windows/amd64
+#      steps:
+#      - checkout: azure-container-networking
+#
+#      - template: /.pipelines/containers/manifest.steps.yaml@azure-container-networking
+#        parameters:
+#          name: $(name)
+#          os_versions: $(os_versions)
+#          platforms: $(platforms)
+#
+#  # Cilium Podsubnet E2E tests
+#  - template: /.pipelines/singletenancy/cilium/cilium-e2e.stages.yaml@azure-container-networking
+#    parameters:
+#      name: "cilium_e2e"
+#      displayName: Cilium
+#      clusterType: swift-byocni-nokubeproxy-up
+#      clusterName: "ciliume2e"
+#      vmSize: Standard_B2ms
+#      k8sVersion: ""
+#      dependsOn: "containerize"
+#
+#  # Cilium Overlay E2E tests
+#  - template: /.pipelines/singletenancy/cilium-overlay/cilium-overlay-e2e.stages.yaml@azure-container-networking
+#    parameters:
+#      name: "cilium_overlay_e2e"
+#      displayName: Cilium on AKS Overlay
+#      clusterType: overlay-byocni-nokubeproxy-up
+#      clusterName: "cilovere2e"
+#      vmSize: Standard_B2ms
+#      k8sVersion: ""
+#      dependsOn: "containerize"
+#
+#  # Cilium Dualstack Overlay E2E tests
+#  - template: /.pipelines/singletenancy/cilium-dualstack-overlay/cilium-dualstackoverlay-e2e.stages.yaml@azure-container-networking
+#    parameters:
+#      name: "cilium_dualstackoverlay_e2e"
+#      displayName: Cilium on AKS DualStack Overlay
+#      os: linux
+#      clusterType: dualstack-byocni-nokubeproxy-up
+#      clusterName: "cildsovere2e"
+#      vmSize: Standard_B2ms
+#      k8sVersion: ""
+#      dependsOn: "containerize"
+#
+#      # Cilium Overlay with hubble E2E tests
+#  - template: /.pipelines/singletenancy/cilium-overlay-withhubble/cilium-overlay-e2e.stages.yaml@azure-container-networking
+#    parameters:
+#      name: "cilium_h_overlay_e2e"
+#      displayName: Cilium on AKS Overlay with Hubble
+#      clusterType: overlay-byocni-nokubeproxy-up
+#      clusterName: "cilwhleovere2e"
+#      vmSize: Standard_B2ms
+#      k8sVersion: ""
+#      dependsOn: "containerize"
+#      testHubble: true
+#
+#  # Azure Overlay E2E tests
+#  - template: /.pipelines/singletenancy/azure-cni-overlay/azure-cni-overlay-e2e.stages.yaml@azure-container-networking
+#    parameters:
+#      name: "azure_overlay_e2e"
+#      displayName: Azure Overlay
+#      os: linux
+#      clusterType: overlay-byocni-up
+#      clusterName: "azovere2e"
+#      vmSize: Standard_B2ms
+#      k8sVersion: ""
+#      dependsOn: "containerize"
+#
+#  # AKS Swift E2E tests
+#  - template: /.pipelines/singletenancy/aks-swift/aks-e2e.stages.yaml@azure-container-networking
+#    parameters:
+#      name: "aks_swift_e2e"
+#      displayName: AKS Swift Ubuntu
+#      os: linux
+#      clusterType: swift-byocni-up
+#      clusterName: "swifte2e"
+#      vmSize: Standard_B2ms
+#      k8sVersion: ""
+#      dependsOn: "containerize"
+#
+#  # AKS Swift Vnet Scale E2E tests
+#  - template: /.pipelines/singletenancy/aks-swift/aks-e2e.stages.yaml@azure-container-networking
+#    parameters:
+#      name: "aks_swift_vnetscale_e2e"
+#      displayName: AKS Swift Vnet Scale Ubuntu
+#      os: linux
+#      clusterType: vnetscale-swift-byocni-up
+#      clusterName: "vscaleswifte2e"
+#      vmSize: Standard_B2ms
+#      k8sVersion: "1.28"
+#      dependsOn: "containerize"
+#
+#  # CNIv1 E2E tests
+#  - template: /.pipelines/singletenancy/aks/aks-e2e.stages.yaml@azure-container-networking
+#    parameters:
+#      name: "aks_ubuntu_22_linux_e2e"
+#      displayName: AKS Ubuntu 22
+#      arch: "amd64"
+#      os: "linux"
+#      clusterType: linux-cniv1-up
+#      clusterName: "ubuntu22e2e"
+#      vmSize: Standard_B2s
+#      k8sVersion: 1.25
+#      scaleup: 100
+#      dependsOn: "containerize"
+#
+#  - template: /.pipelines/singletenancy/aks/aks-e2e.stages.yaml@azure-container-networking
+#    parameters:
+#      name: "aks_windows_22_e2e"
+#      displayName: AKS Windows 2022
+#      arch: amd64
+#      os: windows
+#      clusterType: windows-cniv1-up
+#      clusterName: "win22e2e"
+#      vmSize: Standard_B2ms
+#      os_version: "ltsc2022"
+#      scaleup: 50
+#      dependsOn: "containerize"
+#
+#  # CNI dual stack overlay E2E tests
+#  - template: /.pipelines/singletenancy/dualstack-overlay/dualstackoverlay-e2e.stages.yaml@azure-container-networking
+#    parameters:
+#      name: "dualstackoverlay_e2e"
+#      displayName: AKS DualStack Overlay
+#      os: linux
+#      clusterType: dualstack-overlay-byocni-up
+#      clusterName: "dsovere2e"
+#      vmSize: Standard_B2ms
+#      dependsOn: "containerize"
+#
+#  # Swiftv2 E2E tests with multitenancy cluster start up
+#  - template: /.pipelines/multitenancy/swiftv2-e2e.stages.yaml@azure-container-networking
+#    parameters:
+#      name: "swiftv2_e2e"
+#      displayName: Swiftv2 Multitenancy
+#      os: linux
+#      clusterType: swiftv2-multitenancy-cluster-up
+#      clusterName: "mtacluster"
+#      nodePoolName: "mtapool"
+#      vmSize: $(SWIFTV2_MT_CLUSTER_SKU)
+#      dependsOn: "containerize"
+#      dummyClusterName: "swiftv2dummy"
+#      dummyClusterType: "swiftv2-dummy-cluster-up"
+#      dummyClusterDisplayName: Swiftv2 Multitenancy Dummy Cluster
+#
+#  - stage: delete
+#    displayName: Delete Clusters
+#    condition: always()
+#    dependsOn:
+#    - setup
+#    - azure_overlay_e2e
+#    - aks_swift_e2e
+#    - cilium_e2e
+#    - cilium_overlay_e2e
+#    - cilium_h_overlay_e2e
+#    - aks_ubuntu_22_linux_e2e
+#    - aks_swift_vnetscale_e2e
+#    - aks_windows_22_e2e
+#    - dualstackoverlay_e2e
+#    - cilium_dualstackoverlay_e2e
+#    - swiftv2_e2e
+#    variables:
+#      commitID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.commitID'] ]
+#    jobs:
+#    - job: delete
+#      displayName: Delete Cluster
+#      pool:
+#        type: windows
+#      strategy:
+#        matrix:
+#          cilium_e2e:
+#            name: cilium_e2e
+#            clusterName: "ciliume2e"
+#          cilium_overlay_e2e:
+#            name: cilium_overlay_e2e
+#            clusterName: "cilovere2e"
+#          cilium_h_overlay_e2e:
+#            name: cilium_h_overlay_e2e
+#            clusterName: "cilwhleovere2e"
+#          azure_overlay_e2e:
+#            name: azure_overlay_e2e
+#            clusterName: "azovere2e"
+#          aks_swift_e2e:
+#            name: aks_swift_e2e
+#            clusterName: "swifte2e"
+#          aks_swift_vnetscale_e2e:
+#            name: aks_swift_vnetscale_e2e
+#            clusterName: "vscaleswifte2e"
+#          aks_ubuntu_22_linux_e2e:
+#            name: aks_ubuntu_22_linux_e2e
+#            clusterName: "ubuntu22e2e"
+#          aks_windows_22_e2e:
+#            name: aks_windows_22_e2e
+#            clusterName: "win22e2e"
+#          dualstackoverlay_e2e:
+#            name: dualstackoverlay_e2e
+#            clusterName: "dsovere2e"
+#          cilium_dualstackoverlay_e2e:
+#            name: cilium_dualstackoverlay_e2e
+#            clusterName: "cildsovere2e"
+#          swiftv2_e2e:
+#            name: swiftv2_e2e
+#            clusterName: "mtcluster"
+#          swiftv2_dummy_e2e:
+#            name: swiftv2_dummy_e2e
+#            clusterName: "swiftv2dummy"
+#      steps:
+#      - checkout: azure-container-networking
+#
+#      - template: /.pipelines/templates/delete-cluster.yaml@azure-container-networking
+#        parameters:
+#          name: $(name)
+#          clusterName: $(clusterName)-$(commitID)
+#          region: $(REGION_AKS_CLUSTER_TEST)
