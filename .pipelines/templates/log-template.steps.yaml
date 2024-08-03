@@ -265,6 +265,7 @@ steps:
     displayName: Windows Logs
     condition: always()
 
-- publish: $(acnLogs)
-  condition: always()
-  displayName: Publish Cluster logs
+#- publish: $(acnLogs)
+#  artifact: 
+#  condition: always()
+#  displayName: Publish Cluster logs
