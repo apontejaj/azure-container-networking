@@ -47,11 +47,6 @@ stages:
     displayName: Swiftv2 Multitenancy E2E Test Suite - (${{ parameters.name }})
     pool:
       type: linux
-      isCustom: true
-      name: $(BUILD_POOL_NAME_DEFAULT)
-      demands:
-      - agent.os -equals Linux
-      - Role -equals $(CUSTOM_E2E_ROLE)
     steps:
     - checkout: azure-container-networking
 
