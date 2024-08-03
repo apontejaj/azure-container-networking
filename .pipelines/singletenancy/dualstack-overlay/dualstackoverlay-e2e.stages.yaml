@@ -44,11 +44,6 @@ stages:
     displayName: DualStack Overlay Test Suite | Linux - (${{ parameters.name }})
     pool:
       type: linux
-      isCustom: true
-      name: $(BUILD_POOL_NAME_DEFAULT)
-      demands:
-      - agent.os -equals Linux
-      - Role -equals $(CUSTOM_E2E_ROLE)
     steps:
     - checkout: azure-container-networking
 
@@ -63,11 +58,6 @@ stages:
     dependsOn: ${{ parameters.name }}_linux
     pool:
       type: linux
-      isCustom: true
-      name: $(BUILD_POOL_NAME_DEFAULT)
-      demands:
-      - agent.os -equals Linux
-      - Role -equals $(CUSTOM_E2E_ROLE)
     steps:
     - checkout: azure-container-networking
 
@@ -111,8 +101,6 @@ stages:
     condition: in(dependencies.${{ parameters.name }}_linux.result, 'Failed')
     pool:
       type: windows
-      isCustom: true
-      name: $(BUILD_POOL_NAME_DEFAULT)
     steps:
     - checkout: azure-container-networking
 
@@ -130,8 +118,6 @@ stages:
     condition: in(dependencies.${{ parameters.name }}_windows.result, 'Failed')
     pool:
       type: windows
-      isCustom: true
-      name: $(BUILD_POOL_NAME_DEFAULT)
     variables:
       ob_outputDirectory: $(System.DefaultWorkingDirectory)/logs
     steps:

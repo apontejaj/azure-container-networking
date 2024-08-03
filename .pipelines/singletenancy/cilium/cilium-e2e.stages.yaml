@@ -48,11 +48,6 @@ stages:
     timeoutInMinutes: 120
     pool:
       type: linux
-      isCustom: true
-      name: $(BUILD_POOL_NAME_DEFAULT)
-      demands:
-      - agent.os -equals Linux
-      - Role -equals $(CUSTOM_E2E_ROLE)
     steps:
     - checkout: azure-container-networking
 
@@ -81,8 +76,6 @@ stages:
     condition: failed()
     pool:
       type: windows
-      isCustom: true
-      name: $(BUILD_POOL_NAME_DEFAULT)
     variables:
       ob_outputDirectory: $(System.DefaultWorkingDirectory)/logs
     steps:

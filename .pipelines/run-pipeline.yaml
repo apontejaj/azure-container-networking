@@ -6,8 +6,6 @@ stages:
     displayName: Setup
     pool:
       type: windows
-      isCustom: true
-      name: "$(BUILD_POOL_NAME_DEFAULT)"
     steps:
     - checkout: azure-container-networking
 
@@ -45,8 +43,6 @@ stages:
         STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
       pool:
         type: windows
-        isCustom: true
-        name: "$(BUILD_POOL_NAME_DEFAULT)"
       steps:
       - checkout: azure-container-networking
 
@@ -75,8 +71,6 @@ stages:
         STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
       pool:
         type: windows
-        isCustom: true
-        name: "$(BUILD_POOL_NAME_DEFAULT_WINDOWS_ALT)"
       steps:
       - checkout: azure-container-networking
 
@@ -99,8 +93,6 @@ stages:
         STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
       pool:
         type: windows
-        isCustom: true
-        name: "$(BUILD_POOL_NAME_DEFAULT)"
       steps:
       - checkout: azure-container-networking
 
@@ -129,8 +121,6 @@ stages:
         STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
       pool:
         type: windows
-        isCustom: true
-        name: "$(BUILD_POOL_NAME_DEFAULT_WINDOWS_ALT)"
       steps:
       - checkout: azure-container-networking
 
@@ -153,8 +143,6 @@ stages:
         STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
       pool:
         type: windows
-        isCustom: true
-        name: "$(BUILD_POOL_NAME_DEFAULT)"
       steps:
       - checkout: azure-container-networking
 
@@ -196,8 +184,6 @@ stages:
       displayName: Build Images
       pool:
         type: linux
-        isCustom: true
-        name: "$(BUILD_POOL_NAME_LINUX_AMD64)"
       strategy:
         matrix:
           azure_ipam_linux_amd64:
@@ -283,8 +269,6 @@ stages:
       displayName: Build Images
       pool:
         type: linux
-        isCustom: true
-        name: "$(BUILD_POOL_NAME_LINUX_ARM64)"
       strategy:
         matrix:
           azure_ipam_linux_arm64:
@@ -331,8 +315,6 @@ stages:
       displayName: Compile Manifests
       pool:
         type: windows
-        isCustom: true
-        name: "$(BUILD_POOL_NAME_DEFAULT)"
       strategy:
         matrix:
           azure_ipam:
@@ -525,8 +507,6 @@ stages:
       displayName: Delete Cluster
       pool:
         type: windows
-        isCustom: true
-        name: "$(BUILD_POOL_NAME_DEFAULT)"
       strategy:
         matrix:
           cilium_e2e:
