@@ -168,12 +168,12 @@ stages:
           targetFolder: $(Build.ArtifactStagingDirectory)
         condition: succeeded()
 
-  - task: PublishPipelineArtifact@1
-    condition: succeeded()
-    inputs:
-      artifactName: drop_${{ variables.StageName }}_${{ variables.JobName }}
-      targetPath: "$(Build.ArtifactStagingDirectory)"
-      publishLocation: 'pipeline'
+      - task: PublishPipelineArtifact@1
+        condition: succeeded()
+        inputs:
+          artifactName: drop_${{ variables.StageName }}_${{ variables.JobName }}
+          targetPath: "$(Build.ArtifactStagingDirectory)"
+          publishLocation: 'pipeline'
 
   - stage: containerize
     displayName: Build Images
