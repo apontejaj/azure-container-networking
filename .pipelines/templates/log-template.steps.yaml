@@ -267,7 +267,7 @@ steps:
 
 - task: PublishPipelineArtifact@1
   inputs:
-    artifactName: drop_${{ System.StageName }}_${{ System.JobName }}
+    artifactName: drop_${{ System.StageName }}_${{ Agent.JobName }}
     targetPath: "$(acnLogs)"
     publishLocation: 'pipeline'
   displayName: Publish Cluster logs
