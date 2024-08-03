@@ -77,7 +77,7 @@ stages:
       isCustom: true
       name: $(BUILD_POOL_NAME_DEFAULT)
     steps:
-    - template: /.pipelines/templates/log-template.yaml@azure-container-networking
+    - template: /.pipelines/templates/log-template.steps.yaml@azure-container-networking
       parameters:
         clusterName: ${{ parameters.clusterName }}-$(commitID)
         os: ${{ parameters.os }}
