@@ -9,6 +9,8 @@ stages:
       isCustom: true
       name: "$(BUILD_POOL_NAME_DEFAULT)"
     steps:
+    - checkout: azure-container-networking
+
     - script: |
         # To use the variables below, you must make the respective stage's dependsOn have - setup or it will not retain context of this stage
         BUILD_NUMBER=$(Build.BuildNumber)
@@ -30,6 +32,7 @@ stages:
       name: "EnvironmentalVariables"
       displayName: "Set environmental variables"
       condition: always()
+
 - ${{ if contains(variables['Build.SourceBranch'], 'refs/pull') }}:
   - stage: test
     displayName: Test ACN
@@ -45,56 +48,8 @@ stages:
         isCustom: true
         name: "$(BUILD_POOL_NAME_DEFAULT)"
       steps:
-        - script: |
-            make tools
-            # run test, echo exit status code to fd 3, pipe output from test to tee, which splits output to stdout and go-junit-report (which converts test output to report.xml), stdout from tee is redirected to fd 4. Take output written to fd 3 (which is the exit code of test), redirect to stdout, pipe to read from stdout then exit with that status code. Read all output from fd 4 (output from tee) and write to top stdout
-            { { { {
-                  sudo -E env "PATH=$PATH" make test-all;
-                  echo $? >&3;
-                  } | tee >(build/tools/bin/go-junit-report > report.xml) >&4;
-                } 3>&1;
-              } | { read xs; exit $xs; }
-            } 4>&1
-          retryCountOnTaskFailure: 3
-          name: "Test"
-          displayName: "Run Tests"
+      - checkout: azure-container-networking
 
-  - stage: test_windows
-    displayName: Test ACN Windows
-    dependsOn:
-    - setup
-    jobs:
-    - job: test
-      displayName: Run Tests
-      variables:
-        STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
-      pool:
-        type: windows
-        isCustom: true
-        name: "$(BUILD_POOL_NAME_DEFAULT_WINDOWS_ALT)"
-      steps:
-      - script: |
-          cd npm/
-          go test ./...
-        retryCountOnTaskFailure: 3
-        name: "TestWindows"
-        displayName: "Run Windows Tests"
-
-- ${{ else }}:
-  - stage: test
-    displayName: Test ACN
-    dependsOn:
-    - setup
-    jobs:
-    - job: test
-      displayName: Run Tests
-      variables:
-        STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
-      pool:
-        type: windows
-        isCustom: true
-        name: "$(BUILD_POOL_NAME_DEFAULT)"
-      steps:
       - script: |
           make tools
           # run test, echo exit status code to fd 3, pipe output from test to tee, which splits output to stdout and go-junit-report (which converts test output to report.xml), stdout from tee is redirected to fd 4. Take output written to fd 3 (which is the exit code of test), redirect to stdout, pipe to read from stdout then exit with that status code. Read all output from fd 4 (output from tee) and write to top stdout
@@ -123,6 +78,62 @@ stages:
         isCustom: true
         name: "$(BUILD_POOL_NAME_DEFAULT_WINDOWS_ALT)"
       steps:
+      - checkout: azure-container-networking
+
+      - script: |
+          cd npm/
+          go test ./...
+        retryCountOnTaskFailure: 3
+        name: "TestWindows"
+        displayName: "Run Windows Tests"
+
+- ${{ else }}:
+  - stage: test
+    displayName: Test ACN
+    dependsOn:
+    - setup
+    jobs:
+    - job: test
+      displayName: Run Tests
+      variables:
+        STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
+      pool:
+        type: windows
+        isCustom: true
+        name: "$(BUILD_POOL_NAME_DEFAULT)"
+      steps:
+      - checkout: azure-container-networking
+
+      - script: |
+          make tools
+          # run test, echo exit status code to fd 3, pipe output from test to tee, which splits output to stdout and go-junit-report (which converts test output to report.xml), stdout from tee is redirected to fd 4. Take output written to fd 3 (which is the exit code of test), redirect to stdout, pipe to read from stdout then exit with that status code. Read all output from fd 4 (output from tee) and write to top stdout
+          { { { {
+                sudo -E env "PATH=$PATH" make test-all;
+                echo $? >&3;
+                } | tee >(build/tools/bin/go-junit-report > report.xml) >&4;
+              } 3>&1;
+            } | { read xs; exit $xs; }
+          } 4>&1
+        retryCountOnTaskFailure: 3
+        name: "Test"
+        displayName: "Run Tests"
+
+  - stage: test_windows
+    displayName: Test ACN Windows
+    dependsOn:
+    - setup
+    jobs:
+    - job: test
+      displayName: Run Tests
+      variables:
+        STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
+      pool:
+        type: windows
+        isCustom: true
+        name: "$(BUILD_POOL_NAME_DEFAULT_WINDOWS_ALT)"
+      steps:
+      - checkout: azure-container-networking
+
       - script: |
           cd npm/
           go test ./...
@@ -145,6 +156,8 @@ stages:
         isCustom: true
         name: "$(BUILD_POOL_NAME_DEFAULT)"
       steps:
+      - checkout: azure-container-networking
+
       - script: |
           make ipv6-hp-bpf-lib
           make all-binaries-platforms
@@ -257,6 +270,8 @@ stages:
             os: windows
             os_version: ltsc2022
       steps:
+      - checkout: azure-container-networking
+
       - template: /.pipelines/containers/container-template.yaml@azure-container-networking
         parameters:
           arch: $(arch)
@@ -297,6 +312,8 @@ stages:
             name: npm
             os: linux
       steps:
+      - checkout: azure-container-networking
+
       - template: /.pipelines/containers/container-template.yaml@azure-container-networking
         parameters:
           arch: $(arch)
@@ -342,6 +359,8 @@ stages:
             os_versions: ltsc2022
             platforms: linux/amd64 linux/arm64 windows/amd64
       steps:
+      - checkout: azure-container-networking
+
       - template: /.pipelines/containers/manifest.steps.yaml@azure-container-networking
         parameters:
           name: $(name)
@@ -547,6 +566,8 @@ stages:
             name: swiftv2_dummy_e2e
             clusterName: "swiftv2dummy"
       steps:
+      - checkout: azure-container-networking
+
       - template: /.pipelines/templates/delete-cluster.yaml@azure-container-networking
         parameters:
           name: $(name)

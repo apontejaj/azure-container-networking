@@ -49,6 +49,8 @@ stages:
       - agent.os -equals Linux
       - Role -equals $(CUSTOM_E2E_ROLE)
     steps:
+    - checkout: azure-container-networking
+
     - template: /.pipelines/singletenancy/azure-cni-overlay/azure-cni-overlay-e2e-step-template.yaml@azure-container-networking
       parameters:
         name: ${{ parameters.name }}
@@ -66,6 +68,8 @@ stages:
       - agent.os -equals Linux
       - Role -equals $(CUSTOM_E2E_ROLE)
     steps:
+    - checkout: azure-container-networking
+
     - template: /.pipelines/singletenancy/azure-cni-overlay/azure-cni-overlay-e2e-step-template.yaml@azure-container-networking
       parameters:
         name: ${{ parameters.name }}
@@ -109,6 +113,8 @@ stages:
       isCustom: true
       name: $(BUILD_POOL_NAME_DEFAULT)
     steps:
+    - checkout: azure-container-networking
+
     - template: /.pipelines/templates/log-template.steps.yaml@azure-container-networking
       parameters:
         clusterName: ${{ parameters.clusterName }}-$(commitID)
@@ -128,6 +134,8 @@ stages:
     variables:
       ob_outputDirectory: $(System.DefaultWorkingDirectory)/logs
     steps:
+    - checkout: azure-container-networking
+
     - template: /.pipelines/templates/log-template.steps.yaml@azure-container-networking
       parameters:
         clusterName: ${{ parameters.clusterName }}-$(commitID)

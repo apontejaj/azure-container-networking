@@ -53,6 +53,8 @@ stages:
       - agent.os -equals Linux
       - Role -equals $(CUSTOM_E2E_ROLE)
     steps:
+    - checkout: azure-container-networking
+
     - template: /.pipelines/multitenancy/swiftv2-e2e-step-template.yaml@azure-container-networking
       parameters:
         name: ${{ parameters.name }}
