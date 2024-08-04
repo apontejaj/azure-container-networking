@@ -7,7 +7,7 @@ stages:
     pool:
       type: linux
     variables:
-      ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
+      ob_outputDirectory: $(Build.ArtifactStagingDirectory)
       ACN_DIR: $(Build.Repository.LocalPath)
     steps:
     - checkout: azure-container-networking
@@ -32,7 +32,6 @@ stages:
         echo $(Build.SourceBranch)
       name: "EnvironmentalVariables"
       displayName: "Set environmental variables"
-      condition: always()
       workingDirectory: $(ACN_DIR)
 
 #- ${{ if contains(variables['Build.SourceBranch'], 'refs/pull') }}:
