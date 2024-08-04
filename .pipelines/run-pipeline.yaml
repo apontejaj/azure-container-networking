@@ -5,10 +5,11 @@ stages:
   - job: env
     displayName: Setup
     pool:
-      type: ubuntu
+      type: linux
     variables:
       ob_outputDirectory: $(Build.ArtifactStagingDirectory)
       ACN_DIR: $(Build.Repository.LocalPath)
+      LinuxContainerImage: "ubuntu:22.04"
     steps:
     - checkout: azure-container-networking
 
