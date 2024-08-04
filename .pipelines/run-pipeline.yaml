@@ -12,27 +12,30 @@ stages:
     steps:
     - checkout: azure-container-networking
 
-    - script: |
-        # To use the variables below, you must make the respective stage's dependsOn have - setup or it will not retain context of this stage
-        BUILD_NUMBER=$(Build.BuildNumber)
-        echo "##vso[task.setvariable variable=StorageID;isOutput=true]$(echo ${BUILD_NUMBER//./-})"
-        echo "##vso[task.setvariable variable=commitID;isOutput=true]$(echo $(make revision)-$(date "+%d%H%M"))"
-        echo "##vso[task.setvariable variable=Tag;isOutput=true]$(make version)"
-        echo "##vso[task.setvariable variable=npmVersion;isOutput=true]$(make npm-version)"
-        cat /etc/os-release
-        uname -a
-        sudo chown -R $(whoami):$(whoami) .
-        go version
-        go env
-        which go
-        echo $PATH
-        echo "------"
-        echo $(Build.QueuedBy)
-        echo $(Build.Reason) # manual, PR, IndividualCI
-        echo $(Build.SourceBranch)
+    - bash: |
+        pushd "$ACN_DIR"
+          BUILD_NUMBER="${BUILD_BUILDNUMBER//./-}"
+          COMMIT_ID=""$(make revision)"-"$(date "+%d%H%M")""
+          VERSION_TAG="$(make tag)"
+          NPM_VERSION="$(make npm-version)"
+          echo "##vso[task.setvariable variable=StorageID;isOutput=true]$BUILD_NUMBER"
+          echo "##vso[task.setvariable variable=commitID;isOutput=true]$COMMIT)ID
+          echo "##vso[task.setvariable variable=Tag;isOutput=true]$VERSION_TAG"
+          echo "##vso[task.setvariable variable=npmVersion;isOutput=true]$NPM_VERSION"
+          cat /etc/os-release
+          uname -a
+          sudo chown -R $(whoami):$(whoami) .
+          go version
+          go env
+          which go
+          echo $PATH
+          echo "------"
+          echo $(Build.QueuedBy)
+          echo $(Build.Reason) # manual, PR, IndividualCI
+          echo $(Build.SourceBranch)
+        popd
       name: "EnvironmentalVariables"
       displayName: "Set environmental variables"
-      workingDirectory: $(ACN_DIR)
 
 #- ${{ if contains(variables['Build.SourceBranch'], 'refs/pull') }}:
 #  - stage: test
