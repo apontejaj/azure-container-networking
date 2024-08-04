@@ -5,7 +5,7 @@ stages:
   - job: env
     displayName: Setup
     pool:
-      type: linux
+      type: ubuntu
     variables:
       ob_outputDirectory: $(Build.ArtifactStagingDirectory)
       ACN_DIR: $(Build.Repository.LocalPath)
