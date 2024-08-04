@@ -1,13 +1,13 @@
 stages:
 - stage: setup
   displayName: ACN
-  variables:
-    ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
   jobs:
   - job: env
     displayName: Setup
     pool:
       type: linux
+    variables:
+      ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
     steps:
     - checkout: azure-container-networking
 
