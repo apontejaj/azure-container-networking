@@ -15,7 +15,7 @@ jobs:
 - job: ${{ parameters.name }}
   displayName: Cluster - ${{ parameters.name }}
   pool:
-    type: windows
+    type: linux
   steps:
   - checkout: azure-container-networking
 

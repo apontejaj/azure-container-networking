@@ -80,7 +80,7 @@ stages:
     - cni_${{ parameters.os }}
     condition: failed()
     pool:
-      type: windows
+      type: linux
     steps:
     - checkout: azure-container-networking
 

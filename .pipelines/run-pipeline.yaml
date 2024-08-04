@@ -5,7 +5,7 @@ stages:
   - job: env
     displayName: Setup
     pool:
-      type: windows
+      type: linux
     steps:
     - checkout: azure-container-networking
 
@@ -42,7 +42,7 @@ stages:
       variables:
         STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
       pool:
-        type: windows
+        type: linux
       steps:
       - checkout: azure-container-networking
 
@@ -92,7 +92,7 @@ stages:
       variables:
         STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
       pool:
-        type: windows
+        type: linux
       steps:
       - checkout: azure-container-networking
 
@@ -142,7 +142,7 @@ stages:
       variables:
         STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
       pool:
-        type: windows
+        type: linux
       steps:
       - checkout: azure-container-networking
 
@@ -505,7 +505,7 @@ stages:
 #    - job: delete
 #      displayName: Delete Cluster
 #      pool:
-#        type: windows
+#        type: linux
 #      strategy:
 #        matrix:
 #          cilium_e2e:
