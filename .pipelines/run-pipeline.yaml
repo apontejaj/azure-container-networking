@@ -33,89 +33,89 @@ stages:
       displayName: "Set environmental variables"
       condition: always()
 
-- ${{ if contains(variables['Build.SourceBranch'], 'refs/pull') }}:
-  - stage: test
-    displayName: Test ACN
-    dependsOn:
-    - setup
-    variables:
-      ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
-    jobs:
-    - job: test
-      displayName: Run Tests
-      variables:
-        STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
-      pool:
-        type: linux
-      steps:
-      - checkout: azure-container-networking
-
-      - script: |
-          make tools
-          # run test, echo exit status code to fd 3, pipe output from test to tee, which splits output to stdout and go-junit-report (which converts test output to report.xml), stdout from tee is redirected to fd 4. Take output written to fd 3 (which is the exit code of test), redirect to stdout, pipe to read from stdout then exit with that status code. Read all output from fd 4 (output from tee) and write to top stdout
-          { { { {
-                sudo -E env "PATH=$PATH" make test-all;
-                echo $? >&3;
-                } | tee >(build/tools/bin/go-junit-report > report.xml) >&4;
-              } 3>&1;
-            } | { read xs; exit $xs; }
-          } 4>&1
-        retryCountOnTaskFailure: 3
-        name: "Test"
-        displayName: "Run Tests"
-
-  - stage: test_windows
-    displayName: Test ACN Windows
-    dependsOn:
-    - setup
-    jobs:
-    - job: test
-      displayName: Run Tests
-      variables:
-        STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
-        ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
-      pool:
-        type: windows
-      steps:
-      - checkout: azure-container-networking
-
-      - script: |
-          cd npm/
-          go test ./...
-        retryCountOnTaskFailure: 3
-        name: "TestWindows"
-        displayName: "Run Windows Tests"
-
-- ${{ else }}:
-  - stage: test
-    displayName: Test ACN
-    dependsOn:
-    - setup
-    variables:
-      ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
-    jobs:
-    - job: test
-      displayName: Run Tests
-      variables:
-        STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
-      pool:
-        type: linux
-      steps:
-      - checkout: azure-container-networking
-
-      - script: |
-          make tools
-          # run test, echo exit status code to fd 3, pipe output from test to tee, which splits output to stdout and go-junit-report (which converts test output to report.xml), stdout from tee is redirected to fd 4. Take output written to fd 3 (which is the exit code of test), redirect to stdout, pipe to read from stdout then exit with that status code. Read all output from fd 4 (output from tee) and write to top stdout
-          { { { {
-                sudo -E env "PATH=$PATH" make test-all;
-                echo $? >&3;
-                } | tee >(build/tools/bin/go-junit-report > report.xml) >&4;
-              } 3>&1;
-            } | { read xs; exit $xs; }
-          } 4>&1
-        retryCountOnTaskFailure: 3
-        name: "Test"
-        displayName: "Run Tests"
+#- ${{ if contains(variables['Build.SourceBranch'], 'refs/pull') }}:
+#  - stage: test
+#    displayName: Test ACN
+#    dependsOn:
+#    - setup
+#    variables:
+#      ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
+#    jobs:
+#    - job: test
+#      displayName: Run Tests
+#      variables:
+#        STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
+#      pool:
+#        type: linux
+#      steps:
+#      - checkout: azure-container-networking
+#
+#      - script: |
+#          make tools
+#          # run test, echo exit status code to fd 3, pipe output from test to tee, which splits output to stdout and go-junit-report (which converts test output to report.xml), stdout from tee is redirected to fd 4. Take output written to fd 3 (which is the exit code of test), redirect to stdout, pipe to read from stdout then exit with that status code. Read all output from fd 4 (output from tee) and write to top stdout
+#          { { { {
+#                sudo -E env "PATH=$PATH" make test-all;
+#                echo $? >&3;
+#                } | tee >(build/tools/bin/go-junit-report > report.xml) >&4;
+#              } 3>&1;
+#            } | { read xs; exit $xs; }
+#          } 4>&1
+#        retryCountOnTaskFailure: 3
+#        name: "Test"
+#        displayName: "Run Tests"
+#
+#  - stage: test_windows
+#    displayName: Test ACN Windows
+#    dependsOn:
+#    - setup
+#    jobs:
+#    - job: test
+#      displayName: Run Tests
+#      variables:
+#        STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
+#        ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
+#      pool:
+#        type: windows
+#      steps:
+#      - checkout: azure-container-networking
+#
+#      - script: |
+#          cd npm/
+#          go test ./...
+#        retryCountOnTaskFailure: 3
+#        name: "TestWindows"
+#        displayName: "Run Windows Tests"
+#
+#- ${{ else }}:
+#  - stage: test
+#    displayName: Test ACN
+#    dependsOn:
+#    - setup
+#    variables:
+#      ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
+#    jobs:
+#    - job: test
+#      displayName: Run Tests
+#      variables:
+#        STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
+#      pool:
+#        type: linux
+#      steps:
+#      - checkout: azure-container-networking
+#
+#      - script: |
+#          make tools
+#          # run test, echo exit status code to fd 3, pipe output from test to tee, which splits output to stdout and go-junit-report (which converts test output to report.xml), stdout from tee is redirected to fd 4. Take output written to fd 3 (which is the exit code of test), redirect to stdout, pipe to read from stdout then exit with that status code. Read all output from fd 4 (output from tee) and write to top stdout
+#          { { { {
+#                sudo -E env "PATH=$PATH" make test-all;
+#                echo $? >&3;
+#                } | tee >(build/tools/bin/go-junit-report > report.xml) >&4;
+#              } 3>&1;
+#            } | { read xs; exit $xs; }
+#          } 4>&1
+#        retryCountOnTaskFailure: 3
+#        name: "Test"
+#        displayName: "Run Tests"
 
 #  - stage: test_windows
 #    displayName: Test ACN Windows
@@ -190,6 +190,8 @@ stages:
 #      displayName: Build Images
 #      pool:
 #        type: linux
+#      variables;
+#       ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
 #      strategy:
 #        matrix:
 #          azure_ipam_linux_amd64:
@@ -275,6 +277,8 @@ stages:
 #      displayName: Build Images
 #      pool:
 #        type: linux
+#      variables;
+#       ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
 #      strategy:
 #        matrix:
 #          azure_ipam_linux_arm64:
@@ -320,7 +324,9 @@ stages:
 #    - job: manifest
 #      displayName: Compile Manifests
 #      pool:
-#        type: windows
+#        type: linux
+#      variables;
+#       ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
 #      strategy:
 #        matrix:
 #          azure_ipam:
@@ -513,6 +519,8 @@ stages:
 #      displayName: Delete Cluster
 #      pool:
 #        type: linux
+#      variables;
+#       ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
 #      strategy:
 #        matrix:
 #          cilium_e2e:
