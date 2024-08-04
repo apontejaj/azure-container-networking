@@ -1,6 +1,8 @@
 stages:
 - stage: setup
   displayName: ACN
+  variables:
+    ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
   jobs:
   - job: env
     displayName: Setup
@@ -36,6 +38,8 @@ stages:
     displayName: Test ACN
     dependsOn:
     - setup
+    variables:
+      ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
     jobs:
     - job: test
       displayName: Run Tests
@@ -69,6 +73,7 @@ stages:
       displayName: Run Tests
       variables:
         STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
+        ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
       pool:
         type: windows
       steps:
@@ -86,6 +91,8 @@ stages:
     displayName: Test ACN
     dependsOn:
     - setup
+    variables:
+      ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
     jobs:
     - job: test
       displayName: Run Tests
