@@ -108,12 +108,13 @@ stages:
       type: linux
     strategy:
       ubuntu:
-        suffix: ubuntu
+        Suffix: ubuntu
         LinuxContainerImage: "ubuntu:22.04"
       mariner:
-        suffix: linux
+        Suffix: linux
     variables:
       STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
+      ob_artifactSuffix: $(Suffix) # this is needed to not collide published artifact containers
       ob_outputDirectory: "$(Build.ArtifactStagingDirectory)"
       ACN_DIR: $(Build.Repository.LocalPath)
     steps:
