@@ -1,32 +1,30 @@
 parameters:
-- name: steps
-  type: stepList
+- name: exec
+  type: jobList
+  default: []
 
 jobs:
-- ${{ each job in parameters.jobs }}:
-
-  - job: test_${{ job.templateContext.unittestGroup }}
-    displayName: ${{ job.displayName }} Unit Tests
+- ${{ each job in parameters.exec }}:
+  - job: test_${{ job.templateContext.testGroup }}
     pool:
       type: linux
     variables:
       STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
-      ob_artifactSuffix: ${{ Suffix }} # this is needed to not collide published artifact containers
+      ob_artifactSuffix: ${{ job.templateContext.Suffix }} # this is needed to not collide published artifact containers
       ob_outputDirectory: $(Build.ArtifactStagingDirectory)
       ACN_DIR: $(Build.Repository.LocalPath)
     steps:
     - checkout: azure-container-networking
-
-    - ${{ if eq(job.templateContext.unittestGroup, 'windows') }}:
-
+  
+    - ${{ if eq(job.templateContext.testGroup, 'windows') }}:
       - script: |
           cd npm/
           go test ./...
         retryCountOnTaskFailure: 3
         displayName: "Run ${{ job.displayName }} Tests"
-
-
-    - ${{ elseif eq(job.templateContext.unittestGroup, 'ubuntu') }}:
+  
+  
+    - ${{ elseif eq(job.templateContext.testGroup, 'ubuntu') }}:
       - bash: |
           set -e
           pushd "$ACN_DIR"
@@ -42,9 +40,9 @@ jobs:
           popd
         retryCountOnTaskFailure: 3
         displayName: "Run Unit Tests (Ubuntu)"
-
-
-    - ${{ elseif eq(job.templateContext.unittestGroup, 'mariner') }}:
+  
+  
+    - ${{ elseif eq(job.templateContext.testGroup, 'mariner') }}:
       - script: |
           set -e
           pushd "$ACN_DIR"
@@ -60,6 +58,7 @@ jobs:
           popd
         retryCountOnTaskFailure: 3
         displayName: "Run Unit Tests (Mariner)"
+  
 
     - ${{ else }}:
       - bash: |
@@ -67,13 +66,3 @@ jobs:
           echo >&2 "##[error]Invalid test selection ("$TEST_GROUP")"
           exit 1
         displayName: "[Error] Invalid Unittest Template Selection"
-
-    - ${{ each step in job.steps }}:
-      - ${{ if ne(variables['Build.SourceBranch'], 'refs/heads/master') }}:
-        - ${{ step }}
-      - ${{ else }}:
-        - bash: |
-            set -e
-            echo >&2 "##[error]Step removed. Custom steps only available for master branch builds."
-            exit 1
-          displayName: "[Error] Step Removed"        
