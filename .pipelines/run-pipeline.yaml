@@ -103,15 +103,15 @@ stages:
   dependsOn:
   - setup
   jobs:
-  - template: /.pipelines/templates/unittests.jobs.yaml@azure-container-networking
+  - template: /.pipelines/templates/unittests.jobs.yaml
     parameters:
       testGroup: windows
 
-  - template: /.pipelines/templates/unittests.jobs.yaml@azure-container-networking
+  - template: /.pipelines/templates/unittests.jobs.yaml
     parameters:
       testGroup: mariner
 
-  - template: /.pipelines/templates/unittests.jobs.yaml@azure-container-networking
+  - template: /.pipelines/templates/unittests.jobs.yaml
     parameters:
       testGroup: ubuntu
 

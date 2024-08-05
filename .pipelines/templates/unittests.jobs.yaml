@@ -7,7 +7,7 @@ parameters:
   - mariner
 
 jobs:
-- template: templates.unittests.jobs.yaml
+- template: template.unittests.jobs.yaml
   parameters:
     exec:
     - job:
