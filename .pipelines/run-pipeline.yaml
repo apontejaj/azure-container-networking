@@ -9,7 +9,7 @@ stages:
     variables:
       ob_outputDirectory: $(Build.ArtifactStagingDirectory)
       ob_git_checkout: true
-      ACN_PATH: $(System.WorkingDirectory)/azure-container-networking
+      ACN_PATH: azure-container-networking
     steps:
     - checkout: "azure-container-networking"
 
@@ -61,11 +61,11 @@ stages:
     parameters:
       testGroup: windows
 
-  - template: /.pipelines/templates/unittests.jobs.yaml
+  - template: /.pipelines/templates/unittests.jobs.yaml@azure-container-networking
     parameters:
       testGroup: mariner
 
-  - template: /.pipelines/templates/unittests.jobs.yaml
+  - template: /.pipelines/templates/unittests.jobs.yaml@azure-container-networking
     parameters:
       testGroup: ubuntu
 
