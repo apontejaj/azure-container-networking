@@ -56,7 +56,7 @@ stages:
   dependsOn:
   - setup
   jobs:
-  - template: /.pipelines/templates/unittests.jobs.yaml
+  - template: /.pipelines/templates/unittests.jobs.yaml@azure-container-networking
     parameters:
       testGroup: windows
 
