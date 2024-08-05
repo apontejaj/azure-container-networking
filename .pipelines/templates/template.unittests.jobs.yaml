@@ -6,6 +6,7 @@ parameters:
 jobs:
 - ${{ each job in parameters.exec }}:
   - job: test_${{ job.templateContext.testGroup }}
+    displayName: "Unit Tests - (${{ job.displayName }})"
     pool:
       type: linux
     variables:
