@@ -1,6 +1,6 @@
 stages:
 - stage: setup
-  displayName: ACN
+  displayName: Setup Build Environment
   jobs:
   - job: env
     displayName: Setup
@@ -16,13 +16,9 @@ stages:
       inputs:
         version: '1.22.5'
 
-    - bash: |
+    - script: |
         set -e
-        dnf install make
-      displayName: "Install Required Packages"
-
-    - bash: |
-        set -e
+        make --version
         pushd "$ACN_DIR"
           BUILD_NUMBER="${BUILD_BUILDNUMBER//./-}"
           COMMIT_ID=""$(make revision)"-"$(date "+%d%H%M")""
@@ -48,8 +44,8 @@ stages:
           echo "${BUILD_REASON}" # manual, PR, IndividualCI
           echo "${BUILD_SOURCEBRANCH}"
         popd
-      name: "EnvironmentalVariables"
-      displayName: "Set environmental variables"
+      name: EnvironmentalVariables
+      displayName: "Set Build Output Variables"
 
 
 - stage: test
