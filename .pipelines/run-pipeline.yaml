@@ -9,6 +9,7 @@ stages:
     variables:
       ob_outputDirectory: $(Build.ArtifactStagingDirectory)
       ob_git_checkout: true
+      ACN_PATH: $(System.SourcesDirectory)/ext_repos/azure-container-networking
     steps:
     - checkout: "azure-container-networking"
 
