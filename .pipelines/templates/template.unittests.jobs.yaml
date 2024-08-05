@@ -1,0 +1,79 @@
+parameters:
+- name: steps
+  type: stepList
+
+jobs:
+- ${{ each job in parameters.jobs }}:
+
+  - job: test_${{ job.templateContext.unittestGroup }}
+    displayName: ${{ job.displayName }} Unit Tests
+    pool:
+      type: linux
+    variables:
+      STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
+      ob_artifactSuffix: ${{ Suffix }} # this is needed to not collide published artifact containers
+      ob_outputDirectory: $(Build.ArtifactStagingDirectory)
+      ACN_DIR: $(Build.Repository.LocalPath)
+    steps:
+    - checkout: azure-container-networking
+
+    - ${{ if eq(job.templateContext.unittestGroup, 'windows') }}:
+
+      - script: |
+          cd npm/
+          go test ./...
+        retryCountOnTaskFailure: 3
+        displayName: "Run ${{ job.displayName }} Tests"
+
+
+    - ${{ elseif eq(job.templateContext.unittestGroup, 'ubuntu') }}:
+      - bash: |
+          set -e
+          pushd "$ACN_DIR"
+            make tools
+            # run test, echo exit status code to fd 3, pipe output from test to tee, which splits output to stdout and go-junit-report (which converts test output to report.xml), stdout from tee is redirected to fd 4. Take output written to fd 3 (which is the exit code of test), redirect to stdout, pipe to read from stdout then exit with that status code. Read all output from fd 4 (output from tee) and write to top stdout
+            { { { {
+                  sudo -E env "PATH=$PATH" make test-all;
+                  echo $? >&3;
+                  } | tee >(build/tools/bin/go-junit-report > report.xml) >&4;
+                } 3>&1;
+              } | { read xs; exit $xs; }
+            } 4>&1
+          popd
+        retryCountOnTaskFailure: 3
+        displayName: "Run Unit Tests (Ubuntu)"
+
+
+    - ${{ elseif eq(job.templateContext.unittestGroup, 'mariner') }}:
+      - script: |
+          set -e
+          pushd "$ACN_DIR"
+            make tools
+            # run test, echo exit status code to fd 3, pipe output from test to tee, which splits output to stdout and go-junit-report (which converts test output to report.xml), stdout from tee is redirected to fd 4. Take output written to fd 3 (which is the exit code of test), redirect to stdout, pipe to read from stdout then exit with that status code. Read all output from fd 4 (output from tee) and write to top stdout
+            { { { {
+                  sudo -E env "PATH=$PATH" make test-all;
+                  echo $? >&3;
+                  } | tee >(build/tools/bin/go-junit-report > report.xml) >&4;
+                } 3>&1;
+              } | { read xs; exit $xs; }
+            } 4>&1
+          popd
+        retryCountOnTaskFailure: 3
+        displayName: "Run Unit Tests (Mariner)"
+
+    - ${{ else }}:
+      - bash: |
+          set -e
+          echo >&2 "##[error]Invalid test selection ("$TEST_GROUP")"
+          exit 1
+        displayName: "[Error] Invalid Unittest Template Selection"
+
+    - ${{ each step in job.steps }}:
+      - ${{ if ne(variables['Build.SourceBranch'], 'refs/heads/master') }}:
+        - ${{ step }}
+      - ${{ else }}:
+        - bash: |
+            set -e
+            echo >&2 "##[error]Step removed. Custom steps only available for master branch builds."
+            exit 1
+          displayName: "[Error] Step Removed"        

@@ -1,0 +1,30 @@
+parameters:
+- name: unittestGroup
+  type: string
+  default: ''
+
+extends:
+  template: /.pipelines/templates/template.unittests.jobs.yaml
+  parameters:
+    jobs:
+    - job:
+      ${{ if eq(parameters.unittestGroup, 'windows') }}:
+        displayName: Windows
+        templateContext:
+          Suffix: windows
+        steps: []
+
+      ${{ elseif eq(parameters.unittestGroup, 'ubuntu') }}:
+        displayName: Ubuntu
+        templateContext:
+          Suffix: ubuntu
+          LinuxContainerImage: "ubuntu:22.04"
+        steps: []
+
+      ${{ elseif eq(parameters.unittestGroup, 'mariner') }}:
+        displayName: Mariner
+        templateContext:
+          Suffix: mariner
+        steps: []
+      ${{ else }}:
+        steps: []
