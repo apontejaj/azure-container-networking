@@ -107,11 +107,12 @@ stages:
     pool:
       type: linux
     strategy:
-      ubuntu:
-        Suffix: ubuntu
-        LinuxContainerImage: "ubuntu:22.04"
-      mariner:
-        Suffix: linux
+      matrix:
+        ubuntu:
+          Suffix: ubuntu
+          LinuxContainerImage: "ubuntu:22.04"
+        mariner:
+          Suffix: linux
     variables:
       STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
       ob_artifactSuffix: $(Suffix) # this is needed to not collide published artifact containers
