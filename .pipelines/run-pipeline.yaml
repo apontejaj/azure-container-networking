@@ -1,6 +1,8 @@
 stages:
 - stage: setup
   displayName: Setup Build Environment
+  variables:
+    ACN_PATH: "a/azure-container-networking"
   jobs:
   - job: env
     displayName: Setup
@@ -8,9 +10,9 @@ stages:
       type: linux
     variables:
       ob_outputDirectory: $(Build.ArtifactStagingDirectory)
-      ACN_DIR: $(Build.Repository.LocalPath)
     steps:
     - checkout: azure-container-networking
+      path: $(ACN_PATH)
 
     - task: GoTool@0
       inputs:
@@ -20,7 +22,7 @@ stages:
         set -e
         ls -l
         make --version
-        pushd "$ACN_DIR"
+        pushd "$ACN_PATH"
           BUILD_NUMBER="${BUILD_BUILDNUMBER//./-}"
           COMMIT_ID=""$(make revision)"-"$(date "+%d%H%M")""
           VERSION_TAG="$(make tag)"
