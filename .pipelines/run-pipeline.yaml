@@ -12,6 +12,15 @@ stages:
     steps:
     - checkout: azure-container-networking
 
+    - task: GoTool@0
+      inputs:
+        version: '1.22.5'
+
+    - bash: |
+        set -e
+        dnf install make
+      displayName: "Install Required Packages"
+
     - bash: |
         set -e
         pushd "$ACN_DIR"
