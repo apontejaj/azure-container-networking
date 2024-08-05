@@ -19,10 +19,6 @@ stages:
 
     - script: |
         set -e
-        ls -l
-        echo
-        ls -l ..
-        make --version
         pushd "$ACN_PATH"
           BUILD_NUMBER="${BUILD_BUILDNUMBER//./-}"
           COMMIT_ID=""$(make revision)"-"$(date "+%d%H%M")""
@@ -32,8 +28,10 @@ stages:
           echo "##vso[task.setvariable variable=commitID;isOutput=true]$COMMIT)ID"
           echo "##vso[task.setvariable variable=Tag;isOutput=true]$VERSION_TAG"
           echo "##vso[task.setvariable variable=npmVersion;isOutput=true]$NPM_VERSION"
+
           echo >&2 "[group]System Details"
           cat /etc/os-release
+          make --version
           uname -a
           sudo chown -R $(whoami):$(whoami) .
           echo >&2 "[endgroup]"
@@ -42,6 +40,7 @@ stages:
           go env
           which go
           echo >&2 "[endgroup]"
+
           echo "$PATH"
           echo "------"
           echo "${BUILD_QUEUEDBY}"
@@ -50,6 +49,10 @@ stages:
         popd
       name: EnvironmentalVariables
       displayName: "Set Build Output Variables"
+      env:
+        CONTAINER_BUILDER: docker
+        CONTAINER_RUNTIME: docker 
+        CONTAINER_TRANSPORT: docker 
 
 
 - stage: test
