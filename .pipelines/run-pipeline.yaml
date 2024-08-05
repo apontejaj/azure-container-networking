@@ -18,6 +18,7 @@ stages:
 
     - script: |
         set -e
+        ls -l
         make --version
         pushd "$ACN_DIR"
           BUILD_NUMBER="${BUILD_BUILDNUMBER//./-}"
