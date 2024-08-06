@@ -160,12 +160,12 @@ spec:
             description: MultitenantPodNetworkConfigStatus defines the observed state
               of PodNetworkConfig
             properties:
-              clusterInterfaceInfos:
-                description: ClusterInterfaceInfos describes all of the cluster interface
-                  goal state for this Pod
+              clusterNetworkConfig:
+                description: ClusterNetworkConfig describes how to attach the infra
+                  network to a Pod
                 items:
-                  description: ClusterInterfaceInfo is the route goal state for a
-                    cluster interface (eth0)
+                  description: ClusterNetworkConfig describes a template for how to
+                    attach the infra network to a Pod
                   properties:
                     policyBasedRouting:
                       default: true
@@ -173,13 +173,16 @@ spec:
                         routing
                       type: boolean
                     routes:
-                      default: '[]'
                       description: Routes is a list of routes to add to the Pod through
-                        cluster interface
+                        interface assigned to the infra network
                       items:
                         type: string
                       type: array
                   type: object
+                  x-kubernetes-validations:
+                  - message: Routes list shouldn't be empty if policybasedRouting
+                      is disabled.
+                    rule: self.policyBasedRouting || self.routes.size() > 0
                 type: array
               interfaceInfos:
                 description: InterfaceInfos describes all of the network container
@@ -219,7 +222,6 @@ spec:
                       description: PrimaryIP is the ip allocated to the network container
                       type: string
                     routes:
-                      default: '[]'
                       description: Routes is a list of routes to add to the Pod through
                         interface
                       items:
