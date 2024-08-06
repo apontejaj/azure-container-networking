@@ -142,7 +142,6 @@ spec:
                       routing
                     type: boolean
                   routes:
-                    default: '[]'
                     description: Routes is a list of routes to add to the Pod through
                       interface assigned to the infra network
                     items:
@@ -174,7 +173,6 @@ spec:
                         routing
                       type: boolean
                     routes:
-                      default: '[]'
                       description: Routes is a list of routes to add to the Pod through
                         interface assigned to this PodNetwork
                       items:

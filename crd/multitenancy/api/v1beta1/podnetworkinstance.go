@@ -44,17 +44,17 @@ type PodNetworkConfig struct {
 	// +kubebuilder:default=0
 	PodIPReservationSize int `json:"podIPReservationSize,omitempty"`
 	// Routes is a list of routes to add to the Pod through interface assigned to this PodNetwork
-	// +kubebuilder:default=[]
+	// +kubebuilder:default={}
 	Routes []string `json:"routes,omitempty"`
 	// PolicyBasedRouting is a flag to enable policy based routing
 	// +kubebuilder:default=true
 	PolicyBasedRouting bool `json:"policyBasedRouting,omitempty"`
 }
 
-// ClusterNetworkConfig describes a template for how to attach the infra network to a Pos
+// ClusterNetworkConfig describes a template for how to attach the infra network to a Pod
 // +kubebuilder:validation:XValidation:rule="self.policyBasedRouting || self.routes.size() > 0",message="Routes list shouldn't be empty if policybasedRouting is disabled."
 type ClusterNetworkConfig struct {
-	// +kubebuilder:default=[]
+	// +kubebuilder:default={}
 	// Routes is a list of routes to add to the Pod through interface assigned to the infra network
 	Routes []string `json:"routes,omitempty"`
 	// PolicyBasedRouting is a flag to enable policy based routing

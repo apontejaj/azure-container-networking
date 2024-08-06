@@ -66,17 +66,7 @@ type InterfaceInfo struct {
 	// +kubebuilder:validation:Optional
 	AccelnetEnabled bool `json:"accelnetEnabled,omitempty"`
 	// Routes is a list of routes to add to the Pod through interface
-	// +kubebuilder:default=[]
-	Routes []string `json:"routes,omitempty"`
-	// PolicyBasedRouting is a flag to enable policy based routing
-	// +kubebuilder:default=true
-	PolicyBasedRouting bool `json:"policyBasedRouting,omitempty"`
-}
-
-// ClusterInterfaceInfo is the route goal state for a cluster interface (eth0)
-type ClusterInterfaceInfo struct {
-	// Routes is a list of routes to add to the Pod through cluster interface
-	// +kubebuilder:default=[]
+	// +kubebuilder:default={}
 	Routes []string `json:"routes,omitempty"`
 	// PolicyBasedRouting is a flag to enable policy based routing
 	// +kubebuilder:default=true
@@ -88,9 +78,9 @@ type MultitenantPodNetworkConfigStatus struct {
 	// InterfaceInfos describes all of the network container goal state for this Pod
 	// +kubebuilder:validation:Optional
 	InterfaceInfos []InterfaceInfo `json:"interfaceInfos,omitempty"`
-	// ClusterInterfaceInfos describes all of the cluster interface goal state for this Pod
+	// ClusterNetworkConfig describes how to attach the infra network to a Pod
 	// +kubebuilder:validation:Optional
-	ClusterInterfaceInfos []ClusterInterfaceInfo `json:"clusterInterfaceInfos,omitempty"`
+	ClusterNetworkConfig []ClusterNetworkConfig `json:"clusterNetworkConfig,omitempty"`
 }
 
 func init() {

@@ -14,11 +14,12 @@ import (
 // PodNetwork is the Schema for the PodNetworks API
 // +kubebuilder:resource:shortName=pn,scope=Cluster
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Status",type=string,priority=1,JSONPath=`.status.status`
+// +kubebuilder:printcolumn:name="Status",type=string,priority=0,JSONPath=`.status.status`
 // +kubebuilder:printcolumn:name="Address Prefixes",type=string,priority=1,JSONPath=`.status.addressPrefixes`
-// +kubebuilder:printcolumn:name="Network",type=string,priority=1,JSONPath=`.spec.networkID`
-// +kubebuilder:printcolumn:name="SubnetGUID",type=string,priority=1,JSONPath=`.spec.subnetGUID`
-// +kubebuilder:printcolumn:name="DeviceType",type=string,priority=1,JSONPath=`.spec.deviceType`
+// +kubebuilder:printcolumn:name="Network",type=string,priority=0,JSONPath=`.spec.networkID`
+// +kubebuilder:printcolumn:name="SubnetGUID",type=string,priority=0,JSONPath=`.spec.subnetGUID`
+// +kubebuilder:printcolumn:name="Subnet",type=string,priority=1,JSONPath=`.spec.subnetResourceID`
+// +kubebuilder:printcolumn:name="DeviceType",type=string,priority=0,JSONPath=`.spec.deviceType`
 // +kubebuilder:unservedversion
 type PodNetwork struct {
 	metav1.TypeMeta   `json:",inline"`

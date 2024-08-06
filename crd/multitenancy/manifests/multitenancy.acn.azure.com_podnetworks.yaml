@@ -106,7 +106,6 @@ spec:
   - additionalPrinterColumns:
     - jsonPath: .status.status
       name: Status
-      priority: 1
       type: string
     - jsonPath: .status.addressPrefixes
       name: Address Prefixes
@@ -114,15 +113,16 @@ spec:
       type: string
     - jsonPath: .spec.networkID
       name: Network
-      priority: 1
       type: string
     - jsonPath: .spec.subnetGUID
       name: SubnetGUID
+      type: string
+    - jsonPath: .spec.subnetResourceID
+      name: Subnet
       priority: 1
       type: string
     - jsonPath: .spec.deviceType
       name: DeviceType
-      priority: 1
       type: string
     name: v1beta1
     schema:
