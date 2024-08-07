@@ -2,7 +2,7 @@
  "tool": "Credential Scanner",
  "suppressions": [
    {
-     "file": "keyvault/testdata/dummy.pem",
+     "file": "ext_repos/azure-container-networking/keyvault/testdata/dummy.pem",
      "_justification": "Fake certificate for testing"
    }
   ]

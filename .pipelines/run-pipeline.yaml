@@ -7,28 +7,44 @@ stages:
     pool:
       type: linux
     variables:
+      ACN_DIR: s/azure-container-networking
+      ACN_PATH: $(Pipeline.Workspace)/$(ACN_DIR)
       ob_outputDirectory: $(Build.ArtifactStagingDirectory)
       ob_git_checkout: true
-      ACN_PATH: azure-container-networking
     steps:
     - checkout: "azure-container-networking"
-
-    - task: GoTool@0
-      inputs:
-        version: '1.22.5'
-
+      path: $(ACN_PATH)
+  
+    - bash: |
+        set -e
+        sudo apt-get -y update
+        sudo apt-get -y install buildah
+        apt-get update -y
+        apt-get install -y apt-transport-https \
+                           ca-certificates \
+                           curl \
+                           gnupg \
+                           lsb-release
+        apt install docker-ce \
+                    docker-ce-cli \
+                    containerd.io \
+                    docker-buildx-plugin \
+                    docker-compose-plugin
+      displayName: Install Build Tools
+  
     - script: |
         set -e
-        pushd "$ACN_PATH"
+        # Configure Build Container
+        pushd "$ACN_DIR"
           BUILD_NUMBER="${BUILD_BUILDNUMBER//./-}"
           COMMIT_ID=""$(make revision)"-"$(date "+%d%H%M")""
           VERSION_TAG="$(make tag)"
           NPM_VERSION="$(make npm-version)"
           echo "##vso[task.setvariable variable=StorageID;isOutput=true]$BUILD_NUMBER"
-          echo "##vso[task.setvariable variable=commitID;isOutput=true]$COMMIT)ID"
+          echo "##vso[task.setvariable variable=commitID;isOutput=true]$COMMIT_ID"
           echo "##vso[task.setvariable variable=Tag;isOutput=true]$VERSION_TAG"
           echo "##vso[task.setvariable variable=npmVersion;isOutput=true]$NPM_VERSION"
-
+  
           echo >&2 "[group]System Details"
           cat /etc/os-release
           make --version
@@ -40,7 +56,7 @@ stages:
           go env
           which go
           echo >&2 "[endgroup]"
-
+  
           echo "$PATH"
           echo "------"
           echo "${BUILD_QUEUEDBY}"
