@@ -43,13 +43,6 @@ stages:
       displayName: 'Install Buildah Tools'
   
     - script: |
-        ls -al
-        ls -al ..
-        ls -al ../ext_repos
-        ls -al $ACN_DIR
-        ls -al $ACN_PATH
-        ls -al $(Build.SourcesDirectory)
-
         set -e
         # Configure Build Container
         pushd "$ACN_DIR"
