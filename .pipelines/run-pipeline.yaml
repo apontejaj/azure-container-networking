@@ -83,10 +83,6 @@ stages:
         popd
       name: EnvironmentalVariables
       displayName: "Set Build Output Variables"
-      env:
-        CONTAINER_BUILDER: docker
-        CONTAINER_RUNTIME: docker 
-        CONTAINER_TRANSPORT: docker 
 
 
 - stage: test
