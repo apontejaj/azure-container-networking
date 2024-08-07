@@ -26,24 +26,34 @@ stages:
                   docker-selinux \
                   docker-engine-selinux \
                   docker-engine
+
+        set -e
         sudo tdnf -y update
         sudo tdnf install -y ca-certificates \
                              moby-engine \
                              moby-cli
         sudo tdnf install -y moby-buildx \
                              moby-compose
-      displayName: Install Docker
+      displayName: 'Install Docker'
   
     - bash: |
         set -e
         sudo tdnf -y install buildah
         sudo tdnf update -y
-      displayName: Install Buildah Tools
+      displayName: 'Install Buildah Tools'
   
     - script: |
+        ls -al
+        ls -al ..
+        ls -al ../ext_repos
+        ls -al $ACN_DIR
+        ls -al $ACN_PATH
+        ls -al $(Build.SourcesDirectory)
+
         set -e
         # Configure Build Container
         pushd "$ACN_DIR"
+          ls -al
           BUILD_NUMBER="${BUILD_BUILDNUMBER//./-}"
           COMMIT_ID=""$(make revision)"-"$(date "+%d%H%M")""
           VERSION_TAG="$(make tag)"
