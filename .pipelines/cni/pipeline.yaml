@@ -97,8 +97,8 @@ stages:
           - ${{ if not(eq(parameters.ACNTag, 0.0.0)) }}:
             - script: |
                 # Checkout specified tag
-                git checkout v${{ parameters.CNI-Version }}
-              displayName: "Checkout v${{ parameters.CNI-Version }}"
+                git checkout v${{ parameters.ACNTag }}
+              displayName: "Checkout v${{ parameters.ACNTag }}"
           - template: ../containers/container-template.yaml
             parameters:
               arch: $(arch)
