@@ -22,7 +22,7 @@ jobs:
     - ${{ if ne(job.templateContext.testGroup, 'windows') }}:
       - template: install-tooling.steps.yaml
         parameters:
-          os: ${{ template.testGroup }}
+          os: ${{ parameters.testGroup }}
           install:
           - procps
           - buildah
