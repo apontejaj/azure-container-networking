@@ -5,7 +5,7 @@ stages:
   - job: env
     displayName: Setup
     pool:
-      os: linux
+      type: linux
     variables:
       ACN_DIR: azure-container-networking
       ACN_PATH: $(System.DefaultWorkingDirectory)/$(ACN_DIR)
@@ -16,15 +16,11 @@ stages:
   
     - bash: |
         set -e
-        sudo apt-get -y update
-        sudo apt-get -y install buildah
-        apt-get update -y
-        apt-get install -y apt-transport-https \
-                           ca-certificates \
-                           curl \
-                           gnupg \
-                           lsb-release
-        apt install docker-ce \
+        sudo tdnf -y update
+        sudo tdnf -y install buildah
+        sudo tdnf update -y
+        sudo tdnf install -y ca-certificates
+        sudo tdnf install docker-ce \
                     docker-ce-cli \
                     containerd.io \
                     docker-buildx-plugin \
