@@ -8,7 +8,7 @@ stages:
       type: linux
     variables:
       ACN_DIR: azure-container-networking
-      ACN_PATH: $(Pipeline.Workspace)/$(ACN_DIR)
+      ACN_PATH: $(System.DefaultWorkingDirectory)/$(ACN_DIR)
       ob_outputDirectory: $(Build.ArtifactStagingDirectory)
       ob_git_checkout: true
     steps:
