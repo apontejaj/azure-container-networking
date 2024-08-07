@@ -82,7 +82,7 @@ stages:
               name: cni
               os: windows
               os_version: ltsc2022
-            ${{ if or( lt(parameters.ACNTag, 1.5.30), eq(parameters.ACNTag, 0.0.0) ) }}:
+            ${{ if or( ge(parameters.ACNTag, 1.5.30), eq(parameters.ACNTag, 0.0.0) ) }}:
               ipv6_hp_bpf_linux_amd64:
                 arch: amd64
                 name: ipv6-hp-bpf
@@ -122,7 +122,7 @@ stages:
               arch: arm64
               name: cni
               os: linux
-            ${{ if or( lt(parameters.ACNTag, 1.5.30), eq(parameters.ACNTag, 0.0.0) ) }}:
+            ${{ if or( ge(parameters.ACNTag, 1.5.30), eq(parameters.ACNTag, 0.0.0) ) }}:
               ipv6_hp_bpf_linux_arm64:
                 arch: arm64
                 name: ipv6-hp-bpf
@@ -193,7 +193,7 @@ stages:
               name: cni
               os_versions: ltsc2019 ltsc2022
               platforms: linux/amd64 linux/arm64 windows/amd64
-            ${{ if or( lt(parameters.ACNTag, 1.5.30), eq(parameters.ACNTag, 0.0.0) ) }}:
+            ${{ if or( ge(parameters.ACNTag, 1.5.30), eq(parameters.ACNTag, 0.0.0) ) }}:
               ipv6-hp-bpf:
                 name: ipv6-hp-bpf
                 platforms: linux/amd64 linux/arm64
