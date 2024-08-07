@@ -136,10 +136,18 @@ stages:
                   make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(commitID)
                   kubectl cluster-info
                   kubectl get po -owide -A
-                  if [ "${{parameters.os}}" == "windows" ]; then
-                    sudo -E env "PATH=$PATH" make test-load CNS_ONLY=true CNS_VERSION=$(make cns-version) CNI_VERSION=$(make cni-version) INSTALL_CNS=true INSTALL_AZURE_CNI_OVERLAY=true CNS_IMAGE_REPO=$(CNS_IMAGE_REPO)
+
+                  if [ ${{ parameters.CNI_Version }} != "0.0.0" ]; then
+                    echo "Using CNI Version: v${{ parameters.CNI_Version }}"
+                    cniVersion=v${{ parameters.CNI_Version }}
                   else
-                    sudo -E env "PATH=$PATH" make test-integration CNS_VERSION=$(make cns-version) CNI_VERSION=$(make cni-version) INSTALL_CNS=true INSTALL_AZURE_CNI_OVERLAY=true CNS_IMAGE_REPO=$(CNS_IMAGE_REPO)
+                    cniVersion=$(make cni-version))
+                  fi
+
+                  if [ "${{parameters.os}}" == "windows" ]; then
+                    sudo -E env "PATH=$PATH" make test-load CNS_ONLY=true CNS_VERSION=$(make cns-version) CNI_VERSION=$cniVersion INSTALL_CNS=true INSTALL_AZURE_CNI_OVERLAY=true CNS_IMAGE_REPO=$(CNS_IMAGE_REPO)
+                  else
+                    sudo -E env "PATH=$PATH" make test-integration CNS_VERSION=$(make cns-version) CNI_VERSION=$cniVersion INSTALL_CNS=true INSTALL_AZURE_CNI_OVERLAY=true CNS_IMAGE_REPO=$(CNS_IMAGE_REPO)
                   fi
               name: "overlaye2e"
               displayName: "Overlay Integration"
@@ -155,10 +163,18 @@ stages:
                   make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(commitID)
                   kubectl cluster-info
                   kubectl get po -owide -A
-                  if [ "${{parameters.os}}" == "windows" ]; then
-                    sudo -E env "PATH=$PATH" make test-load CNS_ONLY=true CNS_VERSION=$(make cns-version) CNI_VERSION=$(make cni-version) INSTALL_CNS=true INSTALL_AZURE_VNET=true CNS_IMAGE_REPO=$(CNS_IMAGE_REPO)
+
+                  if [ ${{ parameters.CNI_Version }} != "0.0.0" ]; then
+                    echo "Using CNI Version: v${{ parameters.CNI_Version }}"
+                    cniVersion=v${{ parameters.CNI_Version }}
                   else
-                    sudo -E env "PATH=$PATH" make test-integration CNS_VERSION=$(make cns-version) CNI_VERSION=$(make cni-version) INSTALL_CNS=true INSTALL_AZURE_VNET=true CNS_IMAGE_REPO=$(CNS_IMAGE_REPO)
+                    cniVersion=$(make cni-version))
+                  fi
+
+                  if [ "${{parameters.os}}" == "windows" ]; then
+                    sudo -E env "PATH=$PATH" make test-load CNS_ONLY=true CNS_VERSION=$(make cns-version) CNI_VERSION=$cniVersion INSTALL_CNS=true INSTALL_AZURE_VNET=true CNS_IMAGE_REPO=$(CNS_IMAGE_REPO)
+                  else
+                    sudo -E env "PATH=$PATH" make test-integration CNS_VERSION=$(make cns-version) CNI_VERSION=$cniVersion INSTALL_CNS=true INSTALL_AZURE_VNET=true CNS_IMAGE_REPO=$(CNS_IMAGE_REPO)
                   fi
               name: "swifte2e"
               displayName: "Swift Integration"

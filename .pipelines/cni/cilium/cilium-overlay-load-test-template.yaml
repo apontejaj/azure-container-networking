@@ -117,8 +117,19 @@ stages:
                   envsubst '${CILIUM_VERSION_TAG},${CILIUM_IMAGE_REGISTRY}' < test/integration/manifests/cilium/v${DIR}/cilium-operator/templates/deployment.yaml | kubectl apply -f -
                   kubectl get po -owide -A
 
+                  if [ ${{ parameters.CNI_Version }} != "0.0.0" ]; then
+                    echo "Getting IPAM version from tag: v${{ parameters.CNI_Version }}"
+                    git checkout v${{ parameters.CNI_Version }}
+                    ipamVersion=$(make azure-ipam-version)
+                    echo "IPAM version: $ipamVersion"
+                    echo "Returning to master branch"
+                    git checkout master
+                  else
+                    ipamVersion=$(make azure-ipam-version)
+                  fi
+
                   echo "Deploy Azure-CNS"
-                  sudo -E env "PATH=$PATH" make test-integration AZURE_IPAM_VERSION=$(make azure-ipam-version) CNS_VERSION=$(make cns-version) INSTALL_CNS=true INSTALL_OVERLAY=true CNS_IMAGE_REPO=$(CNS_IMAGE_REPO)
+                  sudo -E env "PATH=$PATH" make test-integration AZURE_IPAM_VERSION=$ipamVersion CNS_VERSION=$(make cns-version) INSTALL_CNS=true INSTALL_OVERLAY=true CNS_IMAGE_REPO=$(CNS_IMAGE_REPO)
                   kubectl get po -owide -A
       - ${{if eq(parameters.hubbleEnabled, true)}}:
         - job: deploy_cilium_components
@@ -151,8 +162,19 @@ stages:
                   envsubst '${CILIUM_IMAGE_REGISTRY},${CILIUM_VERSION_TAG}' < test/integration/manifests/cilium/v${DIR}/cilium-operator/templates/deployment.yaml | kubectl apply -f -
                   kubectl get po -owide -A
 
+                  if [ ${{ parameters.CNI_Version }} != "0.0.0" ]; then
+                    echo "Getting IPAM version from tag: v${{ parameters.CNI_Version }}"
+                    git checkout v${{ parameters.CNI_Version }}
+                    ipamVersion=$(make azure-ipam-version)
+                    echo "IPAM version: $ipamVersion"
+                    echo "Returning to master branch"
+                    git checkout master
+                  else
+                    ipamVersion=$(make azure-ipam-version)
+                  fi
+
                   echo "Deploy Azure-CNS"
-                  sudo -E env "PATH=$PATH" make test-integration AZURE_IPAM_VERSION=$(make azure-ipam-version) CNS_VERSION=$(make cns-version) INSTALL_CNS=true INSTALL_OVERLAY=true CNS_IMAGE_REPO=$(CNS_IMAGE_REPO)
+                  sudo -E env "PATH=$PATH" make test-integration AZURE_IPAM_VERSION=$ipamVersion CNS_VERSION=$(make cns-version) INSTALL_CNS=true INSTALL_OVERLAY=true CNS_IMAGE_REPO=$(CNS_IMAGE_REPO)
                   kubectl get po -owide -A
 
       - job: deploy_pods
