@@ -1,9 +1,9 @@
-
 jobs:
 - job: env
-  displayName: Setup
+  displayName: Provision Build Environment Variables
   pool:
-    type: linux
+    type: docker
+    os: linux
   variables:
     ACN_DIR: azure-container-networking
     ACN_PATH: $(System.DefaultWorkingDirectory)/$(ACN_DIR)
