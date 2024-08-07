@@ -8,8 +8,11 @@ trigger:
 
 parameters:
 - name: ACNTag
-  type: number
+  type: string
   default: 0.0.0
+
+variables:
+  ACNTagVar: ${{ parameters.ACNTag }}
 
 # resources:
 #   repositories:
