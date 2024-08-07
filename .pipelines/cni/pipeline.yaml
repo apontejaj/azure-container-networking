@@ -133,7 +133,10 @@ stages:
               os: linux
         steps:
           - ${{ if not(eq(parameters.ACNTag, 0.0.0)) }}:
-            - checkout: ACN-Build
+            - script: |
+                # Checkout specified tag
+                git checkout v${{ parameters.ACNTag }}
+              displayName: "Checkout v${{ parameters.ACNTag }}"
           - template: ../containers/container-template.yaml
             parameters:
               arch: $(arch)
@@ -199,6 +202,11 @@ stages:
               os_versions: ltsc2022
               platforms: linux/amd64 linux/arm64 windows/amd64
         steps:
+          - ${{ if not(eq(parameters.ACNTag, 0.0.0)) }}:
+            - script: |
+                # Checkout specified tag
+                git checkout v${{ parameters.ACNTag }}
+              displayName: "Checkout v${{ parameters.ACNTag }}"
           - template: ../containers/manifest-template.yaml
             parameters:
               name: $(name)
