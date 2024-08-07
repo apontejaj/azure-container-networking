@@ -56,7 +56,7 @@ stages:
           ls -al
           BUILD_NUMBER="${BUILD_BUILDNUMBER//./-}"
           COMMIT_ID=""$(make revision)"-"$(date "+%d%H%M")""
-          VERSION_TAG="$(make tag)"
+          VERSION_TAG="$(make version)"
           NPM_VERSION="$(make npm-version)"
           echo "##vso[task.setvariable variable=StorageID;isOutput=true]$BUILD_NUMBER"
           echo "##vso[task.setvariable variable=commitID;isOutput=true]$COMMIT_ID"
