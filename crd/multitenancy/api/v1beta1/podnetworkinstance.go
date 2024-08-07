@@ -13,7 +13,6 @@ import (
 
 // PodNetworkInstance is the Schema for the PodNetworkInstances API
 // +kubebuilder:resource:shortName=pni,scope=Namespaced
-// +kubebuilder:webhook:path=/convert,mutating=false,failurePolicy=fail,groups=multitenancy.acn.azure.com,resources=podnetworkinstances,verbs=create;update,versions=v1alpha1;v1beta1,name=podnetworkinstances.kb.io,sideEffects=None,admissionReviewVersions=v1
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels=managed=
 // +kubebuilder:metadata:labels=owner=
@@ -71,6 +70,7 @@ type PodNetworkInstanceSpec struct {
 	// PodNetworkConfigs describes each PodNetwork to attach to a single Pod
 	// +kubebuilder:validation:MaxItems=10
 	// +kubebuilder:validation:XValidation:rule="self.size() == oldSelf.size()",message="Count of PodNetworkConfigs is immutable"
+	//nolint:lll // Explanation: kubebuilder markers don't fold into multiple lines
 	// +kubebuilder:validation:XValidation:rule="self.all(podNetworkConfig, oldSelf.exists(oldPodNetworkConfig, oldPodNetworkConfig.podNetwork == podNetworkConfig.podNetwork && oldPodNetworkConfig.podIPReservationSize == podNetworkConfig.podIPReservationSize))",message="podNetwork and podIPReservationSize in podNetworkConfig are immutable"
 	PodNetworkConfigs []PodNetworkConfig `json:"podNetworkConfigs"`
 }
