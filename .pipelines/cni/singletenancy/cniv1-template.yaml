@@ -127,9 +127,9 @@ stages:
                 make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(commitID)
                 echo "Upload CNI"
                 echo "Deploying on Linux nodes"
-                if [ ${{ parameters.CNI-Version }} != "0.0.0" ]; then
-                  echo "Using CNI Version: v${{ parameters.CNI-Version }}"
-                  cniVersion=v${{ parameters.CNI-Version }}
+                if [ ${{ parameters.CNI_Version }} != "0.0.0" ]; then
+                  echo "Using CNI Version: v${{ parameters.CNI_Version }}"
+                  cniVersion=v${{ parameters.CNI_Version }}
                 else
                   cniVersion=$(make cni-version))
                 fi
