@@ -5,7 +5,7 @@ stages:
   - job: env
     displayName: Setup
     pool:
-      type: linux
+      os: linux
     variables:
       ACN_DIR: azure-container-networking
       ACN_PATH: $(System.DefaultWorkingDirectory)/$(ACN_DIR)
