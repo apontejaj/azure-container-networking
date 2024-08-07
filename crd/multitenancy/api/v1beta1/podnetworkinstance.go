@@ -13,6 +13,7 @@ import (
 
 // PodNetworkInstance is the Schema for the PodNetworkInstances API
 // +kubebuilder:resource:shortName=pni,scope=Namespaced
+// +kubebuilder:webhook:path=/convert,mutating=false,failurePolicy=fail,groups=multitenancy.acn.azure.com,resources=podnetworkinstances,verbs=create;update,versions=v1alpha1;v1beta1,name=podnetworkinstances.kb.io,sideEffects=None,admissionReviewVersions=v1
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels=managed=
 // +kubebuilder:metadata:labels=owner=
