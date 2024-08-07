@@ -45,6 +45,10 @@ jobs:
       docker version
     displayName: 'Install Docker'
 
+  - bash: | 
+      set -e
+      sudo tdnf -y install lsof
+
   - bash: |
       set -e
       sudo tdnf -y install buildah

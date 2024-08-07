@@ -28,6 +28,20 @@ jobs:
           - buildah
           - podman
           - skopeo
+
+      - bash: | 
+          set -e
+          sudo tdnf -y install lsof
+
+      - script: |
+          pushd "$ACN_PATH"
+            sudo lsof -i :42424
+            cd npm/
+            go test ./...
+          popd
+          sudo lsof -i :42424
+        retryCountOnTaskFailure: 3
+        displayName: "Run ${{ job.displayName }} Tests"
   
     - ${{ if eq(job.templateContext.testGroup, 'windows') }}:
       - script: |
