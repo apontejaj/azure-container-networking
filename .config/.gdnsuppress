@@ -1,0 +1,26 @@
+{
+  "version": "latest",
+  "suppressionSets": {
+    "default": {
+      "name": "default",
+      "createdDate": "2024-08-06 20:04:38Z",
+      "lastUpdatedDate": "2024-08-06 20:04:38Z"
+    }
+  },
+    "d7e55b5f3e54f9253a2fec595f97520ab0ffece607981d2db0fcfe4dae4cd490": {
+      "signature": "d7e55b5f3e54f9253a2fec595f97520ab0ffece607981d2db0fcfe4dae4cd490",
+      "alternativeSignatures": [],
+      "target": "azure-container-networking/keyvault/testdata/dummy.pem",
+      "memberOf": [
+        "default"
+      ],
+      "tool": "credscan",
+      "ruleId": "CSCAN-GENERAL0020",
+      "justification": null,
+      "createdDate": "2024-08-06 20:04:38Z",
+      "expirationDate": null,
+      "type": null
+    }
+  }
+}
+}
