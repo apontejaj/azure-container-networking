@@ -30,12 +30,10 @@ stages:
         sudo tdnf install -y ca-certificates \
                              moby-engine \
                              moby-cli
-        sudo tdnf install containerd.io \
-                         docker-buildx-plugin \
-                         docker-compose-plugin
+        sudo tdnf install -y moby-buildx \
+                             moby-compose
         sudo systemctl enable docker.service
         sudo systemctl daemon-reload
-        sudo systemctl start docker.service
       displayName: Install Docker
   
     - bash: |
