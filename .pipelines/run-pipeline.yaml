@@ -39,8 +39,17 @@ stages:
     - bash: |
         set -e
         sudo tdnf -y install buildah
-        sudo tdnf update -y
-      displayName: 'Install Buildah Tools'
+      displayName: 'Install Buildah'
+
+    - bash: | 
+        set -e
+        sudo tdnf -y install skopeo
+      displayName: 'Install Skopeo'
+
+    - bash: | 
+        set -e
+        sudo tdnf -y install podman
+      displayName: 'Install Podman'
   
     - script: |
         set -e
