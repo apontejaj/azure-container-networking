@@ -162,6 +162,9 @@ spec:
                 description: customer subnet id
                 type: string
             type: object
+            x-kubernetes-validations:
+            - message: Spec is immutable
+              rule: self == oldSelf
           status:
             description: PodNetworkStatus defines the observed state of PodNetwork
             properties:

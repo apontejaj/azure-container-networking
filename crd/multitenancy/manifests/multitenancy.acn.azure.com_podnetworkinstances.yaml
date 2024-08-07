@@ -166,6 +166,7 @@ spec:
                       type: integer
                     podNetwork:
                       description: PodNetwork is the name of a PodNetwork resource
+                      maxLength: 100
                       type: string
                     policyBasedRouting:
                       default: true
@@ -182,10 +183,19 @@ spec:
                   - podNetwork
                   type: object
                   x-kubernetes-validations:
-                  - message: Routes list shouldn't be empty if policybasedRouting
+                  - message: routes list shouldn't be empty if policybasedRouting
                       is disabled.
                     rule: self.policyBasedRouting || self.routes.size() > 0
+                maxItems: 10
                 type: array
+                x-kubernetes-validations:
+                - message: Count of PodNetworkConfigs is immutable
+                  rule: self.size() == oldSelf.size()
+                - message: podNetwork and podIPReservationSize in podNetworkConfig
+                    are immutable
+                  rule: self.all(podNetworkConfig, oldSelf.exists(oldPodNetworkConfig,
+                    oldPodNetworkConfig.podNetwork == podNetworkConfig.podNetwork
+                    && oldPodNetworkConfig.podIPReservationSize == podNetworkConfig.podIPReservationSize))
             required:
             - clusterNetworkConfig
             - podNetworkConfigs

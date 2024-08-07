@@ -37,9 +37,10 @@ type PodNetworkInstanceList struct {
 }
 
 // PodNetworkConfig describes a template for how to attach a PodNetwork to a Pod
-// +kubebuilder:validation:XValidation:rule="self.policyBasedRouting || self.routes.size() > 0",message="Routes list shouldn't be empty if policybasedRouting is disabled."
+// +kubebuilder:validation:XValidation:rule="self.policyBasedRouting || self.routes.size() > 0",message="routes list shouldn't be empty if policybasedRouting is disabled."
 type PodNetworkConfig struct {
 	// PodNetwork is the name of a PodNetwork resource
+	// +kubebuilder:validation:MaxLength=100
 	PodNetwork string `json:"podNetwork"`
 	// PodIPReservationSize is the number of IP address to statically reserve
 	// +kubebuilder:default=0
@@ -68,6 +69,9 @@ type PodNetworkInstanceSpec struct {
 	// ClusterNetworkConfig describes how to attach the infra network to a Pod
 	ClusterNetworkConfig ClusterNetworkConfig `json:"clusterNetworkConfig"`
 	// PodNetworkConfigs describes each PodNetwork to attach to a single Pod
+	// +kubebuilder:validation:MaxItems=10
+	// +kubebuilder:validation:XValidation:rule="self.size() == oldSelf.size()",message="Count of PodNetworkConfigs is immutable"
+	// +kubebuilder:validation:XValidation:rule="self.all(podNetworkConfig, oldSelf.exists(oldPodNetworkConfig, oldPodNetworkConfig.podNetwork == podNetworkConfig.podNetwork && oldPodNetworkConfig.podIPReservationSize == podNetworkConfig.podIPReservationSize))",message="podNetwork and podIPReservationSize in podNetworkConfig are immutable"
 	PodNetworkConfigs []PodNetworkConfig `json:"podNetworkConfigs"`
 }
 
