@@ -15,8 +15,8 @@ stages:
     - checkout: azure-container-networking
 
     - bash: |
-        set -e
-        sudo tdnf remove -y docker \
+        sudo tdnf remove --autoremove -y \
+                  docker \
                   docker-client \
                   docker-client-latest \
                   docker-common \
