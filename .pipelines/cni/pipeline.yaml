@@ -6,6 +6,22 @@ trigger:
     - azure-ipam/*
     - v*
 
+parameters:
+- name: ACN-Tag
+  type: version
+  default: "0.0.0"
+
+# resources:
+#   repositories:
+#   - repository: ACN-Build
+#     type: github
+#     endpoint: Azure Container Networking - EMU
+#     name: Azure/azure-container-networking
+#     ${{ if eq(parameters.ACN-Tag, 0.0.0)) }}:
+#       ref: $(Build.SourceBranch)
+#     ${{ else }}:
+#       ref: v${{ parameters.ACN-Tag }}
+
 stages:
   - stage: setup
     displayName: Setup
@@ -63,10 +79,11 @@ stages:
               name: cni
               os: windows
               os_version: ltsc2022
-            ipv6_hp_bpf_linux_amd64:
-              arch: amd64
-              name: ipv6-hp-bpf
-              os: linux
+            ${{ if or( lt(parameters.ACN-Tag, 1.5.30), eq(parameters.ACN-Tag, 0.0.0) ) }}:
+              ipv6_hp_bpf_linux_amd64:
+                arch: amd64
+                name: ipv6-hp-bpf
+                os: linux
             npm_linux_amd64:
               arch: amd64
               name: npm
@@ -77,6 +94,11 @@ stages:
               os: windows
               os_version: ltsc2022
         steps:
+          - ${{ if not(eq(parameters.ACN-Tag, 0.0.0)) }}:
+            - script: |
+                # Checkout specified tag
+                git checkout v${{ parameters.CNI-Version }}
+              displayName: "Checkout v${{ parameters.CNI-Version }}"
           - template: ../containers/container-template.yaml
             parameters:
               arch: $(arch)
@@ -97,15 +119,18 @@ stages:
               arch: arm64
               name: cni
               os: linux
-            ipv6_hp_bpf_linux_arm64:
-              arch: arm64
-              name: ipv6-hp-bpf
-              os: linux
+            ${{ if or( lt(parameters.ACN-Tag, 1.5.30), eq(parameters.ACN-Tag, 0.0.0) ) }}:
+              ipv6_hp_bpf_linux_arm64:
+                arch: arm64
+                name: ipv6-hp-bpf
+                os: linux
             npm_linux_arm64:
               arch: arm64
               name: npm
               os: linux
         steps:
+          - ${{ if not(eq(parameters.ACN-Tag, 0.0.0)) }}:
+            - checkout: ACN-Build
           - template: ../containers/container-template.yaml
             parameters:
               arch: $(arch)
@@ -162,9 +187,10 @@ stages:
               name: cni
               os_versions: ltsc2019 ltsc2022
               platforms: linux/amd64 linux/arm64 windows/amd64
-            ipv6-hp-bpf:
-              name: ipv6-hp-bpf
-              platforms: linux/amd64 linux/arm64
+            ${{ if or( lt(parameters.ACN-Tag, 1.5.30), eq(parameters.ACN-Tag, 0.0.0) ) }}:
+              ipv6-hp-bpf:
+                name: ipv6-hp-bpf
+                platforms: linux/amd64 linux/arm64
             npm:
               name: npm
               os_versions: ltsc2022
@@ -192,6 +218,7 @@ stages:
       osSkuWin: 'Windows2022'
       scaleup: ${SCALEUP_WIN}
       iterations: ${ITERATIONS_WIN}
+      CNI-Version: ${{ parameters.ACN-Tag }}
 
   - template: singletenancy/cniv2-template.yaml
     parameters:
@@ -208,6 +235,7 @@ stages:
       osSkuWin: 'Windows2022'
       scaleup: ${SCALEUP_WIN}
       iterations: ${ITERATIONS_WIN}
+      CNI-Version: ${{ parameters.ACN-Tag }}
 
   - template: singletenancy/cniv2-template.yaml
     parameters:
@@ -224,6 +252,7 @@ stages:
       osSkuWin: 'Windows2022'
       scaleup: ${SCALEUP_WIN}
       iterations: ${ITERATIONS_WIN}
+      CNI-Version: ${{ parameters.ACN-Tag }}
 
   - template: singletenancy/cniv2-template.yaml
     parameters:
@@ -240,6 +269,7 @@ stages:
       osSkuWin: 'Windows2019'
       scaleup: ${SCALEUP_WIN}
       iterations: ${ITERATIONS_WIN}
+      CNI-Version: ${{ parameters.ACN-Tag }}
 
 ## Linux E2E
   - template: singletenancy/cniv1-template.yaml
@@ -253,6 +283,7 @@ stages:
       arch: amd64
       scaleup: ${SCALEUP_LINUX}
       iterations: ${ITERATIONS_LINUX}
+      CNI-Version: ${{ parameters.ACN-Tag }}
 
   - template: singletenancy/cniv2-template.yaml
     parameters:
@@ -264,6 +295,7 @@ stages:
       arch: amd64
       scaleup: ${SCALEUP_LINUX}
       iterations: ${ITERATIONS_LINUX}
+      CNI-Version: ${{ parameters.ACN-Tag }}
 
   - template: singletenancy/cniv2-template.yaml
     parameters:
@@ -275,6 +307,7 @@ stages:
       arch: amd64
       scaleup: ${SCALEUP_LINUX}
       iterations: ${ITERATIONS_LINUX}
+      CNI-Version: ${{ parameters.ACN-Tag }}
 
   - template: singletenancy/cniv2-template.yaml
     parameters:
@@ -287,6 +320,7 @@ stages:
       osSKU: AzureLinux
       scaleup: ${SCALEUP_LINUX}
       iterations: ${ITERATIONS_LINUX}
+      CNI-Version: ${{ parameters.ACN-Tag }}
 
   - template: singletenancy/cniv2-template.yaml
     parameters:
@@ -298,6 +332,7 @@ stages:
       arch: arm64
       scaleup: ${SCALEUP_LINUX}
       iterations: ${ITERATIONS_LINUX}
+      CNI-Version: ${{ parameters.ACN-Tag }}
 
   - template: singletenancy/cniv2-template.yaml
     parameters:
@@ -309,6 +344,7 @@ stages:
       arch: amd64
       scaleup: ${SCALEUP_LINUX}
       iterations: ${ITERATIONS_LINUX}
+      CNI-Version: ${{ parameters.ACN-Tag }}
 
 ## Cilium E2E
   - template: cilium/cilium-overlay-load-test-template.yaml
@@ -373,7 +409,7 @@ stages:
       arch: amd64
       dualstackVersion: ${CILIUM_DUALSTACK_VERSION}
       cni: "cilium_dualstack"
-  
+
   - template: cilium/cilium-overlay-load-test-template.yaml
     parameters:
       name: cilium_ds_arm
@@ -396,7 +432,7 @@ stages:
       osSKU: AzureLinux
       dualstackVersion: ${CILIUM_DUALSTACK_VERSION}
       cni: "cilium_dualstack"
-  
+
   - template: cilium/cilium-overlay-load-test-template.yaml
     parameters:
       name: cilium_ds_rdma
