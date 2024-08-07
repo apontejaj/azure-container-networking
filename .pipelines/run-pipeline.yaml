@@ -15,11 +15,13 @@ stages:
     - checkout: azure-container-networking
 
     - bash: |
+        set +e
         which ps
         which iptables
-        ls /lib/modules/$(uname -r)/kernel/net/ipv4/netfilter/
-        ll -l /lib/modules
-        ll -l /lib/modules/$(uname -r)
+        ls -l /lib/modules
+        ls -l /lib/modules/$(uname -r)
+        ls -l /lib/modules/$(uname -r)/kernel/net/ipv4/netfilter/
+        exit 0
 
     - bash: |
         sudo tdnf remove --autoremove -y \
