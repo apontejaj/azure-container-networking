@@ -15,6 +15,13 @@ stages:
     - checkout: azure-container-networking
 
     - bash: |
+        which ps
+        which iptables
+        ls /lib/modules/$(uname -r)/kernel/net/ipv4/netfilter/
+        ll -l /lib/modules
+        ll -l /lib/modules/$(uname -r)
+
+    - bash: |
         sudo tdnf remove --autoremove -y \
                   docker \
                   docker-client \
