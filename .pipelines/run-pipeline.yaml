@@ -12,20 +12,37 @@ stages:
       ob_outputDirectory: $(Build.ArtifactStagingDirectory)
       ob_git_checkout: true
     steps:
-    - checkout: "azure-container-networking"
+    - checkout: azure-container-networking
+
+    - bash: |
+        set -e
+        sudo tdnf remove -y docker \
+                  docker-client \
+                  docker-client-latest \
+                  docker-common \
+                  docker-latest \
+                  docker-latest-logrotate \
+                  docker-logrotate \
+                  docker-selinux \
+                  docker-engine-selinux \
+                  docker-engine
+        sudo tdnf -y update
+        sudo tdnf install -y ca-certificates \
+                             moby-engine \
+                             moby-cli
+        sudo tdnf install containerd.io \
+                         docker-buildx-plugin \
+                         docker-compose-plugin
+        sudo systemctl enable docker.service
+        sudo systemctl daemon-reload
+        sudo systemctl start docker.service
+      displayName: Install Docker
   
     - bash: |
         set -e
-        sudo tdnf -y update
         sudo tdnf -y install buildah
         sudo tdnf update -y
-        sudo tdnf install -y ca-certificates
-        sudo tdnf install docker-ce \
-                    docker-ce-cli \
-                    containerd.io \
-                    docker-buildx-plugin \
-                    docker-compose-plugin
-      displayName: Install Build Tools
+      displayName: Install Buildah Tools
   
     - script: |
         set -e
