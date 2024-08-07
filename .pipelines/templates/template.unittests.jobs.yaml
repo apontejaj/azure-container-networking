@@ -18,6 +18,16 @@ jobs:
       ob_git_checkout: true
     steps:
     - checkout: azure-container-networking
+
+    - ${{ if ne(job.templateContext.testGroup, 'windows') }}:
+      - template: install-tooling.steps.yaml
+        parameters:
+          os: ${{ template.testGroup }}
+          install:
+          - procps
+          - buildah
+          - podman
+          - skopeo
   
     - ${{ if eq(job.templateContext.testGroup, 'windows') }}:
       - script: |

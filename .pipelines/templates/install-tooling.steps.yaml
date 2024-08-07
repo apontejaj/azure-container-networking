@@ -1,0 +1,102 @@
+parameters:
+- name: install
+  type: object
+  default: []
+
+- name: os
+  type: string
+  values:
+  - mariner
+  - ubuntu
+  - windows
+
+steps:
+# Update Package Manager Cache
+- ${{ if eq(parameters.os, 'mariner') }}:
+  - bash: |
+      set -e
+      sudo tdnf -y update
+    displayName: 'Update Package Cache'
+
+- ${{ elseif eq(parameters.os, 'ubuntu') }}:
+  - bash: |
+      set -e
+      sudo apt-get -y update
+    displayName: 'Update Package Cache'
+
+
+# Install  selected tooling
+- ${{ each tool in parameters.install }}:
+  - ${{ if eq(tool, 'kubectl') }}:
+    # Install Kubectl
+    - task: KubectlInstaller@0
+      displayName: 'Install Kubectl'
+      inputs:
+        kubectlVersion: latest
+
+  # Install Golang
+  - ${{ if eq(tool, 'golang') }}:
+    - task: GoTool@0
+      displayName: 'Install Golang (1.22.5)'
+      inputs:
+        version: '1.22.5'
+
+  # Install Docker
+  - ${{ if eq(tool, 'docker') }}:
+
+    - ${{ if eq(parameters.os, 'mariner') }}:
+      - bash: |
+          sudo tdnf remove -y \
+            docker \
+            docker-client \
+            docker-client-latest \
+            docker-common \
+            docker-latest \
+            docker-latest-logrotate \
+            docker-logrotate \
+            docker-selinux \
+            docker-engine-selinux \
+            docker-engine
+  
+          set -e
+          sudo tdnf install -y ca-certificates \
+            moby-engine \
+            moby-cli \
+            moby-buildx \
+            moby-compose
+        displayName: 'Install Docker'
+
+    - ${{ elseif eq(parameters.os, 'ubuntu') }}:
+      - bash: |
+          sudo apt-get remove -y \
+            docker.io \
+            docker-doc \
+            docker-compose \
+            docker-compose-v2 \
+            podman-docker \
+            containerd \
+            runc
+  
+          set -e
+          sudo apt-get install -y ca-certificates curl
+            docker-ce \
+            docker-ce-cli \
+            containerd.io \
+            docker-buildx-plugin \
+            docker-compose-plugin
+        displayName: 'Install Docker'
+  
+
+  # Simple Misc Tool Installation
+  - ${{ if in(tool, 'procps', 'buildah', 'skopeo', 'podman') }}:
+    - bash: |
+        set -e
+        sudo "$PKG_MGR" install -y "$TOOL_NAME"
+      displayName: 'Install Package (${{ tool }})'
+      env:
+        TOOL_NAME: ${{ tool }}
+        ${{ if eq(parameters.os, 'mariner') }}:
+         PKG_MGR: 'tdnf'
+
+        ${{ elseif eq(parameters.os, 'ubuntu') }}:
+         PKG_MGR: 'apt-get'
