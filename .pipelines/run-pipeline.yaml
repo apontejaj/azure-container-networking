@@ -32,8 +32,6 @@ stages:
                              moby-cli
         sudo tdnf install -y moby-buildx \
                              moby-compose
-        sudo systemctl enable docker.service
-        sudo systemctl daemon-reload
       displayName: Install Docker
   
     - bash: |
