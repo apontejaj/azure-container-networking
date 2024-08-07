@@ -1,0 +1,100 @@
+
+jobs:
+- job: env
+  displayName: Setup
+  pool:
+    type: linux
+  variables:
+    ACN_DIR: azure-container-networking
+    ACN_PATH: $(System.DefaultWorkingDirectory)/$(ACN_DIR)
+    ob_outputDirectory: $(Build.ArtifactStagingDirectory)
+    ob_git_checkout: true
+  steps:
+  - checkout: azure-container-networking
+
+  - bash: |
+      set +e
+      which ps
+      which iptables
+      ls -l /lib/modules
+      ls -l /lib/modules/$(uname -r)
+      ls -l /lib/modules/$(uname -r)/kernel/net/ipv4/netfilter/
+      exit 0
+
+  - bash: |
+      sudo tdnf remove --autoremove -y \
+                docker \
+                docker-client \
+                docker-client-latest \
+                docker-common \
+                docker-latest \
+                docker-latest-logrotate \
+                docker-logrotate \
+                docker-selinux \
+                docker-engine-selinux \
+                docker-engine
+
+      set -e
+      sudo tdnf -y update
+      sudo tdnf install -y ca-certificates \
+                           moby-engine \
+                           moby-cli
+      sudo tdnf install -y moby-buildx \
+                           moby-compose
+      echo >&2 "[command]docker version"
+      docker version
+    displayName: 'Install Docker'
+
+  - bash: |
+      set -e
+      sudo tdnf -y install buildah
+      echo >&2 "[command]buildah version"
+      buildah version
+    displayName: 'Install Buildah'
+
+  - bash: | 
+      set -e
+      sudo tdnf -y install skopeo
+      skopeo --version
+    displayName: 'Install Skopeo'
+
+  - bash: | 
+      set -e
+      sudo tdnf -y install podman
+      podman version
+    displayName: 'Install Podman'
+
+  - script: |
+      set -e
+      # Configure Build Container
+      pushd "$ACN_DIR"
+        ls -al
+        BUILD_NUMBER="${BUILD_BUILDNUMBER//./-}"
+        COMMIT_ID=""$(make revision)"-"$(date "+%d%H%M")""
+        VERSION_TAG="$(make version)"
+        NPM_VERSION="$(make npm-version)"
+        echo "##vso[task.setvariable variable=StorageID;isOutput=true]$BUILD_NUMBER"
+        echo "##vso[task.setvariable variable=commitID;isOutput=true]$COMMIT_ID"
+        echo "##vso[task.setvariable variable=Tag;isOutput=true]$VERSION_TAG"
+        echo "##vso[task.setvariable variable=npmVersion;isOutput=true]$NPM_VERSION"
+
+        echo >&2 "[group]System Details"
+        cat /etc/os-release
+        make --version
+        uname -a
+        sudo chown -R $(whoami):$(whoami) .
+        echo >&2 "[endgroup]"
+        echo >&2 "[group]Golang Environment"
+        go version
+        go env
+        which go
+        echo >&2 "[endgroup]"
+
+        echo "$PATH"
+        echo "------"
+        echo "${BUILD_QUEUEDBY}"
+        echo "${BUILD_REASON}" # manual, PR, IndividualCI
+        echo "${BUILD_SOURCEBRANCH}"
+      popd
+    name: EnvironmentalVariables
+    displayName: "Set Build Output Variables"
