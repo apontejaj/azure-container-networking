@@ -8,8 +8,7 @@ jobs:
   - job: test_${{ job.templateContext.testGroup }}
     displayName: "Unit Tests - (${{ job.displayName }})"
     pool:
-      type: docker
-      os: linux
+      type: linux
     variables:
       STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
       #ob_artifactSuffix: ${{ job.templateContext.Suffix }} # this is needed to not collide published artifact containers
@@ -19,42 +18,31 @@ jobs:
       ob_git_checkout: true
       ${{ if ne(job.templateContext.LinuxContainerImage, '') }}:
         LinuxContainerImage: ${{ job.templateContext.LinuxContainerImage }}
+      ${{ elseif ne(job.templateContext.WindowsContainerImage, '') }}:
+        WindowsContainerImage: ${{ job.templateContext.WindowsContainerImage }}
     steps:
     - checkout: azure-container-networking
-      path: a/azure-container-networking
 
-    - ${{ if ne(job.templateContext.testGroup, 'windows') }}:
+    - bash: |
+        set -e
+        sudo tdnf -y install lsof
 
-      - bash: | 
-          set -e
-          sudo tdnf -y install lsof
-
-      - script: |
-          pushd "$ACN_PATH"
-            sudo lsof -i :42424
-            cd npm/
-            go test ./...
-          popd
+    - script: |
+        pushd "$ACN_PATH"
           sudo lsof -i :42424
-        retryCountOnTaskFailure: 3
-        displayName: "Run ${{ job.displayName }} Tests"
-  
+          cd npm/
+          go test ./...
+        popd
+        sudo lsof -i :42424
+      retryCountOnTaskFailure: 3
+      displayName: "Run ${{ job.displayName }} Tests"
+
     - ${{ if eq(job.templateContext.testGroup, 'windows') }}:
       - template: install-tooling.steps.yaml
         parameters:
           os: ${{ job.templateContext.testGroup }}
           install:
           - golang
-
-      - script: |
-          pushd "$ACN_PATH"
-            sudo lsof -i :42424
-            cd npm/
-            go test ./...
-          popd
-          sudo lsof -i :42424
-        retryCountOnTaskFailure: 3
-        displayName: "Run ${{ job.displayName }} Tests"
   
   
     - ${{ elseif eq(job.templateContext.testGroup, 'ubuntu') }}:
@@ -85,6 +73,15 @@ jobs:
   
   
     - ${{ elseif eq(job.templateContext.testGroup, 'mariner') }}:
+      - template: install-tooling.steps.yaml
+        parameters:
+          os: ${{ job.templateContext.testGroup }}
+          install:
+          - golang
+          - buildah
+          - podman
+          - skopeo
+
       - script: |
           set -e
           pushd "$ACN_PATH"
