@@ -96,25 +96,22 @@ steps:
     - template: template.install-tool.steps.yaml
       parameters:
         tool: ${{ tool }}
-        steps:
-        - task: InstallPkg
-          inputs:
-            os: ${{ parameters.os }}
-            # There is no difference in handling between pkg managers
-            # so we do not yet make that distinction now.
-            ${{ if eq(tool, 'lsof') }}:
-              pkgName: 'lsof'
-              hasVersion: true
-              versionCmd: '-v'
-            ${{ elseif eq(tool, 'buildah') }}:
-              pkgName: 'buildah'
-              hasVersion: true
-              versionCmd: 'version'
-            ${{ elseif eq(tool, 'podman') }}:
-              pkgName: 'podman'
-              hasVersion: true
-              versionCmd: 'version'
-            ${{ elseif eq(tool, 'skopeo') }}:
-              pkgName: 'skopeo'
-              hasVersion: true
-              versionCmd: '--version'
+        os: ${{ parameters.os }}
+        # There is no difference in handling between pkg managers
+        # so we do not yet make that distinction now.
+        ${{ if eq(tool, 'lsof') }}:
+          pkgName: 'lsof'
+          hasVersion: true
+          versionCmd: '-v'
+        ${{ elseif eq(tool, 'buildah') }}:
+          pkgName: 'buildah'
+          hasVersion: true
+          versionCmd: 'version'
+        ${{ elseif eq(tool, 'podman') }}:
+          pkgName: 'podman'
+          hasVersion: true
+          versionCmd: 'version'
+        ${{ elseif eq(tool, 'skopeo') }}:
+          pkgName: 'skopeo'
+          hasVersion: true
+          versionCmd: '--version'
