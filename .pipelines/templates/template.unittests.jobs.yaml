@@ -9,7 +9,7 @@ jobs:
     displayName: "Unit Tests - (${{ job.displayName }})"
     variables:
       STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
-      #ob_artifactSuffix: ${{ job.templateContext.Suffix }} # this is needed to not collide published artifact containers
+      #ob_artifactSuffix: ${{ job.templateContext.Suffix }} # this is needed to not collide published artifact containers for matrix usage
       ACN_DIR: azure-container-networking
       ACN_PATH: $(Build.SourcesDirectory)/$(ACN_DIR)
       ob_outputDirectory: $(Build.ArtifactStagingDirectory)
@@ -38,7 +38,7 @@ jobs:
       displayName: "Run ${{ job.displayName }} Tests"
 
     - ${{ if eq(job.templateContext.testGroup, 'windows') }}:
-      - template: install-tooling.steps.yaml
+      - template: /.pipelines/tools/install-tooling.steps.yaml
         parameters:
           os: ${{ job.templateContext.testGroup }}
           install:
@@ -46,7 +46,7 @@ jobs:
   
   
     - ${{ elseif eq(job.templateContext.testGroup, 'ubuntu') }}:
-      - template: install-tooling.steps.yaml
+      - template: /.pipelines/tools/install-tooling.steps.yaml
         parameters:
           os: ${{ job.templateContext.testGroup }}
           install:
@@ -73,7 +73,7 @@ jobs:
   
   
     - ${{ elseif eq(job.templateContext.testGroup, 'mariner') }}:
-      - template: install-tooling.steps.yaml
+      - template: /.pipelines/tools/install-tooling.steps.yaml
         parameters:
           os: ${{ job.templateContext.testGroup }}
           install:

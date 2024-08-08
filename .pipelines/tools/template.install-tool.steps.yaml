@@ -31,12 +31,12 @@ steps:
 - bash: |
     set -e
     CMD=$(printf '%s %s' "$PKG_MGR_INSTALL_CMD" "$PKG")
-    "$CMD"
+    $CMD
     CMD=$(printf '%s %s' "$PKG_CLI" "$PKG_VERSION_ARG")
 
     [[ $HAS_VERSION -eq [T|t]rue ]] && \
       echo >&2 "[command]"$CMD"" && \
-      "$CMD"
+      $CMD
   displayName: 'Installing Package (${{ parameters.tool }})'
   env:
     PKG: '${{ parameters.pkgName }}'

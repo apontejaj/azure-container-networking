@@ -11,7 +11,7 @@ jobs:
   steps:
   - checkout: azure-container-networking
  
-  - template: install-tooling.steps.yaml
+  - template: /.pipelines/tools/install-tooling.steps.yaml
     parameters:
       os: mariner
       install:
