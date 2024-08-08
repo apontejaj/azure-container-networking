@@ -42,7 +42,7 @@ steps:
     PKG: '${{ parameters.pkgName }}'
     HAS_VERSION: '${{ parameters.hasVersion }}'
     PKG_VERSION_ARG: '${{ parameters.versionCmd }}'
-    ${{ if eq(step.inputs.os, 'mariner') }}:
+    ${{ if eq(parameters.os, 'mariner') }}:
       PKG_MGR_INSTALL_CMD: 'sudo tdnf install -y'
-    ${{ elseif eq(step.inputs.os, 'ubuntu') }}:
+    ${{ elseif eq(parameters.os, 'ubuntu') }}:
       PKG_MGR_INSTALL_CMD: 'sudo apt-get install -y'
