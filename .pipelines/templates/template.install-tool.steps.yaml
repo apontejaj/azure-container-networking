@@ -25,9 +25,9 @@ steps:
         "$CMD"
     displayName: 'Installing Package (${{ parameters.tool }})'
     env:
-      PKG: '${{ steps.templateContext.pkgName }}'
-      HAS_VERSION: '${{ steps.templateContext.hasVersion }}'
-      PKG_VERSION_ARG: '${{ steps.templateContext.versionCmd }}'
+      PKG: '${{ step.templateContext.pkgName }}'
+      HAS_VERSION: '${{ step.templateContext.hasVersion }}'
+      PKG_VERSION_ARG: '${{ stepstemplateContext.versionCmd }}'
       ${{ if step.templateContext.os, 'mariner') }}:
         PKG_MGR_INSTALL_CMD: 'sudo tdnf install -y'
       ${{ elseif step.templateContext.os, 'ubuntu') }}:
