@@ -100,7 +100,7 @@ steps:
         tool: ${{ tool }}
         steps:
         - task: InstallPkg
-          templateContext:
+          inputs:
             os: ${{ parameters.os }}
             # There is no difference in handling between pkg managers
             # so we do not yet make that distinction now.
