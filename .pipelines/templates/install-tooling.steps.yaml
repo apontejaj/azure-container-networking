@@ -35,14 +35,14 @@ steps:
         kubectlVersion: latest
 
   # Install Golang
-  - ${{ if eq(tool, 'golang') }}:
+  - ${{ elseif eq(tool, 'golang') }}:
     - task: GoTool@0
       displayName: 'Install Golang (1.22.5)'
       inputs:
         version: '1.22.5'
 
   # Install Docker
-  - ${{ if eq(tool, 'docker') }}:
+  - ${{ elseif eq(tool, 'docker') }}:
 
     - ${{ if eq(parameters.os, 'mariner') }}:
       - bash: |
@@ -86,17 +86,37 @@ steps:
             docker-compose-plugin
         displayName: 'Install Docker'
   
-
-  # Simple Misc Tool Installation
-  - ${{ if in(tool, 'procps', 'buildah', 'skopeo', 'podman') }}:
+    # Install iptables
     - bash: |
-        set -e
-        sudo "$PKG_MGR" install -y "$TOOL_NAME"
-      displayName: 'Install Package (${{ tool }})'
-      env:
-        TOOL_NAME: ${{ tool }}
-        ${{ if eq(parameters.os, 'mariner') }}:
-         PKG_MGR: 'tdnf'
+        set +e
+        ls /lib/modules/$(uname -r)/kernel/net/ipv4/netfilter/
+        ls -l /lib/modules
+        ls -l /lib/modules/$(uname -r)
 
-        ${{ elseif eq(parameters.os, 'ubuntu') }}:
-         PKG_MGR: 'apt-get'
+  - ${{ else }}:
+    # Simple Misc Tool Installation
+    - template: template.install-tool.steps.yaml
+      parameters:
+        tool: ${{ tool }}
+        steps:
+        - step:
+          templateContext:
+            os: ${{ parameters.os }}
+            # There is no difference in handling between pkg managers
+            # so we do not yet make that distinction now.
+            ${{ if eq(tool, 'lsof') }}:
+              pkgName: 'lsof'
+              hasVersion: true
+              versionCmd: '-v'
+            ${{ elseif eq(tool, 'buildah') }}:
+              pkgName: 'buildah'
+              hasVersion: true
+              versionCmd: 'version'
+            ${{ elseif eq(tool, 'podman') }}:
+              pkgName: 'podman'
+              hasVersion: true
+              versionCmd: 'version'
+            ${{ elseif eq(tool, 'skopeo') }}:
+              pkgName: 'skopeo'
+              hasVersion: true
+              versionCmd: '--version'

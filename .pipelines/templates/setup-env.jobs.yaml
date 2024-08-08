@@ -20,53 +20,15 @@ jobs:
       ls -l /lib/modules/$(uname -r)
       ls -l /lib/modules/$(uname -r)/kernel/net/ipv4/netfilter/
       exit 0
-
-  - bash: |
-      sudo tdnf remove --autoremove -y \
-                docker \
-                docker-client \
-                docker-client-latest \
-                docker-common \
-                docker-latest \
-                docker-latest-logrotate \
-                docker-logrotate \
-                docker-selinux \
-                docker-engine-selinux \
-                docker-engine
-
-      set -e
-      sudo tdnf -y update
-      sudo tdnf install -y ca-certificates \
-                           moby-engine \
-                           moby-cli
-      sudo tdnf install -y moby-buildx \
-                           moby-compose
-      echo >&2 "[command]docker version"
-      docker version
-    displayName: 'Install Docker'
-
-  - bash: | 
-      set -e
-      sudo tdnf -y install lsof
-
-  - bash: |
-      set -e
-      sudo tdnf -y install buildah
-      echo >&2 "[command]buildah version"
-      buildah version
-    displayName: 'Install Buildah'
-
-  - bash: | 
-      set -e
-      sudo tdnf -y install skopeo
-      skopeo --version
-    displayName: 'Install Skopeo'
-
-  - bash: | 
-      set -e
-      sudo tdnf -y install podman
-      podman version
-    displayName: 'Install Podman'
+ 
+  - template: install-tooling.steps.yaml
+    parameters:
+      os: mariner
+      install:
+      - docker
+      - buildah
+      - podman
+      - skopeo
 
   - script: |
       set -e

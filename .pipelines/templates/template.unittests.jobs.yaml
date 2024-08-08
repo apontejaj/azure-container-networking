@@ -17,20 +17,13 @@ jobs:
       ACN_PATH: $(Build.SourcesDirectory)/$(ACN_DIR)
       ob_outputDirectory: $(Build.ArtifactStagingDirectory)
       ob_git_checkout: true
-      ${{ if eq(job.templateContext.testGroup, 'ubuntu') }}:
-        LinuxContainerImage: onebranch.azurecr.io/linux/ubuntu-2204:latest
+      ${{ if ne(job.templateContext.LinuxContainerImage, '') }}:
+        LinuxContainerImage: ${{ job.templateContext.LinuxContainerImage }}
     steps:
     - checkout: azure-container-networking
+      path: a/azure-container-networking
 
     - ${{ if ne(job.templateContext.testGroup, 'windows') }}:
-      - template: install-tooling.steps.yaml
-        parameters:
-          os: ${{ job.templateContext.testGroup }}
-          install:
-          - procps
-          - buildah
-          - podman
-          - skopeo
 
       - bash: | 
           set -e
@@ -47,6 +40,12 @@ jobs:
         displayName: "Run ${{ job.displayName }} Tests"
   
     - ${{ if eq(job.templateContext.testGroup, 'windows') }}:
+      - template: install-tooling.steps.yaml
+        parameters:
+          os: ${{ job.templateContext.testGroup }}
+          install:
+          - golang
+
       - script: |
           pushd "$ACN_PATH"
             sudo lsof -i :42424
@@ -59,6 +58,15 @@ jobs:
   
   
     - ${{ elseif eq(job.templateContext.testGroup, 'ubuntu') }}:
+      - template: install-tooling.steps.yaml
+        parameters:
+          os: ${{ job.templateContext.testGroup }}
+          install:
+          - golang
+          - buildah
+          - podman
+          - skopeo
+
       - bash: |
           set -e
           pushd "$ACN_PATH"
