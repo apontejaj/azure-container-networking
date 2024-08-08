@@ -19,7 +19,7 @@ parameters:
   type: string
 
 - name: hasVersion
-  type: boolan
+  type: boolean
   default: false
 
 - name: versionCmd
