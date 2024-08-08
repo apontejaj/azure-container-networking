@@ -18,6 +18,9 @@ import (
 // +kubebuilder:metadata:labels=owner=
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.status`
 // +kubebuilder:unservedversion
+// +kubebuilder:webhook:path=/convert-podnetworkinstances,mutating=false,failurePolicy=fail,groups=multitenancy.acn.azure.com,resources=podnetworkinstances,verbs=create;update,versions=v1alpha1;v1beta1,name=convert.podnetworkinstances.multitenancy.acn.azure.com,sideEffects=None,admissionReviewVersions=v1
+//
+//nolint:lll // Explanation: kubebuilder markers don't fold into multiple lines
 type PodNetworkInstance struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
