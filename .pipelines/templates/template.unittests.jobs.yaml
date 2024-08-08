@@ -8,7 +8,8 @@ jobs:
   - job: test_${{ job.templateContext.testGroup }}
     displayName: "Unit Tests - (${{ job.displayName }})"
     pool:
-      type: linux
+      type: docker
+      os: linux
     variables:
       STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
       #ob_artifactSuffix: ${{ job.templateContext.Suffix }} # this is needed to not collide published artifact containers
@@ -16,6 +17,8 @@ jobs:
       ACN_PATH: $(Build.SourcesDirectory)/$(ACN_DIR)
       ob_outputDirectory: $(Build.ArtifactStagingDirectory)
       ob_git_checkout: true
+      ${{ if eq(job.templateContext.testGroup, 'ubuntu') }}:
+        LinuxContainerImage: onebranch.azurecr.io/linux/ubuntu-2204:latest
     steps:
     - checkout: azure-container-networking
 
