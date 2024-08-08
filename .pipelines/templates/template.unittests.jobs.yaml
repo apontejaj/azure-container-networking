@@ -7,8 +7,6 @@ jobs:
 - ${{ each job in parameters.exec }}:
   - job: test_${{ job.templateContext.testGroup }}
     displayName: "Unit Tests - (${{ job.displayName }})"
-    pool:
-      type: linux
     variables:
       STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
       #ob_artifactSuffix: ${{ job.templateContext.Suffix }} # this is needed to not collide published artifact containers
@@ -20,6 +18,8 @@ jobs:
         LinuxContainerImage: ${{ job.templateContext.LinuxContainerImage }}
       ${{ elseif ne(job.templateContext.WindowsContainerImage, '') }}:
         WindowsContainerImage: ${{ job.templateContext.WindowsContainerImage }}
+    pool:
+      type: linux
     steps:
     - checkout: azure-container-networking
 

@@ -1,24 +1,15 @@
 jobs:
 - job: env
   displayName: Provision Build Environment Variables
-  pool:
-    type: linux
   variables:
     ACN_DIR: azure-container-networking
     ACN_PATH: $(System.DefaultWorkingDirectory)/$(ACN_DIR)
     ob_outputDirectory: $(Build.ArtifactStagingDirectory)
     ob_git_checkout: true
+  pool:
+    type: linux
   steps:
   - checkout: azure-container-networking
-
-  - bash: |
-      set +e
-      which ps
-      which iptables
-      ls -l /lib/modules
-      ls -l /lib/modules/$(uname -r)
-      ls -l /lib/modules/$(uname -r)/kernel/net/ipv4/netfilter/
-      exit 0
  
   - template: install-tooling.steps.yaml
     parameters:
