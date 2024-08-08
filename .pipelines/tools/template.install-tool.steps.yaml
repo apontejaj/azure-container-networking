@@ -34,7 +34,7 @@ steps:
     $CMD
     CMD=$(printf '%s %s' "$PKG_CLI" "$PKG_VERSION_ARG")
 
-    [[ $HAS_VERSION -eq [T|t]rue ]] && \
+    [[ $HAS_VERSION =~ [T|t]rue ]] && \
       echo >&2 "[command]"$CMD"" && \
       $CMD
   displayName: 'Installing Package (${{ parameters.tool }})'
