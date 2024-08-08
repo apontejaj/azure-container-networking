@@ -13,7 +13,7 @@ parameters:
   values:
   - windows
   - mariner
-  - linux
+  - ubuntu
 
 - name: pkgName
   type: string
