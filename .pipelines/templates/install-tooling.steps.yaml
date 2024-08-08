@@ -85,13 +85,6 @@ steps:
             docker-buildx-plugin \
             docker-compose-plugin
         displayName: 'Install Docker'
-  
-    # Install iptables
-    - bash: |
-        set +e
-        ls /lib/modules/$(uname -r)/kernel/net/ipv4/netfilter/
-        ls -l /lib/modules
-        ls -l /lib/modules/$(uname -r)
 
   - ${{ else }}:
     # Simple Misc Tool Installation
