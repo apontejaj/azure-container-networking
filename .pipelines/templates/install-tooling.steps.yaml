@@ -48,7 +48,8 @@ steps:
 
   # Install Docker
   - ${{ elseif eq(tool, 'docker') }}:
-    - ${{ if eq(parameters.os, 'mariner') }}:
+
+    - ${{ if eq(parameters.os, 'mariner') }}: # Docker Install for Mariner
       - bash: |
           sudo tdnf remove -y \
             docker \
@@ -70,7 +71,7 @@ steps:
             moby-compose
         displayName: 'Install Docker'
 
-    - ${{ elseif eq(parameters.os, 'ubuntu') }}:
+    - ${{ elseif eq(parameters.os, 'ubuntu') }}: # Docker Install for Ubuntu
       - bash: |
           sudo apt-get remove -y \
             docker.io \
@@ -90,30 +91,30 @@ steps:
             docker-compose-plugin
         displayName: 'Install Docker'
 
-    - ${{ else }}:
+  - ${{ else }}: # Install non-complex tooling
       # Simple Misc Tool Installation
-      - template: template.install-tool.steps.yaml
-        parameters:
-          tool: ${{ tool }}
-          steps:
-          - task: InstallPkg
-            inputs:
-              os: ${{ parameters.os }}
-              # There is no difference in handling between pkg managers
-              # so we do not yet make that distinction now.
-              ${{ if eq(tool, 'lsof') }}:
-                pkgName: 'lsof'
-                hasVersion: true
-                versionCmd: '-v'
-              ${{ elseif eq(tool, 'buildah') }}:
-                pkgName: 'buildah'
-                hasVersion: true
-                versionCmd: 'version'
-              ${{ elseif eq(tool, 'podman') }}:
-                pkgName: 'podman'
-                hasVersion: true
-                versionCmd: 'version'
-              ${{ elseif eq(tool, 'skopeo') }}:
-                pkgName: 'skopeo'
-                hasVersion: true
-                versionCmd: '--version'
+    - template: template.install-tool.steps.yaml
+      parameters:
+        tool: ${{ tool }}
+        steps:
+        - task: InstallPkg
+          inputs:
+            os: ${{ parameters.os }}
+            # There is no difference in handling between pkg managers
+            # so we do not yet make that distinction now.
+            ${{ if eq(tool, 'lsof') }}:
+              pkgName: 'lsof'
+              hasVersion: true
+              versionCmd: '-v'
+            ${{ elseif eq(tool, 'buildah') }}:
+              pkgName: 'buildah'
+              hasVersion: true
+              versionCmd: 'version'
+            ${{ elseif eq(tool, 'podman') }}:
+              pkgName: 'podman'
+              hasVersion: true
+              versionCmd: 'version'
+            ${{ elseif eq(tool, 'skopeo') }}:
+              pkgName: 'skopeo'
+              hasVersion: true
+              versionCmd: '--version'
