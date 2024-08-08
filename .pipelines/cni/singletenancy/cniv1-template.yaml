@@ -160,7 +160,10 @@ stages:
           os: ${{ parameters.os }}
           os_version: ${{ parameters.os_version }}
           sub: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
-          tag: $(npmVersion)
+          ${{ if not(eq(parameters.ACNTag, 0.0.0)) }}:
+            tag: $(npmVersion)
+          ${{ else }}:
+            tag: v${{ parameters.ACNTag }}
           dependsOn: update_cni
       - job: deploy_pods
         condition: and( and( not(canceled()), not(failed()) ), or( contains(variables.CONTROL_SCENARIO, 'scaleTest') , contains(variables.CONTROL_SCENARIO, 'all') ) )

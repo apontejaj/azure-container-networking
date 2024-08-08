@@ -208,7 +208,10 @@ stages:
           os: ${{ parameters.os }}
           os_version: ${{ parameters.os_version }}
           sub: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
-          tag: $(npmVersion)
+          ${{ if not(eq(parameters.ACNTag, 0.0.0)) }}:
+            tag: $(npmVersion)
+          ${{ else }}:
+            tag: v${{ parameters.ACNTag }}
           dependsOn: integration
           continueOnError: true
       - job: deploy_pods
