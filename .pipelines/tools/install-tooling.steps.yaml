@@ -96,7 +96,7 @@ steps:
             docker-compose-plugin
         displayName: 'Install Docker'
 
-    - ${{ else }}
+    - ${{ else }}:
       - bash: |
           echo >&2 "[warning]Skipping Docker Install due to 'Not Implemented'."
         displayName: "Skip - Install Docker"
