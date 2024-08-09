@@ -101,17 +101,21 @@ steps:
         # so we do not yet make that distinction now.
         ${{ if eq(tool, 'lsof') }}:
           pkgName: 'lsof'
+          pkgCli: 'lsof'
           hasVersion: true
           versionCmd: '-v'
         ${{ elseif eq(tool, 'buildah') }}:
           pkgName: 'buildah'
+          pkgCli: 'buildah'
           hasVersion: true
           versionCmd: 'version'
         ${{ elseif eq(tool, 'podman') }}:
           pkgName: 'podman'
+          pkgCli: 'podman'
           hasVersion: true
           versionCmd: 'version'
         ${{ elseif eq(tool, 'skopeo') }}:
           pkgName: 'skopeo'
+          pkgCli: 'skopeo'
           hasVersion: true
           versionCmd: '--version'

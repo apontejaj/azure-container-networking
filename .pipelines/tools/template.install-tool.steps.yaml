@@ -18,6 +18,9 @@ parameters:
 - name: pkgName
   type: string
 
+- name: pkgCli
+  type: string
+
 - name: hasVersion
   type: boolean
   default: false
@@ -40,6 +43,7 @@ steps:
   displayName: 'Installing Package (${{ parameters.tool }})'
   env:
     PKG: '${{ parameters.pkgName }}'
+    PKG_CLI: '${{ parameters.pkgCli }}'
     HAS_VERSION: '${{ parameters.hasVersion }}'
     PKG_VERSION_ARG: '${{ parameters.versionCmd }}'
     ${{ if eq(parameters.os, 'mariner') }}:
