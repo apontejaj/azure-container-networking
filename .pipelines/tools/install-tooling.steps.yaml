@@ -69,103 +69,104 @@ steps: #
 
 # InstallTool
 - ${{ each tool in parameters.dependencyOrder }}:
+  - ${{ if contains(parameters.dependencyOrder, tool) }}:
 
-  #### Install Kubectl ####
-  - ${{ if eq(tool, 'kubectl') }}:
-    - task: KubectlInstaller@0
-      displayName: 'Install Kubectl'
-      inputs:
-        kubectlVersion: latest
-
-  #### Install Golang ####
-  - ${{ elseif eq(tool, 'golang') }}:
-    - task: GoTool@0
-      displayName: 'Install Golang (1.22.5)'
-      inputs:
-        version: '1.22.5'
-
-  #### Install Docker ####
-  - ${{ elseif eq(tool, 'docker') }}:
-    ## Mariner - Any arch ##
-    - ${{ if eq(parameters.os, 'mariner') }}: # Docker Install for Mariner
-      - bash: |
-          sudo tdnf remove -y \
-            docker \
-            docker-client \
-            docker-client-latest \
-            docker-common \
-            docker-latest \
-            docker-latest-logrotate \
-            docker-logrotate \
-            docker-selinux \
-            docker-engine-selinux \
-            docker-engine
+    #### Install Kubectl ####
+    - ${{ if eq(tool, 'kubectl') }}:
+      - task: KubectlInstaller@0
+        displayName: 'Install Kubectl'
+        inputs:
+          kubectlVersion: latest
   
-          set -e
-          sudo tdnf install -y ca-certificates \
-            moby-engine \
-            moby-cli \
-            moby-buildx \
-            moby-compose
-        displayName: 'Install Docker'
-
-    ## Ubuntu - Any arch ##
-    - ${{ elseif eq(parameters.os, 'ubuntu') }}: # Docker Install for Ubuntu
-      - bash: |
-          sudo apt-get remove -y \
-            docker.io \
-            docker-doc \
-            docker-compose \
-            docker-compose-v2 \
-            podman-docker \
-            containerd \
-            runc
+    #### Install Golang ####
+    - ${{ elseif eq(tool, 'golang') }}:
+      - task: GoTool@0
+        displayName: 'Install Golang (1.22.5)'
+        inputs:
+          version: '1.22.5'
   
-          set -e
-          sudo apt-get install -y ca-certificates curl
-            docker-ce \
-            docker-ce-cli \
-            containerd.io \
-            docker-buildx-plugin \
-            docker-compose-plugin
-        displayName: 'Install Docker'
-
-    ## Windows - Any arch ##
-    - ${{ else }}:
-      - bash: |
-          echo >&2 "[warning]Skipping Docker Install due to 'Not Implemented'."
-        displayName: "Skip - Install Docker"
-
-  #### Simple Misc Tool Installation ####
-  - ${{ else }}:  
-    - template: template.install-tool.steps.yaml
-      parameters:
-        tool: ${{ tool }}
-        os: ${{ parameters.os }}
-        # There is no difference in handling between pkg managers
-        # so we do not yet make that distinction now.
-        ${{ if eq(tool, 'lsof') }}:
-          printVersion: true
-          installCmd: 'lsof' # Add the pkg name & parameters - pkgmgr will be determined by template
-          versionCmd: 'lsof -v'
-        ${{ elseif eq(tool, 'buildah') }}:
-          printVersion: false # if we check the version, the command fails b.c. we have not initializaed any cni plugins
-          installCmd: 'buildah' # Add the pkg name & parameters - pkgmgr will be determined by template
-          versionCmd: 'buildah version'
-        ${{ elseif eq(tool, 'podman') }}:
-          installCmd: 'podman' # Add the pkg name & parameters - pkgmgr will be determined by template
-          printVersion: true
-          versionCmd: 'podman version'
-        ${{ elseif eq(tool, 'skopeo') }}:
-          installCmd: 'skopeo' # Add the pkg name & parameters - pkgmgr will be determined by template
-          printVersion: true
-          versionCmd: 'skopeo --version'
-          afterInstall:
-          - bash: |
-              useradd podman
-              echo podman:10000:5000 > /etc/subuid
-              echo podman:10000:5000 > /etc/subgid
-            displayName: "Propagate Podman User Permissions"
-        ${{ elseif eq(tool, 'procps') }}:
-          installCmd: '--reinstall procps'
-          printVersion: false
+    #### Install Docker ####
+    - ${{ elseif eq(tool, 'docker') }}:
+      ## Mariner - Any arch ##
+      - ${{ if eq(parameters.os, 'mariner') }}: # Docker Install for Mariner
+        - bash: |
+            sudo tdnf remove -y \
+              docker \
+              docker-client \
+              docker-client-latest \
+              docker-common \
+              docker-latest \
+              docker-latest-logrotate \
+              docker-logrotate \
+              docker-selinux \
+              docker-engine-selinux \
+              docker-engine
+    
+            set -e
+            sudo tdnf install -y ca-certificates \
+              moby-engine \
+              moby-cli \
+              moby-buildx \
+              moby-compose
+          displayName: 'Install Docker'
+  
+      ## Ubuntu - Any arch ##
+      - ${{ elseif eq(parameters.os, 'ubuntu') }}: # Docker Install for Ubuntu
+        - bash: |
+            sudo apt-get remove -y \
+              docker.io \
+              docker-doc \
+              docker-compose \
+              docker-compose-v2 \
+              podman-docker \
+              containerd \
+              runc
+    
+            set -e
+            sudo apt-get install -y ca-certificates curl
+              docker-ce \
+              docker-ce-cli \
+              containerd.io \
+              docker-buildx-plugin \
+              docker-compose-plugin
+          displayName: 'Install Docker'
+  
+      ## Windows - Any arch ##
+      - ${{ else }}:
+        - bash: |
+            echo >&2 "[warning]Skipping Docker Install due to 'Not Implemented'."
+          displayName: "Skip - Install Docker"
+  
+    #### Simple Misc Tool Installation ####
+    - ${{ else }}:  
+      - template: template.install-tool.steps.yaml
+        parameters:
+          tool: ${{ tool }}
+          os: ${{ parameters.os }}
+          # There is no difference in handling between pkg managers
+          # so we do not yet make that distinction now.
+          ${{ if eq(tool, 'lsof') }}:
+            printVersion: true
+            installCmd: 'lsof' # Add the pkg name & parameters - pkgmgr will be determined by template
+            versionCmd: 'lsof -v'
+          ${{ elseif eq(tool, 'buildah') }}:
+            printVersion: false # if we check the version, the command fails b.c. we have not initializaed any cni plugins
+            installCmd: 'buildah' # Add the pkg name & parameters - pkgmgr will be determined by template
+            versionCmd: 'buildah version'
+          ${{ elseif eq(tool, 'podman') }}:
+            installCmd: 'podman' # Add the pkg name & parameters - pkgmgr will be determined by template
+            printVersion: true
+            versionCmd: 'podman version'
+            afterInstall:
+            - bash: |
+                useradd podman
+                echo podman:10000:5000 > /etc/subuid
+                echo podman:10000:5000 > /etc/subgid
+              displayName: "Propagate Podman User Permissions"
+          ${{ elseif eq(tool, 'skopeo') }}:
+            installCmd: 'skopeo' # Add the pkg name & parameters - pkgmgr will be determined by template
+            printVersion: true
+            versionCmd: 'skopeo --version'
+          ${{ elseif eq(tool, 'procps') }}:
+            installCmd: '--reinstall procps'
+            printVersion: false
