@@ -119,3 +119,5 @@ steps:
           pkgCli: 'skopeo'
           hasVersion: true
           versionCmd: '--version'
+        ${{ elseif eq(tool, 'containers-common') }}:
+          pkgName: 'containers-common'

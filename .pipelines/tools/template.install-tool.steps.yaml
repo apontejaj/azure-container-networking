@@ -7,6 +7,7 @@ parameters:
   - skopeo
   - podman
   - lsof
+  - containers-common
 
 - name: os
   type: string
@@ -20,6 +21,7 @@ parameters:
 
 - name: pkgCli
   type: string
+  default: ''
 
 - name: hasVersion
   type: boolean
@@ -36,6 +38,7 @@ steps:
     CMD=$(printf '%s %s' "$PKG_MGR_INSTALL_CMD" "$PKG")
     $CMD
     CMD=$(printf '%s %s' "$PKG_CLI" "$PKG_VERSION_ARG")
+    cat /etc/containers/storage.conf
 
     [[ $HAS_VERSION =~ [T|t]rue ]] && \
       echo >&2 "[command]"$CMD"" && \
@@ -43,9 +46,9 @@ steps:
   displayName: 'Installing Package (${{ parameters.tool }})'
   env:
     PKG: '${{ parameters.pkgName }}'
-    PKG_CLI: '${{ parameters.pkgCli }}'
     HAS_VERSION: '${{ parameters.hasVersion }}'
     PKG_VERSION_ARG: '${{ parameters.versionCmd }}'
+    PKG_CLI: '${{ parameters.pkgCli }}'
     ${{ if eq(parameters.os, 'mariner') }}:
       PKG_MGR_INSTALL_CMD: 'sudo tdnf install -y'
     ${{ elseif eq(parameters.os, 'ubuntu') }}:
