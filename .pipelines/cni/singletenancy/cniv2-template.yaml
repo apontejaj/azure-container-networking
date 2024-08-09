@@ -141,7 +141,7 @@ stages:
                     echo "Using CNI Version: v${{ parameters.CNI_Version }}"
                     cniVersion=v${{ parameters.CNI_Version }}
                   else
-                    cniVersion=$(make cni-version))
+                    cniVersion=$(make cni-version)
                   fi
 
                   if [ "${{parameters.os}}" == "windows" ]; then
@@ -168,7 +168,7 @@ stages:
                     echo "Using CNI Version: v${{ parameters.CNI_Version }}"
                     cniVersion=v${{ parameters.CNI_Version }}
                   else
-                    cniVersion=$(make cni-version))
+                    cniVersion=$(make cni-version)
                   fi
 
                   if [ "${{parameters.os}}" == "windows" ]; then
