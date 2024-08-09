@@ -16,7 +16,7 @@ jobs:
       os: mariner
       install:
       - docker
-      - containers-common
+      - containerd
       - buildah
       - podman
       - skopeo
