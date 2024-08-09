@@ -40,7 +40,7 @@ steps:
 
     [[ $HAS_VERSION =~ [T|t]rue ]] && \
       echo >&2 "[command]"$CMD"" && \
-      $CMD
+      $CMD || echo >&2 "Skipping version print."
   displayName: 'Installing Package (${{ parameters.tool }})'
   env:
     PKG: '${{ parameters.pkgName }}'
