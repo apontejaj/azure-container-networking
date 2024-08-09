@@ -52,7 +52,6 @@ jobs:
           install:
           - golang
           - docker
-          - containerd
           - buildah
           - podman
           - skopeo
@@ -81,7 +80,6 @@ jobs:
           install:
           - golang
           - docker
-          - containerd
           - buildah
           - podman
           - skopeo

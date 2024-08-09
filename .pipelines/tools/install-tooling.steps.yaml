@@ -119,8 +119,3 @@ steps:
           pkgCli: 'skopeo'
           hasVersion: true
           versionCmd: '--version'
-        ${{ elseif eq(tool, 'containerd') }}:
-          pkgName: 'containerd'
-          pkgCli: 'containerd'
-          hasVersion: true
-          versionCmd: '--version'

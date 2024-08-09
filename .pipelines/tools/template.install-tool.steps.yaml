@@ -7,7 +7,6 @@ parameters:
   - skopeo
   - podman
   - lsof
-  - containerd
 
 - name: os
   type: string
