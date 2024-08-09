@@ -107,7 +107,7 @@ steps:
         ${{ elseif eq(tool, 'buildah') }}:
           pkgName: 'buildah'
           pkgCli: 'buildah'
-          hasVersion: true
+          hasVersion: false # if we check the version, the command fails b.c. we have not initializaed any cni plugins
           versionCmd: 'version'
         ${{ elseif eq(tool, 'podman') }}:
           pkgName: 'podman'
