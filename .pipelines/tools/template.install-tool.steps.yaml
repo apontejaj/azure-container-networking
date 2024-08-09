@@ -1,3 +1,26 @@
+#
+#apt-get update && apt install -yf \
+#    binfmt-support \
+#    build-essential \
+#    clang \
+#    cmake \
+#    dirmngr \
+#    ebtables \
+#    gcc \
+#    gdb \
+#    iproute2 \
+#    ipset \
+#    iptables \
+#    libboost-dev \
+#    libboost-thread-dev \
+#    libssl-dev \
+#    qemu-user-static \
+#    zip \
+#    zlib1g-dev \
+#	slirp4netns \
+#	fuse-overlayfs \
+#	mono-complete \
+#    mono-runtime
 parameters:
 # List of supported tools in this task.
 - name: tool
@@ -30,6 +53,10 @@ parameters:
   type: string
   default: '--version'
 
+- name: afterInstall
+  type: stepList
+  default: []
+
 
 steps:
 - bash: |
@@ -51,3 +78,6 @@ steps:
       PKG_MGR_INSTALL_CMD: 'sudo tdnf install -y'
     ${{ elseif eq(parameters.os, 'ubuntu') }}:
       PKG_MGR_INSTALL_CMD: 'sudo apt-get install -y'
+
+${{ each step in parameters.afterInstall }}:
+  - ${{ step }}

@@ -45,11 +45,12 @@ jobs:
           os: ${{ job.templateContext.testGroup }}
           install:
           - golang
-          - docker
-          - buildah
+          - docker 
           - podman
+          - buildah
           - skopeo
           - lsof
+          - procps
 
       - bash: |
           set -e
@@ -75,12 +76,13 @@ jobs:
         parameters:
           os: ${{ job.templateContext.testGroup }}
           install:
+          - podman 
           - golang
           - docker
           - buildah
-          - podman
           - skopeo
           - lsof
+          - procps
 
       - script: |
           set -e

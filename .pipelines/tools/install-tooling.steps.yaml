@@ -1,29 +1,34 @@
 parameters:
-- name: install
-  type: object
-  default: []
-
+# The operating system of the test env.
+# Required.
 - name: os
   type: string
   values:
   - mariner
   - ubuntu
   - windows
-
+# The list of packages to install.
+- name: install
+  type: object
+  default: []
+# Whether to update the build agent's 
+# package manager cache before installing 
+# any tooling. 
 - name: cacheUpdate
   type: boolean
   default: true
 
 
-steps:
+steps: # 
+
 # Update Package Manager Cache
-- ${{ if eq(parameters.os, 'mariner') }}:
+- ${{ if eq(parameters.os, 'mariner') }}: 
   - bash: |
       set -e
       sudo tdnf -y update
     displayName: 'Update Package Cache'
 
-- ${{ elseif eq(parameters.os, 'ubuntu') }}:
+- ${{ elseif eq(parameters.os, 'ubuntu') }}: 
   - bash: |
       set -e
       sudo apt-get -y update
@@ -35,25 +40,31 @@ steps:
     displayName: 'Skipping Cache Update'
 
 
+# Specified here specifically to avoid needing to manage install order in many files.
+# Install order is declared here and iterated.
+# Also ensures that each tool is only installed once (self de-dupping).
+#
+# This is the dependency order here.
 # Install  selected tooling
-- ${{ each tool in parameters.install }}:
+- ${{ each tool in ['golang', 'kubectl', 'docker', 'lsof', 'skopeo', 'podman', 'buildah'] }}:
+
+  #### Install Kubectl ####
   - ${{ if eq(tool, 'kubectl') }}:
-    # Install Kubectl
     - task: KubectlInstaller@0
       displayName: 'Install Kubectl'
       inputs:
         kubectlVersion: latest
 
-  # Install Golang
+  #### Install Golang ####
   - ${{ elseif eq(tool, 'golang') }}:
     - task: GoTool@0
       displayName: 'Install Golang (1.22.5)'
       inputs:
         version: '1.22.5'
 
-  # Install Docker
+  #### Install Docker ####
   - ${{ elseif eq(tool, 'docker') }}:
-
+    ## Mariner - Any arch ##
     - ${{ if eq(parameters.os, 'mariner') }}: # Docker Install for Mariner
       - bash: |
           sudo tdnf remove -y \
@@ -76,6 +87,7 @@ steps:
             moby-compose
         displayName: 'Install Docker'
 
+    ## Ubuntu - Any arch ##
     - ${{ elseif eq(parameters.os, 'ubuntu') }}: # Docker Install for Ubuntu
       - bash: |
           sudo apt-get remove -y \
@@ -96,13 +108,14 @@ steps:
             docker-compose-plugin
         displayName: 'Install Docker'
 
+    ## Windows - Any arch ##
     - ${{ else }}:
       - bash: |
           echo >&2 "[warning]Skipping Docker Install due to 'Not Implemented'."
         displayName: "Skip - Install Docker"
 
-  - ${{ else }}: # Install non-complex tooling
-      # Simple Misc Tool Installation
+  #### Simple Misc Tool Installation ####
+  - ${{ else }}:  
     - template: template.install-tool.steps.yaml
       parameters:
         tool: ${{ tool }}
@@ -110,22 +123,25 @@ steps:
         # There is no difference in handling between pkg managers
         # so we do not yet make that distinction now.
         ${{ if eq(tool, 'lsof') }}:
-          pkgName: 'lsof'
-          pkgCli: 'lsof'
-          hasVersion: true
-          versionCmd: '-v'
+          printVersion: true
+          installCmd: 'lsof'
+          versionCmd: 'lsof -v'
         ${{ elseif eq(tool, 'buildah') }}:
-          pkgName: 'buildah'
-          pkgCli: 'buildah'
           hasVersion: false # if we check the version, the command fails b.c. we have not initializaed any cni plugins
-          versionCmd: 'version'
+          versionCmd: 'buildah version'
         ${{ elseif eq(tool, 'podman') }}:
-          pkgName: 'podman'
-          pkgCli: 'podman'
           hasVersion: true
           versionCmd: 'version'
         ${{ elseif eq(tool, 'skopeo') }}:
-          pkgName: 'skopeo'
-          pkgCli: 'skopeo'
           hasVersion: true
-          versionCmd: '--version'
+          versionCmd: 'skopeo --version'
+          afterInstall:
+          - bash: |
+              useradd podman
+              echo podman:10000:5000 > /etc/subuid
+              echo podman:10000:5000 > /etc/subgid
+            displayName: "Propagate Podman User Permissions"
+        ${{ elseif eq(tool, 'procps') }}:
+          tool: procps
+          installCmd: '--reinstall procps'
+          hasVersion: false
