@@ -45,7 +45,7 @@ parameters:
   type: string
   default: ''
 
-- name: hasVersion
+- name: printVersion
   type: boolean
   default: false
 
@@ -71,7 +71,7 @@ steps:
   displayName: 'Installing Package (${{ parameters.tool }})'
   env:
     PKG: '${{ parameters.pkgName }}'
-    HAS_VERSION: '${{ parameters.hasVersion }}'
+    HAS_VERSION: '${{ parameters.printVersion }}'
     PKG_VERSION_ARG: '${{ parameters.versionCmd }}'
     PKG_CLI: '${{ parameters.pkgCli }}'
     ${{ if eq(parameters.os, 'mariner') }}:

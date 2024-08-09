@@ -149,13 +149,13 @@ steps: #
           installCmd: 'lsof'
           versionCmd: 'lsof -v'
         ${{ elseif eq(tool, 'buildah') }}:
-          hasVersion: false # if we check the version, the command fails b.c. we have not initializaed any cni plugins
+          printVersion: false # if we check the version, the command fails b.c. we have not initializaed any cni plugins
           versionCmd: 'buildah version'
         ${{ elseif eq(tool, 'podman') }}:
-          hasVersion: true
+          printVersion: true
           versionCmd: 'version'
         ${{ elseif eq(tool, 'skopeo') }}:
-          hasVersion: true
+          printVersion: true
           versionCmd: 'skopeo --version'
           afterInstall:
           - bash: |
@@ -166,4 +166,4 @@ steps: #
         ${{ elseif eq(tool, 'procps') }}:
           tool: procps
           installCmd: '--reinstall procps'
-          hasVersion: false
+          printVersion: false
