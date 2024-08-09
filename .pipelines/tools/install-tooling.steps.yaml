@@ -69,7 +69,7 @@ steps: #
 
 # InstallTool
 - ${{ each tool in parameters.dependencyOrder }}:
-  - ${{ if contains(parameters.install, tool) }}:
+  - ${{ if containsValue(parameters.install, tool) }}:
 
     #### Install Kubectl ####
     - ${{ if eq(tool, 'kubectl') }}:
