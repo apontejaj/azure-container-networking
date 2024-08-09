@@ -23,26 +23,20 @@ jobs:
     steps:
     - checkout: azure-container-networking
 
-    - bash: |
-        set -e
-        sudo tdnf -y install lsof
-
-    - script: |
-        pushd "$ACN_PATH"
-          sudo lsof -i :42424
-          cd npm/
-          go test ./...
-        popd
-        sudo lsof -i :42424
-      retryCountOnTaskFailure: 3
-      displayName: "Run ${{ job.displayName }} Tests"
-
     - ${{ if eq(job.templateContext.testGroup, 'windows') }}:
       - template: /.pipelines/tools/install-tooling.steps.yaml
         parameters:
           os: ${{ job.templateContext.testGroup }}
           install:
           - golang
+
+      - script: |
+          pushd "$ACN_PATH"
+            cd npm/
+            go test ./...
+          popd
+        retryCountOnTaskFailure: 3
+        displayName: "Run ${{ job.displayName }} Tests"
   
   
     - ${{ elseif eq(job.templateContext.testGroup, 'ubuntu') }}:
@@ -55,9 +49,11 @@ jobs:
           - buildah
           - podman
           - skopeo
+          - lsof
 
       - bash: |
           set -e
+          sudo lsof -i :42424
           pushd "$ACN_PATH"
             make tools
             # run test, echo exit status code to fd 3, pipe output from test to tee, which splits output to stdout and go-junit-report (which converts test output to report.xml), stdout from tee is redirected to fd 4. Take output written to fd 3 (which is the exit code of test), redirect to stdout, pipe to read from stdout then exit with that status code. Read all output from fd 4 (output from tee) and write to top stdout
@@ -69,6 +65,7 @@ jobs:
               } | { read xs; exit $xs; }
             } 4>&1
           popd
+          sudo lsof -i :42424
         retryCountOnTaskFailure: 3
         displayName: "Run Unit Tests (Ubuntu)"
   
@@ -83,6 +80,7 @@ jobs:
           - buildah
           - podman
           - skopeo
+          - lsof
 
       - script: |
           set -e
