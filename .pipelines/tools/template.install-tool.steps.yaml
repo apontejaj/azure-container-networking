@@ -79,5 +79,5 @@ steps:
     ${{ elseif eq(parameters.os, 'ubuntu') }}:
       PKG_MGR_INSTALL_CMD: 'sudo apt-get install -y'
 
-${{ each step in parameters.afterInstall }}:
+- ${{ each step in parameters.afterInstall }}:
   - ${{ step }}
