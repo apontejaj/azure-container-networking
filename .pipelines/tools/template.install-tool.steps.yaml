@@ -38,7 +38,6 @@ steps:
     CMD=$(printf '%s %s' "$PKG_MGR_INSTALL_CMD" "$PKG")
     $CMD
     CMD=$(printf '%s %s' "$PKG_CLI" "$PKG_VERSION_ARG")
-    cat /etc/containers/storage.conf
 
     [[ $HAS_VERSION =~ [T|t]rue ]] && \
       echo >&2 "[command]"$CMD"" && \
