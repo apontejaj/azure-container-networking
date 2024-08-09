@@ -146,15 +146,18 @@ steps: #
         # so we do not yet make that distinction now.
         ${{ if eq(tool, 'lsof') }}:
           printVersion: true
-          installCmd: 'lsof'
+          installCmd: 'lsof' # Add the pkg name & parameters - pkgmgr will be determined by template
           versionCmd: 'lsof -v'
         ${{ elseif eq(tool, 'buildah') }}:
           printVersion: false # if we check the version, the command fails b.c. we have not initializaed any cni plugins
+          installCmd: 'buildah' # Add the pkg name & parameters - pkgmgr will be determined by template
           versionCmd: 'buildah version'
         ${{ elseif eq(tool, 'podman') }}:
+          installCmd: 'podman' # Add the pkg name & parameters - pkgmgr will be determined by template
           printVersion: true
-          versionCmd: 'version'
+          versionCmd: 'podman version'
         ${{ elseif eq(tool, 'skopeo') }}:
+          installCmd: 'skopeo' # Add the pkg name & parameters - pkgmgr will be determined by template
           printVersion: true
           versionCmd: 'skopeo --version'
           afterInstall:
@@ -164,6 +167,5 @@ steps: #
               echo podman:10000:5000 > /etc/subgid
             displayName: "Propagate Podman User Permissions"
         ${{ elseif eq(tool, 'procps') }}:
-          tool: procps
           installCmd: '--reinstall procps'
           printVersion: false

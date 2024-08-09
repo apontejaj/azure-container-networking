@@ -21,6 +21,10 @@
 #	fuse-overlayfs \
 #	mono-complete \
 #    mono-runtime
+
+##############
+#### Tool ####
+##############
 parameters:
 # List of supported tools in this task.
 - name: tool
@@ -30,29 +34,29 @@ parameters:
   - skopeo
   - podman
   - lsof
-
+  - procps
+# Operating Systems to Support
+# for each tool.
 - name: os
   type: string
   values:
   - windows
   - mariner
   - ubuntu
-
-- name: pkgName
+# Usually just the package name.
+# In some cases you may want to provide extra args
+# Hence "installCmd"
+- name: installCmd
   type: string
-
-- name: pkgCli
-  type: string
-  default: ''
-
+# Should we print the version?
 - name: printVersion
   type: boolean
   default: false
-
+# Cmd for printing the version for this tool.
 - name: versionCmd
   type: string
-  default: '--version'
-
+  default: ''
+# Steps to execute postInstall
 - name: afterInstall
   type: stepList
   default: []
@@ -63,17 +67,15 @@ steps:
     set -e
     CMD=$(printf '%s %s' "$PKG_MGR_INSTALL_CMD" "$PKG")
     $CMD
-    CMD=$(printf '%s %s' "$PKG_CLI" "$PKG_VERSION_ARG")
 
-    [[ $HAS_VERSION =~ [T|t]rue ]] && \
+    [[ $PRINT_VERSION =~ [T|t]rue ]] && \
       echo >&2 "[command]"$CMD"" && \
       $CMD || echo >&2 "Skipping version print."
   displayName: 'Installing Package (${{ parameters.tool }})'
   env:
-    PKG: '${{ parameters.pkgName }}'
-    HAS_VERSION: '${{ parameters.printVersion }}'
-    PKG_VERSION_ARG: '${{ parameters.versionCmd }}'
-    PKG_CLI: '${{ parameters.pkgCli }}'
+    PKG: '${{ parameters.installCmd }}'
+    PRINT_VERSION: '${{ parameters.printVersion }}'
+    VERSION_CMD: '${{ parameters.versionCmd }}'
     ${{ if eq(parameters.os, 'mariner') }}:
       PKG_MGR_INSTALL_CMD: 'sudo tdnf install -y'
     ${{ elseif eq(parameters.os, 'ubuntu') }}:
