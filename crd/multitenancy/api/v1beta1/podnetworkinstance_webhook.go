@@ -1,7 +1,7 @@
 //go:build !ignore_uncovered
 // +build !ignore_uncovered
 
-package v1alpha1
+package v1beta1
 
 import (
 	"github.com/pkg/errors"
