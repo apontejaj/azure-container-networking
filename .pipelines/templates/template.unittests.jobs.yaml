@@ -51,6 +51,7 @@ jobs:
           os: ${{ job.templateContext.testGroup }}
           install:
           - golang
+          - docker
           - containerd
           - buildah
           - podman
@@ -79,8 +80,9 @@ jobs:
           os: ${{ job.templateContext.testGroup }}
           install:
           - golang
+          - docker
+          - containerd
           - buildah
-          - containers-common
           - podman
           - skopeo
 
