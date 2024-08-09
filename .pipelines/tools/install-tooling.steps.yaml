@@ -1,4 +1,8 @@
-parameters:
+#########################
+#### Install Tooling ####
+#########################
+parameters: 
+#
 # The operating system of the test env.
 # Required.
 - name: os
@@ -7,22 +11,45 @@ parameters:
   - mariner
   - ubuntu
   - windows
+#
 # The list of packages to install.
 - name: install
   type: object
   default: []
+#
 # Whether to update the build agent's 
 # package manager cache before installing 
 # any tooling. 
 - name: cacheUpdate
   type: boolean
   default: true
+#
+# Dependency Order
+# Do not change.
+#
+# Specified here specifically to avoid needing to manage install order in many files.
+# Install order is declared here and iterated.
+# Also ensures that each tool is only installed once (self de-dupping).
+#
+# This is the dependency order here.
+# Install  selected tooling
+- name: dependencyOrder
+  type: object
+  default:
+  - 'golang'
+  - 'kubectl'
+  - 'docker'
+  - 'lsof'
+  - 'skopeo'
+  - 'podman'
+  - 'buildah'
+
 
 
 steps: # 
 
 # Update Package Manager Cache
-- ${{ if eq(parameters.os, 'mariner') }}: 
+- ${{ if eq(parameters.os, 'mariner') }}:
   - bash: |
       set -e
       sudo tdnf -y update
@@ -40,13 +67,8 @@ steps: #
     displayName: 'Skipping Cache Update'
 
 
-# Specified here specifically to avoid needing to manage install order in many files.
-# Install order is declared here and iterated.
-# Also ensures that each tool is only installed once (self de-dupping).
-#
-# This is the dependency order here.
-# Install  selected tooling
-- ${{ each tool in ['golang', 'kubectl', 'docker', 'lsof', 'skopeo', 'podman', 'buildah'] }}:
+# InstallTool
+- ${{ each tool in parameters.dependencyOrder }}:
 
   #### Install Kubectl ####
   - ${{ if eq(tool, 'kubectl') }}:
