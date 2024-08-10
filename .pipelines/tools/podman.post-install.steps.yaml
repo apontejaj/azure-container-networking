@@ -3,15 +3,15 @@ steps:
 # Based off of https://github.com/containers/image_build/blob/main/podman/Containerfile
 - bash: |
     PODMAN_USER=podman
-    sudo useradd --create-home "$PODMAN_USER"
+    sudo useradd "$PODMAN_USER"
     echo -e "podman:1:999\npodman:1001:64535" > /etc/subuid
     echo -e "podman:1:999\npodman:1001:64535" > /etc/subgid
     
     ls -l
-    cp .pipelines/tools/podman-containers.conf /home/"$PODMAN_USER"/.config/containers/containers.config
+    cp azure-container-networking/.pipelines/tools/podman-containers.conf /home/"$PODMAN_USER"/.config/containers/containers.config
     
-    #mkdir -p /home/"$PODMAN_USER"/.local/share/containers
-    #    chown podman:podman -R /home/"$PODMAN_USER"
+    mkdir -p /home/"$PODMAN_USER"/.local/share/containers
+    chown podman:podman -R /home/"$PODMAN_USER"
     # Assign ownership to user
     #chmod 644 /etc/containers/containers.conf
     
