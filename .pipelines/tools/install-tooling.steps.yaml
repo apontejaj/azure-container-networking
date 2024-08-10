@@ -32,7 +32,7 @@ parameters:
 # Also ensures that each tool is only installed once (self de-dupping).
 #
 # This is the dependency order here.
-# Install  selected tooling
+# Install selected tooling
 - name: dependencyOrder
   type: object
   default:

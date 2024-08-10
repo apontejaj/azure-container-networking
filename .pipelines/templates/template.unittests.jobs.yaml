@@ -46,7 +46,6 @@ jobs:
           install:
           - golang
           - podman
-          - docker-podman
           - buildah
           - skopeo
           - lsof
@@ -78,7 +77,6 @@ jobs:
           install:
           - buildah
           - docker
-          - docker-podman
           - golang
           - lsof
           - podman 
