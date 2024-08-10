@@ -184,7 +184,6 @@ steps: #
 
                 setcap cap_setuid+ep /usr/bin/newuidmap
                 setcap cap_setgid+ep /usr/bin/newgidmap
-#chgrp -R 0 /home
                 chmod 555 /etc/passwd /etc/group /etc/subuid /etc/subgid /usr/bin/newgidmap
                 podman system migrate
               displayName: "Set up Build User Permissions for Podman"
