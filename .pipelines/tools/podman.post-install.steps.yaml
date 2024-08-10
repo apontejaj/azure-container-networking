@@ -7,7 +7,8 @@ steps:
     echo -e "podman:1:999\npodman:1001:64535" > /etc/subuid
     echo -e "podman:1:999\npodman:1001:64535" > /etc/subgid
     
-    cp podman-containers.conf /home/"$PODMAN_USER"/.config/containers/containers.config
+    ls -l
+    cp .pipelines/tools/podman-containers.conf /home/"$PODMAN_USER"/.config/containers/containers.config
     
     #mkdir -p /home/"$PODMAN_USER"/.local/share/containers
     #    chown podman:podman -R /home/"$PODMAN_USER"
