@@ -109,11 +109,11 @@ jobs:
           exit 1
         displayName: "[Error] Invalid Unittest Template Selection"
 
-- bash: |
-    sudo lsof -i :42424
-    sudo ip tuntap list
-    mkdir -p /dev/net # (if it doesn't exist already)
-    mknod /dev/net/tun c 10 200
-    sudo ip tuntap list
-  displayName: "remove me"
-
+    - bash: |
+        sudo lsof -i :42424
+        sudo ip tuntap list
+        mkdir -p /dev/net # (if it doesn't exist already)
+        mknod /dev/net/tun c 10 200
+        sudo ip tuntap list
+      displayName: "remove me"
+  
