@@ -168,8 +168,8 @@ steps: #
             - bash: |
                 set -e
                 #sudo ls -l /etc/containers || echo "No folder named /etc/containers"
-                #BUILD_USER="$USER"
-                #usermod -uG podman "$BUILD_USER"
+                BUILD_USER="$USER"
+                usermod -uG podman "$BUILD_USER"
                 #mkdir -p /home/"$BUILD_USER" /home/"$BUILD_USER"/.config/containers -p /home/"$BUILD_USER"/.local/share/containers
                 #usermod -d /home/"$BUILD_USER" "$BUILD_USER"
                 echo podman:10000:5000 > /etc/subuid
@@ -179,6 +179,7 @@ steps: #
                 #
                 #echo "${BUILD_USER}:x:$BUILD_USER_ID:0:${BUILD_USER} user:/home/$BUILD_USER:/bin/bash" >> /etc/passwd
                 #echo "${BUILD_USER}:x:$BUILD_USER_ID:" >> /etc/group
+                podman system migrate
               displayName: "Set up Build User Permissions for Podman"
 
           ${{ elseif eq(tool, 'skopeo') }}:
