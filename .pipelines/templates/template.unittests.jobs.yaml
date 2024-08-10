@@ -55,6 +55,7 @@ jobs:
       - bash: |
           set -e
           lsof -i :42424
+          sudo lsof -i :42424
           pushd "$ACN_PATH"
             make tools
             # run test, echo exit status code to fd 3, pipe output from test to tee, which splits output to stdout and go-junit-report (which converts test output to report.xml), stdout from tee is redirected to fd 4. Take output written to fd 3 (which is the exit code of test), redirect to stdout, pipe to read from stdout then exit with that status code. Read all output from fd 4 (output from tee) and write to top stdout
@@ -84,7 +85,7 @@ jobs:
           - procps
           - skopeo
 
-      - script: |
+      - bash: |
           set -e
           pushd "$ACN_PATH"
             make tools
@@ -116,4 +117,5 @@ jobs:
         mknod /dev/net/tun c 10 200
         sudo ip tuntap list
       displayName: "remove me"
+      condition: always()
   
