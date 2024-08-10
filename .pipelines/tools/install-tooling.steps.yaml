@@ -179,6 +179,13 @@ steps: #
                 #
                 #echo "${BUILD_USER}:x:$BUILD_USER_ID:0:${BUILD_USER} user:/home/$BUILD_USER:/bin/bash" >> /etc/passwd
                 #echo "${BUILD_USER}:x:$BUILD_USER_ID:" >> /etc/group
+                chmod 644 /etc/containers/containers.conf && \
+                chmod 644 /etc/containers/storage.conf || echo "unable to update permissions."
+
+                setcap cap_setuid+ep /usr/bin/newuidmap
+                setcap cap_setgid+ep /usr/bin/newgidmap
+#chgrp -R 0 /home
+                chmod 555 /etc/passwd /etc/group /etc/subuid /etc/subgid /usr/bin/newgidmap
                 podman system migrate
               displayName: "Set up Build User Permissions for Podman"
 
