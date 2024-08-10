@@ -159,10 +159,28 @@ steps: #
             versionCmd: 'podman version'
             afterInstall:
             - bash: |
-                useradd podman
+                sudo ip tuntap list
+                mkdir -p /dev/net # (if it doesn't exist already)
+                mknod /dev/net/tun c 10 200
+                sudo ip tuntap list
+              displayName: "Setup Test Network Devices"
+
+            - bash: |
+                set -e
+                #sudo ls -l /etc/containers || echo "No folder named /etc/containers"
+                #BUILD_USER="$USER"
+                #usermod -uG podman "$BUILD_USER"
+                #mkdir -p /home/"$BUILD_USER" /home/"$BUILD_USER"/.config/containers -p /home/"$BUILD_USER"/.local/share/containers
+                #usermod -d /home/"$BUILD_USER" "$BUILD_USER"
                 echo podman:10000:5000 > /etc/subuid
                 echo podman:10000:5000 > /etc/subgid
-              displayName: "Propagate Podman User Permissions"
+                #echo -e "$BUILD_USER:1:999\n$BUILD_USER:1001:124535" > /etc/subuid
+                #echo -e "$BUILD_USER:1:999\n$BUILD_USER:1001:124535" > /etc/subgid
+                #
+                #echo "${BUILD_USER}:x:$BUILD_USER_ID:0:${BUILD_USER} user:/home/$BUILD_USER:/bin/bash" >> /etc/passwd
+                #echo "${BUILD_USER}:x:$BUILD_USER_ID:" >> /etc/group
+              displayName: "Set up Build User Permissions for Podman"
+
           ${{ elseif eq(tool, 'skopeo') }}:
             installCmd: 'skopeo' # Add the pkg name & parameters - pkgmgr will be determined by template
             printVersion: true

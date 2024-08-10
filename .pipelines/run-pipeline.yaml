@@ -1,3 +1,9 @@
+# Set OneBranch Exceptions
+variables:
+  ob_supression_suppressionFile: /.config/.gdnsuppress
+  ob_credscan_suppressionsFileForArtifacts: /.config/credScanSuppressions.json
+
+
 stages:
 - stage: setup
   displayName: Setup Build Environment
