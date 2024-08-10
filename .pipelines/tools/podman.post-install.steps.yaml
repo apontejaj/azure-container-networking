@@ -10,6 +10,7 @@ steps:
     ls -l
     mkdir -p /home/"$PODMAN_USER"/.config/containers
     cp azure-container-networking/.pipelines/tools/podman-containers.conf /home/"$PODMAN_USER"/.config/containers/containers.config
+    cp azure-container-networking/.pipelines/tools/storage.conf /home/"$PODMAN_USER"/.config/containers/storage.config
     
     mkdir -p /home/"$PODMAN_USER"/.local/share/containers
     chown podman:podman -R /home/"$PODMAN_USER"
@@ -25,6 +26,7 @@ steps:
     
     # Setup internal Podman to pass subscriptions down from host to internal container
     printf '/run/secrets/etc-pki-entitlement:/run/secrets/etc-pki-entitlement\n/run/secrets/rhsm:/run/secrets/rhsm\n' > /etc/containers/mounts.conf
+    sudo sysctl kernel.unprivileged_userns_clone=1
     
     # Note VOLUME options must always happen after the chown call above
     # RUN commands can not modify existing volumes

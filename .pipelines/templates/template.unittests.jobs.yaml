@@ -45,6 +45,7 @@ jobs:
           os: ${{ job.templateContext.testGroup }}
           install:
           - golang
+          - docker
           - podman
           - buildah
           - skopeo
