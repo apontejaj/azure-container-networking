@@ -36,10 +36,10 @@ parameters:
 - name: dependencyOrder
   type: object
   default:
+  - 'lsof'
   - 'golang'
   - 'kubectl'
   - 'docker'
-  - 'lsof'
   - 'skopeo'
   - 'podman'
   - 'buildah'
@@ -159,6 +159,7 @@ steps: #
             versionCmd: 'podman version'
             afterInstall:
             - bash: |
+                sudo lsof -i :42424
                 sudo ip tuntap list
                 mkdir -p /dev/net # (if it doesn't exist already)
                 mknod /dev/net/tun c 10 200
