@@ -169,6 +169,7 @@ steps: #
                 set -e
                 #sudo ls -l /etc/containers || echo "No folder named /etc/containers"
                 BUILD_USER="$USER"
+                sudo groupadd podman
                 usermod -aG podman "$BUILD_USER"
                 #mkdir -p /home/"$BUILD_USER" /home/"$BUILD_USER"/.config/containers -p /home/"$BUILD_USER"/.local/share/containers
                 #usermod -d /home/"$BUILD_USER" "$BUILD_USER"
