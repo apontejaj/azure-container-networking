@@ -169,7 +169,7 @@ steps: #
                 set -e
                 #sudo ls -l /etc/containers || echo "No folder named /etc/containers"
                 BUILD_USER="$USER"
-                usermod -uG podman "$BUILD_USER"
+                usermod -aG podman "$BUILD_USER"
                 #mkdir -p /home/"$BUILD_USER" /home/"$BUILD_USER"/.config/containers -p /home/"$BUILD_USER"/.local/share/containers
                 #usermod -d /home/"$BUILD_USER" "$BUILD_USER"
                 echo podman:10000:5000 > /etc/subuid
