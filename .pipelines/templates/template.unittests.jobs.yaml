@@ -45,8 +45,8 @@ jobs:
           os: ${{ job.templateContext.testGroup }}
           install:
           - golang
-          - docker 
           - podman
+          - docker-podman
           - buildah
           - skopeo
           - lsof
@@ -76,13 +76,14 @@ jobs:
         parameters:
           os: ${{ job.templateContext.testGroup }}
           install:
-          - podman 
-          - golang
-          - docker
           - buildah
-          - skopeo
+          - docker
+          - docker-podman
+          - golang
           - lsof
+          - podman 
           - procps
+          - skopeo
 
       - script: |
           set -e
@@ -107,3 +108,12 @@ jobs:
           echo >&2 "##[error]Invalid test selection ("$TEST_GROUP")"
           exit 1
         displayName: "[Error] Invalid Unittest Template Selection"
+
+- bash: |
+    sudo lsof -i :42424
+    sudo ip tuntap list
+    mkdir -p /dev/net # (if it doesn't exist already)
+    mknod /dev/net/tun c 10 200
+    sudo ip tuntap list
+  displayName: "remove me"
+

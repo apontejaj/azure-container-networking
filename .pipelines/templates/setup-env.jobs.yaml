@@ -15,9 +15,9 @@ jobs:
     parameters:
       os: mariner
       install:
-      - docker
       - buildah
       - podman
+      - docker-podman
       - skopeo
 
   - script: |

@@ -40,8 +40,9 @@ parameters:
   - 'golang'
   - 'kubectl'
   - 'docker'
-  - 'skopeo'
   - 'podman'
+  - 'docker-podman'
+  - 'skopeo'
   - 'buildah'
 
 
@@ -149,27 +150,23 @@ steps: #
             printVersion: true
             installCmd: 'lsof' # Add the pkg name & parameters - pkgmgr will be determined by template
             versionCmd: 'lsof -v'
+          ${{ elseif eq(tool, 'docker-podman') }}:
+            printVersion: false 
+            installCmd: 'docker-podman' 
           ${{ elseif eq(tool, 'buildah') }}:
             printVersion: false # if we check the version, the command fails b.c. we have not initializaed any cni plugins
-            installCmd: 'buildah' # Add the pkg name & parameters - pkgmgr will be determined by template
+            installCmd: 'buildah' 
             versionCmd: 'buildah version'
           ${{ elseif eq(tool, 'podman') }}:
-            installCmd: 'podman' # Add the pkg name & parameters - pkgmgr will be determined by template
+            installCmd: 'podman' 
             printVersion: true
             versionCmd: 'podman version'
             afterInstall:
             - bash: |
-                sudo lsof -i :42424
-                sudo ip tuntap list
-                mkdir -p /dev/net # (if it doesn't exist already)
-                mknod /dev/net/tun c 10 200
-                sudo ip tuntap list
-              displayName: "Setup Test Network Devices"
-
-            - bash: |
                 set -e
+                ls -l /usr/share/containers/
                 #sudo ls -l /etc/containers || echo "No folder named /etc/containers"
-                BUILD_USER="$USER"
+                BUILD_USER="$(whoami)"
                 sudo groupadd podman
                 usermod -aG podman "$BUILD_USER"
                 #mkdir -p /home/"$BUILD_USER" /home/"$BUILD_USER"/.config/containers -p /home/"$BUILD_USER"/.local/share/containers
@@ -181,12 +178,12 @@ steps: #
                 #
                 #echo "${BUILD_USER}:x:$BUILD_USER_ID:0:${BUILD_USER} user:/home/$BUILD_USER:/bin/bash" >> /etc/passwd
                 #echo "${BUILD_USER}:x:$BUILD_USER_ID:" >> /etc/group
-                chmod 644 /etc/containers/containers.conf && \
-                chmod 644 /etc/containers/storage.conf || echo "unable to update permissions."
+                #chmod 644 /etc/containers/containers.conf && \
+                #chmod 644 /etc/containers/storage.conf || echo "unable to update permissions."
 
                 setcap cap_setuid+ep /usr/bin/newuidmap
                 setcap cap_setgid+ep /usr/bin/newgidmap
-                chmod 555 /etc/passwd /etc/group /etc/subuid /etc/subgid /usr/bin/newgidmap
+                #chmod 555 /etc/passwd /etc/group /etc/subuid /etc/subgid /usr/bin/newgidmap
                 podman system migrate
               displayName: "Set up Build User Permissions for Podman"
 
