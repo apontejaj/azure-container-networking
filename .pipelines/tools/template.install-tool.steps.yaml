@@ -29,12 +29,7 @@ parameters:
 # List of supported tools in this task.
 - name: tool
   type: string
-  values:
-  - buildah
-  - skopeo
-  - podman
-  - lsof
-  - procps
+
 # Operating Systems to Support
 # for each tool.
 - name: os
