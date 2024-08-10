@@ -7,19 +7,19 @@ steps:
     echo -e "podman:1:999\npodman:1001:64535" > /etc/subuid
     echo -e "podman:1:999\npodman:1001:64535" > /etc/subgid
     
-    cp /etc/containers/podman-containers.conf /home/"$PODMAN_USER"/.config/containers/containers.config
+    cp podman-containers.conf /home/"$PODMAN_USER"/.config/containers/containers.config
     
     #mkdir -p /home/"$PODMAN_USER"/.local/share/containers
     #    chown podman:podman -R /home/"$PODMAN_USER"
     # Assign ownership to user
-    chmod 644 /etc/containers/containers.conf
+    #chmod 644 /etc/containers/containers.conf
     
     # Copy & modify the defaults to provide reference if runtime changes needed.
     # Changes here are required for running with fuse-overlay storage inside container.
-    sed -e 's|^#mount_program|mount_program|g' \
-        -e '/additionalimage.*/a "/var/lib/shared",' \
-        -e 's|^mountopt[[:space:]]*=.*$|mountopt = "nodev,fsync=0"|g' \
-        /usr/share/containers/storage.conf > /etc/containers/storage.conf
+    #sed -e 's|^#mount_program|mount_program|g' \
+        #-e '/additionalimage.*/a "/var/lib/shared",' \
+        #-e 's|^mountopt[[:space:]]*=.*$|mountopt = "nodev,fsync=0"|g' \
+        #/usr/share/containers/storage.conf > /etc/containers/storage.conf
     
     # Setup internal Podman to pass subscriptions down from host to internal container
     printf '/run/secrets/etc-pki-entitlement:/run/secrets/etc-pki-entitlement\n/run/secrets/rhsm:/run/secrets/rhsm\n' > /etc/containers/mounts.conf
