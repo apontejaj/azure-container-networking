@@ -434,13 +434,19 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		// Add Interfaces to result.
 		// previously we had a default interface info to select which interface info was the one to be returned from cni add
 		cniResult := &cniTypesCurr.Result{}
+
 		for key := range ipamAddResult.interfaceInfo {
-			// now we have to infer which interface info should be returned
-			// we assume that we want to return the infra nic always, and if that is not found, return any one of the secondary interfaces
-			// if there is an infra nic + secondary, we will always return the infra nic (linux swift v2)
-			cniResult = convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[key], args.IfName)
+			// should return infraNIC and delegatedVMNIC/accelnetNIC in cniResult to containerd
+
+			// infraNIC uses default management interface name
 			if ipamAddResult.interfaceInfo[key].NICType == cns.InfraNIC {
-				break
+				cniResult = convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[key], args.IfName)
+			} else {
+				// provide an unique ifName and macAddress to containerd
+				cniResult.Interfaces = append(cniResult.Interfaces, &cniTypesCurr.Interface{
+					Name: "azure-" + ipamAddResult.interfaceInfo[key].MacAddress.String(),
+					Mac:  ipamAddResult.interfaceInfo[key].MacAddress.String(),
+				})
 			}
 		}
 
