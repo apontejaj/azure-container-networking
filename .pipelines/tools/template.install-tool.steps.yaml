@@ -52,7 +52,7 @@ parameters:
   type: string
   default: ''
 # Steps to execute postInstall
-- name: afterInstall
+- name: postInstall
   type: stepList
   default: []
 
@@ -78,3 +78,13 @@ steps:
 
 - ${{ each step in parameters.afterInstall }}:
   - ${{ step }}
+
+- bash: |
+    set -e
+    $PKG_MGR_UPGRADE_CMD
+  displayName: 'Upgrade Installed Packages'
+  env:
+    ${{ if eq(parameters.os, 'mariner') }}:
+      PKG_MGR_UPGRADE_CMD: 'sudo tdnf upgrade -y'
+    ${{ elseif eq(parameters.os, 'ubuntu') }}:
+      PKG_MGR_UPGRADE_CMD: 'sudo apt-get upgrade -y'

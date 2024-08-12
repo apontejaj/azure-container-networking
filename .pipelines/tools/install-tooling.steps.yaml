@@ -162,7 +162,7 @@ steps: #
             installCmd: 'podman' 
             printVersion: true
             versionCmd: 'podman version'
-            afterInstall:
+            postInstall:
             - template: podman.post-install.steps.yaml
             #- bash: |
                 #set -e
