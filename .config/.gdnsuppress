@@ -11,7 +11,7 @@
     "76f404369c51d91013d85e76ba5035f3af00efc305b9b45f5e34e716eaa80610": {
       "signature": "76f404369c51d91013d85e76ba5035f3af00efc305b9b45f5e34e716eaa80610",
       "alternativeSignatures": [],
-      "target": "*/keyvault/testdata/dummy.pem",
+      "target": "azure-container-networking/keyvault/testdata/dummy.pem",
       "memberOf": [
         "default"
       ],
