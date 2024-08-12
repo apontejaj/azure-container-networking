@@ -88,6 +88,7 @@ jobs:
       - bash: |
           set -e
           pushd "$ACN_PATH"
+            sudo lsof -i 127.0.0.1:42424
             make tools
             # run test, echo exit status code to fd 3, pipe output from test to tee, which splits output to stdout and go-junit-report (which converts test output to report.xml), stdout from tee is redirected to fd 4. Take output written to fd 3 (which is the exit code of test), redirect to stdout, pipe to read from stdout then exit with that status code. Read all output from fd 4 (output from tee) and write to top stdout
             { { { {
@@ -98,7 +99,7 @@ jobs:
               } | { read xs; exit $xs; }
             } 4>&1
           popd
-          lsof -i :42424
+          sudo lsof -i :42424
         retryCountOnTaskFailure: 3
         displayName: "Run Unit Tests (Mariner)"
   
