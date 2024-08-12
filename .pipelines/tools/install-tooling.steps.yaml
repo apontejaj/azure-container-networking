@@ -37,6 +37,7 @@ parameters:
   type: object
   default:
   - 'lsof'
+  - 'procps'
   - 'golang'
   - 'kubectl'
   - 'docker'
@@ -192,5 +193,5 @@ steps: #
             printVersion: true
             versionCmd: 'skopeo --version'
           ${{ elseif eq(tool, 'procps') }}:
-            installCmd: '--reinstall procps'
+            installCmd: 'procps'
             printVersion: false
