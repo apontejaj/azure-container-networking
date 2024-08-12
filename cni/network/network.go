@@ -436,17 +436,9 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		cniResult := &cniTypesCurr.Result{}
 
 		for key := range ipamAddResult.interfaceInfo {
-			// should return infraNIC and delegatedVMNIC/accelnetNIC in cniResult to containerd
-
 			// infraNIC uses default management interface name
 			if ipamAddResult.interfaceInfo[key].NICType == cns.InfraNIC {
 				cniResult = convertInterfaceInfoToCniResult(ipamAddResult.interfaceInfo[key], args.IfName)
-			} else {
-				// provide an unique ifName and macAddress to containerd
-				cniResult.Interfaces = append(cniResult.Interfaces, &cniTypesCurr.Interface{
-					Name: "azure-" + ipamAddResult.interfaceInfo[key].MacAddress.String(),
-					Mac:  ipamAddResult.interfaceInfo[key].MacAddress.String(),
-				})
 			}
 		}
 
@@ -454,13 +446,19 @@ func (plugin *NetPlugin) Add(args *cniSkel.CmdArgs) error {
 		// containerd receives each cniResult as the stdout and create pod
 		addSnatInterface(nwCfg, cniResult) //nolint TODO: check whether Linux supports adding secondary snatinterface
 
-		// add IB NIC interfaceInfo to cniResult
+		// add secondary interfaceInfos to cniResult
 		for _, epInfo := range epInfos {
 			if epInfo.NICType == cns.BackendNIC {
 				cniResult.Interfaces = append(cniResult.Interfaces, &cniTypesCurr.Interface{
 					Name:  epInfo.MasterIfName,
 					Mac:   epInfo.MacAddress.String(),
 					PciID: epInfo.PnPID,
+				})
+			} else if epInfo.NICType == cns.NodeNetworkInterfaceFrontendNIC || epInfo.NICType == cns.NodeNetworkInterfaceAccelnetFrontendNIC {
+				// provide an unique ifName and macAddress to containerd
+				cniResult.Interfaces = append(cniResult.Interfaces, &cniTypesCurr.Interface{
+					Name: epInfo.MasterIfName,
+					Mac:  epInfo.MacAddress.String(),
 				})
 			}
 		}
