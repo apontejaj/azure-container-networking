@@ -36,6 +36,7 @@ parameters:
 - name: dependencyOrder
   type: object
   default:
+  - 'sudo'
   - 'nettools'
   - 'lsof'
   - 'procps'
@@ -60,7 +61,7 @@ steps: #
 - ${{ elseif eq(parameters.os, 'ubuntu') }}: 
   - bash: |
       set -e
-      sudo apt-get -y update
+      [[ -n $(which sudo) ]] && sudo apt-get -y update || apt-get -y update
     displayName: 'Update Package Cache'
 
 - ${{ else }}:
@@ -148,8 +149,11 @@ steps: #
           # There is no difference in handling between pkg managers
           # so we do not yet make that distinction now.
           ${{ if eq(tool, 'nettools') }}:
-            printVersion: true
+            printVersion: false
             installCmd: 'net-tools' # Add the pkg name & parameters - pkgmgr will be determined by template
+          ${{ elseif eq(tool, 'sudo') }}:
+            printVersion: false
+            installCmd: 'sudo' # Add the pkg name & parameters - pkgmgr will be determined by template
           ${{ elseif eq(tool, 'lsof') }}:
             printVersion: true
             installCmd: 'lsof' # Add the pkg name & parameters - pkgmgr will be determined by template

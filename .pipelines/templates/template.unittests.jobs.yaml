@@ -44,6 +44,7 @@ jobs:
         parameters:
           os: ${{ job.templateContext.testGroup }}
           install:
+          - sudo
           - nettools
           - golang
           - docker
