@@ -44,6 +44,7 @@ jobs:
         parameters:
           os: ${{ job.templateContext.testGroup }}
           install:
+          - nettools
           - golang
           - docker
           - podman
@@ -54,10 +55,8 @@ jobs:
 
       - bash: |
           set -e
-          sudo lsof -i TCP:42424
+          netstat -tulpn
           pushd "$ACN_PATH"
-            sudo lsof -i TCP:42424
-            sudo lsof -i HTTP:42424
             make tools
             # run test, echo exit status code to fd 3, pipe output from test to tee, which splits output to stdout and go-junit-report (which converts test output to report.xml), stdout from tee is redirected to fd 4. Take output written to fd 3 (which is the exit code of test), redirect to stdout, pipe to read from stdout then exit with that status code. Read all output from fd 4 (output from tee) and write to top stdout
             { { { {
@@ -78,6 +77,7 @@ jobs:
         parameters:
           os: ${{ job.templateContext.testGroup }}
           install:
+          - nettools
           - buildah
           - docker
           - golang
@@ -88,9 +88,8 @@ jobs:
 
       - bash: |
           set -e
+          netstat -tulpn
           pushd "$ACN_PATH"
-            sudo lsof -i TCP:42424
-            sudo lsof -i HTTP:42424
             make tools
             # run test, echo exit status code to fd 3, pipe output from test to tee, which splits output to stdout and go-junit-report (which converts test output to report.xml), stdout from tee is redirected to fd 4. Take output written to fd 3 (which is the exit code of test), redirect to stdout, pipe to read from stdout then exit with that status code. Read all output from fd 4 (output from tee) and write to top stdout
             { { { {
@@ -113,7 +112,6 @@ jobs:
         displayName: "[Error] Invalid Unittest Template Selection"
 
     - bash: |
-        sudo lsof -i :42424
         sudo ip tuntap list
         mkdir -p /dev/net # (if it doesn't exist already)
         mknod /dev/net/tun c 10 200

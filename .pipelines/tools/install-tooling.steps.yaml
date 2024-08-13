@@ -36,6 +36,7 @@ parameters:
 - name: dependencyOrder
   type: object
   default:
+  - 'nettools'
   - 'lsof'
   - 'procps'
   - 'golang'
@@ -45,7 +46,6 @@ parameters:
   - 'docker-podman'
   - 'skopeo'
   - 'buildah'
-
 
 
 steps: # 
@@ -147,7 +147,10 @@ steps: #
           os: ${{ parameters.os }}
           # There is no difference in handling between pkg managers
           # so we do not yet make that distinction now.
-          ${{ if eq(tool, 'lsof') }}:
+          ${{ if eq(tool, 'nettools') }}:
+            printVersion: true
+            installCmd: 'net-tools' # Add the pkg name & parameters - pkgmgr will be determined by template
+          ${{ elseif eq(tool, 'lsof') }}:
             printVersion: true
             installCmd: 'lsof' # Add the pkg name & parameters - pkgmgr will be determined by template
             versionCmd: 'lsof -v'
