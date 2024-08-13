@@ -67,7 +67,6 @@ jobs:
               } | { read xs; exit $xs; }
             } 4>&1
           popd
-          lsof -i :42424
         retryCountOnTaskFailure: 3
         displayName: "Run Unit Tests (Ubuntu)"
   
