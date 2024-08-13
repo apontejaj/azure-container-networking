@@ -1,43 +1,24 @@
-#
-#apt-get update && apt install -yf \
-#    binfmt-support \
-#    build-essential \
-#    clang \
-#    cmake \
-#    dirmngr \
-#    ebtables \
-#    gcc \
-#    gdb \
-#    iproute2 \
-#    ipset \
-#    iptables \
-#    libboost-dev \
-#    libboost-thread-dev \
-#    libssl-dev \
-#    qemu-user-static \
-#    zip \
-#    zlib1g-dev \
-#	slirp4netns \
-#	fuse-overlayfs \
-#	mono-complete \
-#    mono-runtime
+#######################
+#### Tool Template ####
+#######################
+# Description:
+# This template is used to combine the operating system package manager
+# template and other supported tool installation tasks into a single
+# easy to use interface for installing tools for your build.
 
-##############
-#### Tool ####
-##############
 parameters:
-# List of supported tools in this task.
+## Public parameters
+
+# Required.
+# The tool to install.
 - name: tool
   type: string
 
-# Operating Systems to Support
-# for each tool.
+# Required.
+# Operating system for which the tool is being installed.
 - name: os
   type: string
-  values:
-  - windows
-  - mariner
-  - ubuntu
+
 # Usually just the package name.
 # In some cases you may want to provide extra args
 # Hence "installCmd"
@@ -60,7 +41,9 @@ parameters:
 steps:
 - bash: |
     set -e
-    CMD=$(printf '%s %s' "$PKG_MGR_INSTALL_CMD" "$PKG")
+    ELEV=
+    [[ -n $(which sudo) ]] && ELEV='sudo '
+    CMD=$(printf '%s%s %s' "$ELEV" "$PKG_MGR_INSTALL_CMD" "$PKG")
     $CMD
 
     [[ $PRINT_VERSION =~ [T|t]rue ]] && \
@@ -72,19 +55,22 @@ steps:
     PRINT_VERSION: '${{ parameters.printVersion }}'
     VERSION_CMD: '${{ parameters.versionCmd }}'
     ${{ if eq(parameters.os, 'mariner') }}:
-      PKG_MGR_INSTALL_CMD: 'sudo tdnf install -y'
+      PKG_MGR_INSTALL_CMD: 'tdnf install -y'
     ${{ elseif eq(parameters.os, 'ubuntu') }}:
-      PKG_MGR_INSTALL_CMD: 'sudo apt-get install -y'
+      PKG_MGR_INSTALL_CMD: 'apt-get install -y'
 
 - ${{ each step in parameters.postInstall }}:
   - ${{ step }}
 
 - bash: |
     set -e
-    $PKG_MGR_UPGRADE_CMD
+    ELEV=
+    [[ -n $(which sudo) ]] && ELEV='sudo '
+    CMD=$(printf '%s%s' "$ELEV" "$PKG_MGR_UPGRADE_CMD")
+    $CMD
   displayName: 'Upgrade Installed Packages'
   env:
     ${{ if eq(parameters.os, 'mariner') }}:
-      PKG_MGR_UPGRADE_CMD: 'sudo tdnf upgrade -y'
+      PKG_MGR_UPGRADE_CMD: 'tdnf upgrade -y'
     ${{ elseif eq(parameters.os, 'ubuntu') }}:
-      PKG_MGR_UPGRADE_CMD: 'sudo apt-get upgrade -y'
+      PKG_MGR_UPGRADE_CMD: 'apt-get upgrade -y'
