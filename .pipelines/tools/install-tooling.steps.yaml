@@ -170,7 +170,7 @@ steps: #
             printVersion: true
             versionCmd: 'podman version'
             postInstall:
-            - template: podman.post-install.steps.yaml
+            - template: podman/post-install.steps.yaml
             #- bash: |
                 #set -e
                 #ls -l /usr/share/containers/
