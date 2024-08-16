@@ -1,0 +1,59 @@
+###################################
+#### SELECT UNIT TEST TEMPLATE ####
+###################################
+# Description:
+# Contructs a job to run ACN unit tests. These are based on the system running
+# the tests. This is the main entrypoint file for this module.
+
+parameters:
+
+#### Public Parameters ####
+
+# The unit test selection. This name is based off of the system running the
+# unit tests. If this changes in the future, we will want to add additional
+# information to the base class template (template.unit-tests.jobs.yaml).
+- name: testGroup
+  type: string
+  values:
+  - windows
+  - ubuntu
+  - mariner
+
+
+jobs:
+
+#### Create Unit Test Job ####
+
+- template: defs/template.unit-tests.jobs.yaml
+  parameters:
+    testJobs:
+    - ${{ if eq(parameters.testGroup, 'windows') }}:
+      ## Create Windows Unit Test Job
+      - template: defs/windows.jobs.yaml
+
+    - ${{ elseif eq(parameters.testGroup, 'ubuntu') }}:
+      ## Create Ubuntu Unit Test Job
+      - template: defs/ubuntu.jobs.yaml
+
+    - ${{ elseif eq(parameters.testGroup, 'mariner') }}:
+      ## Create Mariner Unit Test Job
+      - template: defs/mariner.jobs.yaml
+
+    - ${{ else }}:
+      ## Error - Not Implemented
+      # We shouldn't ever run into this as the testGroup is defined by the
+      # restricted parameters value set above. However, if we feel that the
+      # error messages we recieve from pipelines is too obtuse, we should
+      # remove the restriction and allow this job to be generated.
+      - job:
+        displayName: 'Error Running Unit Tests'
+        pool:
+          type: linux
+        steps:
+        - template: /cicd/pkg/errors/template.main.steps.yaml@self
+          parameters:
+            displaySuffix: '${{ parameters.testGroup }}'
+            message: 'Invalid unittest group selection.'
+            details:
+              originator: 'unittests.steps.yaml'
+              testGroup: '${{ parameters.testGroup }}'

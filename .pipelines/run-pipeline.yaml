@@ -9,60 +9,65 @@ stages:
   displayName: Run ACN Unit Tests
   dependsOn:
   - setup
+  variables:
+    STORAGE_ID: $[ stageDependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
   jobs:
-  - template: /.pipelines/templates/unittests.jobs.yaml
+  - template: /.pipelines/unittests/template.select-test.jobs.yaml
     parameters:
       testGroup: windows
 
-  - template: /.pipelines/templates/unittests.jobs.yaml
+  - template: /.pipelines/unittests/template.select-test.jobs.yaml
     parameters:
       testGroup: mariner
 
-  - template: /.pipelines/templates/unittests.jobs.yaml
+  - template: /.pipelines/unittests/template.select-test.jobs.yaml
     parameters:
       testGroup: ubuntu
 
-#  - stage: binaries
-#    displayName: Build Binaries
-#    dependsOn:
-#    - setup
-#    - test
-#    jobs:
-#    - job: build
-#      displayName: Build Binaries
-#      variables:
-#        STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
-#      pool:
-#        type: linux
-#      steps:
-#      - checkout: azure-container-networking
-#
-#      - script: |
-#          make ipv6-hp-bpf-lib
-#          make all-binaries-platforms
-#        name: "BuildAllPlatformBinaries"
-#        displayName: "Build all platform binaries"
-#
-#      - script: |
-#          mkdir -p ./output/bins
-#          cd ./output
-#          find . -name '*.tgz' -print -exec mv -t ./bins/ {} +
-#          find . -name '*.zip' -print -exec mv -t ./bins/ {} +
-#          shopt -s extglob
-#          rm -rf !("bins")
-#        name: "PrepareArtifacts"
-#        displayName: "Prepare Artifacts"
-#
-#      - task: CopyFiles@2
-#        inputs:
-#          sourceFolder: "output"
-#          targetFolder: $(Build.ArtifactStagingDirectory)
-#
-#      - task: PublishPipelineArtifact@1
-#        inputs:
-#          artifactName: drop_binaries_build
-#          targetPath: "$(Build.ArtifactStagingDirectory)"
-#          publishLocation: 'pipeline'
+
+- stage: binaries
+  displayName: Build Binaries
+  dependsOn:
+  - setup
+  - test
+  jobs:
+  - job: build
+    displayName: Build Binaries
+    variables:
+      STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
+      ob_outputDirectory: $(Build.ArtifactStagingDirectory)
+    pool:
+      type: linux
+    steps:
+    - checkout: azure-container-networking
+
+    - script: |
+        make ipv6-hp-bpf-lib
+        make all-binaries-platforms
+      name: "BuildAllPlatformBinaries"
+      displayName: "Build all platform binaries"
+
+    - script: |
+        mkdir -p ./output/bins
+        cd ./output
+        find . -name '*.tgz' -print -exec mv -t ./bins/ {} +
+        find . -name '*.zip' -print -exec mv -t ./bins/ {} +
+        shopt -s extglob
+        rm -rf !("bins")
+      name: "PrepareArtifacts"
+      displayName: "Prepare Artifacts"
+
+    - task: CopyFiles@2
+      inputs:
+        sourceFolder: "output"
+        targetFolder: $(Build.ArtifactStagingDirectory)
+
+    # The artifact upload is performed automatically.
+    #- task: PublishPipelineArtifact@1
+    #  inputs:
+    #    artifactName: drop_binaries_build
+    #    targetPath: "$(Build.ArtifactStagingDirectory)"
+    #    publishLocation: 'pipeline'
 
 #  - stage: containerize
 #    displayName: Build Images

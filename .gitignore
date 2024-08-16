@@ -8,6 +8,7 @@ ipam-*.xml
 
 # Environment
 .vscode/*
+*.sw?
 
 # Coverage 
 *.out

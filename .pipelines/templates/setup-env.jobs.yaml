@@ -11,13 +11,11 @@ jobs:
   steps:
   - checkout: azure-container-networking
  
-  - template: /.pipelines/tools/install-tooling.steps.yaml
+  - template: /cicd/pkg/toolsets/template.toolset.steps.yaml@self
     parameters:
       os: mariner
       install:
-      - buildah
-      - podman
-      - skopeo
+      - docker
 
   - script: |
       set -e
@@ -25,6 +23,9 @@ jobs:
       pushd "$ACN_DIR"
         ls -al
         BUILD_NUMBER="${BUILD_BUILDNUMBER//./-}"
+        export CONTAINER_BUILDER=docker
+        export CONTAINER_RUNTIME=docker
+        export CONTAINER_TRANSPORT=docker
         COMMIT_ID=""$(make revision)"-"$(date "+%d%H%M")""
         VERSION_TAG="$(make version)"
         NPM_VERSION="$(make npm-version)"

@@ -1,0 +1,54 @@
+###########################
+#### Windows UnitTests ####
+###########################
+# Description:
+# Concrete implementation of the template.unit-test.jobs.yaml class. Creates
+# steps for running the full ACN suite on a Windows system.
+#
+
+jobs:
+
+- job: windows
+  displayName: "Windows"
+  pool:
+    type: windows
+  variables:
+    WindowsContainerImage: $(WindowsContainerImage)
+  steps:
+
+  - checkout: azure-container-networking
+
+  - template: /cicd/pkg/toolsets/template.installer.steps.yaml@self
+    parameters:
+      os: 'windows'
+      toolset: golang-basic
+
+  - bash: |
+      set -e
+      sudo netstat -tulpn
+      pushd "$ACN_PATH"
+        make tools
+      popd
+    displayName: "Make Test Tools"
+
+  - task: Go@0
+    retryCountOnTaskFailure: 3
+    displayName: "Run Unit Tests (Windows)"
+    inputs:
+      command: 'test'
+      arguments: '-mod=readonly -coverprofile=coverage.out ./...'
+      workingDirectory: '$(ACN_PATH)/npm'
+
+  - bash: |
+      set -e
+      pushd "$ACN_PATH"
+         ./build/tools/go-junit-report -in coverage.out -iocopy -out "$OB_OUTPUTDIRECTORY/report-ubuntu.xml"
+      popd
+    displayName: 'Generate XML Coverage Report'
+
+  # This task is performed automatically
+  #
+  #- task: PublishPipelineArtifact@1
+  #  inputs:
+  #    artifactName: report-ubuntu
+  #    pathtoPublish: '$(ACN_PATH)/report-mariner.xml'
