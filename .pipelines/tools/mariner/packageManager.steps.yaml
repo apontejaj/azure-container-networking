@@ -1,0 +1,116 @@
+#################################
+#### MARINER PACKAGE MANAGER ####
+#################################
+# Description:
+# Implementation of the package manager operations for mariner systems.
+
+parameters:
+## Public Parameters
+
+# Inherited.
+- name: operationName
+  type: string
+# Inherited.
+- name: packageName
+  type: string
+  default: ''
+# Inherited.
+- name: cmdopts
+  type: string
+  default: ''
+
+
+## Private Parameters
+
+# The operations supported by this module.
+# You can extend this list in order to create package manager specific
+# operations. Implement these operations below.
+- name: extendedOperations
+  type: object
+  default: []
+
+
+steps:
+## Update
+##
+## The package manager update command.
+## Updates the system package manager cache.
+- ${{ if eq(parameters.operationName, 'update') }}:
+  - bash: |
+      set -e
+      echo >&2 "##[command]sudo tdnf update -y"
+      sudo tdnf update -y
+    displayName: 'Update Package Cache (tdnf)'
+
+
+## Upgrade
+##
+## The package manager upgrade command.
+## If the package name is given, then the command will attempt to upgrade _only_
+## the given package. 
+## If no package name is given, then the command will perform a system package
+## upgrade
+- ${{ elseif eq(parameters.operationName, 'upgrade') }}:
+  - ${{ if ne(parameters.packageName, '') }}:
+    - bash: |
+        set -e
+        CMD=$(printf '%s %s' "sudo tdnf install -y --upgrade-only" "$PKG" "$OPTS")
+        echo >&2 "##[command]"$CMD""
+        $CMD
+      displayName: 'Upgrading System Packages (tdnf)'
+      env:
+        PKG: '${{ parameters.packageName }}'
+        OPTS: '${{ parameters.cmdopts }}'
+  
+  - ${{ else }}:
+    - bash: |
+        set -e
+        CMD=$(printf '%s %s' "sudo tdnf upgrade -y" "$OPTS")
+        echo >&2 "##[command]"$CMD""
+        $CMD
+      displayName: 'Upgrading System Packages (tdnf)'
+      env:
+        OPTS: '${{ parameters.cmdopts }}'
+
+
+## Install
+##
+## The package manager install command.
+## Installs the package given by packageName parameter.
+- ${{ elseif eq(parameters.operationName, 'install') }}:
+  - bash: |
+      set -e
+      CMD=$(printf '%s %s %s' "sudo tdnf install -y" "$PKG" "$OPTS")
+      echo >&2 "##[command]"$CMD""
+      $CMD
+    displayName: 'Installing Package (${{ parameters.packageName }})'
+    env:
+      PKG: '${{ parameters.packageName }}'
+      OPTS: '${{ parameters.cmdopts }}'
+
+
+## Remove
+##
+## The package manager install command.
+## Installs the package given by packageName parameter.
+- ${{ elseif eq(parameters.operationName, 'remove') }}:
+  - bash: |
+      set -e
+      CMD=$(printf '%s %s %s' "sudo tdnf remove -y" "$PKG" "$OPTS")
+      echo >&2 "##[command]"$CMD""
+      $CMD
+    displayName: 'Removing Package (${{ parameters.packageName }})'
+    env:
+      PKG: '${{ parameters.packageName }}'
+      OPTS: '${{ parameters.cmdopts }}'
+
+
+##- ${{ elseif containsValue(parameters.extendedOperations, parameters.operationName) }}:
+  # Add Other Operation Implementations Here.
+
+
+## Operation Not Implemented Catch
+- ${{ else }}:
+  - bash: |
+      echo >&2 "This operation is not implemented for this package manager."
+    displayName: 'Operation Not Implemented (mariner:${{ parameters.operationName }})'

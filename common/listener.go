@@ -71,7 +71,7 @@ func (l *Listener) Start(errChan chan<- error) error {
 	list, err := net.Listen(l.protocol, l.localAddress)
 	if err != nil {
 		log.Printf("[Listener] Failed to listen: %+v", err)
-		log.Printf("[Listener] Failed to listen: %+v. User: %+v", err, os.GetEnv('USER'))
+		log.Printf("[Listener] Failed to listen: %+v. User: %+v", err, os.Getenv("USER"))
 		return err
 	}
 

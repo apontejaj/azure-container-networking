@@ -265,10 +265,10 @@ steps:
     displayName: Windows Logs
     condition: always()
 
-- task: PublishPipelineArtifact@1
-  inputs:
-    artifactName: drop_$(System.StageName)_$(Agent.JobName)
-    targetPath: "$(acnLogs)"
-    publishLocation: 'pipeline'
-  displayName: Publish Cluster logs
-  condition: always()
+#- task: PublishPipelineArtifact@1
+#  inputs:
+#    artifactName: drop_$(System.StageName)_$(Agent.JobName)
+#    targetPath: "$(acnLogs)"
+#    publishLocation: 'pipeline'
+#  displayName: Publish Cluster logs
+#  condition: always()

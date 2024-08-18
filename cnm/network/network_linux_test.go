@@ -70,7 +70,7 @@ func TestMain(m *testing.M) {
 	})
 
 	if err != nil {
-		fmt.Printf("Failed to create test network interface, err:%v.\n", err)
+		fmt.Printf("Failed to create test network interface, err:%v. user:%v\n", err, os.Getenv("USER"))
 		os.Exit(3)
 	}
 

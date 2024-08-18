@@ -1,0 +1,92 @@
+##################################
+#### PACKAGE MANAGER TEMPLATE ####
+##################################
+# Description:
+# The package manager template is the base template for any operating system
+# that we are required to support needs to implement in order to install
+# packages to our test build system.
+
+parameters:
+## Public Parameters
+
+# Required.
+# The operating system you would like to execute package manager command for.
+- name: os
+  type: string
+
+# Required.
+# The name of the package manager operation to invoke.
+# All package managers should _at least_ implement the following:
+# - install
+# - remove
+# - update
+# - upgrade
+- name: operationName
+  type: string
+
+# The name of the package for which to invoke the package manager operation.
+- name: packageName
+  type: string
+  default: ''
+
+# The command line arguments to add to the package manager command when using
+# the package manager.
+# This can be converted to an object if we need to support more complex 
+# scenarios.
+- name: cmdopts
+  type: string
+  default: ''
+
+# The arguments to pass to the package manager operation template.
+# What variables are required here are determined by the template that is used.
+- name: opts
+  type: object
+  default: {}
+
+# The list of steps to execute before the operation starts.
+- name: preOperation
+  type: stepList
+  default: []
+
+# The list of steps to execute after the operation completes.
+- name: postOperation
+  type: stepList
+  default: []
+
+
+## Private Parameters
+
+# The list of OS values that we support for managing 
+# packages.
+# This value is not meant to be updated except in the case that we need to
+# expand our os testing capabilities.
+- name: supportedOs
+  type: string
+  default:
+  - windows
+  - ubuntu
+  - mariner
+
+
+steps:
+- ${{ each step in parameters.preOperation }}:
+  - ${{ step }}
+
+## Package Manager Operation
+- ${{ if containsValue(parameters.supportedOs, parameters.os) }}:
+  - template: '${{ parameters.os }}/packageManager.steps.yaml'
+    parameters:
+      operationName: ${{ parameters.operationName }}
+      packageName: ${{ parameters.packageName }}
+      opts: ${{ parameters.opts }}
+      pkgopts: ${{ parameters.pkgopts }}
+
+- ${{ else }}:
+  - bash: |
+      echo >&2 "##[error]The operation you selected ("$OP") is not implemented for your selected OS."
+    displayName: 'Unsupported OS Package Manager Request (${{ parameters.os }})'
+    env:
+      OP: '${{ parameters.os }}'
+
+- ${{ each step in parameters.postOperation }}:
+  - ${{ step }}
