@@ -20,14 +20,15 @@ jobs:
 
   - template: /cicd/pkg/toolsets/template.installer.steps.yaml@self
     parameters:
-      os: 'mariner'
+      os: mariner
       toolset: docker-utilities
 
   - template: /cicd/pkg/toolsets/template.toolset.steps.yaml@self
     parameters:
-      os: 'mariner'
+      os: mariner
       install:
       - netstat
+      - lsof
 
   - bash: |
       #set -e
