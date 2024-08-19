@@ -27,7 +27,7 @@ jobs:
     parameters:
       os: mariner
       install:
-      - netstat
+      - nettools
       - lsof
 
   - bash: |
@@ -40,6 +40,10 @@ jobs:
       sudo lsof -i :42424
       echo "netstat:"
       netstat -tulpn
+      echo "files:"
+      ls -al /run/docker/plugins
+      echo "docker plugin ls:"
+      docker plugin ls
     displayName: "Make Test Tools"
 
   - bash: |
@@ -59,7 +63,7 @@ jobs:
     displayName: "Run Unit Tests (Mariner)"
     inputs:
       command: 'test'
-      arguments: "-mod=readonly -buildvcs=false -tags 'unit' --skip 'TestE2E*' -coverpkg=$(COVERAGE_FILTER) -race -covermode atomic -coverprofile=coverage.out -p 1 ./..."
+      arguments: "-mod=readonly -buildvcs=false -tags 'unit' --skip 'TestE2E*' -coverpkg=$(COVERAGE_FILTER) -race -covermode atomic -coverprofile=coverage.out ./..."
       workingDirectory: '$(ACN_PATH)'
 
   - bash: |

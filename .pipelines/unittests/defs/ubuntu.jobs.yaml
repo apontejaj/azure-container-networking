@@ -27,7 +27,8 @@ jobs:
     parameters:
       os: ubuntu
       install:
-      - netstat
+      - nettools
+      - lsof
 
   - bash: |
       #set -e
@@ -55,6 +56,7 @@ jobs:
 
   - bash: |
       set -e
+      netstat -tulpn
       pushd "$ACN_PATH"
          ./build/tools/go-junit-report -in coverage.out -iocopy -out "$OB_OUTPUTDIRECTORY/report-ubuntu.xml"
       popd
