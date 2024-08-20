@@ -20,7 +20,9 @@ jobs:
 
   - template: /cicd/pkg/toolsets/template.installer.steps.yaml@self
     parameters:
-      os: 'windows'
+      os: windows
+      upgradeAll: false
+      updateCache: false
       toolset: golang-basic
 
   - bash: |

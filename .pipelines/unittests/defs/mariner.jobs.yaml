@@ -27,7 +27,7 @@ jobs:
     parameters:
       os: mariner
       install:
-      - nettools
+      - net-tools
       - lsof
 
   - bash: |

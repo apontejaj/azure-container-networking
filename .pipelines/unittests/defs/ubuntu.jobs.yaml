@@ -27,7 +27,7 @@ jobs:
     parameters:
       os: ubuntu
       install:
-      - nettools
+      - net-tools
       - lsof
 
   - bash: |
