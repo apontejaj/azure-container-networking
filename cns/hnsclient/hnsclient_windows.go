@@ -52,6 +52,8 @@ const (
 	// Name of the loopback adapter needed to create Host NC apipa network
 	hostNCLoopbackAdapterName = "LoopbackAdapterHostNCConnectivity"
 
+	defaultHnsGwIPAddress       = "169.254.128.2"
+	hnsLoopbackAdapterIPAddress = "169.254.128.1"
 	// protocolTCP indicates the TCP protocol identifier in HCN
 	protocolTCP = "6"
 
@@ -297,7 +299,7 @@ func createHostNCApipaNetwork(
 		if interfaceExists, _ := networkcontainers.InterfaceExists(hostNCLoopbackAdapterName); !interfaceExists {
 			ipconfig := cns.IPConfiguration{
 				IPSubnet: cns.IPSubnet{
-					IPAddress:    localIPConfiguration.GatewayIPAddress,
+					IPAddress:    hnsLoopbackAdapterIPAddress,
 					PrefixLength: localIPConfiguration.IPSubnet.PrefixLength,
 				},
 				GatewayIPAddress: localIPConfiguration.GatewayIPAddress,
@@ -569,6 +571,9 @@ func CreateHostNCApipaEndpoint(
 		return endpoint.Id, nil
 	}
 
+	if localIPConfiguration.GatewayIPAddress == "169.254.128.1" {
+		localIPConfiguration.GatewayIPAddress = defaultHnsGwIPAddress
+	}
 	if network, err = createHostNCApipaNetwork(localIPConfiguration); err != nil {
 		logger.Errorf("[Azure CNS] Failed to create HostNCApipaNetwork. Error: %v", err)
 		return "", err
