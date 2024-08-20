@@ -13,7 +13,7 @@ jobs:
   pool:
     type: linux
   variables:
-    LinuxContainerImage: $(LinuxContainerImage2)
+    LinuxContainerImage: onebranch.azurecr.io/linux/ubuntu-2204:latest
   steps:
 
   - checkout: azure-container-networking
