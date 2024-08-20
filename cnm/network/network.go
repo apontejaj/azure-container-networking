@@ -4,6 +4,7 @@
 package network
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"time"
@@ -47,13 +48,16 @@ type NetPlugin interface {
 // NewPlugin creates a new NetPlugin object.
 func NewPlugin(config *common.PluginConfig) (NetPlugin, error) {
 	// Setup base plugin.
+	fmt.Printf("Setting up base plugin.")
 	plugin, err := cnm.NewPlugin(name, config.Version, endpointType)
 	if err != nil {
 		return nil, err
 	}
 
+	fmt.Printf("Setting up new net link.")
 	nl := netlink.NewNetlink()
 	// Setup network manager.
+	fmt.Printf("Setting up network manager.")
 	nm, err := network.NewNetworkManager(nl, platform.NewExecClient(nil), &netio.NetIO{}, network.NewNamespaceClient(), iptables.NewClient())
 	if err != nil {
 		return nil, err
