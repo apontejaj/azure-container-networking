@@ -41,9 +41,9 @@ jobs:
       echo "netstat:"
       netstat -tulpn
       echo "files:"
-      ls -al /run/docker/plugins
+      sudo ls -al /run/docker/plugins
       echo "docker plugin ls:"
-      docker plugin ls
+      sudo docker plugin ls
     continueOnError: true
     displayName: "Make Test Tools"
     

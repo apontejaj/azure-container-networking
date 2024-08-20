@@ -33,6 +33,7 @@ jobs:
   - bash: |
       #set -e
       #sudo netstat -tulpn
+      uname -a
       pushd "$ACN_PATH"
         make tools
       popd

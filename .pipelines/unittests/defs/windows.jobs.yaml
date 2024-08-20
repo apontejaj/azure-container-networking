@@ -43,7 +43,10 @@ jobs:
   - bash: |
       set -e
       pushd "$ACN_PATH"
-         ./build/tools/go-junit-report -in coverage.out -iocopy -out "$OB_OUTPUTDIRECTORY/report-windows.xml"
+         ls -la 
+         ls -la build/
+         ls -la build/tools
+         build/tools/go-junit-report.exe -in coverage.out -iocopy -out "$OB_OUTPUTDIRECTORY/report-windows.xml"
       popd
     displayName: 'Generate XML Coverage Report'
 

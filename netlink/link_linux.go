@@ -56,6 +56,7 @@ type LinkInfo struct {
 }
 
 func (linkInfo *LinkInfo) Info() *LinkInfo {
+	fmt.Printf("LinkInfo: %v, %v, %v, %v", linkInfo.Type, linkInfo.Name, linkInfo.Flags, linkInfo.IPAddr)
 	return linkInfo
 }
 
