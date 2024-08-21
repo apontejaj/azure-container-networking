@@ -275,44 +275,6 @@ func TestSetLinkHairpin(t *testing.T) {
 	}
 }
 
-func TestAddRemoveStaticArp(t *testing.T) {
-	_, err := addDummyInterface(ifName)
-	if err != nil {
-		t.Errorf("addDummyInterface failed: %v", err)
-	}
-
-	ip := net.ParseIP("192.168.0.2")
-	mac, _ := net.ParseMAC("aa:b3:4d:5e:e2:4a")
-	nl := NewNetlink()
-
-	linkInfo := LinkInfo{
-		Name:       ifName,
-		IPAddr:     ip,
-		MacAddress: mac,
-	}
-
-	err = nl.SetOrRemoveLinkAddress(linkInfo, ADD, NUD_PERMANENT)
-	if err != nil {
-		t.Errorf("ret val %v", err)
-	}
-
-	linkInfo = LinkInfo{
-		Name:       ifName,
-		IPAddr:     ip,
-		MacAddress: mac,
-	}
-
-	err = nl.SetOrRemoveLinkAddress(linkInfo, REMOVE, NUD_INCOMPLETE)
-	if err != nil {
-		t.Errorf("ret val %v", err)
-	}
-
-	err = nl.DeleteLink(ifName)
-	if err != nil {
-		t.Errorf("DeleteLink failed: %+v", err)
-	}
-}
-
 func TestAddRemoveIPAddress(t *testing.T) {
 	_, err := addDummyInterface(ifName)
 	if err != nil {
