@@ -922,6 +922,7 @@ func createFunctionWithFailurePattern(errorPattern []error) func() error {
 }
 
 func TestRunWithRetries(t *testing.T) {
+	t.Fail()
 	errMock := errors.New("mock error")
 	runs := 4
 
