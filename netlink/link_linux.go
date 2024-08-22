@@ -437,11 +437,12 @@ func (Netlink) SetOrRemoveLinkAddress(linkInfo LinkInfo, mode, linkState int) er
 		req = newRequest(unix.RTM_DELNEIGH, unix.NLM_F_ACK)
 	}
 	state = linkState
-
+	log.Printf("[net] Getting interface")
 	iface, err := net.InterfaceByName(linkInfo.Name)
 	if err != nil {
 		return err
 	}
+	log.Printf("[net] Got interface")
 
 	msg := neighMsg{
 		Family: uint8(GetIPAddressFamily(linkInfo.IPAddr)),
@@ -461,6 +462,7 @@ func (Netlink) SetOrRemoveLinkAddress(linkInfo LinkInfo, mode, linkState int) er
 
 	hwData := newRtAttr(NDA_LLADDR, []byte(linkInfo.MacAddress))
 	req.addPayload(hwData)
+	log.Printf("[net] Waiting for ack")
 
 	return s.sendAndWaitForAck(req)
 }

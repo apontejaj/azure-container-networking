@@ -293,7 +293,7 @@ func TestAddRemoveStaticArp(t *testing.T) {
 
 	err = nl.SetOrRemoveLinkAddress(linkInfo, ADD, NUD_PERMANENT)
 	if err != nil {
-		t.Errorf("ret val %v", err)
+		t.Errorf("ret val a %v", err)
 	}
 
 	linkInfo = LinkInfo{
@@ -304,7 +304,7 @@ func TestAddRemoveStaticArp(t *testing.T) {
 
 	err = nl.SetOrRemoveLinkAddress(linkInfo, REMOVE, NUD_INCOMPLETE)
 	if err != nil {
-		t.Errorf("ret val %v", err)
+		t.Errorf("ret val b %v", err)
 	}
 
 	err = nl.DeleteLink(ifName)
