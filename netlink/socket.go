@@ -91,6 +91,7 @@ func (s *socket) send(msg *message) error {
 	msg.Seq = atomic.AddUint32(&s.seq, 1)
 	err := unix.Sendto(s.fd, msg.serialize(), 0, &s.sa)
 	log.Debugf("[netlink] Sent %+v, err=%v\n", *msg, err)
+	log.Printf("[net] Send netlink message")
 	return err
 }
 
@@ -98,17 +99,19 @@ func (s *socket) send(msg *message) error {
 func (s *socket) sendAndWaitForResponse(msg *message) ([]*message, error) {
 	s.Lock()
 	defer s.Unlock()
-
+	log.Printf("[net] Waiting for response")
 	err := s.send(msg)
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("[net] Waiting for receive response")
 
 	return s.receiveResponse(msg)
 }
 
 // Sends a netlink message and blocks until its ack is received.
 func (s *socket) sendAndWaitForAck(msg *message) error {
+	log.Printf("[net] Waiting for ack 2")
 	_, err := s.sendAndWaitForResponse(msg)
 	return err
 }
