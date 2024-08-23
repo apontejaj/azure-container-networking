@@ -302,7 +302,7 @@ func createHostNCApipaNetwork(
 					IPAddress:    hnsLoopbackAdapterIPAddress,
 					PrefixLength: localIPConfiguration.IPSubnet.PrefixLength,
 				},
-				GatewayIPAddress: localIPConfiguration.GatewayIPAddress,
+				GatewayIPAddress: hnsLoopbackAdapterIPAddress,
 			}
 			logger.Printf("Print interfaces before creating loopback adapter")
 			LogNetworkInterfaces()
