@@ -6,7 +6,7 @@ parameters:
   type: string
 
 jobs:
-- job: linuxContainers # build linux images
+- job: 
   variables:
     ob_git_checkout: true
     ob_build_container: true
