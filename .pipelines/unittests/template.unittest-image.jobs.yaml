@@ -1,0 +1,54 @@
+parameters:
+- name: os
+  type: string
+
+- name: arch
+  type: string
+
+jobs:
+- job: linuxContainers # build linux images
+  variables:
+    ob_git_checkout: true
+    ob_build_container: true
+    ob_enable_qemu: true
+  pool:
+    type: docker
+    os: linux
+  steps:
+#  - task: DownloadPipelineArtifact@2
+#    displayName: '🔒 Download artifacts'
+#    inputs:
+#      targetPath: $(Build.SourcesDirectory)/dst/
+#      artifact: drop_build_main
+    
+  - task: onebranch.pipeline.containercontrol@1
+    displayName: "Login to OneBranch acr"
+    inputs:
+      command: login
+      acr_name: $(ISOLATED_ACR_NAME)
+    
+  - task: onebranch.pipeline.imagebuildinfo@1
+    inputs:
+      repositoryName: cicd/unittest-build
+      dockerFileRelPath: .pipelines/Dockerfile
+      dockerFileContextPath: .
+      registry: $(ISOLATED_ACR_NAME).azurecr.io
+      saveImageToPath: unittest-build_linux_${{ parameters.os }}_${{ parameters.arch }}.tar
+      saveMetadataToPath: unittest-build_linux_${{ parameters.os }}_${{ parameters.arch }}-metadata.json
+      buildkit: 1
+      arguments: --target unittestbuild --privileged 
+      build_tag: $(Build.BuildNumber)
+      addPipelineData: true
+      enable_network: true
+      compress: true
+      enable_isolated_acr_push: true
+    
+#    task: onebranch.pipeline.imagebuildinfo@1
+#    inputs:
+#      repositoryName: contosovlinuxsidecar1
+#      dockerFileRelPath: drop_build_main/linux-sidecar/Dockerfile
+#      dockerFileContextPath: drop_build_main/linux-sidecar/
+#      registry: cdpxlinux.azurecr.io
+#      saveImageToPath: contosovlinuxsidecar1.tar.gz
+#      build_tag: $(Build.BuildNumber)
+#      compress: true

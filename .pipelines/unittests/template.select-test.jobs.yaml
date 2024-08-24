@@ -22,6 +22,11 @@ parameters:
 
 jobs:
 
+- template: template.unittest-image.jobs.yaml
+  parameters:
+    os: ubuntu
+    arch: amd64 
+
 #### Create Unit Test Job ####
 
 - template: defs/template.unit-tests.jobs.yaml
