@@ -13,6 +13,7 @@ jobs:
     ob_build_container: true
     ob_enable_qemu: true
     ob_docker_source_rel_path: $(Build.SourcesDirectory)
+    ob_docker_artifacts_copy_hidden: true
   pool:
     type: linux
   steps:
