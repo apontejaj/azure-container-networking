@@ -21,11 +21,15 @@ jobs:
 #      targetPath: $(Build.SourcesDirectory)/dst/
 #      artifact: drop_build_main
     
-  - task: onebranch.pipeline.containercontrol@1
-    displayName: "Login to OneBranch acr"
+#  - task: onebranch.pipeline.containercontrol@1
+#    displayName: "Login to OneBranch acr"
+#    inputs:
+#      command: login
+#      acr_name: acndev
+  - task: Docker@2
     inputs:
+      containerRegistry: 'b1e99cac-0bc0-4ba4-847f-199e930890ef'
       command: login
-      acr_name: acndev
     
   - task: onebranch.pipeline.imagebuildinfo@1
     inputs:
