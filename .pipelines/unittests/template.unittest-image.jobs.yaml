@@ -25,14 +25,14 @@ jobs:
     displayName: "Login to OneBranch acr"
     inputs:
       command: login
-      acr_name: ${{ variables.ISOLATED_ACR_NAME }}
+      acr_name: ${{ variables.ACN_TEST_ACR }}
     
   - task: onebranch.pipeline.imagebuildinfo@1
     inputs:
       repositoryName: cicd/unittest-build
       dockerFileRelPath: .pipelines/Dockerfile
       dockerFileContextPath: .
-      registry: $(ISOLATED_ACR_NAME).azurecr.io
+      registry: ${{ variables.ACN_TEST_ACR_NAME }}.azurecr.io
       saveImageToPath: unittest-build_linux_${{ parameters.os }}_${{ parameters.arch }}.tar
       saveMetadataToPath: unittest-build_linux_${{ parameters.os }}_${{ parameters.arch }}-metadata.json
       buildkit: 1
