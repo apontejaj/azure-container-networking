@@ -31,36 +31,32 @@ jobs:
   steps:
   - bash: |
       set -e
-      ACN_BUILD_PARAMETERS="{}"
       # Get Build Reason
       ACN_BUILD_REASON=$(echo -n "$BUILD_REASON")
-        echo $ACN_BUILD_PARAMETERS | jq .
       echo >&2 "$ACN_BUILD_REASON"
       # Get ACN Git Ref
       ACN_BUILD_AZURE_ACN_GIT_REF=$(git rev-parse HEAD)
-        echo $ACN_BUILD_PARAMETERS | jq .
       echo >&2 "$ACN_BUILD_AZURE_ACN_GIT_REF"
       # Get Queuer
       ACN_BUILD_QUEUEDBY="$BUILD_QUEUEDBY"
-        echo $ACN_BUILD_PARAMETERS | jq .
-      echo >&2 "$ACN_BUILD_AZURE_ACN_GIT_REF"
+      echo >&2 "$ACN_BUILD_QUEUEDBY"
       # Get Source Branch
       ACN_BUILD_SOURCE_BRANCH="$BUILD_SOURCEBRANCH"
-        echo $ACN_BUILD_PARAMETERS | jq .
-      echo >&2 "$ACN_BUILD_AZURE_ACN_GIT_REF"
-      ACN_BUILD_PARAM_STR=$(echo $ACN_BUILD_REASON | jq -cr .)
+      echo >&2 "$ACN_BUILD_SOURCE_BRANCH"
+
       ACN_BUILD_PARAMETERS=$(echo '{ "TriggerDetails": {} }' | jq  -cr \
       --arg REASON="$ACN_BUILD_REASON" \
       --arg REF="$ACN_BUILD_AZURE_ACN_GIT_REF" \
       --arg BRANCH="$ACN_BUILD_SOURCE_BRANCH" \
-      --arg QUEUEDBY="$ACN_BUILD_QUEUEDBY" -cr \
+      --arg QUEUEDBY="$ACN_BUILD_QUEUEDBY" \
       '.TriggerDetails = { reason: "$REASON", ref: "$REF", queuedBy: "$QUEUEDBY", sourceBranch: "$BRANCH" }')
-      # Get Build Reason
+
+      # Switch Pipeline on Build Reason
       if [[ $ACN_BUILD_REASON =~ ^PullRequest$ ]]; then
         echo >&2 "Triggering Pull Request build for $(Build.SourceBranch)..."
 
         echo >&2 "##vso[task.setvariable variable=pipelineDefinition]NonOfficial-Test"
-        echo >&2 "##vso[task.setvariable variable=templateParameters]$ACN_BUILD_PARAM_STR"
+        echo >&2 "##vso[task.setvariable variable=templateParameters]$ACN_BUILD_PARAMETERS"
         echo $ACN_BUILD_PARAMETERS | jq .
 
       else
