@@ -44,11 +44,18 @@ jobs:
       ACN_BUILD_AZURE_ACN_GIT_REF=$(git rev-parse HEAD)
       ACN_BUILD_PARAMETERS=$(echo "$ACN_BUILD_PARAMETERS" | jq --arg REF="$ACN_BUILD_AZURE_ACN_GIT_REF" -cr '.ref = "$REF"')
       echo >&2 "$ACN_BUILD_AZURE_ACN_GIT_REF"
+      # Get Queuer
+      ACN_BUILD_QUEUEDBY="$BUILD_QUEUEDBY"
+      ACN_BUILD_PARAMETERS=$(echo "$ACN_BUILD_PARAMETERS" | jq --arg QUEUEDBY="$ACN_BUILD_QUEUEDBY" -cr '.queuedBy = "$QUEUEDBY"')
+      echo >&2 "$ACN_BUILD_AZURE_ACN_GIT_REF"
+      # Get Source Branch
+      ACN_BUILD_SOURCE_BRANCH="$BUILD_SOURCEBRANCH"
+      ACN_BUILD_PARAMETERS=$(echo "$ACN_BUILD_PARAMETERS" | jq --arg BRANCH="$ACN_BUILD_SOURCE_BRANCH" -cr '.sourceBranch = "$BRANCH"')
+      echo >&2 "$ACN_BUILD_AZURE_ACN_GIT_REF"
       ACN_BUILD_PARAM_STR=$(echo $ACN_BUILD_REASON | jq -cr .)
       # Get Build Reason
       if [[ $ACN_BUILD_REASON =~ ^PullRequest$ ]]; then
         echo >&2 "Triggering Pull Request build for $(Build.SourceBranch)..."
-        
 
         echo >&2 "##vso[task.setvariable variable=pipelineDefinition]NonOfficial-Test"
         echo >&2 "##vso[task.setvariable variable=templateParameters]$ACN_BUILD_PARAM_STR"
@@ -57,6 +64,9 @@ jobs:
         echo >&2 "##[error]Unable to accomodate build reason: "$ACN_BUILD_REASON""
         exit 1
       fi
+      echo "${BUILD_QUEUEDBY}"
+      echo "${BUILD_REASON}" # manual, PR, IndividualCI
+      echo "${BUILD_SOURCEBRANCH}"
 
   - task: TriggerBuild@4
     displayName: Trigger Compliant Build
@@ -79,3 +89,40 @@ jobs:
       waitForQueuedBuildsToFinishRefreshTime: 120
       ignoreSslCertificateErrors: false
       templateParameters: $(templateParameters)
+
+
+#  - task: TriggerBuild@4
+#    displayName: 'Trigger Build'
+#    inputs:
+#      #definitionIsInCurrentTeamProject: true
+#      #buildDefinition: $(pipelineDefinition)
+#      #queueBuildForUserThatTriggeredBuild: false
+#      ignoreSslCertificateErrors: false
+#      useSameSourceVersion: false
+#      useCustomSourceVersion: false
+#      useSameBranch: false
+#      branchToUse: 'master'
+#      storeInEnvironmentVariable: true
+#      authenticationMethod: 'OAuth Token'
+#      password: $(System.AccessToken)
+#      enableBuildInQueueCondition: true
+#      dependentOnSuccessfulBuildCondition: true
+#      dependentOnFailedBuildCondition: false
+#      checkBuildsOnCurrentBranch: false
+#      failTaskIfConditionsAreNotFulfilled: true
+#      templateParameters: '$(templateParameters)'
+#      #
+#      definitionIsInCurrentTeamProject: false
+#      # $(ADO_COMPLIANT_BUILD_PROJECT_URI)
+#      tfsServer: 'https://msazure.visualstudio.com/DefaultCollection'
+#      # $(ADO_COMPLIANT_BUILD_ORG)
+#      teamProject: 'One'
+#      # $(ADO_COMPLIANT_PIPELINE_ID)
+#      buildDefinition: 'NonOfficial-Test'
+#      queueBuildForUserThatTriggeredBuild: true
+#      password: $(System.AccessToken)
+#      waitForQueuedBuildsToFinish: true
+#      treatPartiallySucceededBuildAsSuccessful: false
+#      downloadBuildArtifacts: false
+#      failTaskIfBuildsNotSuccessful: true
+#      waitForQueuedBuildsToFinishRefreshTime: 300
