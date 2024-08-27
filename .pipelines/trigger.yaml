@@ -29,13 +29,15 @@ variables:
 jobs:
 - job: trigger
   steps:
+  - checkout: self
+
   - bash: |
       set -e
       # Get Build Reason
       ACN_BUILD_REASON=$(echo -n "$BUILD_REASON")
       echo >&2 "$ACN_BUILD_REASON"
       # Get ACN Git Ref
-      ACN_BUILD_AZURE_ACN_GIT_REF=$(git rev-parse HEAD)
+      ACN_BUILD_AZURE_ACN_GIT_REF=$(git rev-parse HEAD | xargs)
       echo >&2 "$ACN_BUILD_AZURE_ACN_GIT_REF"
       # Get Queuer
       ACN_BUILD_QUEUEDBY="$BUILD_QUEUEDBY"
@@ -44,7 +46,7 @@ jobs:
       ACN_BUILD_SOURCE_BRANCH="$BUILD_SOURCEBRANCH"
       echo >&2 "$ACN_BUILD_SOURCE_BRANCH"
 
-      ACN_BUILD_PARAMETERS=$(echo '{ "TriggerDetails": {} }' | jq  -cr \
+      ACN_BUILD_PARAMETERS=$(echo '{ "TriggerDetails": {} }' | jq -cr \
       --arg REASON="$ACN_BUILD_REASON" \
       --arg REF="$ACN_BUILD_AZURE_ACN_GIT_REF" \
       --arg BRANCH="$ACN_BUILD_SOURCE_BRANCH" \
