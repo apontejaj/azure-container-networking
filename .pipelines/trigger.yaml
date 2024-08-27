@@ -32,12 +32,8 @@ jobs:
   - bash: |
       set -e
       ACN_BUILD_PARAMETERS="{}"
-      # Trim(), Limit input to 100 chars
-      ACN_BUILD_MESSAGE=$(echo -n "$ACN_BUILD_MESSAGE" | xargs | cut -c 100)
-      ACN_BUILD_PARAMETERS=$(echo "$ACN_BUILD_PARAMETERS" | jq --arg MSG="$ACN_BUILD_MESSAGE" -cr '.message = "$MSG"')
-      echo >&2 "$ACN_BUILD_MESSAGE"
       # Get Build Reason
-      ACN_BUILD_REASON=$(echo -n "$ACN_BUILD")
+      ACN_BUILD_REASON=$(echo -n "$BUILD_REASON")
       ACN_BUILD_PARAMETERS=$(echo "$ACN_BUILD_PARAMETERS" | jq --arg REASON="$ACN_BUILD_REASON" -cr '.reason = "$REASON"')
       echo >&2 "$ACN_BUILD_REASON"
       # Get ACN Git Ref
@@ -59,6 +55,7 @@ jobs:
 
         echo >&2 "##vso[task.setvariable variable=pipelineDefinition]NonOfficial-Test"
         echo >&2 "##vso[task.setvariable variable=templateParameters]$ACN_BUILD_PARAM_STR"
+        echo $ACN_BUILD_PARAMETERS | jq .
 
       else
         echo >&2 "##[error]Unable to accomodate build reason: "$ACN_BUILD_REASON""
