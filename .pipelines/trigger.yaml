@@ -35,18 +35,22 @@ jobs:
       # Get Build Reason
       ACN_BUILD_REASON=$(echo -n "$BUILD_REASON")
       ACN_BUILD_PARAMETERS=$(echo "$ACN_BUILD_PARAMETERS" | jq --arg REASON="$ACN_BUILD_REASON" -cr '.reason = "$REASON"')
+        echo $ACN_BUILD_PARAMETERS | jq .
       echo >&2 "$ACN_BUILD_REASON"
       # Get ACN Git Ref
       ACN_BUILD_AZURE_ACN_GIT_REF=$(git rev-parse HEAD)
       ACN_BUILD_PARAMETERS=$(echo "$ACN_BUILD_PARAMETERS" | jq --arg REF="$ACN_BUILD_AZURE_ACN_GIT_REF" -cr '.ref = "$REF"')
+        echo $ACN_BUILD_PARAMETERS | jq .
       echo >&2 "$ACN_BUILD_AZURE_ACN_GIT_REF"
       # Get Queuer
       ACN_BUILD_QUEUEDBY="$BUILD_QUEUEDBY"
       ACN_BUILD_PARAMETERS=$(echo "$ACN_BUILD_PARAMETERS" | jq --arg QUEUEDBY="$ACN_BUILD_QUEUEDBY" -cr '.queuedBy = "$QUEUEDBY"')
+        echo $ACN_BUILD_PARAMETERS | jq .
       echo >&2 "$ACN_BUILD_AZURE_ACN_GIT_REF"
       # Get Source Branch
       ACN_BUILD_SOURCE_BRANCH="$BUILD_SOURCEBRANCH"
       ACN_BUILD_PARAMETERS=$(echo "$ACN_BUILD_PARAMETERS" | jq --arg BRANCH="$ACN_BUILD_SOURCE_BRANCH" -cr '.sourceBranch = "$BRANCH"')
+        echo $ACN_BUILD_PARAMETERS | jq .
       echo >&2 "$ACN_BUILD_AZURE_ACN_GIT_REF"
       ACN_BUILD_PARAM_STR=$(echo $ACN_BUILD_REASON | jq -cr .)
       # Get Build Reason
