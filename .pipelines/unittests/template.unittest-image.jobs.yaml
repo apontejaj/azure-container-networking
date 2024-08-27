@@ -20,6 +20,7 @@ jobs:
 #    inputs:
 #      targetPath: $(Build.SourcesDirectory)/dst/
 #      artifact: drop_build_main
+  - checkout: azure-container-networking
     
   - task: onebranch.pipeline.containercontrol@1
     displayName: "Login to OneBranch acr"
@@ -30,7 +31,7 @@ jobs:
   - task: onebranch.pipeline.imagebuildinfo@1
     inputs:
       repositoryName: cicd/unittest-build
-      dockerFileRelPath: .pipelines/Dockerfile
+      dockerFileRelPath: /.pipelines/Dockerfile
       dockerFileContextPath: $(Build.SourcesDirectory)
       registry: ${{ variables.ACN_TEST_ACR_NAME }}.azurecr.io
       saveImageToPath: unittest-build_linux_${{ parameters.os }}_${{ parameters.arch }}.tar
