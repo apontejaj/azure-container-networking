@@ -29,6 +29,35 @@ variables:
 jobs:
 - job: trigger
   steps:
+  - bash: |
+      set -e
+      ACN_BUILD_PARAMETERS="{}"
+      # Trim(), Limit input to 100 chars
+      ACN_BUILD_MESSAGE=$(echo -n "$ACN_BUILD_MESSAGE" | xargs | cut -c 100)
+      ACN_BUILD_PARAMETERS=$(echo "$ACN_BUILD_PARAMETERS" | jq --arg MSG="$ACN_BUILD_MESSAGE" -cr '.message = "$MSG"')
+      echo >&2 "$ACN_BUILD_MESSAGE"
+      # Get Build Reason
+      ACN_BUILD_REASON=$(echo -n "$ACN_BUILD")
+      ACN_BUILD_PARAMETERS=$(echo "$ACN_BUILD_PARAMETERS" | jq --arg REASON="$ACN_BUILD_REASON" -cr '.reason = "$REASON"')
+      echo >&2 "$ACN_BUILD_REASON"
+      # Get ACN Git Ref
+      ACN_BUILD_AZURE_ACN_GIT_REF=$(git rev-parse HEAD)
+      ACN_BUILD_PARAMETERS=$(echo "$ACN_BUILD_PARAMETERS" | jq --arg REF="$ACN_BUILD_AZURE_ACN_GIT_REF" -cr '.ref = "$REF"')
+      echo >&2 "$ACN_BUILD_AZURE_ACN_GIT_REF"
+      ACN_BUILD_PARAM_STR=$(echo $ACN_BUILD_REASON | jq -cr .)
+      # Get Build Reason
+      if [[ $ACN_BUILD_REASON =~ ^PullRequest$ ]]; then
+        echo >&2 "Triggering Pull Request build for $(Build.SourceBranch)..."
+        
+
+        echo >&2 "##vso[task.setvariable variable=pipelineDefinition]NonOfficial-Test"
+        echo >&2 "##vso[task.setvariable variable=templateParameters]$ACN_BUILD_PARAM_STR"
+
+      else
+        echo >&2 "##[error]Unable to accomodate build reason: "$ACN_BUILD_REASON""
+        exit 1
+      fi
+
   - task: TriggerBuild@4
     displayName: Trigger Compliant Build
     timeoutInMinutes: 120
@@ -38,7 +67,8 @@ jobs:
       teamProject: $(ADO_COMPLIANT_BUILD_ORG)
       buildDefinition: $(ADO_COMPLIANT_PIPELINE_ID)
       queueBuildForUserThatTriggeredBuild: true
-      useSameBranch: true
+      useSameBranch: false
+      branchToUse: master
       authenticationMethod: $(ADO_AUTH_METHOD)
       password: $(ADO_AUTHORIZATION)
       storeInEnvironmentVariable: true
@@ -48,3 +78,4 @@ jobs:
       failTaskIfBuildsNotSuccessful: true
       waitForQueuedBuildsToFinishRefreshTime: 120
       ignoreSslCertificateErrors: false
+      templateParameters: $(templateParameters)
