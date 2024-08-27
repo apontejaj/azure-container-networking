@@ -12,8 +12,7 @@ jobs:
     ob_build_container: true
     ob_enable_qemu: true
   pool:
-    type: docker
-    os: linux
+    type: linux
   steps:
 #  - task: DownloadPipelineArtifact@2
 #    displayName: '🔒 Download artifacts'
@@ -41,7 +40,6 @@ jobs:
       addPipelineData: true
       enable_network: true
       compress: true
-      enable_isolated_acr_push: true
     
 #    task: onebranch.pipeline.imagebuildinfo@1
 #    inputs:
