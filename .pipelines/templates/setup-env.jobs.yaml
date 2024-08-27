@@ -54,3 +54,8 @@ jobs:
       popd
     name: EnvironmentalVariables
     displayName: "Set Build Output Variables"
+
+  - task: CopyFiles@2
+    inputs:
+      sourceFolder: $(ACN_DIR)/.pipelines/Dockerfile
+      targetFolder: $(Build.ArtifactStagingDirectory)

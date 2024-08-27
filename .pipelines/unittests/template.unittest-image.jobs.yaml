@@ -12,21 +12,26 @@ jobs:
     ob_git_checkout: true
     ob_build_container: true
     ob_enable_qemu: true
+    ob_docker_source_rel_path: 'azure-container-networking'
+    ob_docker_artifacts_rel_path: 'out' # Artifacts to be copied into 'docker/artifacts/targetdir' folder
+    ob_docker_artifacts_copy_hidden: true
   pool:
     type: linux
   steps:
-#  - task: DownloadPipelineArtifact@2
-#    displayName: '🔒 Download artifacts'
-#    inputs:
-#      targetPath: $(Build.SourcesDirectory)/dst/
-#      artifact: drop_build_main
   - checkout: azure-container-networking
     
   - task: onebranch.pipeline.containercontrol@1
-    displayName: "Login to OneBranch acr"
+    displayName: "Login to Test ACR"
     inputs:
       command: login
       endpoint: 'acndev.azurecr.io - Service Connection'
+
+  - task: DownloadPipelineArtifact@2
+    displayName: '🔒 Download artifacts'
+    inputs:
+      targetPath: $(Build.SourcesDirectory)/out
+      artifact: drop_setup_env
+
   - bash: |
       ls -la
       ls -la docker
@@ -35,7 +40,7 @@ jobs:
   - task: onebranch.pipeline.imagebuildinfo@1
     inputs:
       repositoryName: cicd/unittest-build
-      dockerFileRelPath: azure-container-networking/.pipelines/Dockerfile
+      dockerFileRelPath: artifacts/out/Dockerfile
       dockerFileContextPath: azure-container-networking
       registry: ${{ variables.ACN_TEST_ACR_NAME }}.azurecr.io
       saveImageToPath: unittest-build_linux_${{ parameters.os }}_${{ parameters.arch }}.tar
@@ -56,3 +61,14 @@ jobs:
 #      saveImageToPath: contosovlinuxsidecar1.tar.gz
 #      build_tag: $(Build.BuildNumber)
 #      compress: true
+#  - task: PowerShell@2
+#    displayName: 'Update build number and tags'
+#    inputs:
+#      targetType: 'inline'
+#      script: |
+#        $buildId = $(TriggeredBuildIds)
+#        $buildUrl = "$(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$buildId"
+#        Write-Host "Triggered build $buildUrl ..."
+#        Write-Host "##vso[build.addbuildtag]$(pipelineDefinition) build $buildId"
+#        Write-Host "##vso[task.logissue type=warning]$buildUrl"
+#        Write-Host "##vso[build.updatebuildnumber]$buildId"
