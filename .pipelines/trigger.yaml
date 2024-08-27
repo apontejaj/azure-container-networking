@@ -19,6 +19,13 @@ trigger:
     include:
       - "*"
 
+variables:
+  ADO_COMPLIANT_BUILD_PROJECT_URI: $(VAR_PROJECT_URI)
+  ADO_COMPLIANT_BUILD_ORG: $(VAR_BUILD_ORG)
+  ADO_AUTH_METHOD: $(VAR_AUTH_METHOD)
+  ADO_AUTHORIZATION: $(VAR_AUTH)
+  ADO_COMPLIANT_PIPELINE_ID: $(VAR_PIPELINE_ID)
+
 jobs:
 - job: trigger
   steps:
