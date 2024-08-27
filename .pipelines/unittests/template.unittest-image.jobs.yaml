@@ -12,6 +12,7 @@ jobs:
     ob_git_checkout: true
     ob_build_container: true
     ob_enable_qemu: true
+    ob_docker_source_rel_path: $(Build.SourcesDirectory)
   pool:
     type: linux
   steps:
