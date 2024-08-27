@@ -24,7 +24,7 @@ jobs:
     displayName: "Login to OneBranch acr"
     inputs:
       command: login
-      acr_name: ${{ variables.ACN_TEST_ACR }}
+      acr_name: acndev
     
   - task: onebranch.pipeline.imagebuildinfo@1
     inputs:
