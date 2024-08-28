@@ -51,14 +51,10 @@ jobs:
         echo "${BUILD_QUEUEDBY}"
         echo "${BUILD_REASON}" # manual, PR, IndividualCI
         echo "${BUILD_SOURCEBRANCH}"
+        cp .pipelines/Dockerfile $(Build.ArtifactStagingDirectory)
       popd
     name: EnvironmentalVariables
     displayName: "Set Build Output Variables"
-
-  - task: CopyFiles@2
-    inputs:
-      sourceFolder: $(Build.SourcesDirectory)/azure-container-networking/.pipelines/Dockerfile
-      targetFolder: $(Build.ArtifactStagingDirectory)
 
     # The artifact upload is performed automatically.
     #- task: PublishPipelineArtifact@1
