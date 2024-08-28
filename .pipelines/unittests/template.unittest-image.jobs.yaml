@@ -42,6 +42,7 @@ jobs:
   - task: onebranch.pipeline.imagebuildinfo@1
     inputs:
       repositoryName: cicd/unittest-build
+      registry: acndev.azurecr.io
       dockerFileRelPath: artifacts/out/Dockerfile
       dockerFileContextPath: azure-container-networking
       registry: ${{ variables.ACN_TEST_ACR_NAME }}.azurecr.io
