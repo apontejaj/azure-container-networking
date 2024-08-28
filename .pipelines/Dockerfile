@@ -4,6 +4,8 @@ FROM --platform=$BUILDPLATFORM mcr.microsoft.com/oss/go/microsoft/golang:1.23 as
 
 FROM --platform=$BUILDPLATFORM onebranch.azurecr.io/linux/ubuntu-2204:latest as unittestbuild
 
+ENV GO111MODULE=on
+
 COPY --from=gobin /usr/local/go/bin/go /usr/local/go/bin/go
 
 RUN go install github.com/AlekSi/gocov-xml@v1.1.0
