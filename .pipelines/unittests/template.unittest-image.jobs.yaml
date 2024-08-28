@@ -38,6 +38,7 @@ jobs:
       ls -la artifacts
       ls -la ../dst
       ls -la docker
+      cp -r azure-container-networking $(Build.SourcesDirectory)/out/
     continueOnError: true
     
   - task: onebranch.pipeline.imagebuildinfo@1
