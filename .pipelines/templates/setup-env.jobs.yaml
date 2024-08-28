@@ -57,5 +57,12 @@ jobs:
 
   - task: CopyFiles@2
     inputs:
-      sourceFolder: $(ACN_DIR)/.pipelines/Dockerfile
+      sourceFolder: $(Build.SourcesDirectory)/azure-container-networking/.pipelines/Dockerfile
       targetFolder: $(Build.ArtifactStagingDirectory)
+
+    # The artifact upload is performed automatically.
+    #- task: PublishPipelineArtifact@1
+    #  inputs:
+    #    artifactName: drop_setup_env
+    #    targetPath: "$(Build.ArtifactStagingDirectory)"
+    #    publishLocation: 'pipeline'
