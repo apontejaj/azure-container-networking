@@ -45,7 +45,6 @@ jobs:
       registry: acndev.azurecr.io
       dockerFileRelPath: artifacts/out/Dockerfile
       dockerFileContextPath: azure-container-networking
-      registry: ${{ variables.ACN_TEST_ACR_NAME }}.azurecr.io
       saveImageToPath: unittest-build_linux_${{ parameters.os }}_${{ parameters.arch }}.tar
       saveMetadataToPath: unittest-build_linux_${{ parameters.os }}_${{ parameters.arch }}-metadata.json
       buildkit: 1
