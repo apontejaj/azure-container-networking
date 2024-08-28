@@ -609,133 +609,81 @@ func TestPluginGet(t *testing.T) {
 /*
 Multitenancy scenarios
 */
-
-// Test Multitenancy Add
-func TestPluginMultitenancyAdd(t *testing.T) {
-	plugin, _ := cni.NewPlugin("test", "0.3.0")
-
-	localNwCfg := cni.NetworkConfig{
-		CNIVersion:                 "0.3.0",
-		Name:                       "mulnet",
-		MultiTenancy:               true,
-		EnableExactMatchForPodName: true,
-		Master:                     "eth0",
-	}
-
-	tests := []struct {
-		name       string
-		plugin     *NetPlugin
-		args       *cniSkel.CmdArgs
-		wantErr    bool
-		wantErrMsg string
-	}{
-		{
-			name: "Add Happy path",
-			plugin: &NetPlugin{
-				Plugin:             plugin,
-				nm:                 acnnetwork.NewMockNetworkmanager(acnnetwork.NewMockEndpointClient(nil)),
-				tb:                 &telemetry.TelemetryBuffer{},
-				report:             &telemetry.CNIReport{},
-				multitenancyClient: NewMockMultitenancy(false),
+// For use with GetNetworkContainer
+func GetTestCNSResponse0() *cns.GetNetworkContainerResponse {
+	return &cns.GetNetworkContainerResponse{
+		IPConfiguration: cns.IPConfiguration{
+			IPSubnet: cns.IPSubnet{
+				IPAddress:    "192.168.0.4",
+				PrefixLength: ipPrefixLen,
 			},
-
-			args: &cniSkel.CmdArgs{
-				StdinData:   localNwCfg.Serialize(),
-				ContainerID: "test-container",
-				Netns:       "test-container",
-				Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "test-pod", "test-pod-ns"),
-				IfName:      eth0IfName,
-			},
-			wantErr: false,
+			GatewayIPAddress: "192.168.0.1",
 		},
-		{
-			name: "Add Fail",
-			plugin: &NetPlugin{
-				Plugin:             plugin,
-				nm:                 acnnetwork.NewMockNetworkmanager(acnnetwork.NewMockEndpointClient(nil)),
-				tb:                 &telemetry.TelemetryBuffer{},
-				report:             &telemetry.CNIReport{},
-				multitenancyClient: NewMockMultitenancy(true),
+		LocalIPConfiguration: cns.IPConfiguration{
+			IPSubnet: cns.IPSubnet{
+				IPAddress:    "169.254.0.4",
+				PrefixLength: localIPPrefixLen,
 			},
-			args: &cniSkel.CmdArgs{
-				StdinData:   localNwCfg.Serialize(),
-				ContainerID: "test-container",
-				Netns:       "test-container",
-				Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "test-pod", "test-pod-ns"),
-				IfName:      eth0IfName,
-			},
-			wantErr:    true,
-			wantErrMsg: errMockMulAdd.Error(),
+			GatewayIPAddress: "169.254.0.1",
 		},
-	}
 
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.plugin.Add(tt.args)
-			if tt.wantErr {
-				require.Error(t, err)
-				assert.Contains(t, err.Error(), tt.wantErrMsg, "Expected %v but got %+v", tt.wantErrMsg, err.Error())
-			} else {
-				require.NoError(t, err)
-				endpoints, _ := tt.plugin.nm.GetAllEndpoints(localNwCfg.Name)
-				require.Condition(t, assert.Comparison(func() bool { return len(endpoints) == 1 }))
-			}
-		})
+		PrimaryInterfaceIdentifier: "10.240.0.4/24",
+		MultiTenancyInfo: cns.MultiTenancyInfo{
+			EncapType: cns.Vlan,
+			ID:        1,
+		},
 	}
 }
 
-func TestPluginMultitenancyDelete(t *testing.T) {
-	plugin := GetTestResources()
-	plugin.multitenancyClient = NewMockMultitenancy(false)
-	localNwCfg := cni.NetworkConfig{
-		CNIVersion:                 "0.3.0",
-		Name:                       "mulnet",
-		MultiTenancy:               true,
-		EnableExactMatchForPodName: true,
-		Master:                     "eth0",
-	}
-
-	tests := []struct {
-		name       string
-		methods    []string
-		args       *cniSkel.CmdArgs
-		wantErr    bool
-		wantErrMsg string
-	}{
-		{
-			name:    "Multitenancy delete success",
-			methods: []string{CNI_ADD, CNI_DEL},
-			args: &cniSkel.CmdArgs{
-				StdinData:   localNwCfg.Serialize(),
-				ContainerID: "test-container",
-				Netns:       "test-container",
-				Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "test-pod", "test-pod-ns"),
-				IfName:      eth0IfName,
+// For use with GetAllNetworkContainers
+func GetTestCNSResponse1() *cns.GetNetworkContainerResponse {
+	return &cns.GetNetworkContainerResponse{
+		IPConfiguration: cns.IPConfiguration{
+			IPSubnet: cns.IPSubnet{
+				IPAddress:    "20.0.0.10",
+				PrefixLength: ipPrefixLen,
 			},
-			wantErr: false,
+			GatewayIPAddress: "20.0.0.1",
+		},
+		LocalIPConfiguration: cns.IPConfiguration{
+			IPSubnet: cns.IPSubnet{
+				IPAddress:    "168.254.0.4",
+				PrefixLength: localIPPrefixLen,
+			},
+			GatewayIPAddress: "168.254.0.1",
+		},
+
+		PrimaryInterfaceIdentifier: "20.240.0.4/24",
+		MultiTenancyInfo: cns.MultiTenancyInfo{
+			EncapType: cns.Vlan,
+			ID:        multiTenancyVlan1,
 		},
 	}
+}
 
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			var err error
-			for _, method := range tt.methods {
-				if method == CNI_ADD {
-					err = plugin.Add(tt.args)
-				} else if method == CNI_DEL {
-					err = plugin.Delete(tt.args)
-				}
-			}
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				endpoints, _ := plugin.nm.GetAllEndpoints(localNwCfg.Name)
-				require.Condition(t, assert.Comparison(func() bool { return len(endpoints) == 0 }))
-			}
-		})
+// For use with GetAllNetworkContainers in windows dualnic
+func GetTestCNSResponse2() *cns.GetNetworkContainerResponse {
+	return &cns.GetNetworkContainerResponse{
+		IPConfiguration: cns.IPConfiguration{
+			IPSubnet: cns.IPSubnet{
+				IPAddress:    "10.0.0.10",
+				PrefixLength: ipPrefixLen,
+			},
+			GatewayIPAddress: "10.0.0.1",
+		},
+		LocalIPConfiguration: cns.IPConfiguration{
+			IPSubnet: cns.IPSubnet{
+				IPAddress:    "169.254.0.4",
+				PrefixLength: localIPPrefixLen,
+			},
+			GatewayIPAddress: "169.254.0.1",
+		},
+
+		PrimaryInterfaceIdentifier: "10.240.0.4/24",
+		MultiTenancyInfo: cns.MultiTenancyInfo{
+			EncapType: cns.Vlan,
+			ID:        multiTenancyVlan2,
+		},
 	}
 }
 

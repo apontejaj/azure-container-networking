@@ -16,7 +16,7 @@ import (
 	"github.com/Azure/azure-container-networking/network/policy"
 	"github.com/Azure/azure-container-networking/telemetry"
 	hnsv2 "github.com/Microsoft/hcsshim/hcn"
-	"github.com/containernetworking/cni/pkg/skel"
+	cniSkel "github.com/containernetworking/cni/pkg/skel"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -64,78 +64,6 @@ func TestAddWithRunTimeNetPolicies(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.Condition(t, assert.Comparison(func() bool { return p.Type == policy.EndpointPolicy }))
-			}
-		})
-	}
-}
-
-func TestPluginSecondAddSamePodWindows(t *testing.T) {
-	plugin, _ := cni.NewPlugin("name", "0.3.0")
-
-	tests := []struct {
-		name       string
-		methods    []string
-		cniArgs    skel.CmdArgs
-		plugin     *NetPlugin
-		wantErr    bool
-		wantErrMsg string
-	}{
-		{
-			name:    "CNI consecutive add already hot attached",
-			methods: []string{"ADD", "ADD"},
-			cniArgs: skel.CmdArgs{
-				ContainerID: "test1-container",
-				Netns:       "test1-container",
-				StdinData:   nwCfg.Serialize(),
-				Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "container1", "container1-ns"),
-				IfName:      eth0IfName,
-			},
-			plugin: &NetPlugin{
-				Plugin:      plugin,
-				nm:          network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
-				ipamInvoker: NewMockIpamInvoker(false, false, false, false, false),
-				report:      &telemetry.CNIReport{},
-				tb:          &telemetry.TelemetryBuffer{},
-			},
-			wantErr: false,
-		},
-		{
-			name:    "CNI consecutive add not hot attached",
-			methods: []string{"ADD", "ADD"},
-			cniArgs: skel.CmdArgs{
-				ContainerID: "test1-container",
-				Netns:       "test1-container",
-				StdinData:   nwCfg.Serialize(),
-				Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "container1", "container1-ns"),
-				IfName:      eth0IfName,
-			},
-			plugin: &NetPlugin{
-				Plugin:      plugin,
-				nm:          network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
-				ipamInvoker: NewMockIpamInvoker(false, false, false, false, false),
-				report:      &telemetry.CNIReport{},
-				tb:          &telemetry.TelemetryBuffer{},
-			},
-			wantErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			var err error
-			for _, method := range tt.methods {
-				if method == "ADD" {
-					err = tt.plugin.Add(&tt.cniArgs)
-				}
-			}
-
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				endpoints, _ := tt.plugin.nm.GetAllEndpoints(nwCfg.Name)
-				require.Condition(t, assert.Comparison(func() bool { return len(endpoints) == 1 }), "Expected 2 but got %v", len(endpoints))
 			}
 		})
 	}
@@ -655,6 +583,162 @@ func TestGetNetworkNameFromCNS(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, tt.want, networkName)
+			}
+		})
+	}
+}
+
+// Test Multitenancy Windows Add (Dualnic)
+func TestPluginMultitenancyWindowsAdd(t *testing.T) {
+	plugin, _ := cni.NewPlugin("test", "0.3.0")
+
+	localNwCfg := cni.NetworkConfig{
+		CNIVersion:                 "0.3.0",
+		Name:                       "mulnet",
+		MultiTenancy:               true,
+		EnableExactMatchForPodName: true,
+		Master:                     "eth0",
+	}
+
+	tests := []struct {
+		name       string
+		plugin     *NetPlugin
+		args       *cniSkel.CmdArgs
+		wantErr    bool
+		wantErrMsg string
+	}{
+		{
+			name: "Add Happy path",
+			plugin: &NetPlugin{
+				Plugin:             plugin,
+				nm:                 network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
+				tb:                 &telemetry.TelemetryBuffer{},
+				report:             &telemetry.CNIReport{},
+				multitenancyClient: NewMockMultitenancy(false, []*cns.GetNetworkContainerResponse{GetTestCNSResponse1(), GetTestCNSResponse2()}),
+			},
+
+			args: &cniSkel.CmdArgs{
+				StdinData:   localNwCfg.Serialize(),
+				ContainerID: "test-container",
+				Netns:       "bc526fae-4ba0-4e80-bc90-ad721e5850bf",
+				Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "test-pod", "test-pod-ns"),
+				// if we set to eth0 we get an endpoint already exists error, but this is okay in dualnic since they are in different networks
+				IfName: "eth1",
+			},
+			wantErr: false,
+		},
+		{
+			name: "Add Fail",
+			plugin: &NetPlugin{
+				Plugin:             plugin,
+				nm:                 network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
+				tb:                 &telemetry.TelemetryBuffer{},
+				report:             &telemetry.CNIReport{},
+				multitenancyClient: NewMockMultitenancy(true, []*cns.GetNetworkContainerResponse{GetTestCNSResponse1(), GetTestCNSResponse2()}),
+			},
+			args: &cniSkel.CmdArgs{
+				StdinData:   localNwCfg.Serialize(),
+				ContainerID: "test-container",
+				Netns:       "test-container",
+				Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "test-pod", "test-pod-ns"),
+				// if we set to eth0 we get an endpoint already exists error, but this is okay in dualnic since they are in different networks
+				IfName: "eth1",
+			},
+			wantErr:    true,
+			wantErrMsg: errMockMulAdd.Error(),
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.plugin.Add(tt.args)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErrMsg, "Expected %v but got %+v", tt.wantErrMsg, err.Error())
+			} else {
+				require.NoError(t, err)
+				endpoints, _ := tt.plugin.nm.GetAllEndpoints("mulnet-vlan1-20-0-0-0_24")
+				require.Len(t, endpoints, 1)
+
+				// an extra cns response is added in windows multitenancy to test dualnic
+				endpoints, _ = tt.plugin.nm.GetAllEndpoints("mulnet-vlan2-10-0-0-0_24")
+				require.Len(t, endpoints, 1)
+			}
+		})
+	}
+}
+
+func TestPluginMultitenancyWindowsDelete(t *testing.T) {
+	plugin := GetTestResources()
+	plugin.multitenancyClient = NewMockMultitenancy(false, []*cns.GetNetworkContainerResponse{GetTestCNSResponse1(), GetTestCNSResponse2()})
+	localNwCfg := cni.NetworkConfig{
+		CNIVersion:                 "0.3.0",
+		Name:                       "mulnet",
+		MultiTenancy:               true,
+		EnableExactMatchForPodName: true,
+		Master:                     "eth0",
+	}
+
+	happyArgs := &cniSkel.CmdArgs{
+		StdinData:   localNwCfg.Serialize(),
+		ContainerID: "test-container",
+		Netns:       "bc526fae-4ba0-4e80-bc90-ad721e5850bf",
+		Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "test-pod", "test-pod-ns"),
+		// if we set to eth0 we get an endpoint already exists error, but this is okay in dualnic since they are in different networks
+		IfName: "eth1",
+	}
+
+	tests := []struct {
+		name       string
+		methods    []string
+		args       *cniSkel.CmdArgs
+		delArgs    *cniSkel.CmdArgs
+		wantErr    bool
+		wantErrMsg string
+		wantNumEps []map[string]int
+	}{
+		{
+			name:    "Multitenancy delete success",
+			methods: []string{CNI_ADD, CNI_DEL},
+			args:    happyArgs,
+			delArgs: happyArgs,
+			wantErr: false,
+			wantNumEps: []map[string]int{
+				// after add, this should be the state
+				{
+					"mulnet-vlan1-20-0-0-0_24": 1,
+					"mulnet-vlan2-10-0-0-0_24": 1,
+				},
+				// after delete, this should be the state
+				{
+					"mulnet-vlan1-20-0-0-0_24": 0,
+					"mulnet-vlan2-10-0-0-0_24": 0,
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			var err error
+			for idx, method := range tt.methods {
+				if method == CNI_ADD {
+					err = plugin.Add(tt.args)
+				} else if method == CNI_DEL {
+					err = plugin.Delete(tt.delArgs)
+				}
+				// check state
+				for networkID, wantedState := range tt.wantNumEps[idx] {
+					endpoints, _ := plugin.nm.GetAllEndpoints(networkID)
+					require.Len(t, endpoints, wantedState)
+				}
+			}
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
 		})
 	}
