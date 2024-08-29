@@ -1,13 +1,16 @@
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/oss/go/microsoft/golang:1.23 as gobin
 
-RUN pwd
 ENV GO111MODULE=on
 ENV CGO_ENABLED=0
-ENV GO_MOD="$(pwd)/artifacts/azure-container-networking/go.mod"
+ENV GO_MOD="$HOME/artifacts/azure-container-networking/go.mod"
+RUN export ACN_GO_BIN_PATH=$(which go)
 
-RUN mkdir -p /root/.config/go
-RUN go env > /root/.config/go/env
+RUN echo $HOME
+RUN mkdir -p /home/root/.config/go
+RUN go env > /home/root/.config/go/env
 RUN go env
+
+RUN ls -la
 
 # Download Common UnitTest Packages
 RUN go install github.com/AlekSi/gocov-xml@v1.1.0
@@ -22,10 +25,13 @@ RUN go get ./...
 
 FROM --platform=$BUILDPLATFORM onebranch.azurecr.io/linux/ubuntu-2204:latest as unittestbuild
 
+ARG ACN_GO_PATH="$ACN_GO_PATH"
+
 RUN pwd
+RUN mkdir -p /usr/local/go
 # Configure Golang Environment
-ADD /usr/local/go/ /usr/local/go/
-ADD /root/ /root/
+COPY "$ACN_GO_PATH" "$ACN_GO_PATH"
+COPY /home/root/ "$HOME"
 RUN go env 
 
 #RUN podman run --rm --privileged multiarch/qemu-user-static --reset -p yes
