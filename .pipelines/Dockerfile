@@ -3,11 +3,11 @@ FROM --platform=$BUILDPLATFORM mcr.microsoft.com/oss/go/microsoft/golang:1.23 as
 ENV GO111MODULE=on
 ENV CGO_ENABLED=0
 ENV GO_MOD="$HOME/artifacts/azure-container-networking/go.mod"
-RUN export ACN_GO_BIN_PATH=$(which go)
+ENV GO_PATH="$HOME/
 
 RUN echo $HOME
-RUN mkdir -p /home/root/.config/go
-RUN go env > /home/root/.config/go/env
+RUN mkdir -p /root/.config/go
+RUN go env > /root/.config/go/env
 RUN go env
 
 RUN ls -la
@@ -27,11 +27,10 @@ FROM --platform=$BUILDPLATFORM onebranch.azurecr.io/linux/ubuntu-2204:latest as 
 
 ARG ACN_GO_PATH="$ACN_GO_PATH"
 
-RUN pwd
-RUN mkdir -p /usr/local/go
 # Configure Golang Environment
-COPY "$ACN_GO_PATH" "$ACN_GO_PATH"
-COPY /home/root/ "$HOME"
+RUN mkdir -p /usr/local/go
+COPY --from=gobin /usr/local/go /usr/local/go
+COPY --from=gobin /root/ /root/
 RUN go env 
 
 #RUN podman run --rm --privileged multiarch/qemu-user-static --reset -p yes
