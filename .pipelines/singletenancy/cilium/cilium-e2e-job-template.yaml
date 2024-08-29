@@ -15,6 +15,7 @@ stages:
       - ${{ parameters.dependsOn }}
       - setup
     pool:
+      isCustom: true
       name: $(BUILD_POOL_NAME_DEFAULT)
     variables:
       commitID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.commitID'] ]
@@ -45,12 +46,14 @@ stages:
       modulePath: "$(GOPATH)/src/github.com/Azure/azure-container-networking"
     condition: and(succeeded(), eq(variables.TAG, variables.CURRENT_VERSION))
     pool:
+      isCustom: true
       name: $(BUILD_POOL_NAME_DEFAULT)
     jobs:
       - job: ${{ parameters.name }}
         displayName: Cilium Test Suite - (${{ parameters.name }})
         timeoutInMinutes: 120
         pool:
+          isCustom: true
           name: $(BUILD_POOL_NAME_DEFAULT)
           demands:
           - agent.os -equals Linux
@@ -76,6 +79,9 @@ stages:
 
       - job: failedE2ELogs
         displayName: "Failure Logs"
+        pool:
+          isCustom: true
+          name: $(BUILD_POOL_NAME_DEFAULT)
         dependsOn:
           - ${{ parameters.name }}
           - cni_${{ parameters.os }}

@@ -16,6 +16,7 @@ stages:
       - ${{ parameters.dependsOn }}
       - setup
     pool:
+      isCustom: true
       name: $(BUILD_POOL_NAME_DEFAULT)
     variables:
       commitID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.commitID'] ]
@@ -49,6 +50,7 @@ stages:
         displayName: Cilium Overlay Test Suite - (${{ parameters.name }})
         timeoutInMinutes: 120
         pool:
+          isCustom: true
           name: $(BUILD_POOL_NAME_DEFAULT)
           demands:
           - agent.os -equals Linux
@@ -79,6 +81,9 @@ stages:
           - ${{ parameters.name }}
           - cni_${{ parameters.os }}
         condition: failed()
+        pool:
+          isCustom: true
+          name: $(BUILD_POOL_NAME_DEFAULT)
         steps:
           - template: ../../templates/log-template.yaml
             parameters:

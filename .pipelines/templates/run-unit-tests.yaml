@@ -9,6 +9,7 @@ stages:
         variables:
           STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
         pool:
+          isCustom: true
           name: "$(BUILD_POOL_NAME_DEFAULT)"
         steps:
           - script: |
@@ -35,6 +36,7 @@ stages:
         variables:
           STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
         pool:
+          isCustom: true
           name: "$(BUILD_POOL_NAME_DEFAULT_WINDOWS_ALT)"
         steps:
           - script: |
