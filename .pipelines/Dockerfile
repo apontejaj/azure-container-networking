@@ -11,7 +11,7 @@ RUN ls -la
 # Download Common UnitTest Packages
 RUN go install github.com/AlekSi/gocov-xml@v1.1.0
 RUN go install github.com/axw/gocov/gocov@v1.1.0
-RUN go install github.com/jstemmer/go-junit-report@v2.1.0
+RUN go install github.com/jstemmer/go-junit-report/v2@v2.1.0
 RUN go install github.com/matm/gocov-html/cmd/gocov-html@v1.4.0
 RUN go install sigs.k8s.io/kind@v0.24.0
 
