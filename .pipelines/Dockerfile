@@ -19,10 +19,12 @@ RUN ls -la
 RUN ls -la /
 RUN ls -la /root/
 RUN find / -name Makefile
-VOLUME artifacts/azure-container-networking/ /root/
+VOLUME /mnt/vss/_work/1/b/2/_work/docker/artifacts /root/
+RUN ls -la /root/
+RUN cp -r /mnt/vss/_work/1/b/2/_work/docker/artifacts /root/
 RUN ls -la /root/
 RUN find / -name Makefile
-WORKDIR artifacts/azure-container-networking/
+WORKDIR /mnt/vss/_work/1/b/2/_work/docker/artifacts/azure-container-networking/
 RUN ls -la
 RUN find / -name Makefile
 RUN make init
