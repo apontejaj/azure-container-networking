@@ -5,8 +5,6 @@ ENV CGO_ENABLED=0
 
 RUN echo $HOME
 RUN mkdir -p /root/.config/go
-RUN go env > /root/.config/go/env
-RUN go env
 
 RUN ls -la
 
@@ -21,6 +19,7 @@ RUN go install sigs.k8s.io/kind@v0.24.0
 
 WORKDIR artifacts/azure-container-networking/
 RUN make init
+RUN go env > /root/.config/go/env
 
 RUN go get ./...
 
