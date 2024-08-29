@@ -1,12 +1,13 @@
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/oss/go/microsoft/golang:1.23 as gobin
 
+RUN go env
 # Mount repo directory
 
 FROM --platform=$BUILDPLATFORM onebranch.azurecr.io/linux/ubuntu-2204:latest as unittestbuild
 
-ENV GO111MODULE=on
-
 COPY --from=gobin /usr/local/go/bin/go /usr/local/go/bin/go
+ENV GO111MODULE=on
+RUN go env
 
 RUN go install github.com/AlekSi/gocov-xml@v1.1.0
 RUN go install github.com/axw/gocov/gocov@v1.1.0
