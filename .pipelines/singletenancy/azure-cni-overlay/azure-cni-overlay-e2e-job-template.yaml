@@ -46,6 +46,7 @@ stages:
         timeoutInMinutes: 120
         pool:
           isCustom: true
+          type: linux
           name: $(BUILD_POOL_NAME_DEFAULT)
           demands:
           - agent.os -equals Linux
@@ -63,6 +64,7 @@ stages:
         dependsOn: ${{ parameters.name }}_linux
         pool:
           isCustom: true
+          type: linux
           name: $(BUILD_POOL_NAME_DEFAULT)
           demands:
           - agent.os -equals Linux
@@ -92,6 +94,7 @@ stages:
         dependsOn: windows_nodepool
         pool:
           isCustom: true
+          type: linux
           name: $(BUILD_POOL_NAME_DEFAULT)
           demands:
           - agent.os -equals Linux
@@ -137,6 +140,7 @@ stages:
         condition: in(dependencies.${{ parameters.name }}_linux.result, 'Failed')
         pool:
           isCustom: true
+          type: linux
           name: $(BUILD_POOL_NAME_DEFAULT)
         steps:
           - template: ../../templates/log-template.yaml
@@ -153,6 +157,7 @@ stages:
         condition: in(dependencies.${{ parameters.name }}_windows.result, 'Failed')
         pool:
           isCustom: true
+          type: linux
           name: $(BUILD_POOL_NAME_DEFAULT)
         steps:
           - template: ../../templates/log-template.yaml

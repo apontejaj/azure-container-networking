@@ -17,9 +17,6 @@ stages:
     dependsOn:
       - ${{ parameters.dependsOn }}
       - setup
-    pool:
-      isCustom: true
-      name: $(BUILD_POOL_NAME_DEFAULT)
     variables:
       commitID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.commitID'] ]
     jobs:
@@ -46,13 +43,12 @@ stages:
     - setup
     - publish
     - ${{ parameters.clusterName }}
-    pool:
-      name: $(BUILD_POOL_NAME_DEFAULT)
     jobs:
       - job: ${{ parameters.name }}
         displayName: Singletenancy AKS - (${{ parameters.name }})
         pool:
           isCustom: true
+          type: linux
           name: $(BUILD_POOL_NAME_DEFAULT)
           demands:
           - agent.os -equals Linux
@@ -87,8 +83,9 @@ stages:
           - cni_${{ parameters.os }}
         condition: failed()
         pool:
-          name: $(BUILD_POOL_NAME_DEFAULT)
           isCustom: true
+          type: linux
+          name: $(BUILD_POOL_NAME_DEFAULT)
         steps:
           - template: ../../templates/log-template.yaml
             parameters:

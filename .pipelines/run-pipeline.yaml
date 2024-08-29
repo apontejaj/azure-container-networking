@@ -6,6 +6,7 @@ stages:
         displayName: Setup
         pool:
           isCustom: true
+          type: linux
           name: "$(BUILD_POOL_NAME_DEFAULT)"
         steps:
           - script: |
@@ -45,6 +46,7 @@ stages:
             STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
           pool:
             isCustom: true
+            type: linux
             name: "$(BUILD_POOL_NAME_DEFAULT)"
           steps:
             - script: |
@@ -85,6 +87,7 @@ stages:
           displayName: Build Images
           pool:
             isCustom: true
+            type: linux
             name: "$(BUILD_POOL_NAME_LINUX_AMD64)"
           strategy:
             matrix:
@@ -178,6 +181,7 @@ stages:
           displayName: Build Images
           pool:
             isCustom: true
+            type: linux
             name: "$(BUILD_POOL_NAME_LINUX_ARM64)"
           strategy:
             matrix:
@@ -223,6 +227,7 @@ stages:
           displayName: Compile Manifests
           pool:
             isCustom: true
+            type: linux
             name: "$(BUILD_POOL_NAME_DEFAULT)"
           strategy:
             matrix:
@@ -414,6 +419,7 @@ stages:
           displayName: Delete Cluster
           pool:
             isCustom: true
+            type: linux
             name: "$(BUILD_POOL_NAME_DEFAULT)"
           strategy:
             matrix:
