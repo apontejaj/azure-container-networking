@@ -16,6 +16,8 @@ RUN go install github.com/matm/gocov-html/cmd/gocov-html@v1.4.0
 RUN go install sigs.k8s.io/kind@v0.24.0
 
 WORKDIR artifacts/azure-container-networking/
+RUN ls -la
+RUN find / -name Makefile
 RUN make init
 RUN go env > /root/.config/go/env
 
