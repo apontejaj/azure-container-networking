@@ -45,18 +45,22 @@ stages:
           variables:
             STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
             ob_outputDirectory: $(Build.ArtifactStagingDirectory)/output
+            ob_git_checkout: true
           pool:
             isCustom: true
             type: linux
             name: "$(BUILD_POOL_NAME_DEFAULT)"
           steps:
+            - checkout: azure-container-networking
             - script: |
+                cd azure-container-networking
                 make ipv6-hp-bpf-lib
                 make all-binaries-platforms
               name: "BuildAllPlatformBinaries"
               displayName: "Build all platform binaries"
 
             - script: |
+                cd azure-container-networking
                 mkdir -p ./output/bins
                 cd ./output
                 find . -name '*.tgz' -print -exec mv -t ./bins/ {} +
