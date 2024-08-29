@@ -4,9 +4,7 @@ ENV GO111MODULE=on
 RUN mkdir -p /root/.config/go
 RUN go env > /root/.config/go/env
 RUN go env
-RUN ls -la /usr/local/go/bin
 
-# Mount repo directory
 
 FROM --platform=$BUILDPLATFORM onebranch.azurecr.io/linux/ubuntu-2204:latest as unittestbuild
 
