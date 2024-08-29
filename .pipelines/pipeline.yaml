@@ -288,13 +288,10 @@ stages:
       parameters:
         name: "cilium_nodesubnet_e2e"
         displayName: Cilium NodeSubnet
-        arch: "amd64"
-        os: "linux"
         clusterType: nodesubnet-cilium-up
-        clusterName: "ciliumnodesubnete2e"
+        clusterName: "cilndsubnete2e"
         vmSize: Standard_B2s
-        k8sVersion: 1.25
-        scaleup: 100
+        k8sVersion: ""
         dependsOn: "containerize"
 
     # Cilium Overlay E2E tests
