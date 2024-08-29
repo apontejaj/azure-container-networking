@@ -886,9 +886,9 @@ test-integration: ## run all integration tests.
 
 test-load: ## run all load tests
 	AZURE_IPAM_VERSION=$(AZURE_IPAM_VERSION) \
-		CNI_VERSION=$(CNI_VERSION)
+		CNI_VERSION=$(CNI_VERSION) \
 		CNS_VERSION=$(CNS_VERSION) \
-		go test -timeout 30m -race -tags=load ./test/integration/load... -v
+		go test -timeout 30m -race -mod=readonly -count=1 -tags=load ./test/integration/load... -v
 
 test-validate-state:
 	cd test/integration/load && go test -mod=readonly -count=1 -timeout 30m -tags load --skip 'TestE2E*' -run ^TestValidateState
