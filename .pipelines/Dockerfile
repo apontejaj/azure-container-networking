@@ -9,8 +9,10 @@ RUN go env
 FROM --platform=$BUILDPLATFORM onebranch.azurecr.io/linux/ubuntu-2204:latest as unittestbuild
 
 # Configure Golang Environment
+RUN mkdir -p /usr/local/go
+COPY --from=gobin /usr/local/go/ /usr/local/go/
+
 RUN mkdir -p /root/.config/go
-COPY --from=gobin /usr/local/go/bin/go /usr/local/go/bin/go
 COPY --from=gobin /root/.config/go/env /root/.config/go/env
 RUN go env 
 
