@@ -1,8 +1,10 @@
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/oss/go/microsoft/golang:1.23 as gobin
 
 ENV GO111MODULE=on
-RUN go env > go.env
+RUN mkdir -p /root/.config/go
+RUN go env > /root/.config/go/env
 RUN go env
+RUN ls -la /usr/local/go/bin
 
 # Mount repo directory
 
@@ -11,7 +13,7 @@ FROM --platform=$BUILDPLATFORM onebranch.azurecr.io/linux/ubuntu-2204:latest as 
 # Configure Golang Environment
 RUN mkdir -p /root/.config/go
 COPY --from=gobin /usr/local/go/bin/go /usr/local/go/bin/go
-COPY --from=gobin ./go.env /root/.config/go/env
+ADD --from=gobin /root/.config/go/env
 RUN go env 
 
 # Download Common UnitTest Packages
