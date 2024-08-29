@@ -73,7 +73,7 @@ stages:
 
             - task: PublishPipelineArtifact@1
               inputs:
-                artifactName: "output"
+                artifactName: drop_binaries_build
                 pathtoPublish: "$(Build.ArtifactStagingDirectory)"
               condition: succeeded()
 #
