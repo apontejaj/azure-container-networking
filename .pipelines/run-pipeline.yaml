@@ -169,6 +169,9 @@ stages:
                 name: npm
                 os: windows
                 os_version: ltsc2022
+          variables:
+            ob_artifactSuffix: $(Suffix) # this is needed to not collide published artifact containers
+            ob_git_checkout: true
           steps:
             - template: containers/container-template.yaml
               parameters:
