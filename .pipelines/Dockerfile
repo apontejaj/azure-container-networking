@@ -2,8 +2,6 @@ FROM --platform=$BUILDPLATFORM mcr.microsoft.com/oss/go/microsoft/golang:1.23 as
 
 ENV GO111MODULE=on
 ENV CGO_ENABLED=0
-ENV GO_MOD="$HOME/artifacts/azure-container-networking/go.mod"
-ENV GO_PATH="$HOME/
 
 RUN echo $HOME
 RUN mkdir -p /root/.config/go
@@ -20,6 +18,9 @@ RUN go install github.com/gorilla/mux@v1.8.1
 RUN go install github.com/jstemmer/go-junit-report@v2.1.0
 RUN go install gopkg.in/matm/v1/gocov-html@v1.4.0
 RUN go install sigs.k8s.io/kind@v0.24.0
+
+WORKDIR artifacts/azure-container-networking/
+RUN make init
 
 RUN go get ./...
 
