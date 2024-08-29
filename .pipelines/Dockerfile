@@ -15,13 +15,16 @@ RUN go install github.com/jstemmer/go-junit-report/v2@v2.1.0
 RUN go install github.com/matm/gocov-html/cmd/gocov-html@v1.4.0
 RUN go install sigs.k8s.io/kind@v0.24.0
 
+VOLUME . /root/
 RUN ls -la
 RUN ls -la /
+RUN ls -la /mnt
+RUN ls -la /mnt/vss
 RUN ls -la /root/
+RUN ls -la dst/
+RUN ls -la $(Build.SourcesDirectory)
 RUN find / -name Makefile
-VOLUME /mnt/vss/_work/1/b/2/_work/docker/artifacts /root/
-RUN ls -la /root/
-RUN cp -r /mnt/vss/_work/1/b/2/_work/docker/artifacts /root/
+VOLUME dst/azure-container-networking/ /root/azure-container-networking/
 RUN ls -la /root/
 RUN find / -name Makefile
 WORKDIR /mnt/vss/_work/1/b/2/_work/docker/artifacts/azure-container-networking/
