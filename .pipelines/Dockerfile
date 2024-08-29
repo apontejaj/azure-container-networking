@@ -8,13 +8,13 @@ RUN go env
 
 FROM --platform=$BUILDPLATFORM onebranch.azurecr.io/linux/ubuntu-2204:latest as unittestbuild
 
+# Configure Golang Environment
+RUN mkdir -p /root/.config/go
 COPY --from=gobin /usr/local/go/bin/go /usr/local/go/bin/go
-COPY --from=gobin go.env .
+COPY --from=gobin go.env /root/.config/go/env
 RUN go env 
-CMD while IFS="" read -r p || [ -n "$p" ]; do \n\
-  printf '%s\n' "$p" \n\
-done < go.env \n\
 
+# Download Common UnitTest Packages
 RUN go install github.com/AlekSi/gocov-xml@v1.1.0
 RUN go install github.com/axw/gocov/gocov@v1.1.0
 RUN go install github.com/docker/libnetwork/driverapi@v0.5.6
