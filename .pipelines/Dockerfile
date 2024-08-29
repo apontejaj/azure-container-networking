@@ -11,7 +11,7 @@ FROM --platform=$BUILDPLATFORM onebranch.azurecr.io/linux/ubuntu-2204:latest as 
 # Configure Golang Environment
 RUN mkdir -p /root/.config/go
 COPY --from=gobin /usr/local/go/bin/go /usr/local/go/bin/go
-COPY --from=gobin go.env /root/.config/go/env
+COPY --from=gobin ./go.env /root/.config/go/env
 RUN go env 
 
 # Download Common UnitTest Packages
