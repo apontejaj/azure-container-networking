@@ -6,7 +6,9 @@ jobs:
   - job: ${{ parameters.name }}
     displayName: Cluster - ${{ parameters.name }}
     pool:
+    pool:
       isCustom: true
+      type: linux
       name: $(BUILD_POOL_NAME_DEFAULT)
     steps:
       - task: AzureCLI@2
