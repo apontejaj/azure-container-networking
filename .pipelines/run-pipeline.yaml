@@ -173,6 +173,8 @@ stages:
             ob_artifactSuffix: $(Suffix) # this is needed to not collide published artifact containers
             ob_git_checkout: true
           steps:
+            - checkout: azure-container-networking
+
             - template: containers/container-template.yaml
               parameters:
                 arch: $(arch)

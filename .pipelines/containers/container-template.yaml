@@ -5,8 +5,6 @@ parameters:
   os_version: ""
 
 steps:
-- checkout: azure-container-networking
-
 - task: AzureCLI@2
   displayName: "Login"
   inputs:
