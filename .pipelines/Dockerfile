@@ -11,10 +11,8 @@ RUN ls -la
 # Download Common UnitTest Packages
 RUN go install github.com/AlekSi/gocov-xml@v1.1.0
 RUN go install github.com/axw/gocov/gocov@v1.1.0
-#RUN go install github.com/docker/libnetwork/driverapi@v0.5.6
-RUN go install github.com/gorilla/mux@v1.8.1
-RUN go install github.com/jstemmer/go-junit-report@v2.1.0
-RUN go install gopkg.in/matm/v1/gocov-html@v1.4.0
+RUN go install go install github.com/jstemmer/go-junit-report/v2@v2.1.0
+RUN go install go install github.com/matm/gocov-html/cmd/gocov-html@v1.4.0
 RUN go install sigs.k8s.io/kind@v0.24.0
 
 WORKDIR artifacts/azure-container-networking/
@@ -22,6 +20,8 @@ RUN make init
 RUN go env > /root/.config/go/env
 
 RUN go get ./...
+#RUN go get -u github.com/docker/libnetwork/driverapi@v0.5.6
+#RUN go get -u github.com/gorilla/mux@v1.8.1
 
 FROM --platform=$BUILDPLATFORM onebranch.azurecr.io/linux/ubuntu-2204:latest as unittestbuild
 
