@@ -40,6 +40,8 @@ jobs:
       ls -la .
       pwd
       ls -la ./azure-container-networking
+      docker buildx inspect --bootstrap
+      sudo apt-get install podman-docker -y || sudo tdnf install podman-docker -y 
     displayName: "Add Review Changes to Container"
     
   - task: onebranch.pipeline.imagebuildinfo@1
