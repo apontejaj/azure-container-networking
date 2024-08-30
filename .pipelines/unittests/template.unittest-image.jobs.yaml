@@ -33,13 +33,17 @@ jobs:
       artifact: drop_setup_env
 
   - bash: |
-      ls -la
-      ls -la ..
-      ls -la artifacts
-      ls -la ../dst
-      ls -la docker
-      cp -r azure-container-networking $(Build.SourcesDirectory)/out/
-    continueOnError: true
+      #set -en
+      ls -la .
+      OUTPUT_DIR="$BUILD_SOURCESDIRECTORY"/out/
+      cp -r dst/azure-container-networking "$OUTPUT_DIR"
+      ls -la "$OUTPUT_DIR"
+      ls -la .
+      pwd
+      ls -la ./azure-container-networking
+      ls -la ./dst
+      ls -la ./docker
+    displayName: "Add Review Changes to Container"
     
   - task: onebranch.pipeline.imagebuildinfo@1
     inputs:
@@ -50,7 +54,7 @@ jobs:
       saveImageToPath: unittest-build_linux_${{ parameters.os }}_${{ parameters.arch }}.tar
       saveMetadataToPath: unittest-build_linux_${{ parameters.os }}_${{ parameters.arch }}-metadata.json
       buildkit: 1
-      arguments: --target unittestbuild
+      arguments: --target unittestbuild --volume `pwd`:/root/
       build_tag: $(Build.BuildNumber)
       addPipelineData: true
       enable_network: true
