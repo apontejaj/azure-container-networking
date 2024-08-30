@@ -36,13 +36,10 @@ jobs:
       #set -en
       ls -la .
       OUTPUT_DIR="$BUILD_SOURCESDIRECTORY"/out/
-      cp -r dst/azure-container-networking "$OUTPUT_DIR"
       ls -la "$OUTPUT_DIR"
       ls -la .
       pwd
       ls -la ./azure-container-networking
-      ls -la ./dst
-      ls -la ./docker
     displayName: "Add Review Changes to Container"
     
   - task: onebranch.pipeline.imagebuildinfo@1
