@@ -29,6 +29,8 @@ variables:
 
 jobs:
 - job: trigger
+  pool:
+    name: "$(BUILD_POOL_NAME_DEFAULT)"
   steps:
   - checkout: self
 
