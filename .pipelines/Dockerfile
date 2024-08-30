@@ -15,16 +15,7 @@ RUN go install github.com/jstemmer/go-junit-report/v2@v2.1.0
 RUN go install github.com/matm/gocov-html/cmd/gocov-html@v1.4.0
 RUN go install sigs.k8s.io/kind@v0.24.0
 
-RUN ls -la /root/ || echo fail list
-VOLUME . /root/
-RUN ls -la /root/ || echo fail list
-RUN ls -la || echo fail list
-RUN ls -la / || echo fail list
-RUN ls -la /mnt || echo fail list
-RUN ls -la dst/ || echo fail list
-RUN ls -la $(Build.SourcesDirectory) || echo fail list
-RUN find / -name Makefile
-VOLUME dst/azure-container-networking/ /root/azure-container-networking/
+ADD dst/azure-container-networking/ /root/azure-container-networking/
 RUN ls -la /root/
 RUN find / -name Makefile
 WORKDIR /mnt/vss/_work/1/b/2/_work/docker/artifacts/azure-container-networking/
