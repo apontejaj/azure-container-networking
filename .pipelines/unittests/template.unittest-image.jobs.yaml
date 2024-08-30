@@ -54,7 +54,7 @@ jobs:
       repositoryName: cicd/unittest-build
       registry: acndev.azurecr.io
       dockerFileRelPath: artifacts/Dockerfile
-      dockerFileContextPath: artifacts/azure-container-networking
+      dockerFileContextPath: artifacts/
       saveImageToPath: unittest-build_linux_${{ parameters.os }}_${{ parameters.arch }}.tar
       saveMetadataToPath: unittest-build_linux_${{ parameters.os }}_${{ parameters.arch }}-metadata.json
       buildkit: 1
