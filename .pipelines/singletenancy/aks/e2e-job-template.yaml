@@ -19,6 +19,7 @@ stages:
       - setup
     variables:
       commitID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.commitID'] ]
+      ACN_DIR: $(Build.SourcesDirectory)
     jobs:
       - template: ../../templates/create-cluster.yaml
         parameters:
@@ -39,6 +40,7 @@ stages:
     - publish
     - ${{ parameters.clusterName }}
     variables:
+      ACN_DIR: $(Build.SourcesDirectory)
       GOPATH: "$(Agent.TempDirectory)/go" # Go workspace path
       GOBIN: "$(GOPATH)/bin" # Go binaries path
       modulePath: "$(GOPATH)/src/github.com/Azure/azure-container-networking"
@@ -58,6 +60,7 @@ stages:
           ob_git_checkout: true
         steps:
           - checkout: azure-container-networking
+            clean: true
 
           - template: e2e-step-template.yaml
             parameters:

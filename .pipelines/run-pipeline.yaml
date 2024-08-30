@@ -345,58 +345,58 @@ stages:
 #        vmSize: Standard_B2ms
 #        k8sVersion: ""
 #        dependsOn: "containerize"
-#
-#    # AKS Swift E2E tests
-#    - template: singletenancy/aks-swift/e2e-job-template.yaml
-#      parameters:
-#        name: "aks_swift_e2e"
-#        displayName: AKS Swift Ubuntu
-#        os: linux
-#        clusterType: swift-byocni-up
-#        clusterName: "swifte2e"
-#        vmSize: Standard_B2ms
-#        k8sVersion: ""
-#        dependsOn: "containerize"
-#
-#    # AKS Swift Vnet Scale E2E tests
-#    - template: singletenancy/aks-swift/e2e-job-template.yaml
-#      parameters:
-#        name: "aks_swift_vnetscale_e2e"
-#        displayName: AKS Swift Vnet Scale Ubuntu
-#        os: linux
-#        clusterType: vnetscale-swift-byocni-up
-#        clusterName: "vscaleswifte2e"
-#        vmSize: Standard_B2ms
-#        k8sVersion: "1.28"
-#        dependsOn: "containerize"
-#
-#    # CNIv1 E2E tests
-#    - template: singletenancy/aks/e2e-job-template.yaml
-#      parameters:
-#        name: "aks_ubuntu_22_linux_e2e"
-#        displayName: AKS Ubuntu 22
-#        arch: "amd64"
-#        os: "linux"
-#        clusterType: linux-cniv1-up
-#        clusterName: "ubuntu22e2e"
-#        vmSize: Standard_B2s
-#        k8sVersion: 1.25
-#        scaleup: 100
-#        dependsOn: "containerize"
-#
-#    - template: singletenancy/aks/e2e-job-template.yaml
-#      parameters:
-#        name: "aks_windows_22_e2e"
-#        displayName: AKS Windows 2022
-#        arch: amd64
-#        os: windows
-#        clusterType: windows-cniv1-up
-#        clusterName: "win22e2e"
-#        vmSize: Standard_B2ms
-#        os_version: "ltsc2022"
-#        scaleup: 50
-#        dependsOn: "containerize"
-#
+
+    # AKS Swift E2E tests
+    - template: singletenancy/aks-swift/e2e-job-template.yaml
+      parameters:
+        name: "aks_swift_e2e"
+        displayName: AKS Swift Ubuntu
+        os: linux
+        clusterType: swift-byocni-up
+        clusterName: "swifte2e"
+        vmSize: Standard_B2ms
+        k8sVersion: ""
+        dependsOn: "containerize"
+
+    # AKS Swift Vnet Scale E2E tests
+    - template: singletenancy/aks-swift/e2e-job-template.yaml
+      parameters:
+        name: "aks_swift_vnetscale_e2e"
+        displayName: AKS Swift Vnet Scale Ubuntu
+        os: linux
+        clusterType: vnetscale-swift-byocni-up
+        clusterName: "vscaleswifte2e"
+        vmSize: Standard_B2ms
+        k8sVersion: "1.28"
+        dependsOn: "containerize"
+
+    # CNIv1 E2E tests
+    - template: singletenancy/aks/e2e-job-template.yaml
+      parameters:
+        name: "aks_ubuntu_22_linux_e2e"
+        displayName: AKS Ubuntu 22
+        arch: "amd64"
+        os: "linux"
+        clusterType: linux-cniv1-up
+        clusterName: "ubuntu22e2e"
+        vmSize: Standard_B2s
+        k8sVersion: 1.25
+        scaleup: 100
+        dependsOn: "containerize"
+
+    - template: singletenancy/aks/e2e-job-template.yaml
+      parameters:
+        name: "aks_windows_22_e2e"
+        displayName: AKS Windows 2022
+        arch: amd64
+        os: windows
+        clusterType: windows-cniv1-up
+        clusterName: "win22e2e"
+        vmSize: Standard_B2ms
+        os_version: "ltsc2022"
+        scaleup: 50
+        dependsOn: "containerize"
+
 #    # CNI dual stack overlay E2E tests
 #    - template: singletenancy/dualstack-overlay/dualstackoverlay-e2e-job-template.yaml
 #      parameters:
@@ -429,13 +429,13 @@ stages:
       dependsOn:
         - setup
 #        - azure_overlay_e2e
-#        - aks_swift_e2e
+        - aks_swift_e2e
         - cilium_e2e
 #        - cilium_overlay_e2e
 #        - cilium_h_overlay_e2e
-#        - aks_ubuntu_22_linux_e2e
-#        - aks_swift_vnetscale_e2e
-#        - aks_windows_22_e2e
+        - aks_ubuntu_22_linux_e2e
+        - aks_swift_vnetscale_e2e
+        - aks_windows_22_e2e
 #        - dualstackoverlay_e2e
 #        - cilium_dualstackoverlay_e2e
 #        - swiftv2_e2e
@@ -467,18 +467,18 @@ stages:
 #              azure_overlay_e2e:
 #                name: azure_overlay_e2e
 #                clusterName: "azovere2e"
-#              aks_swift_e2e:
-#                name: aks_swift_e2e
-#                clusterName: "swifte2e"
-#              aks_swift_vnetscale_e2e:
-#                name: aks_swift_vnetscale_e2e
-#                clusterName: "vscaleswifte2e"
-#              aks_ubuntu_22_linux_e2e:
-#                name: aks_ubuntu_22_linux_e2e
-#                clusterName: "ubuntu22e2e"
-#              aks_windows_22_e2e:
-#                name: aks_windows_22_e2e
-#                clusterName: "win22e2e"
+              aks_swift_e2e:
+                name: aks_swift_e2e
+                clusterName: "swifte2e"
+              aks_swift_vnetscale_e2e:
+                name: aks_swift_vnetscale_e2e
+                clusterName: "vscaleswifte2e"
+              aks_ubuntu_22_linux_e2e:
+                name: aks_ubuntu_22_linux_e2e
+                clusterName: "ubuntu22e2e"
+              aks_windows_22_e2e:
+                name: aks_windows_22_e2e
+                clusterName: "win22e2e"
 #              dualstackoverlay_e2e:
 #                name: dualstackoverlay_e2e
 #                clusterName: "dsovere2e"
