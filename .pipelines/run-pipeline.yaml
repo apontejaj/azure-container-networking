@@ -8,7 +8,12 @@ stages:
           isCustom: true
           type: linux
           name: "$(BUILD_POOL_NAME_DEFAULT)"
+        variables:
+          #cob_outputDirectory: $(Build.ArtifactStagingDirectory)/output
+          ob_git_checkout: true
         steps:
+          - checkout: azure-container-networking
+
           - script: |
               # To use the variables below, you must make the respective stage's dependsOn have - setup or it will not retain context of this stage
               BUILD_NUMBER=$(Build.BuildNumber)
@@ -29,7 +34,6 @@ stages:
               echo $(Build.SourceBranch)
             name: "EnvironmentalVariables"
             displayName: "Set environmental variables"
-            condition: always()
 
   - template: templates/run-unit-tests.yaml
 
@@ -39,6 +43,8 @@ stages:
       dependsOn:
         - setup
         - test
+      variables:
+        ACN_DIR: $(Build.SourcesDirectory)
       jobs:
         - job: build
           displayName: Build Binaries
@@ -81,6 +87,8 @@ stages:
       dependsOn:
         - setup
         - test
+      variables:
+        ACN_DIR: $(Build.SourcesDirectory)
       jobs:
         - job: containerize_amd64
           displayName: Build Images
@@ -233,7 +241,7 @@ stages:
         - containerize
       variables:
         Packaging.EnableSBOMSigning: false
-        ACN_DIR: $(Build.SourcesDirectory)/azure-container-networking/
+        ACN_DIR: $(Build.SourcesDirectory)
       jobs:
         - job: manifest
           displayName: Compile Manifests
@@ -431,6 +439,7 @@ stages:
 #        - cilium_dualstackoverlay_e2e
 #        - swiftv2_e2e
       variables:
+        ACN_DIR: $(Build.SourcesDirectory)
         commitID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.commitID'] ]
       jobs:
         - job: delete
@@ -489,5 +498,3 @@ stages:
                 name: $(name)
                 clusterName: $(clusterName)-$(commitID)
                 region: $(REGION_AKS_CLUSTER_TEST)
-
-
