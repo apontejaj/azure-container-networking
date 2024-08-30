@@ -32,6 +32,7 @@ jobs:
           addSpnToEnvironment: true
           inlineScript: |
             set -e
+            cd azure-container-networking/
             echo "Check az version"
             az version
             if ${{ lower(contains(parameters.clusterType, 'dualstack')) }}
