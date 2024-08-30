@@ -55,7 +55,7 @@ jobs:
       --arg REF "$ACN_BUILD_AZURE_ACN_GIT_REF" \
       --arg BRANCH "$ACN_BUILD_SOURCE_BRANCH" \
       --arg QUEUEDBY "$ACN_BUILD_QUEUEDBY" \
-      '.TriggerDetails = { reason: "$REASON", ref: "$REF", queuedBy: "$QUEUEDBY", sourceBranch: "$BRANCH" }')
+      '.TriggerDetails = { reason: $REASON, ref: $REF, queuedBy: $QUEUEDBY, sourceBranch: $BRANCH }')
 
       # Switch Pipeline on Build Reason
       if [[ $ACN_BUILD_REASON =~ ^PullRequest$ ]]; then
