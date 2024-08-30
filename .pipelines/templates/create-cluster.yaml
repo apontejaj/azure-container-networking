@@ -23,6 +23,7 @@ jobs:
       ob_git_checkout: true
     steps:
       - checkout: azure-container-networking
+        clean: true
 
       - task: AzureCLI@2
         inputs:
