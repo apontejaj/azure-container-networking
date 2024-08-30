@@ -103,9 +103,11 @@ nodesubnet-cilium-up: rg-up overlay-net-up ## Brings up an Overlay BYO CNI clust
 		--kubernetes-version $(K8S_VER) \
 		--node-count $(NODE_COUNT) \
 		--node-vm-size $(VM_SIZE) \
-		--network-plugin azure \
+		--load-balancer-sku basic \
+		--network-plugin none \
+		--network-plugin-mode overlay \
+		--pod-cidr 192.168.0.0/16 \
 		--vnet-subnet-id /subscriptions/$(SUB)/resourceGroups/$(GROUP)/providers/Microsoft.Network/virtualNetworks/$(VNET)/subnets/nodenet \
-		--os-sku $(OS_SKU) \
 		--no-ssh-key \
 		--kube-proxy-config ./kube-proxy.json \
 		--yes
