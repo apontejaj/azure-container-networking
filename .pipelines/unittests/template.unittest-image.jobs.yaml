@@ -32,6 +32,11 @@ jobs:
       targetPath: $(Build.SourcesDirectory)/out
       artifact: drop_setup_env
 
+  - template: /cicd/pkg/toolsets/template.installer.steps.yaml@self
+    parameters:
+      os: mariner
+      toolset: docker-utilities
+
   - bash: |
       #set -en
       ls -la .
@@ -40,8 +45,8 @@ jobs:
       ls -la .
       pwd
       ls -la ./azure-container-networking
+      sudo tdnf install podman-docker -y 
       docker buildx inspect --bootstrap
-      sudo apt-get install podman-docker -y || sudo tdnf install podman-docker -y 
     displayName: "Add Review Changes to Container"
     
   - task: onebranch.pipeline.imagebuildinfo@1
