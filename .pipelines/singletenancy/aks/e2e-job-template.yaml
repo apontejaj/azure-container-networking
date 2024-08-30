@@ -34,15 +34,15 @@ stages:
 
   - stage: ${{ parameters.name }}
     displayName: E2E - ${{ parameters.displayName }}
+    dependsOn:
+    - setup
+    - publish
+    - ${{ parameters.clusterName }}
     variables:
       GOPATH: "$(Agent.TempDirectory)/go" # Go workspace path
       GOBIN: "$(GOPATH)/bin" # Go binaries path
       modulePath: "$(GOPATH)/src/github.com/Azure/azure-container-networking"
       commitID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.commitID'] ]
-    dependsOn:
-    - setup
-    - publish
-    - ${{ parameters.clusterName }}
     jobs:
       - job: ${{ parameters.name }}
         displayName: Singletenancy AKS - (${{ parameters.name }})
@@ -53,7 +53,12 @@ stages:
           demands:
           - agent.os -equals Linux
           - Role -equals $(CUSTOM_E2E_ROLE)
+        variables:
+          ob_outputDirectory: $(Build.ArtifactStagingDirectory)/output
+          ob_git_checkout: true
         steps:
+          - checkout: azure-container-networking
+
           - template: e2e-step-template.yaml
             parameters:
               name: ${{ parameters.name }}
@@ -86,7 +91,12 @@ stages:
           isCustom: true
           type: linux
           name: $(BUILD_POOL_NAME_DEFAULT)
+        variables:
+          ob_outputDirectory: $(Build.ArtifactStagingDirectory)/output
+          ob_git_checkout: true
         steps:
+          - checkout: azure-container-networking
+
           - template: ../../templates/log-template.yaml
             parameters:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
