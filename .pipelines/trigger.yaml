@@ -3,6 +3,7 @@ pr:
     include:
       - master
       - release/*
+      - feature/ob*
   paths:
     exclude:
       - ".devcontainer"
@@ -33,6 +34,7 @@ jobs:
 
   - bash: |
       set -e
+
       # Get Build Reason
       ACN_BUILD_REASON=$(echo -n "$BUILD_REASON")
       echo >&2 "$ACN_BUILD_REASON"
@@ -47,10 +49,10 @@ jobs:
       echo >&2 "$ACN_BUILD_SOURCE_BRANCH"
 
       ACN_BUILD_PARAMETERS=$(echo '{ "TriggerDetails": {} }' | jq -cr \
-      --arg REASON="$ACN_BUILD_REASON" \
-      --arg REF="$ACN_BUILD_AZURE_ACN_GIT_REF" \
-      --arg BRANCH="$ACN_BUILD_SOURCE_BRANCH" \
-      --arg QUEUEDBY="$ACN_BUILD_QUEUEDBY" \
+      --arg REASON "$ACN_BUILD_REASON" \
+      --arg REF "$ACN_BUILD_AZURE_ACN_GIT_REF" \
+      --arg BRANCH "$ACN_BUILD_SOURCE_BRANCH" \
+      --arg QUEUEDBY "$ACN_BUILD_QUEUEDBY" \
       '.TriggerDetails = { reason: "$REASON", ref: "$REF", queuedBy: "$QUEUEDBY", sourceBranch: "$BRANCH" }')
 
       # Switch Pipeline on Build Reason
