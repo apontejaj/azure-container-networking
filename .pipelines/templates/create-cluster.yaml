@@ -29,10 +29,9 @@ jobs:
           azureSubscription: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
           scriptLocation: "inlineScript"
           scriptType: "bash"
+          workingDirectory: $(ACN_DIR)
           addSpnToEnvironment: true
           inlineScript: |
-            ls -la
-            cd azure-container-networking/
             set -e
             echo "Check az version"
             az version

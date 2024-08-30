@@ -233,6 +233,7 @@ stages:
         - containerize
       variables:
         Packaging.EnableSBOMSigning: false
+        ACN_DIR: $(Build.SourcesDirectory)/azure-container-networking/
       jobs:
         - job: manifest
           displayName: Compile Manifests
@@ -241,9 +242,9 @@ stages:
             type: linux
             name: "$(BUILD_POOL_NAME_DEFAULT)"
           variables:
-            STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
             ob_outputDirectory: $(Build.ArtifactStagingDirectory)/output
             ob_git_checkout: true
+            STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
           strategy:
             matrix:
               azure_ipam:
