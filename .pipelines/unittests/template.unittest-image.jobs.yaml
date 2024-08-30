@@ -58,7 +58,7 @@ jobs:
       saveImageToPath: unittest-build_linux_${{ parameters.os }}_${{ parameters.arch }}.tar
       saveMetadataToPath: unittest-build_linux_${{ parameters.os }}_${{ parameters.arch }}-metadata.json
       buildkit: 1
-      arguments: --target unittestbuild --mount driver=local,rw=true,destination=/root/,source=`pwd`
+      arguments: --target unittestbuild #--mount driver=local,rw=true,destination=/root/,source=`pwd`
       build_tag: $(Build.BuildNumber)
       addPipelineData: true
       enable_network: true

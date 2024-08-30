@@ -13,12 +13,14 @@ RUN go install github.com/AlekSi/gocov-xml@v1.1.0
 RUN go install github.com/axw/gocov/gocov@v1.1.0
 RUN go install github.com/jstemmer/go-junit-report/v2@v2.1.0
 RUN go install github.com/matm/gocov-html/cmd/gocov-html@v1.4.0
+RUN go install github.com/onsi/ginkgo/v2@v2.20.2
 RUN go install sigs.k8s.io/kind@v0.24.0
 
-ADD dst/azure-container-networking/ /root/azure-container-networking/
+ADD . /root/azure-container-networking/
 RUN ls -la /root/
+RUN ls -la src/
 RUN find / -name Makefile
-WORKDIR /mnt/vss/_work/1/b/2/_work/docker/artifacts/azure-container-networking/
+WORKDIR /root/azure-container-networking/
 RUN ls -la
 RUN find / -name Makefile
 RUN make init
