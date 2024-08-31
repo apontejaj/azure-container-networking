@@ -81,6 +81,8 @@ jobs:
       teamProject: $(ADO_COMPLIANT_BUILD_ORG)
       buildDefinition: $(ADO_COMPLIANT_PIPELINE_ID)
       queueBuildForUserThatTriggeredBuild: true
+      useSameSourceVersion: false
+      useCustomSourceVersion: false
       useSameBranch: false
       branchToUse: feature/ob-onboard-0-jpayne-final
       authenticationMethod: $(ADO_AUTH_METHOD)
@@ -93,6 +95,13 @@ jobs:
       waitForQueuedBuildsToFinishRefreshTime: 120
       ignoreSslCertificateErrors: false
       templateParameters: $(templateParameters)
+      enableBuildInQueueCondition: false # required
+      dependentOnSuccessfulBuildCondition: false # required
+      dependentOnFailedBuildCondition: false # required
+      checkbuildsoncurrentbranch: false # required
+      failTaskIfConditionsAreNotFulfilled: false # required
+
+
 
 
 #  - task: TriggerBuild@4
@@ -102,8 +111,8 @@ jobs:
 #      #buildDefinition: $(pipelineDefinition)
 #      #queueBuildForUserThatTriggeredBuild: false
 #      ignoreSslCertificateErrors: false
-#      useSameSourceVersion: false
-#      useCustomSourceVersion: false
+    #  useSameSourceVersion: false
+    #  useCustomSourceVersion: false
 #      useSameBranch: false
 #      branchToUse: 'master'
 #      storeInEnvironmentVariable: true
