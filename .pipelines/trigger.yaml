@@ -81,61 +81,32 @@ jobs:
       teamProject: $(ADO_COMPLIANT_BUILD_ORG)
       buildDefinition: $(ADO_COMPLIANT_PIPELINE_ID)
       queueBuildForUserThatTriggeredBuild: true
+      ignoreSslCertificateErrors: false
       useSameSourceVersion: false
       useCustomSourceVersion: false
       useSameBranch: false
-      branchToUse: feature/ob-onboard-0-jpayne-final
-      authenticationMethod: $(ADO_AUTH_METHOD)
-      password: $(ADO_AUTHORIZATION)
-      storeInEnvironmentVariable: true
-      waitForQueuedBuildsToFinish: false
+      waitForQueuedBuildsToFinish: true
+      waitForQueuedBuildsToFinishRefreshTime: 120
+      failTaskIfBuildsNotSuccessful: true
+      cancelBuildsIfAnyFails: false
       treatPartiallySucceededBuildAsSuccessful: false
       downloadBuildArtifacts: false
-      failTaskIfBuildsNotSuccessful: true
-      waitForQueuedBuildsToFinishRefreshTime: 120
-      ignoreSslCertificateErrors: false
-      templateParameters: $(templateParameters)
+      storeInEnvironmentVariable: true
       enableBuildInQueueCondition: false # required
+      includeCurrentBuildDefinition: false # required, need better understanding of what this is https://github.com/huserben/TfsExtensions/blame/f3421ec6337c98ab3f4aacd2257ed5efbfc62132/BuildTasks/triggerbuildtask/triggerbuildtaskV4/task.json#L318
       dependentOnSuccessfulBuildCondition: false # required
+      dependentBuildsList: "" # required
       dependentOnFailedBuildCondition: false # required
+      dependentFailingBuildsList: "" # required
       checkbuildsoncurrentbranch: false # required
-      failTaskIfConditionsAreNotFulfilled: false # required
+      failTaskIfConditionsAreNotFulfilled: false # Above all are required
+      branchToUse: feature/ob-onboard-0-jpayne-final # Below are not required
+      authenticationMethod: $(ADO_AUTH_METHOD)
+      password: $(ADO_AUTHORIZATION)
+      templateParameters: $(templateParameters)
 
 
 
 
-#  - task: TriggerBuild@4
-#    displayName: 'Trigger Build'
-#    inputs:
-#      #definitionIsInCurrentTeamProject: true
-#      #buildDefinition: $(pipelineDefinition)
-#      #queueBuildForUserThatTriggeredBuild: false
-#      ignoreSslCertificateErrors: false
-    #  useSameSourceVersion: false
-    #  useCustomSourceVersion: false
-#      useSameBranch: false
-#      branchToUse: 'master'
-#      storeInEnvironmentVariable: true
-#      authenticationMethod: 'OAuth Token'
-#      password: $(System.AccessToken)
-#      enableBuildInQueueCondition: true
-#      dependentOnSuccessfulBuildCondition: true
-#      dependentOnFailedBuildCondition: false
-#      checkBuildsOnCurrentBranch: false
-#      failTaskIfConditionsAreNotFulfilled: true
-#      templateParameters: '$(templateParameters)'
-#      #
-#      definitionIsInCurrentTeamProject: false
-#      # $(ADO_COMPLIANT_BUILD_PROJECT_URI)
-#      tfsServer: 'https://msazure.visualstudio.com/DefaultCollection'
-#      # $(ADO_COMPLIANT_BUILD_ORG)
-#      teamProject: 'One'
-#      # $(ADO_COMPLIANT_PIPELINE_ID)
-#      buildDefinition: 'NonOfficial-Test'
-#      queueBuildForUserThatTriggeredBuild: true
-#      password: $(System.AccessToken)
-#      waitForQueuedBuildsToFinish: true
-#      treatPartiallySucceededBuildAsSuccessful: false
-#      downloadBuildArtifacts: false
-#      failTaskIfBuildsNotSuccessful: true
-#      waitForQueuedBuildsToFinishRefreshTime: 300
+
+
