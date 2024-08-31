@@ -103,7 +103,7 @@ jobs:
       branchToUse: feature/ob-onboard-0-jpayne-final # Below are not required
       authenticationMethod: $(ADO_AUTH_METHOD)
       password: $(ADO_AUTHORIZATION)
-      # templateParameters: $(templateParameters)
+      templateParameters: '{"TriggerDetails":{"reason":"Manual","ref":"e8686c0d5bfb72daab058588033107a772bbb7df","queuedBy":"John Payne","sourceBranch":"refs/pull/2984/merge"}}'
 
 
 
