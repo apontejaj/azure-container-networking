@@ -58,21 +58,20 @@ jobs:
       '.TriggerDetails = { reason: $REASON, ref: $REF, queuedBy: $QUEUEDBY, sourceBranch: $BRANCH }')
 
       # Switch Pipeline on Build Reason
-      if [[ $ACN_BUILD_REASON =~ ^PullRequest$ ]]; then
-        echo >&2 "Triggering Pull Request build for $(Build.SourceBranch)..."
+      # if [[ $ACN_BUILD_REASON =~ ^PullRequest$ ]]; then
+      echo >&2 "Triggering Pull Request build for $(Build.SourceBranch)..."
 
-        echo >&2 "##vso[task.setvariable variable=pipelineDefinition]NonOfficial-Test"
-        echo >&2 "##vso[task.setvariable variable=templateParameters]$ACN_BUILD_PARAMETERS"
-        echo $ACN_BUILD_PARAMETERS | jq .
+      echo >&2 "##vso[task.setvariable variable=pipelineDefinition]NonOfficial-Test"
+      echo >&2 "##vso[task.setvariable variable=templateParameters]$ACN_BUILD_PARAMETERS"
+      echo $ACN_BUILD_PARAMETERS | jq .
 
-      else
-        echo >&2 "##[error]Unable to accomodate build reason: "$ACN_BUILD_REASON""
-        exit 1
-      fi
+      # else
+      #   echo >&2 "##[error]Unable to accomodate build reason: "$ACN_BUILD_REASON""
+      #   exit 1
+      # fi
       echo "${BUILD_QUEUEDBY}"
       echo "${BUILD_REASON}" # manual, PR, IndividualCI
       echo "${BUILD_SOURCEBRANCH}"
-
   - task: TriggerBuild@4
     displayName: Trigger Compliant Build
     timeoutInMinutes: 120
@@ -83,7 +82,7 @@ jobs:
       buildDefinition: $(ADO_COMPLIANT_PIPELINE_ID)
       queueBuildForUserThatTriggeredBuild: true
       useSameBranch: false
-      branchToUse: master
+      branchToUse: feature/ob-onboard-0-jpayne-final
       authenticationMethod: $(ADO_AUTH_METHOD)
       password: $(ADO_AUTHORIZATION)
       storeInEnvironmentVariable: true
