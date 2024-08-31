@@ -103,7 +103,7 @@ jobs:
       branchToUse: feature/ob-onboard-0-jpayne-final # Below are not required
       authenticationMethod: $(ADO_AUTH_METHOD)
       password: $(ADO_AUTHORIZATION)
-      templateParameters: $(templateParameters)
+      # templateParameters: $(templateParameters)
 
 
 
