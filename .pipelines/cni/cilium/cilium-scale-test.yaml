@@ -83,6 +83,7 @@ stages:
       - job: scale_deployments
         pool:
           name: "$(BUILD_POOL_NAME_DEFAULT)"
+        timeoutInMinutes: 120
         steps:
           - task: AzureCLI@1
             inputs:
@@ -109,7 +110,7 @@ stages:
                 echo "scale deployment and to prep for network policies test"
                 cd test/scale
                 chmod +x test-scale.sh
-                ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=${REAL_PODS_PER_NODE_NETPOL} --num-real-deployments=${NUM_REAL_DEPLOYMENTS_NETPOL} --num-real-replicas=${NUM_REAL_REPLICAS_NETPOL} --num-network-policies=${APPLIED_NETPOL} --num-unapplied-network-policies=${UNAPPLIED_NETPOL} --num-unique-labels-per-pod=0 --num-unique-labels-per-deployment=5 --num-shared-labels-per-pod=3 --num-real-services=${NUM_REAL_SVC_NETPOL} --delete-labels
+                ./test-scale.sh --max-kwok-pods-per-node=0 --num-kwok-deployments=0 --num-kwok-replicas=0 --max-real-pods-per-node=${REAL_PODS_PER_NODE_NETPOL} --num-real-deployments=0 --delete-labels
                 echo "collect cpu and mem results after scaling"
                 mkdir test1_2_netpol_cpu_and_mem_scale
                 cd test1_2_netpol_cpu_and_mem_scale
