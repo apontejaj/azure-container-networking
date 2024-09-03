@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/oss/go/microsoft/golang:1.23 as gobin
+FROM mcr.microsoft.com/oss/go/microsoft/golang:1.23 as gobin
 
 ENV GO111MODULE=on
 ENV CGO_ENABLED=0
@@ -23,14 +23,14 @@ RUN find / -name Makefile
 WORKDIR /root/azure-container-networking/
 RUN ls -la
 RUN find / -name Makefile
-RUN make init
 RUN go env > /root/.config/go/env
+RUN cd /root/azure-container-networking/ && make init
 
 RUN go get ./...
 #RUN go get -u github.com/docker/libnetwork/driverapi@v0.5.6
 #RUN go get -u github.com/gorilla/mux@v1.8.1
 
-FROM --platform=$BUILDPLATFORM onebranch.azurecr.io/linux/ubuntu-2204:latest as unittestbuild
+FROM onebranch.azurecr.io/linux/ubuntu-2204:latest as unittestbuild
 
 ARG ACN_GO_PATH="$ACN_GO_PATH"
 
