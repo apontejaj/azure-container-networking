@@ -140,7 +140,6 @@ overlay-cilium-up: rg-up overlay-net-up ## Brings up an Overlay Cilium cluster
 		--node-count $(NODE_COUNT) \
 		--node-vm-size $(VM_SIZE) \
 		--load-balancer-sku standard \
-		--max-pods 230 \
 		--network-plugin azure \
 		--network-dataplane cilium \
 		--network-plugin-mode overlay \
