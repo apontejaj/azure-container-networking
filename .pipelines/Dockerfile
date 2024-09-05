@@ -16,15 +16,17 @@ RUN go install github.com/matm/gocov-html/cmd/gocov-html@v1.4.0
 RUN go install github.com/onsi/ginkgo/v2/ginkgo@v2.20.2
 RUN go install sigs.k8s.io/kind@v0.24.0
 
-ADD . /root/azure-container-networking/
+ADD . /root/azure-container-networking
 RUN ls -la /root/
-RUN ls -la src/
+RUN ls -la /root/azure-container-networking || echo no.
 RUN find / -name Makefile
+
 WORKDIR /root/azure-container-networking/
-RUN ls -la
 RUN find / -name Makefile
-RUN go env > /root/.config/go/env
-RUN cd /root/azure-container-networking/ && make init
+#RUN go env > /root/.config/go/env
+RUN cd /root/azure-container-networking && make init
+
+RUN ls -la
 
 RUN go get ./...
 #RUN go get -u github.com/docker/libnetwork/driverapi@v0.5.6
