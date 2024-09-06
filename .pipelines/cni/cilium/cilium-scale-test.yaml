@@ -1,6 +1,16 @@
 pr: none
 trigger: none
 
+parameters:
+  - name: scenario
+    displayName: "Scale Test Scenario"
+    type: string
+    default: "ACNS Observability+Security - Cilium"
+    values:
+      # - ACNS Observability - non-Cilium
+      - ACNS Security - Cilium
+      - ACNS Observability+Security - Cilium
+
 stages:
   - stage: update_daemonset_versions
     displayName: "Update Cilium + CNS Version and Restart Nodes"
