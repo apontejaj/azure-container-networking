@@ -29,6 +29,7 @@ const (
 	EnvInstallOverlay          CNSScenario = "INSTALL_OVERLAY"
 	EnvInstallAzureCNIOverlay  CNSScenario = "INSTALL_AZURE_CNI_OVERLAY"
 	EnvInstallDualStackOverlay CNSScenario = "INSTALL_DUALSTACK_OVERLAY"
+	EnvInstallCNSNodeSubnet    CNSScenario = "INSTALL_CNS_NODESUBNET"
 )
 
 type cnsDetails struct {
@@ -330,6 +331,8 @@ func initCNSScenarioVars() (map[CNSScenario]map[corev1.OSName]cnsDetails, error)
 	cnsSwiftLinuxConfigMapPath := cnsConfigFolder + "/swiftlinuxconfigmap.yaml"
 	cnsSwiftWindowsConfigMapPath := cnsConfigFolder + "/swiftwindowsconfigmap.yaml"
 	cnsCiliumConfigMapPath := cnsConfigFolder + "/ciliumconfigmap.yaml"
+	cnsNodeSubnetLinuxConfigMapPath := cnsConfigFolder + "/ciliumnodesubnetconfigmap.yaml"
+	cnsNodeSubnetWindowsConfigMapPath := cnsConfigFolder + "/cnsnodesubnetwindowsconfigmap.yaml"	
 	cnsOverlayConfigMapPath := cnsConfigFolder + "/overlayconfigmap.yaml"
 	cnsAzureCNIOverlayLinuxConfigMapPath := cnsConfigFolder + "/azurecnioverlaylinuxconfigmap.yaml"
 	cnsAzureCNIOverlayWindowsConfigMapPath := cnsConfigFolder + "/azurecnioverlaywindowsconfigmap.yaml"
@@ -411,6 +414,39 @@ func initCNSScenarioVars() (map[CNSScenario]map[corev1.OSName]cnsDetails, error)
 				installIPMasqAgent: false,
 			},
 		},
+		EnvInstallCNSNodeSubnet: {
+			corev1.Linux: {
+				daemonsetPath:          cnsLinuxDaemonSetPath,
+				labelSelector:          cnsLinuxLabelSelector,
+				rolePath:               cnsRolePath,
+				roleBindingPath:        cnsRoleBindingPath,
+				clusterRolePath:        cnsClusterRolePath,
+				clusterRoleBindingPath: cnsClusterRoleBindingPath,
+				serviceAccountPath:     cnsServiceAccountPath,
+				initContainerArgs: []string{
+					"deploy",
+					"azure-ipam", "-o", "/opt/cni/bin/azure-ipam",
+				},
+				initContainerName:  initContainerNameIPAM,
+				configMapPath:      cnsNodeSubnetLinuxConfigMapPath,
+				installIPMasqAgent: false,
+			},
+			corev1.Windows: {
+				daemonsetPath:          cnsWindowsDaemonSetPath,
+				labelSelector:          cnsWindowsLabelSelector,
+				rolePath:               cnsRolePath,
+				roleBindingPath:        cnsRoleBindingPath,
+				clusterRolePath:        cnsClusterRolePath,
+				clusterRoleBindingPath: cnsClusterRoleBindingPath,
+				serviceAccountPath:     cnsServiceAccountPath,
+				initContainerArgs: []string{
+					"deploy",
+					"azure-vnet", "-o", "/k/azurecni/bin/azure-vnet.exe",
+				},
+				initContainerName:         initContainerNameCNI,
+				configMapPath:             cnsNodeSubnetWindowsConfigMapPath,
+				installIPMasqAgent:        false,			
+		},		
 		EnvInstallOverlay: {
 			corev1.Linux: {
 				daemonsetPath:          cnsLinuxDaemonSetPath,
