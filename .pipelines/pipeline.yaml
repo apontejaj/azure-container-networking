@@ -449,7 +449,7 @@ stages:
                 clusterName: "ciliume2e"
               cilium_nodesubnet_e2e:
                 name: cilium_nodesubnet_e2e
-                clusterName: "ciliumnodesubnete2e"
+                clusterName: "cilndsubnete2e"
               cilium_overlay_e2e:
                 name: cilium_overlay_e2e
                 clusterName: "cilovere2e"

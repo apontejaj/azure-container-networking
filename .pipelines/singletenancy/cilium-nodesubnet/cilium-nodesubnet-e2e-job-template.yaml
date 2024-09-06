@@ -1,15 +1,15 @@
 parameters:
-  name: ""
-  displayName: ""
-  arch: ""
-  os: ""
-  clusterType: ""
-  clusterName: ""
-  vmSize: ""
-  k8sVersion: ""
-  os_version: ""
-  scaleup: ""
   dependsOn: ""
+  name: "cilium_nodesubnet_e2e"
+  clusterType: "nodesubnet-cilium-up"
+  clusterName: "cilndsubnete2e"
+  vmSize: ""
+  os: "linux"
+  arch: ""
+  osSKU: Ubuntu
+  hubbleEnabled: false
+  dualstackVersion: ""
+  cni: "cilium"
 
 stages:
   - stage: ${{ parameters.clusterName }}
@@ -52,7 +52,7 @@ stages:
       name: $(BUILD_POOL_NAME_DEFAULT)
     jobs:
       - job: ${{ parameters.name }}
-        displayName: Singletenancy with Cilium - (${{ parameters.name }})
+        displayName: Nodesubnet with Cilium - (${{ parameters.name }})
         pool:
           name: $(BUILD_POOL_NAME_DEFAULT)
           demands:
@@ -92,4 +92,4 @@ stages:
             parameters:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
               os: ${{ parameters.os }}
-              cni: cniv1
+              cni: cilium

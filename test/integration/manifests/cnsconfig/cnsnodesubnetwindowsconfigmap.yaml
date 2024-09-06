@@ -21,13 +21,14 @@ data:
           "NodeID": "",
           "NodeSyncIntervalInSeconds": 30
       },
-      "ChannelMode": "None",
+      "ChannelMode": "AzureHost",
       "InitializeFromCNI": false,
       "ManageEndpointState": true,
       "ProgramSNATIPTables" : false,
+      "MetricsBindAddress": ":10092",
       "EnableCNIConflistGeneration": true,
-      "CNIConflistFilepath": "/etc/cni/net.d/05-cilium.conflist",
-      "CNIConflistScenario": "cilium",
+      "CNIConflistFilepath": "C:\\k\\azurecni\\netconf\\10-azure.conflist",
+      "CNIConflistScenario": "cnswindowsnodesubnet",
       "EnableAsyncPodDelete": true,
-      "AsyncPodDeletePath": "/var/run/azure-vnet/deleteIDs"
+      "AsyncPodDeletePath": "/var/run/azure-vnet/deleteIDs"      
     }
