@@ -26,7 +26,7 @@ stages:
               scriptType: "bash"
               addSpnToEnvironment: true
               inlineScript: |
-                az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
+                az aks get-credentials --resource-group ${RESOURCE_GROUP} --name ${CLUSTER}
                 echo "Redeploy all cilium components and update cilium version. Redeploy all to catch all changes between versions"
                 echo "deploy Cilium ConfigMap"
                 kubectl apply -f test/integration/manifests/cilium/cilium-config.yaml
@@ -61,9 +61,9 @@ stages:
               addSpnToEnvironment: true
               inlineScript: |
                 set -ex
-                az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
+                az aks get-credentials --resource-group ${RESOURCE_GROUP} --name ${CLUSTER}
                 echo "Scaling up nodes"
-                az aks nodepool scale --name nodepool1 --cluster-name ${CLUSTER} --resource-group ${CLUSTER} --node-count ${NODE_COUNT_UP}
+                az aks nodepool scale --name nodepool1 --cluster-name ${CLUSTER} --resource-group ${RESOURCE_GROUP} --node-count ${NODE_COUNT_UP}
             name: "ScaleUp"
             displayName: "Scale up Nodes"
   - stage: label_nodes
@@ -81,7 +81,7 @@ stages:
               addSpnToEnvironment: true
               inlineScript: |
                 echo "Set node label scale-test=true and connectivity-test=true for testing"
-                az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
+                az aks get-credentials --resource-group ${RESOURCE_GROUP} --name ${CLUSTER}
                 cd test/scale
                 chmod +x label-nodes.sh
                 ./label-nodes.sh
@@ -101,7 +101,7 @@ stages:
               scriptType: "bash"
               addSpnToEnvironment: true
               inlineScript: |
-                az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
+                az aks get-credentials --resource-group ${RESOURCE_GROUP} --name ${CLUSTER}
                 echo "collect cpu and memory usage before scaling for network policies"
                 mkdir test1_1_netpol_cpu_and_mem_before
                 cd test1_1_netpol_cpu_and_mem_before
@@ -150,49 +150,71 @@ stages:
             condition: always()
             name: "PublishResults2"
             displayName: "Result Network Policies Artifacts"
-  - stage: test_network_policies_connectivity
-    displayName: "Test Network Policies"
-    jobs:
-      - job: network_policies
-        pool:
-          name: "$(BUILD_POOL_NAME_DEFAULT)"
-        timeoutInMinutes: 120
-        steps:
-          - task: AzureCLI@2
-            inputs:
-              azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
-              scriptLocation: "inlineScript"
-              scriptType: "bash"
-              addSpnToEnvironment: true
-              inlineScript: |
-                echo "Run network policies test"
-                az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
-                cd test/scale/connectivity
-                chmod +x test-connectivity.sh
-                ./test-connectivity.sh --num-scale-pods-to-verify=${NUM_SCALE_PODS_TO_VERIFY} --max-wait-for-initial-connectivity=600 --max-wait-after-adding-netpol=120
-                echo "collect cpu and mem results after connectivity tests"
-                mkdir test1_3_netpol_cpu_and_mem_after
-                cd test1_3_netpol_cpu_and_mem_after
-                echo "running k top node"
-                kubectl top node >> "node_after_netpol_tests.log"
-                echo "running k top pod"
-                kubectl top pod -A | grep cilium >> "pod_after_netpol_tests.log"
-                echo "Logs will be available as a build artifact"
-                ARTIFACT_DIR=$(Build.ArtifactStagingDirectory)/test1_3_netpol_cpu_and_mem_after/
-                echo $ARTIFACT_DIR
-                sudo rm -rf $ARTIFACT_DIR
-                sudo mkdir $ARTIFACT_DIR
-                cd ..
-                sudo cp ./test1_3_netpol_cpu_and_mem_after/* $ARTIFACT_DIR
-            name: "TestNetworkPolicies"
-            displayName: "Network Policies Connectivity Test"
-          - task: PublishBuildArtifacts@1
-            inputs:
-              artifactName: test1_3_netpol_cpu_and_mem_after
-              pathtoPublish: "$(Build.ArtifactStagingDirectory)/test1_3_netpol_cpu_and_mem_after"
-            condition: always()
-            name: "PublishResults"
-            displayName: "Result Artifacts"
+
+  - ${{ if or(eq(parameters.scenario, 'ACNS Security - Cilium'),eq(parameters.scenario, 'ACNS Observability+Security - Cilium')) }}:
+    - stage: test_network_policies_connectivity
+      displayName: "Test Network Policies"
+      jobs:
+        - job: network_policies
+          pool:
+            name: "$(BUILD_POOL_NAME_DEFAULT)"
+          timeoutInMinutes: 120
+          steps:
+            - task: AzureCLI@2
+              inputs:
+                azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+                scriptLocation: "inlineScript"
+                scriptType: "bash"
+                addSpnToEnvironment: true
+                inlineScript: |
+                  echo "Run network policies test"
+                  az aks get-credentials --resource-group ${RESOURCE_GROUP} --name ${CLUSTER}
+                  cd test/scale/connectivity
+                  chmod +x test-connectivity.sh
+                  ./test-connectivity.sh --num-scale-pods-to-verify=${NUM_SCALE_PODS_TO_VERIFY} --max-wait-for-initial-connectivity=600 --max-wait-after-adding-netpol=120
+                  echo "collect cpu and mem results after connectivity tests"
+                  mkdir test1_3_netpol_cpu_and_mem_after
+                  cd test1_3_netpol_cpu_and_mem_after
+                  echo "running k top node"
+                  kubectl top node >> "node_after_netpol_tests.log"
+                  echo "running k top pod"
+                  kubectl top pod -A | grep cilium >> "pod_after_netpol_tests.log"
+                  echo "Logs will be available as a build artifact"
+                  ARTIFACT_DIR=$(Build.ArtifactStagingDirectory)/test1_3_netpol_cpu_and_mem_after/
+                  echo $ARTIFACT_DIR
+                  sudo rm -rf $ARTIFACT_DIR
+                  sudo mkdir $ARTIFACT_DIR
+                  cd ..
+                  sudo cp ./test1_3_netpol_cpu_and_mem_after/* $ARTIFACT_DIR
+              name: "TestNetworkPolicies"
+              displayName: "Network Policies Connectivity Test"
+            - task: PublishBuildArtifacts@1
+              inputs:
+                artifactName: test1_3_netpol_cpu_and_mem_after
+                pathtoPublish: "$(Build.ArtifactStagingDirectory)/test1_3_netpol_cpu_and_mem_after"
+              condition: always()
+              name: "PublishResults"
+              displayName: "Result Artifacts"
+
+    - ${{ if eq(parameters.scenario, 'ACNS Observability+Security - Cilium') }}:
+      - stage: test_network_observability
+        displayName: "Test Network Observability"
+        jobs:
+          - job: network_observability
+            pool:
+              name: "$(BUILD_POOL_NAME_DEFAULT)"
+            timeoutInMinutes: 120
+            steps:
+              - task: AzureCLI@2
+                inputs:
+                  azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+                  scriptLocation: "inlineScript"
+                  scriptType: "bash"
+                  addSpnToEnvironment: true
+                  inlineScript: |
+                    echo "Run network observability test"
+                    echo ">No test configured yet"
+
   - stage: scale_for_load_tests
     displayName: "Scale for load tests"
     jobs:
@@ -207,7 +229,7 @@ stages:
               scriptType: "bash"
               addSpnToEnvironment: true
               inlineScript: |
-                az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
+                az aks get-credentials --resource-group ${RESOURCE_GROUP} --name ${CLUSTER}
                 echo "collect cpu and mem results before scale for lb tests"
                 mkdir test2_1_lb_cpu_and_mem_before
                 cd test2_1_lb_cpu_and_mem_before
@@ -269,7 +291,7 @@ stages:
               scriptType: "bash"
               addSpnToEnvironment: true
               inlineScript: |
-                az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
+                az aks get-credentials --resource-group ${RESOURCE_GROUP} --name ${CLUSTER}
                 echo "Deploy apachebench pod and run test"
                 cd hack/manifests
                 kubectl apply -f apache.yaml
@@ -329,7 +351,7 @@ stages:
               scriptType: "bash"
               addSpnToEnvironment: true
               inlineScript: |
-                az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
+                az aks get-credentials --resource-group ${RESOURCE_GROUP} --name ${CLUSTER}
                 chmod +x hack/scripts/netperf.sh
                 kubectl apply -f hack/manifests/netperf-pod.yaml
                 kubectl rollout status deployment container6 --timeout=30s
@@ -385,9 +407,9 @@ stages:
               addSpnToEnvironment: true
               inlineScript: |
                 set -ex
-                az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
+                az aks get-credentials --resource-group ${RESOURCE_GROUP} --name ${CLUSTER}
                 echo "Scaling to 5 nodes"
-                vmss_name=$(az vmss list -g MC_${CLUSTER}_${CLUSTER}_$(LOCATION) --query "[].name" -o tsv)
+                vmss_name=$(az vmss list -g MC_${RESOURCE_GROUP}_${CLUSTER}_$(LOCATION) --query "[].name" -o tsv)
                 make -C ./hack/aks scale-vmss AZCLI=az CLUSTER=${CLUSTER} REGION=$(LOCATION) VMSS_NAME=$vmss_name NODE_COUNT=5
                 kubectl get node
             name: "ScaleDown"
@@ -407,7 +429,7 @@ stages:
             addSpnToEnvironment: true
             inlineScript: |
               echo "delete test resources and namespaces"
-              az aks get-credentials --resource-group ${CLUSTER} --name ${CLUSTER}
+              az aks get-credentials --resource-group ${RESOURCE_GROUP} --name ${CLUSTER}
               kubectl delete ns scale-test
               kubectl delete ns connectivity-test
               kubectl get ns
