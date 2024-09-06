@@ -332,7 +332,7 @@ func initCNSScenarioVars() (map[CNSScenario]map[corev1.OSName]cnsDetails, error)
 	cnsSwiftWindowsConfigMapPath := cnsConfigFolder + "/swiftwindowsconfigmap.yaml"
 	cnsCiliumConfigMapPath := cnsConfigFolder + "/ciliumconfigmap.yaml"
 	cnsNodeSubnetLinuxConfigMapPath := cnsConfigFolder + "/ciliumnodesubnetconfigmap.yaml"
-	cnsNodeSubnetWindowsConfigMapPath := cnsConfigFolder + "/cnsnodesubnetwindowsconfigmap.yaml"	
+	cnsNodeSubnetWindowsConfigMapPath := cnsConfigFolder + "/cnsnodesubnetwindowsconfigmap.yaml"
 	cnsOverlayConfigMapPath := cnsConfigFolder + "/overlayconfigmap.yaml"
 	cnsAzureCNIOverlayLinuxConfigMapPath := cnsConfigFolder + "/azurecnioverlaylinuxconfigmap.yaml"
 	cnsAzureCNIOverlayWindowsConfigMapPath := cnsConfigFolder + "/azurecnioverlaywindowsconfigmap.yaml"
@@ -443,10 +443,11 @@ func initCNSScenarioVars() (map[CNSScenario]map[corev1.OSName]cnsDetails, error)
 					"deploy",
 					"azure-vnet", "-o", "/k/azurecni/bin/azure-vnet.exe",
 				},
-				initContainerName:         initContainerNameCNI,
-				configMapPath:             cnsNodeSubnetWindowsConfigMapPath,
-				installIPMasqAgent:        false,			
-		},		
+				initContainerName:  initContainerNameCNI,
+				configMapPath:      cnsNodeSubnetWindowsConfigMapPath,
+				installIPMasqAgent: false,
+			},
+		},
 		EnvInstallOverlay: {
 			corev1.Linux: {
 				daemonsetPath:          cnsLinuxDaemonSetPath,
