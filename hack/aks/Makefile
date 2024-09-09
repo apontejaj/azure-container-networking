@@ -108,7 +108,7 @@ nodesubnet-cilium-up: rg-up overlay-net-up ## Brings up an Overlay BYO CNI clust
 		--vnet-subnet-id /subscriptions/$(SUB)/resourceGroups/$(GROUP)/providers/Microsoft.Network/virtualNetworks/$(VNET)/subnets/nodenet \
 		--os-sku $(OS_SKU) \
 		--no-ssh-key \
-		--kube-proxy-config /root/tmpsrc/kube-proxy.json \
+		--kube-proxy-config ./kube-proxy.json \
 		--yes
 	@$(MAKE) set-kubeconf
 
