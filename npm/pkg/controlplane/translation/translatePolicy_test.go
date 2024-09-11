@@ -2919,3 +2919,114 @@ func TestEgressPolicy(t *testing.T) {
 		})
 	}
 }
+
+func TestNpmLiteCidrPolicy(t *testing.T) {
+	// 3 tests
+	// Test 1) Npm lite enabled, CIDR + Label Peers, returns error
+	// Test 2) NPM lite disabled, label Peers, no error
+	// Test 3) Npm Lite enabled, CIDR Peers , returns true and no error
+
+	tests := []struct {
+		name           string
+		targetSelector *metav1.LabelSelector
+		peersFrom      []networkingv1.NetworkPolicyPeer
+		peersTo        []networkingv1.NetworkPolicyPeer
+		npmLiteEnabled bool
+		wantErr        bool
+	}{
+		{
+			name:           "peer nameSpaceSelector and ipblock in ingress rules",
+			targetSelector: nil,
+			peersFrom: []networkingv1.NetworkPolicyPeer{
+				{
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"peer-nsselector-kay": "peer-nsselector-value",
+						},
+					},
+				},
+				{
+					IPBlock: &networkingv1.IPBlock{
+						CIDR:   "172.17.0.0/16",
+						Except: []string{"172.17.1.0/24", "172.17.2.0/24"},
+					},
+				},
+				{
+					IPBlock: &networkingv1.IPBlock{
+						CIDR: "172.17.0.0/16",
+					},
+				},
+			},
+			peersTo:        []networkingv1.NetworkPolicyPeer{},
+			npmLiteEnabled: true,
+			wantErr:        true,
+		},
+		{
+			name:           "peer nameSpaceSelector and ipblock in ingress rules",
+			targetSelector: nil,
+			peersFrom: []networkingv1.NetworkPolicyPeer{
+				{
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"peer-nsselector-kay": "peer-nsselector-value",
+						},
+					},
+				},
+				{
+					IPBlock: &networkingv1.IPBlock{
+						CIDR:   "172.17.0.0/16",
+						Except: []string{"172.17.1.0/24", "172.17.2.0/24"},
+					},
+				},
+				{
+					IPBlock: &networkingv1.IPBlock{
+						CIDR: "172.17.0.0/16",
+					},
+				},
+			},
+			peersTo:        []networkingv1.NetworkPolicyPeer{},
+			npmLiteEnabled: false,
+			wantErr:        false,
+		},
+		{
+			name:           "peer nameSpaceSelector and ipblock in ingress rules",
+			targetSelector: nil,
+			peersFrom: []networkingv1.NetworkPolicyPeer{
+				{
+					IPBlock: &networkingv1.IPBlock{
+						CIDR:   "172.17.0.0/16",
+						Except: []string{"172.17.1.0/24", "172.17.2.0/24"},
+					},
+				},
+				{
+					IPBlock: &networkingv1.IPBlock{
+						CIDR: "172.17.0.0/16",
+					},
+				},
+			},
+			peersTo:        []networkingv1.NetworkPolicyPeer{},
+			npmLiteEnabled: true,
+			wantErr:        false,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			// run the function passing in peers flag indicating whether npm lite is enabled
+			var err error
+			for _, peer := range tt.peersFrom {
+				err = NpmLiteValidPolicy(peer, tt.npmLiteEnabled)
+
+				if err != nil {
+					break
+				}
+			}
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}

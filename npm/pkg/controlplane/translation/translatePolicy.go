@@ -390,6 +390,8 @@ func translateRule(npmNetPol *policies.NPMNetworkPolicy, netPolName string, dire
 		}
 	}
 
+	cfg := npmconfig.DefaultConfig
+	NpmLiteEnabled := cfg.Toggles.EnableNPMLite
 	// #2. From or To fields exist in rule
 	for peerIdx, peer := range peers {
 		// #2.1 Handle IPBlock and port if exist
@@ -406,18 +408,22 @@ func translateRule(npmNetPol *policies.NPMNetworkPolicy, netPolName string, dire
 					return err
 				}
 			}
+
+			// if npm lite is configured, check network policy only consists of CIDR blocks
+			err := NpmLiteValidPolicy(peer, NpmLiteEnabled)
+			if err != nil {
+				return err
+			}
+
 			// Do not need to run below code to translate PodSelector and NamespaceSelector
 			// since IPBlock field is exclusive in NetworkPolicyPeer (i.e., peer in this code).
 			continue
 		}
 
-		// if npm lite is configured, check whether pod selector or namespace selector is passed in - is so throw an error if not continue
-		cfg := npmconfig.DefaultConfig
-		if cfg.Toggles.EnableNPMLite {
-			if peer.PodSelector != nil || peer.NamespaceSelector != nil {
-				return ErrUnsupportedNonCIDR
-			}
-			continue
+		//check npm lite enabled and valid policy in case the cidr block is not the first peer
+		err := NpmLiteValidPolicy(peer, NpmLiteEnabled)
+		if err != nil {
+			return err
 		}
 
 		// if there is no PodSelector or NamespaceSelector in peer, no need to run the rest of codes.
@@ -631,4 +637,11 @@ func TranslatePolicy(npObj *networkingv1.NetworkPolicy) (*policies.NPMNetworkPol
 		}
 	}
 	return npmNetPol, nil
+}
+
+func NpmLiteValidPolicy(peer networkingv1.NetworkPolicyPeer, npmLiteEnabled bool) error {
+	if npmLiteEnabled && (peer.PodSelector != nil || peer.NamespaceSelector != nil) {
+		return ErrUnsupportedNonCIDR
+	}
+	return nil
 }
