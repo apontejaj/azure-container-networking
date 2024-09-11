@@ -420,7 +420,7 @@ func translateRule(npmNetPol *policies.NPMNetworkPolicy, netPolName string, dire
 			continue
 		}
 
-		//check npm lite enabled and valid policy in case the cidr block is not the first peer
+		// check npm lite enabled and valid policy in case the cidr block is not the first peer
 		err := NpmLiteValidPolicy(peer, NpmLiteEnabled)
 		if err != nil {
 			return err
