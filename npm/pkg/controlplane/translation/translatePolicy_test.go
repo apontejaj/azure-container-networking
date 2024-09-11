@@ -2922,8 +2922,8 @@ func TestEgressPolicy(t *testing.T) {
 
 func TestNpmLiteCidrPolicy(t *testing.T) {
 	// 3 tests
-	// Test 1) Npm lite enabled, CIDR + Label Peers, returns error
-	// Test 2) NPM lite disabled, label Peers, no error
+	// Test 1) Npm lite enabled, CIDR + Namespace label Peers, returns error
+	// Test 2) NPM lite disabled, CIDR + Namespace label Peers, no error
 	// Test 3) Npm Lite enabled, CIDR Peers , returns true and no error
 
 	tests := []struct {
