@@ -2178,7 +2178,7 @@ func TestIngressPolicy(t *testing.T) {
 			npmNetPol.PodSelectorList = psResult.psList
 			splitPolicyKey := strings.Split(npmNetPol.PolicyKey, "/")
 			require.Len(t, splitPolicyKey, 2, "policy key must include name")
-			err = ingressPolicy(npmNetPol, splitPolicyKey[1], tt.rules)
+			err = ingressPolicy(npmNetPol, splitPolicyKey[1], tt.rules, false)
 			if tt.wantErr || (tt.skipWindows && util.IsWindowsDP()) {
 				require.Error(t, err)
 			} else {
@@ -2909,7 +2909,7 @@ func TestEgressPolicy(t *testing.T) {
 			npmNetPol.PodSelectorList = psResult.psList
 			splitPolicyKey := strings.Split(npmNetPol.PolicyKey, "/")
 			require.Len(t, splitPolicyKey, 2, "policy key must include name")
-			err = egressPolicy(npmNetPol, splitPolicyKey[1], tt.rules)
+			err = egressPolicy(npmNetPol, splitPolicyKey[1], tt.rules, false)
 			if tt.wantErr || (tt.skipWindows && util.IsWindowsDP()) {
 				require.Error(t, err)
 			} else {
@@ -2925,6 +2925,8 @@ func TestNpmLiteCidrPolicy(t *testing.T) {
 	// Test 1) Npm lite enabled, CIDR + Namespace label Peers, returns error
 	// Test 2) NPM lite disabled, CIDR + Namespace label Peers, returns no error
 	// Test 3) Npm Lite enabled, CIDR Peers , returns no error
+	// Test 4) NPM Lite enabled, Combination of CIDR + Label in same peer, returns an error
+	// test 5) NPM Lite enabled, no peer, returns no error
 
 	tests := []struct {
 		name           string
@@ -3008,6 +3010,34 @@ func TestNpmLiteCidrPolicy(t *testing.T) {
 			npmLiteEnabled: true,
 			wantErr:        false,
 		},
+		{
+			name:           "peer nameSpaceSelector and ipblock in ingress rules",
+			targetSelector: nil,
+			peersFrom: []networkingv1.NetworkPolicyPeer{
+				{
+					IPBlock: &networkingv1.IPBlock{
+						CIDR:   "172.17.0.0/17",
+						Except: []string{"172.17.1.0/24", "172.17.2.0/24"},
+					},
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"peer-nsselector-kay": "peer-nsselector-value",
+						},
+					},
+				},
+			},
+			peersTo:        []networkingv1.NetworkPolicyPeer{},
+			npmLiteEnabled: true,
+			wantErr:        true,
+		},
+		{
+			name:           "peer nameSpaceSelector and ipblock in ingress rules",
+			targetSelector: nil,
+			peersFrom:      []networkingv1.NetworkPolicyPeer{},
+			peersTo:        []networkingv1.NetworkPolicyPeer{},
+			npmLiteEnabled: true,
+			wantErr:        false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -3016,7 +3046,7 @@ func TestNpmLiteCidrPolicy(t *testing.T) {
 			// run the function passing in peers and a flag indicating whether npm lite is enabled
 			var err error
 			for _, peer := range tt.peersFrom {
-				err = NpmLiteValidPolicy(peer, tt.npmLiteEnabled)
+				err = npmLiteValidPolicy(peer, tt.npmLiteEnabled)
 
 				if err != nil {
 					break

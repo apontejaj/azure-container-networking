@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	npmconfig "github.com/Azure/azure-container-networking/npm/config"
 	"github.com/Azure/azure-container-networking/npm/pkg/dataplane/ipsets"
 	"github.com/Azure/azure-container-networking/npm/pkg/dataplane/policies"
 	"github.com/Azure/azure-container-networking/npm/util"
@@ -35,7 +34,7 @@ var (
 	)
 	// ErrUnsupportedIPAddress is returned when an unsupported IP address, such as IPV6, is used
 	ErrUnsupportedIPAddress = errors.New("unsupported IP address")
-	// ErrUnsupportedNonCIDR is returned when non-CIDR blocks (i.e pod selectors or namespace selectors) are passed with a NPM Lite configuration
+	// ErrUnsupportedNonCIDR is returned when non-CIDR blocks (i.e pod selectors or namespace selectors) are passed in with a NPM Lite configuration. Npm Lite does allow for default deny and default allow policies
 	ErrUnsupportedNonCIDR = errors.New("unsupported Non-CIDR block for NPM Lite")
 )
 
@@ -359,7 +358,7 @@ func peerAndPortRule(npmNetPol *policies.NPMNetworkPolicy, direction policies.Di
 
 // translateRule translates ingress or egress rules and update npmNetPol object.
 func translateRule(npmNetPol *policies.NPMNetworkPolicy, netPolName string, direction policies.Direction, matchType policies.MatchType, ruleIndex int,
-	ports []networkingv1.NetworkPolicyPort, peers []networkingv1.NetworkPolicyPeer) error {
+	ports []networkingv1.NetworkPolicyPort, peers []networkingv1.NetworkPolicyPeer, npmLiteToggle bool) error {
 	// TODO(jungukcho): need to clean up it.
 	// Leave allowExternal variable now while the condition is checked before calling this function.
 	allowExternal, portRuleExists, peerRuleExists := ruleExists(ports, peers)
@@ -368,6 +367,9 @@ func translateRule(npmNetPol *policies.NPMNetworkPolicy, netPolName string, dire
 	// The code inside if condition is to handle allowing all internal traffic, but the case is handled in #2.4.
 	// So, this code may not execute. After confirming this, need to delete it.
 	if !portRuleExists && !peerRuleExists && !allowExternal {
+		if npmLiteToggle {
+			return ErrUnsupportedNonCIDR
+		}
 		acl := policies.NewACLPolicy(policies.Allowed, direction)
 		ruleIPSets, allowAllInternalSetInfo := allowAllInternal(matchType)
 		npmNetPol.RuleIPSets = append(npmNetPol.RuleIPSets, ruleIPSets)
@@ -390,10 +392,12 @@ func translateRule(npmNetPol *policies.NPMNetworkPolicy, netPolName string, dire
 		}
 	}
 
-	cfg := npmconfig.DefaultConfig
-	NpmLiteEnabled := cfg.Toggles.EnableNPMLite
 	// #2. From or To fields exist in rule
 	for peerIdx, peer := range peers {
+		// NPM Lite is enabled and peer is non-cidr block
+		if npmLiteToggle && peer.IPBlock == nil {
+			return ErrUnsupportedNonCIDR
+		}
 		// #2.1 Handle IPBlock and port if exist
 		if peer.IPBlock != nil {
 			if len(peer.IPBlock.CIDR) > 0 {
@@ -410,20 +414,15 @@ func translateRule(npmNetPol *policies.NPMNetworkPolicy, netPolName string, dire
 			}
 
 			// if npm lite is configured, check network policy only consists of CIDR blocks
-			err := NpmLiteValidPolicy(peer, NpmLiteEnabled)
+			err := npmLiteValidPolicy(peer, npmLiteToggle)
 			if err != nil {
 				return err
 			}
 
 			// Do not need to run below code to translate PodSelector and NamespaceSelector
 			// since IPBlock field is exclusive in NetworkPolicyPeer (i.e., peer in this code).
-			continue
-		}
 
-		// check npm lite enabled and valid policy in case the cidr block is not the first peer
-		err := NpmLiteValidPolicy(peer, NpmLiteEnabled)
-		if err != nil {
-			return err
+			continue
 		}
 
 		// if there is no PodSelector or NamespaceSelector in peer, no need to run the rest of codes.
@@ -520,7 +519,7 @@ func isAllowAllToIngress(ingress []networkingv1.NetworkPolicyIngressRule) bool {
 
 // ingressPolicy traslates NetworkPolicyIngressRule in NetworkPolicy object
 // to NPMNetworkPolicy object.
-func ingressPolicy(npmNetPol *policies.NPMNetworkPolicy, netPolName string, ingress []networkingv1.NetworkPolicyIngressRule) error {
+func ingressPolicy(npmNetPol *policies.NPMNetworkPolicy, netPolName string, ingress []networkingv1.NetworkPolicyIngressRule, npmLiteToggle bool) error {
 	// #1. Allow all traffic from both internal and external.
 	// In yaml file, it is specified with '{}'.
 	if isAllowAllToIngress(ingress) {
@@ -539,7 +538,7 @@ func ingressPolicy(npmNetPol *policies.NPMNetworkPolicy, netPolName string, ingr
 	// #3. Ingress rule is not AllowAll (including internal and external) and DenyAll policy.
 	// So, start translating ingress policy.
 	for i, rule := range ingress {
-		if err := translateRule(npmNetPol, netPolName, policies.Ingress, policies.SrcMatch, i, rule.Ports, rule.From); err != nil {
+		if err := translateRule(npmNetPol, netPolName, policies.Ingress, policies.SrcMatch, i, rule.Ports, rule.From, npmLiteToggle); err != nil {
 			return err
 		}
 	}
@@ -563,7 +562,7 @@ func isAllowAllToEgress(egress []networkingv1.NetworkPolicyEgressRule) bool {
 
 // egressPolicy traslates NetworkPolicyEgressRule in networkpolicy object
 // to NPMNetworkPolicy object.
-func egressPolicy(npmNetPol *policies.NPMNetworkPolicy, netPolName string, egress []networkingv1.NetworkPolicyEgressRule) error {
+func egressPolicy(npmNetPol *policies.NPMNetworkPolicy, netPolName string, egress []networkingv1.NetworkPolicyEgressRule, npmLiteToggle bool) error {
 	// #1. Allow all traffic to both internal and external.
 	// In yaml file, it is specified with '{}'.
 	if isAllowAllToEgress(egress) {
@@ -582,7 +581,7 @@ func egressPolicy(npmNetPol *policies.NPMNetworkPolicy, netPolName string, egres
 	// #3. Egress rule is not AllowAll (including internal and external) and DenyAll.
 	// So, start translating egress policy.
 	for i, rule := range egress {
-		err := translateRule(npmNetPol, netPolName, policies.Egress, policies.DstMatch, i, rule.Ports, rule.To)
+		err := translateRule(npmNetPol, netPolName, policies.Egress, policies.DstMatch, i, rule.Ports, rule.To, npmLiteToggle)
 		if err != nil {
 			return err
 		}
@@ -597,7 +596,7 @@ func egressPolicy(npmNetPol *policies.NPMNetworkPolicy, netPolName string, egres
 
 // TranslatePolicy translates networkpolicy object to NPMNetworkPolicy object
 // and returns the NPMNetworkPolicy object.
-func TranslatePolicy(npObj *networkingv1.NetworkPolicy) (*policies.NPMNetworkPolicy, error) {
+func TranslatePolicy(npObj *networkingv1.NetworkPolicy, npmLiteToggle bool) (*policies.NPMNetworkPolicy, error) {
 	netPolName := npObj.Name
 	npmNetPol := policies.NewNPMNetworkPolicy(netPolName, npObj.Namespace)
 
@@ -616,12 +615,12 @@ func TranslatePolicy(npObj *networkingv1.NetworkPolicy) (*policies.NPMNetworkPol
 	// and Egress will be set if the NetworkPolicy has any egress rules.
 	for _, ptype := range npObj.Spec.PolicyTypes {
 		if ptype == networkingv1.PolicyTypeIngress {
-			err := ingressPolicy(npmNetPol, netPolName, npObj.Spec.Ingress)
+			err := ingressPolicy(npmNetPol, netPolName, npObj.Spec.Ingress, npmLiteToggle)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			err := egressPolicy(npmNetPol, netPolName, npObj.Spec.Egress)
+			err := egressPolicy(npmNetPol, netPolName, npObj.Spec.Egress, npmLiteToggle)
 			if err != nil {
 				return nil, err
 			}
@@ -639,7 +638,8 @@ func TranslatePolicy(npObj *networkingv1.NetworkPolicy) (*policies.NPMNetworkPol
 	return npmNetPol, nil
 }
 
-func NpmLiteValidPolicy(peer networkingv1.NetworkPolicyPeer, npmLiteEnabled bool) error {
+// validates only CIDR based peer is present + no combination of CIDR with pod/namespace selectors are present
+func npmLiteValidPolicy(peer networkingv1.NetworkPolicyPeer, npmLiteEnabled bool) error {
 	if npmLiteEnabled && (peer.PodSelector != nil || peer.NamespaceSelector != nil) {
 		return ErrUnsupportedNonCIDR
 	}

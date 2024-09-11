@@ -88,7 +88,7 @@ func NewNetworkPolicyManager(config npmconfig.Config,
 		npMgr.PodControllerV2 = controllersv2.NewPodController(npMgr.PodInformer, dp, npMgr.NpmNamespaceCacheV2)
 		npMgr.NamespaceControllerV2 = controllersv2.NewNamespaceController(npMgr.NsInformer, dp, npMgr.NpmNamespaceCacheV2)
 		// Question(jungukcho): Is config.Toggles.PlaceAzureChainFirst needed for v2?
-		npMgr.NetPolControllerV2 = controllersv2.NewNetworkPolicyController(npMgr.NpInformer, dp)
+		npMgr.NetPolControllerV2 = controllersv2.NewNetworkPolicyController(npMgr.NpInformer, dp, config.Toggles.EnableNPMLite)
 		return npMgr
 	}
 
