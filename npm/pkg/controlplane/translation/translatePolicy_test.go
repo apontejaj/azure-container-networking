@@ -2923,8 +2923,8 @@ func TestEgressPolicy(t *testing.T) {
 func TestNpmLiteCidrPolicy(t *testing.T) {
 	// 3 tests
 	// Test 1) Npm lite enabled, CIDR + Namespace label Peers, returns error
-	// Test 2) NPM lite disabled, CIDR + Namespace label Peers, no error
-	// Test 3) Npm Lite enabled, CIDR Peers , returns true and no error
+	// Test 2) NPM lite disabled, CIDR + Namespace label Peers, returns no error
+	// Test 3) Npm Lite enabled, CIDR Peers , returns no error
 
 	tests := []struct {
 		name           string
@@ -3013,7 +3013,7 @@ func TestNpmLiteCidrPolicy(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			// run the function passing in peers flag indicating whether npm lite is enabled
+			// run the function passing in peers and a flag indicating whether npm lite is enabled
 			var err error
 			for _, peer := range tt.peersFrom {
 				err = NpmLiteValidPolicy(peer, tt.npmLiteEnabled)
