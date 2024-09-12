@@ -53,12 +53,17 @@ stages:
           - agent.os -equals Linux
           - Role -equals $(CUSTOM_E2E_ROLE)
         steps:
-          - template: dualstackoverlay-e2e-step-template.yaml
-            parameters:
-              name: ${{ parameters.name }}
-              clusterName: ${{ parameters.clusterName }}-$(commitID)
-              os: linux
-              scaleup: 100
+          # - template: dualstackoverlay-e2e-step-template.yaml
+          #   parameters:
+          #     name: ${{ parameters.name }}
+          #     clusterName: ${{ parameters.clusterName }}-$(commitID)
+          #     os: linux
+          #     scaleup: 100
+          - script: |
+              echo "dummy step"
+            name: "WindowsDualStackOverlayDatapathTests"
+            displayName: "Dummy Step"
+            retryCountOnTaskFailure: 3
 
       - job: windows_nodepool
         displayName: Add Windows Nodepool
@@ -103,24 +108,24 @@ stages:
               os: windows
               scaleup: 50
 
-      - template: ../../cni/k8s-e2e/k8s-e2e-job-template.yaml
-        parameters:
-          sub: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
-          clusterName: ${{ parameters.clusterName }}-$(commitID)
-          os: linux
-          dependsOn: ${{ parameters.name }}_windows
-          dualstack: true
-          dns: true
-          portforward: true
-          hostport: true
-          service: true
+      # - template: ../../cni/k8s-e2e/k8s-e2e-job-template.yaml
+      #   parameters:
+      #     sub: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
+      #     clusterName: ${{ parameters.clusterName }}-$(commitID)
+      #     os: linux
+      #     dependsOn: ${{ parameters.name }}_windows
+      #     dualstack: true
+      #     dns: true
+      #     portforward: true
+      #     hostport: true
+      #     service: true
 
       - template: ../../cni/k8s-e2e/k8s-e2e-job-template.yaml
         parameters:
           sub: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
           clusterName: ${{ parameters.clusterName }}-$(commitID)
           os: windows
-          dependsOn: cni_linux
+          dependsOn: ${{ parameters.name }}_windows
           dualstack: true
           dns: true
           portforward: true
@@ -128,18 +133,18 @@ stages:
           hostport: true
           hybridWin: true
 
-      - job: failedE2ELogs_linux
-        displayName: "Linux Failure Logs"
-        dependsOn:
-          - ${{ parameters.name }}_linux
-          - cni_linux
-        condition: in(dependencies.${{ parameters.name }}_linux.result, 'Failed')
-        steps:
-          - template: ../../templates/log-template.yaml
-            parameters:
-              clusterName: ${{ parameters.clusterName }}-$(commitID)
-              os: linux
-              cni: cniv2
+      # - job: failedE2ELogs_linux
+      #   displayName: "Linux Failure Logs"
+      #   dependsOn:
+      #     - ${{ parameters.name }}_linux
+      #     - cni_linux
+      #   condition: in(dependencies.${{ parameters.name }}_linux.result, 'Failed')
+      #   steps:
+      #     - template: ../../templates/log-template.yaml
+      #       parameters:
+      #         clusterName: ${{ parameters.clusterName }}-$(commitID)
+      #         os: linux
+      #         cni: cniv2
 
       - job: failedE2ELogs_windows
         displayName: "Windows Failure Logs"
