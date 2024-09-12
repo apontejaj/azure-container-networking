@@ -15,6 +15,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+const ()
+
 // NewClient returns an initialized Client using the provided configuration.
 func NewClient(c Config) (*Client, error) {
 	if err := c.Validate(); err != nil {
@@ -39,6 +41,12 @@ func NewClient(c Config) (*Client, error) {
 	return client, nil
 }
 
+type NodeSubnetIPFetchState struct {
+	queryUrl        string
+	queryInterval   time.Duration
+	lastRefreshTime time.Time
+}
+
 // Client is an agent for exchanging information with NMAgent.
 type Client struct {
 	httpClient *http.Client
@@ -47,7 +55,8 @@ type Client struct {
 	host string
 	port uint16
 
-	enableTLS bool
+	enableTLS              bool
+	nodeSubnetIPFetchState *NodeSubnetIPFetchState
 
 	retrier interface {
 		Do(context.Context, func() error) error
@@ -282,6 +291,35 @@ func (c *Client) GetHomeAz(ctx context.Context) (AzResponse, error) {
 	}
 
 	return homeAzResponse, nil
+}
+
+func (c *Client) RefreshSecondaryIPsIfNeeded(ctx context.Context) ([]string, error) {
+
+}
+
+func (c *Client) getSecondaryIPs(ctx context.Context) ([]string, error) {
+	req, err := c.buildRequest(ctx, &GetSecondaryIPsRequest{})
+	if err != nil {
+		return nil, errors.Wrap(err, "building request")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "submitting request")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, die(resp.StatusCode, resp.Header, resp.Body, req.URL.Path)
+	}
+
+	var out NCVersionList
+	err = json.NewDecoder(resp.Body).Decode(&out)
+	if err != nil {
+		return nil, errors.Wrap(err, "decoding response")
+	}
+
+	return out, nil
 }
 
 func die(code int, headers http.Header, body io.ReadCloser, path string) error {

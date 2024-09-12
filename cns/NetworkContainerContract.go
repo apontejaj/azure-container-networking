@@ -99,6 +99,7 @@ const (
 	Managed        = "Managed"
 	CRD            = "CRD"
 	MultiTenantCRD = "MultiTenantCRD"
+	AzureHost      = "AzureHost"
 )
 
 var ErrInvalidNCID = errors.New("invalid NetworkContainerID")

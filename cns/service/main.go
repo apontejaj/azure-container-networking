@@ -662,6 +662,8 @@ func main() {
 		config.ChannelMode = cns.MultiTenantCRD
 	} else if acn.GetArg(acn.OptManaged).(bool) {
 		config.ChannelMode = cns.Managed
+	} else if cnsconfig.ChannelMode == cns.AzureHost {
+		config.ChannelMode = cns.AzureHost
 	}
 
 	homeAzMonitor := restserver.NewHomeAzMonitor(nmaClient, time.Duration(cnsconfig.AZRSettings.PopulateHomeAzCacheRetryIntervalSecs)*time.Second)
@@ -737,54 +739,57 @@ func main() {
 	}
 
 	imdsClient := imds.NewClient()
+	var httpRemoteRestService *restserver.HTTPRestService
 
-	httpRemoteRestService, err := restserver.NewHTTPRestService(&config, wsclient, &wsProxy, nmaClient,
-		endpointStateStore, conflistGenerator, homeAzMonitor, imdsClient)
-	if err != nil {
-		logger.Errorf("Failed to create CNS object, err:%v.\n", err)
-		return
-	}
-
-	// Set CNS options.
-	httpRemoteRestService.SetOption(acn.OptCnsURL, cnsURL)
-	httpRemoteRestService.SetOption(acn.OptCnsPort, cnsPort)
-	httpRemoteRestService.SetOption(acn.OptNetPluginPath, cniPath)
-	httpRemoteRestService.SetOption(acn.OptNetPluginConfigFile, cniConfigFile)
-	httpRemoteRestService.SetOption(acn.OptCreateDefaultExtNetworkType, createDefaultExtNetworkType)
-	httpRemoteRestService.SetOption(acn.OptHttpConnectionTimeout, httpConnectionTimeout)
-	httpRemoteRestService.SetOption(acn.OptHttpResponseHeaderTimeout, httpResponseHeaderTimeout)
-	httpRemoteRestService.SetOption(acn.OptProgramSNATIPTables, cnsconfig.ProgramSNATIPTables)
-	httpRemoteRestService.SetOption(acn.OptManageEndpointState, cnsconfig.ManageEndpointState)
-
-	// Create default ext network if commandline option is set
-	if len(strings.TrimSpace(createDefaultExtNetworkType)) > 0 {
-		if err := hnsclient.CreateDefaultExtNetwork(createDefaultExtNetworkType); err == nil {
-			logger.Printf("[Azure CNS] Successfully created default ext network")
-		} else {
-			logger.Printf("[Azure CNS] Failed to create default ext network due to error: %v", err)
+	if config.ChannelMode != cns.AzureHost {
+		httpRemoteRestService, err := restserver.NewHTTPRestService(&config, wsclient, &wsProxy, nmaClient,
+			endpointStateStore, conflistGenerator, homeAzMonitor, imdsClient)
+		if err != nil {
+			logger.Errorf("Failed to create CNS object, err:%v.\n", err)
 			return
 		}
-	}
 
-	logger.Printf("[Azure CNS] Initialize HTTPRemoteRestService")
-	if httpRemoteRestService != nil {
-		if cnsconfig.UseHTTPS {
-			config.TLSSettings = localtls.TlsSettings{
-				TLSSubjectName:                     cnsconfig.TLSSubjectName,
-				TLSCertificatePath:                 cnsconfig.TLSCertificatePath,
-				TLSPort:                            cnsconfig.TLSPort,
-				KeyVaultURL:                        cnsconfig.KeyVaultSettings.URL,
-				KeyVaultCertificateName:            cnsconfig.KeyVaultSettings.CertificateName,
-				MSIResourceID:                      cnsconfig.MSISettings.ResourceID,
-				KeyVaultCertificateRefreshInterval: time.Duration(cnsconfig.KeyVaultSettings.RefreshIntervalInHrs) * time.Hour,
-				UseMTLS:                            cnsconfig.UseMTLS,
+		// Set CNS options.
+		httpRemoteRestService.SetOption(acn.OptCnsURL, cnsURL)
+		httpRemoteRestService.SetOption(acn.OptCnsPort, cnsPort)
+		httpRemoteRestService.SetOption(acn.OptNetPluginPath, cniPath)
+		httpRemoteRestService.SetOption(acn.OptNetPluginConfigFile, cniConfigFile)
+		httpRemoteRestService.SetOption(acn.OptCreateDefaultExtNetworkType, createDefaultExtNetworkType)
+		httpRemoteRestService.SetOption(acn.OptHttpConnectionTimeout, httpConnectionTimeout)
+		httpRemoteRestService.SetOption(acn.OptHttpResponseHeaderTimeout, httpResponseHeaderTimeout)
+		httpRemoteRestService.SetOption(acn.OptProgramSNATIPTables, cnsconfig.ProgramSNATIPTables)
+		httpRemoteRestService.SetOption(acn.OptManageEndpointState, cnsconfig.ManageEndpointState)
+
+		// Create default ext network if commandline option is set
+		if len(strings.TrimSpace(createDefaultExtNetworkType)) > 0 {
+			if err := hnsclient.CreateDefaultExtNetwork(createDefaultExtNetworkType); err == nil {
+				logger.Printf("[Azure CNS] Successfully created default ext network")
+			} else {
+				logger.Printf("[Azure CNS] Failed to create default ext network due to error: %v", err)
+				return
 			}
 		}
 
-		err = httpRemoteRestService.Init(&config)
-		if err != nil {
-			logger.Errorf("Failed to init HTTPService, err:%v.\n", err)
-			return
+		logger.Printf("[Azure CNS] Initialize HTTPRemoteRestService")
+		if httpRemoteRestService != nil {
+			if cnsconfig.UseHTTPS {
+				config.TLSSettings = localtls.TlsSettings{
+					TLSSubjectName:                     cnsconfig.TLSSubjectName,
+					TLSCertificatePath:                 cnsconfig.TLSCertificatePath,
+					TLSPort:                            cnsconfig.TLSPort,
+					KeyVaultURL:                        cnsconfig.KeyVaultSettings.URL,
+					KeyVaultCertificateName:            cnsconfig.KeyVaultSettings.CertificateName,
+					MSIResourceID:                      cnsconfig.MSISettings.ResourceID,
+					KeyVaultCertificateRefreshInterval: time.Duration(cnsconfig.KeyVaultSettings.RefreshIntervalInHrs) * time.Hour,
+					UseMTLS:                            cnsconfig.UseMTLS,
+				}
+			}
+
+			err = httpRemoteRestService.Init(&config)
+			if err != nil {
+				logger.Errorf("Failed to init HTTPService, err:%v.\n", err)
+				return
+			}
 		}
 	}
 
@@ -910,18 +915,20 @@ func main() {
 	}
 
 	// if user provides cns url by -c option, then only start HTTP remote server using this url
-	logger.Printf("[Azure CNS] Start HTTP Remote server")
-	if httpRemoteRestService != nil {
-		if cnsconfig.EnablePprof {
-			httpRemoteRestService.RegisterPProfEndpoints()
-		}
+	if config.ChannelMode != cns.AzureHost {
+		logger.Printf("[Azure CNS] Start HTTP Remote server")
+		if httpRemoteRestService != nil {
+			if cnsconfig.EnablePprof {
+				httpRemoteRestService.RegisterPProfEndpoints()
+			}
 
-		err = httpRemoteRestService.Start(&config)
-		if err != nil {
-			logger.Errorf("Failed to start CNS, err:%v.\n", err)
-			return
-		}
+			err = httpRemoteRestService.Start(&config)
+			if err != nil {
+				logger.Errorf("Failed to start CNS, err:%v.\n", err)
+				return
+			}
 
+		}
 	}
 
 	// if user does not provide cns url by -c option, then start http local server
@@ -946,6 +953,9 @@ func main() {
 				}
 			}()
 		}
+	} else if config.ChannelMode == cns.AzureHost {
+		logger.Errorf("[Azure CNS] AzureHost (node subnet) mode is not supported with local server disabled")
+		return
 	}
 
 	if cnsconfig.EnableAsyncPodDelete {
