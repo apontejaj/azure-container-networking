@@ -17,8 +17,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const ()
-
 // NewClient returns an initialized Client using the provided configuration.
 func NewClient(c Config) (*Client, error) {
 	if err := c.Validate(); err != nil {
@@ -290,7 +288,7 @@ func (c *Client) GetHomeAz(ctx context.Context) (AzResponse, error) {
 	return homeAzResponse, nil
 }
 
-func (c *Client) RefreshSecondaryIPsIfNeeded(ctx context.Context) (bool, []string, error) {
+func (c *Client) RefreshSecondaryIPsIfNeeded(ctx context.Context) (refreshNeeded bool, ips []string, err error) {
 	if time.Since(c.secondaryIPLastRefreshTime) < c.secondaryIPQueryInterval {
 		return false, nil, nil
 	}
@@ -320,11 +318,6 @@ func (c *Client) getSecondaryIPs(ctx context.Context) ([]string, error) {
 }
 
 func parseSecondaryIPsFromWireServerResponse(resp *http.Response) (res []string, err error) {
-	// Query the list of local interfaces (this works because CNS is running in hostNetwork mode. However, this may not be necessary).
-	if err != nil {
-		return nil, err
-	}
-
 	// Decode XML document.
 	var doc common.XmlDocument
 	decoder := xml.NewDecoder(resp.Body)
