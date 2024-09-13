@@ -291,7 +291,7 @@ func (c *Client) GetHomeAz(ctx context.Context) (AzResponse, error) {
 }
 
 func (c *Client) RefreshSecondaryIPsIfNeeded(ctx context.Context) (bool, []string, error) {
-	if time.Since(c.secondaryIPLastRefreshTime) <= c.secondaryIPQueryInterval {
+	if time.Since(c.secondaryIPLastRefreshTime) < c.secondaryIPQueryInterval {
 		return false, nil, nil
 	}
 
@@ -408,4 +408,8 @@ func (c *Client) scheme() string {
 		return "https"
 	}
 	return "http"
+}
+
+func (c *Client) SetSecondaryIPQueryInterval(interval time.Duration) {
+	c.secondaryIPQueryInterval = interval
 }

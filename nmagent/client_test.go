@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Azure/azure-container-networking/nmagent"
 	"github.com/google/go-cmp/cmp"
@@ -817,6 +818,7 @@ func TestRefreshSecondaryIPsIfNeeded(t *testing.T) {
 		interfaces string
 		shouldCall bool
 		shouldErr  bool
+		interval   time.Duration
 	}{
 		{
 			"happy path",
@@ -831,25 +833,38 @@ func TestRefreshSecondaryIPsIfNeeded(t *testing.T) {
 			</Interfaces>`,
 			true,
 			false,
+			-1 * time.Second,
+		},
+		{
+			"no refresh needed because same client is used, and interval is not expired",
+			"/machine/plugins?comp=nmagent&type=getinterfaceinfov1",
+			"",
+			false,
+			false,
+			10 * time.Hour,
 		},
 	}
+
+	var interfaceResult *string
+	var got string
+	clientTransport := &TestTripper{
+		RoundTripF: func(req *http.Request) (*http.Response, error) {
+			rr := httptest.NewRecorder()
+			got = req.URL.RequestURI()
+			rr.WriteHeader(http.StatusOK)
+			rr.WriteString(*interfaceResult)
+			return rr.Result(), nil
+		},
+	}
+
+	client := nmagent.NewTestClient(clientTransport)
 
 	for _, test := range getTests {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
 
-			var got string
-			client := nmagent.NewTestClient(&TestTripper{
-				RoundTripF: func(req *http.Request) (*http.Response, error) {
-					rr := httptest.NewRecorder()
-					got = req.URL.RequestURI()
-					rr.WriteHeader(http.StatusOK)
-					rr.WriteString(test.interfaces)
-					return rr.Result(), nil
-				},
-			})
-
+			client.SetSecondaryIPQueryInterval(test.interval)
+			interfaceResult = &(test.interfaces)
 			ctx, cancel := testContext(t)
 			defer cancel()
 
@@ -860,12 +875,26 @@ func TestRefreshSecondaryIPsIfNeeded(t *testing.T) {
 				t.Error("unexpected URL: got:", got, "exp:", test.expURL)
 			}
 
-			if !resultsPresent {
-				t.Error("No results obtained from IP refresh, expected a result")
-			}
+			if test.shouldCall {
+				if !resultsPresent {
+					t.Error("No results obtained from IP refresh, expected a result")
 
-			if len(ips) != 1 {
-				t.Error("Expected 1 IP, got ", len(ips))
+					if len(ips) != 1 {
+						t.Error("Expected 1 IP, got ", len(ips))
+					}
+
+					if ips[0] != "10.240.0.6" {
+						t.Error("Expected IP 10.240.0.6, got ", got)
+					}
+				}
+			} else {
+				if resultsPresent {
+					t.Error("No results were expected from IP refresh, got a result")
+
+					if len(ips) != 0 {
+						t.Error("Expected 0 IPs, got ", len(ips))
+					}
+				}
 			}
 		})
 	}
