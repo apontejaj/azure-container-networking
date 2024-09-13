@@ -852,7 +852,12 @@ func TestRefreshSecondaryIPsIfNeeded(t *testing.T) {
 			rr := httptest.NewRecorder()
 			got = req.URL.RequestURI()
 			rr.WriteHeader(http.StatusOK)
-			rr.WriteString(*interfaceResult)
+			bytes, _ := rr.WriteString(*interfaceResult)
+
+			if bytes == 0 {
+				return nil, errors.New("no bytes written")
+			}
+
 			return rr.Result(), nil
 		},
 	}

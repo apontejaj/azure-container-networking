@@ -323,7 +323,7 @@ func parseSecondaryIPsFromWireServerResponse(resp *http.Response) (res []string,
 	decoder := xml.NewDecoder(resp.Body)
 	err = decoder.Decode(&doc)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "decoding nmagent response")
 	}
 
 	// For each interface...
