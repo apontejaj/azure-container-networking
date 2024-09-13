@@ -34,7 +34,7 @@ var (
 	)
 	// ErrUnsupportedIPAddress is returned when an unsupported IP address, such as IPV6, is used
 	ErrUnsupportedIPAddress = errors.New("unsupported IP address")
-	// ErrUnsupportedNonCIDR is returned when non-CIDR blocks are passed in with NPM Lite enabled. Npm Lite does allow for default deny and default allow policies
+	// ErrUnsupportedNonCIDR is returned when non-CIDR blocks are passed in with NPM Lite enabled. NPM Lite enables all network policies except those with an ingress/egress pod or namespace selector. Npm Lite also allows for default deny and default allow policies
 	ErrUnsupportedNonCIDR = errors.New("unsupported Non-CIDR block for NPM Lite")
 )
 

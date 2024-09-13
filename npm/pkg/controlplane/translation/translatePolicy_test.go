@@ -2927,18 +2927,28 @@ func TestNpmLiteCidrPolicy(t *testing.T) {
 	// Test 3) Npm Lite enabled, CIDR Peers , returns no error
 	// Test 4) NPM Lite enabled, Combination of CIDR + Label in same peer, returns an error
 	// test 5) NPM Lite enabled, no peer, returns no error
+	// test 6) NPM Lite enabled, no cidr, no peer, only ports + protocol
 
+	port8000 := intstr.FromInt(8000)
+	tcp := v1.ProtocolTCP
 	tests := []struct {
 		name           string
 		targetSelector *metav1.LabelSelector
+		ports          []networkingv1.NetworkPolicyPort
 		peersFrom      []networkingv1.NetworkPolicyPeer
 		peersTo        []networkingv1.NetworkPolicyPeer
 		npmLiteEnabled bool
 		wantErr        bool
 	}{
 		{
-			name:           "peer nameSpaceSelector and ipblock in ingress rules",
+			name:           "CIDR + port + namespace",
 			targetSelector: nil,
+			ports: []networkingv1.NetworkPolicyPort{
+				{
+					Protocol: &tcp,
+					Port:     &port8000,
+				},
+			},
 			peersFrom: []networkingv1.NetworkPolicyPeer{
 				{
 					NamespaceSelector: &metav1.LabelSelector{
@@ -2964,7 +2974,7 @@ func TestNpmLiteCidrPolicy(t *testing.T) {
 			wantErr:        true,
 		},
 		{
-			name:           "peer nameSpaceSelector and ipblock in ingress rules",
+			name:           "cidr + namespace label + disabledLite ",
 			targetSelector: nil,
 			peersFrom: []networkingv1.NetworkPolicyPeer{
 				{
@@ -2991,7 +3001,7 @@ func TestNpmLiteCidrPolicy(t *testing.T) {
 			wantErr:        false,
 		},
 		{
-			name:           "peer nameSpaceSelector and ipblock in ingress rules",
+			name:           "CIDR Only",
 			targetSelector: nil,
 			peersFrom: []networkingv1.NetworkPolicyPeer{
 				{
@@ -3011,7 +3021,7 @@ func TestNpmLiteCidrPolicy(t *testing.T) {
 			wantErr:        false,
 		},
 		{
-			name:           "peer nameSpaceSelector and ipblock in ingress rules",
+			name:           "CIDR + namespace labels",
 			targetSelector: nil,
 			peersFrom: []networkingv1.NetworkPolicyPeer{
 				{
@@ -3031,8 +3041,22 @@ func TestNpmLiteCidrPolicy(t *testing.T) {
 			wantErr:        true,
 		},
 		{
-			name:           "peer nameSpaceSelector and ipblock in ingress rules",
+			name:           "no peers",
 			targetSelector: nil,
+			peersFrom:      []networkingv1.NetworkPolicyPeer{},
+			peersTo:        []networkingv1.NetworkPolicyPeer{},
+			npmLiteEnabled: true,
+			wantErr:        false,
+		},
+		{
+			name:           "port only",
+			targetSelector: nil,
+			ports: []networkingv1.NetworkPolicyPort{
+				{
+					Protocol: &tcp,
+					Port:     &port8000,
+				},
+			},
 			peersFrom:      []networkingv1.NetworkPolicyPeer{},
 			peersTo:        []networkingv1.NetworkPolicyPeer{},
 			npmLiteEnabled: true,
