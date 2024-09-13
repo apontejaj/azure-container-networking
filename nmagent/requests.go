@@ -554,7 +554,7 @@ func (g *GetSecondaryIPsRequest) Method() string {
 
 // Path returns the necessary URI path for invoking a GetSecondaryIPsRequest request.
 func (g *GetSecondaryIPsRequest) Path() string {
-	return "/machine/plugins?comp=nmagent&type=getinterfaceinfov1"
+	return "getinterfaceinfov1"
 }
 
 // Validate is a no-op method because parameters are hard coded in the path,

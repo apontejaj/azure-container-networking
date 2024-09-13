@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Azure/azure-container-networking/common"
+	"github.com/Azure/azure-container-networking/log"
 	"github.com/Azure/azure-container-networking/nmagent/internal"
 	"github.com/pkg/errors"
 )
@@ -41,22 +43,17 @@ func NewClient(c Config) (*Client, error) {
 	return client, nil
 }
 
-type NodeSubnetIPFetchState struct {
-	queryUrl        string
-	queryInterval   time.Duration
-	lastRefreshTime time.Time
-}
-
 // Client is an agent for exchanging information with NMAgent.
 type Client struct {
 	httpClient *http.Client
 
 	// config
-	host string
-	port uint16
-
-	enableTLS              bool
-	nodeSubnetIPFetchState *NodeSubnetIPFetchState
+	host      string
+	port      uint16
+	enableTLS bool
+	// Node subnet state
+	secondaryIPQueryInterval   time.Duration // Minimum time between secondary IP fetches
+	secondaryIPLastRefreshTime time.Time     // Time of last secondary IP fetch
 
 	retrier interface {
 		Do(context.Context, func() error) error
@@ -293,8 +290,14 @@ func (c *Client) GetHomeAz(ctx context.Context) (AzResponse, error) {
 	return homeAzResponse, nil
 }
 
-func (c *Client) RefreshSecondaryIPsIfNeeded(ctx context.Context) ([]string, error) {
+func (c *Client) RefreshSecondaryIPsIfNeeded(ctx context.Context) (bool, []string, error) {
+	if time.Since(c.secondaryIPLastRefreshTime) <= c.secondaryIPQueryInterval {
+		return false, nil, nil
+	}
 
+	c.secondaryIPLastRefreshTime = time.Now()
+	res, err := c.getSecondaryIPs(ctx)
+	return true, res, err
 }
 
 func (c *Client) getSecondaryIPs(ctx context.Context) ([]string, error) {
@@ -313,13 +316,47 @@ func (c *Client) getSecondaryIPs(ctx context.Context) ([]string, error) {
 		return nil, die(resp.StatusCode, resp.Header, resp.Body, req.URL.Path)
 	}
 
-	var out NCVersionList
-	err = json.NewDecoder(resp.Body).Decode(&out)
+	return parseSecondaryIPsFromWireServerResponse(resp)
+}
+
+func parseSecondaryIPsFromWireServerResponse(resp *http.Response) (res []string, err error) {
+	// Query the list of local interfaces (this works because CNS is running in hostNetwork mode. However, this may not be necessary).
 	if err != nil {
-		return nil, errors.Wrap(err, "decoding response")
+		return nil, err
 	}
 
-	return out, nil
+	// Decode XML document.
+	var doc common.XmlDocument
+	decoder := xml.NewDecoder(resp.Body)
+	err = decoder.Decode(&doc)
+	if err != nil {
+		return nil, err
+	}
+
+	// For each interface...
+	for _, i := range doc.Interface {
+		if !i.IsPrimary {
+			continue
+		}
+
+		// For each subnet on the interface...
+		for _, s := range i.IPSubnet {
+			addressCount := 0
+			// For each address in the subnet...
+			for _, a := range s.IPAddress {
+				// Primary addresses are reserved for the host.
+				if a.IsPrimary {
+					continue
+				}
+
+				res = append(res, a.Address)
+				addressCount++
+			}
+			log.Printf("Got %d addresses from subnet %s", addressCount, s.Prefix)
+		}
+	}
+
+	return res, nil
 }
 
 func die(code int, headers http.Header, body io.ReadCloser, path string) error {

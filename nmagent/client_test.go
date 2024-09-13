@@ -809,3 +809,64 @@ func TestGetHomeAz(t *testing.T) {
 		})
 	}
 }
+
+func TestRefreshSecondaryIPsIfNeeded(t *testing.T) {
+	getTests := []struct {
+		name       string
+		expURL     string
+		interfaces string
+		shouldCall bool
+		shouldErr  bool
+	}{
+		{
+			"happy path",
+			"/machine/plugins?comp=nmagent&type=getinterfaceinfov1",
+			`<Interfaces>
+			    <Interface MacAddress="000D3AF9DCA6" IsPrimary="true">
+				<IPSubnet Prefix="10.240.0.0/16">
+				<IPAddress Address="10.240.0.5" IsPrimary="true"/>
+				<IPAddress Address="10.240.0.6" IsPrimary="false"/>
+				</IPSubnet>
+				</Interface>
+			</Interfaces>`,
+			true,
+			false,
+		},
+	}
+
+	for _, test := range getTests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			var got string
+			client := nmagent.NewTestClient(&TestTripper{
+				RoundTripF: func(req *http.Request) (*http.Response, error) {
+					rr := httptest.NewRecorder()
+					got = req.URL.RequestURI()
+					rr.WriteHeader(http.StatusOK)
+					rr.WriteString(test.interfaces)
+					return rr.Result(), nil
+				},
+			})
+
+			ctx, cancel := testContext(t)
+			defer cancel()
+
+			resultsPresent, ips, err := client.RefreshSecondaryIPsIfNeeded(ctx)
+			checkErr(t, err, test.shouldErr)
+
+			if got != test.expURL && test.shouldCall {
+				t.Error("unexpected URL: got:", got, "exp:", test.expURL)
+			}
+
+			if !resultsPresent {
+				t.Error("No results obtained from IP refresh, expected a result")
+			}
+
+			if len(ips) != 1 {
+				t.Error("Expected 1 IP, got ", len(ips))
+			}
+		})
+	}
+}
