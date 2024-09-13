@@ -36,6 +36,8 @@ type NetworkPolicyManager struct {
 
 	Dataplane dataplane.GenericDataplane
 
+	NpmLiteToggle bool
+
 	// ipsMgr are shared in all controllers. Thus, only one ipsMgr is created for simple management
 	// and uses lock to avoid unintentional race condictions in IpsetManager.
 	ipsMgr *ipsm.IpsetManager
@@ -62,17 +64,20 @@ func NewNetworkPolicyManager(config npmconfig.Config,
 	dp dataplane.GenericDataplane,
 	exec utilexec.Interface,
 	npmVersion string,
-	k8sServerVersion *version.Info) *NetworkPolicyManager {
+	k8sServerVersion *version.Info,
+	npmLiteToggle bool) *NetworkPolicyManager {
 	klog.Infof("API server version: %+v AI metadata %+v", k8sServerVersion, aiMetadata)
 
 	npMgr := &NetworkPolicyManager{
-		config:    config,
-		Dataplane: dp,
+		config:        config,
+		Dataplane:     dp,
+		NpmLiteToggle: npmLiteToggle,
 		Informers: models.Informers{
-			InformerFactory: informerFactory,
-			PodInformer:     podFactory.Core().V1().Pods(),
-			NsInformer:      informerFactory.Core().V1().Namespaces(),
-			NpInformer:      informerFactory.Networking().V1().NetworkPolicies(),
+			InformerFactory:    informerFactory,
+			PodInformerFactory: podFactory,
+			PodInformer:        podFactory.Core().V1().Pods(),
+			NsInformer:         informerFactory.Core().V1().Namespaces(),
+			NpInformer:         informerFactory.Networking().V1().NetworkPolicies(),
 		},
 		AzureConfig: models.AzureConfig{
 			K8sServerVersion: k8sServerVersion,
@@ -185,8 +190,14 @@ func (npMgr *NetworkPolicyManager) Start(config npmconfig.Config, stopCh <-chan 
 		}
 	}
 
-	// Starts all informers manufactured by npMgr's informerFactory.
-	npMgr.InformerFactory.Start(stopCh)
+	// npn lite
+	if npMgr.NpmLiteToggle {
+		npMgr.InformerFactory.Start(stopCh)
+		npMgr.PodInformerFactory.Start(stopCh)
+	} else {
+		// Starts all informers manufactured by npMgr's informerFactory.
+		npMgr.InformerFactory.Start(stopCh)
+	}
 
 	// Wait for the initial sync of local cache.
 	if !cache.WaitForCacheSync(stopCh, npMgr.PodInformer.Informer().HasSynced) {

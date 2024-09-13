@@ -126,6 +126,7 @@ func start(config npmconfig.Config, flags npmconfig.Flags) error {
 			resyncPeriod,
 			informers.WithTweakListOptions(func(options *metav1.ListOptions) {
 				// Use field selector to filter pods based on their assigned node
+				klog.Infof("NPM agent is listening to pods only under its node")
 				options.FieldSelector = "spec.nodeName=" + models.GetNodeName()
 			}),
 		)
@@ -194,7 +195,7 @@ func start(config npmconfig.Config, flags npmconfig.Flags) error {
 		}
 		dp.RunPeriodicTasks()
 	}
-	npMgr := npm.NewNetworkPolicyManager(config, factory, podFactory, dp, exec.New(), version, k8sServerVersion)
+	npMgr := npm.NewNetworkPolicyManager(config, factory, podFactory, dp, exec.New(), version, k8sServerVersion, config.Toggles.EnableNPMLite)
 	err = metrics.CreateTelemetryHandle(config.NPMVersion(), version, npm.GetAIMetadata())
 	if err != nil {
 		klog.Infof("CreateTelemetryHandle failed with error %v. AITelemetry is not initialized.", err)
