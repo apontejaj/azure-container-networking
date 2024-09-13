@@ -290,8 +290,8 @@ func (c *Client) GetHomeAz(ctx context.Context) (AzResponse, error) {
 	return homeAzResponse, nil
 }
 
-func (c *Client) RefreshSecondaryIPsIfNeeded(ctx context.Context) (bool, []string, error) {
-	if time.Since(c.secondaryIPLastRefreshTime) <= c.secondaryIPQueryInterval {
+func (c *Client) RefreshSecondaryIPsIfNeeded(ctx context.Context) (refreshNeeded bool, ips []string, err error) {
+	if time.Since(c.secondaryIPLastRefreshTime) < c.secondaryIPQueryInterval {
 		return false, nil, nil
 	}
 
@@ -320,17 +320,12 @@ func (c *Client) getSecondaryIPs(ctx context.Context) ([]string, error) {
 }
 
 func parseSecondaryIPsFromWireServerResponse(resp *http.Response) (res []string, err error) {
-	// Query the list of local interfaces (this works because CNS is running in hostNetwork mode. However, this may not be necessary).
-	if err != nil {
-		return nil, err
-	}
-
 	// Decode XML document.
 	var doc common.XmlDocument
 	decoder := xml.NewDecoder(resp.Body)
 	err = decoder.Decode(&doc)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "decoding nmagent response")
 	}
 
 	// For each interface...
@@ -408,4 +403,8 @@ func (c *Client) scheme() string {
 		return "https"
 	}
 	return "http"
+}
+
+func (c *Client) SetSecondaryIPQueryInterval(interval time.Duration) {
+	c.secondaryIPQueryInterval = interval
 }
