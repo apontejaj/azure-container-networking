@@ -190,13 +190,12 @@ func (npMgr *NetworkPolicyManager) Start(config npmconfig.Config, stopCh <-chan 
 		}
 	}
 
+	// Starts all informers manufactured by npMgr's informerFactory.
+	npMgr.InformerFactory.Start(stopCh)
+
 	// npn lite
 	if npMgr.NpmLiteToggle {
-		npMgr.InformerFactory.Start(stopCh)
 		npMgr.PodInformerFactory.Start(stopCh)
-	} else {
-		// Starts all informers manufactured by npMgr's informerFactory.
-		npMgr.InformerFactory.Start(stopCh)
 	}
 
 	// Wait for the initial sync of local cache.
