@@ -867,7 +867,6 @@ func TestRefreshSecondaryIPsIfNeeded(t *testing.T) {
 	for _, test := range getTests {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-
 			client.SetSecondaryIPQueryInterval(test.interval)
 			interfaceResult = &(test.interfaces)
 			ctx, cancel := testContext(t)
