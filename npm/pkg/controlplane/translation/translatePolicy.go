@@ -34,8 +34,8 @@ var (
 	)
 	// ErrUnsupportedIPAddress is returned when an unsupported IP address, such as IPV6, is used
 	ErrUnsupportedIPAddress = errors.New("unsupported IP address")
-	// ErrUnsupportedNonCIDR is returned when non-CIDR blocks are passed in with NPM Lite enabled. NPM Lite enables all network policies except those with an ingress/egress pod or namespace selector. Npm Lite also allows for default deny and default allow policies
-	ErrUnsupportedNonCIDR = errors.New("unsupported Non-CIDR block for NPM Lite")
+	// ErrUnsupportedNonCIDR is returned when non-CIDR blocks are passed in with NPM Lite enabled. NPM Lite allows deny-all and allow-all policies
+	ErrUnsupportedNonCIDR = errors.New("Non-CIDR blocks, named ports, and ingress/egress namespace/pod selectors are not supported when NPM Lite is enabled, allowing only CIDR-based policies")
 )
 
 type podSelectorResult struct {
@@ -334,7 +334,7 @@ func ruleExists(ports []networkingv1.NetworkPolicyPort, peer []networkingv1.Netw
 
 // peerAndPortRule deals with composite rules including ports and peers
 // (e.g., IPBlock, podSelector, namespaceSelector, or both podSelector and namespaceSelector).
-func peerAndPortRule(npmNetPol *policies.NPMNetworkPolicy, direction policies.Direction, ports []networkingv1.NetworkPolicyPort, setInfo []policies.SetInfo) error {
+func peerAndPortRule(npmNetPol *policies.NPMNetworkPolicy, direction policies.Direction, ports []networkingv1.NetworkPolicyPort, setInfo []policies.SetInfo, npmLiteToggle bool) error {
 	if len(ports) == 0 {
 		acl := policies.NewACLPolicy(policies.Allowed, direction)
 		acl.AddSetInfo(setInfo)
@@ -344,6 +344,11 @@ func peerAndPortRule(npmNetPol *policies.NPMNetworkPolicy, direction policies.Di
 
 	for i := range ports {
 		portKind, err := portType(ports[i])
+		if err != nil {
+			return err
+		}
+
+		err = checkForNamedPortType(portKind, npmLiteToggle)
 		if err != nil {
 			return err
 		}
@@ -385,7 +390,10 @@ func translateRule(npmNetPol *policies.NPMNetworkPolicy, netPolName string, dire
 			if err != nil {
 				return err
 			}
-
+			err = checkForNamedPortType(portKind, npmLiteToggle)
+			if err != nil {
+				return err
+			}
 			portACL := policies.NewACLPolicy(policies.Allowed, direction)
 			npmNetPol.RuleIPSets = portRule(npmNetPol.RuleIPSets, portACL, &ports[i], portKind)
 			npmNetPol.ACLs = append(npmNetPol.ACLs, portACL)
@@ -407,7 +415,7 @@ func translateRule(npmNetPol *policies.NPMNetworkPolicy, netPolName string, dire
 				}
 				npmNetPol.RuleIPSets = append(npmNetPol.RuleIPSets, ipBlockIPSet)
 
-				err = peerAndPortRule(npmNetPol, direction, ports, []policies.SetInfo{ipBlockSetInfo})
+				err = peerAndPortRule(npmNetPol, direction, ports, []policies.SetInfo{ipBlockSetInfo}, npmLiteToggle)
 				if err != nil {
 					return err
 				}
@@ -442,7 +450,7 @@ func translateRule(npmNetPol *policies.NPMNetworkPolicy, netPolName string, dire
 			for i := range flattenNSSelector {
 				nsSelectorIPSets, nsSelectorList := nameSpaceSelector(matchType, &flattenNSSelector[i])
 				npmNetPol.RuleIPSets = append(npmNetPol.RuleIPSets, nsSelectorIPSets...)
-				err := peerAndPortRule(npmNetPol, direction, ports, nsSelectorList)
+				err := peerAndPortRule(npmNetPol, direction, ports, nsSelectorList, npmLiteToggle)
 				if err != nil {
 					return err
 				}
@@ -458,7 +466,7 @@ func translateRule(npmNetPol *policies.NPMNetworkPolicy, netPolName string, dire
 			}
 			npmNetPol.RuleIPSets = append(npmNetPol.RuleIPSets, psResult.psSets...)
 			npmNetPol.RuleIPSets = append(npmNetPol.RuleIPSets, psResult.childPSSets...)
-			err = peerAndPortRule(npmNetPol, direction, ports, psResult.psList)
+			err = peerAndPortRule(npmNetPol, direction, ports, psResult.psList, npmLiteToggle)
 			if err != nil {
 				return err
 			}
@@ -484,7 +492,7 @@ func translateRule(npmNetPol *policies.NPMNetworkPolicy, netPolName string, dire
 			nsSelectorIPSets, nsSelectorList := nameSpaceSelector(matchType, &flattenNSSelector[i])
 			npmNetPol.RuleIPSets = append(npmNetPol.RuleIPSets, nsSelectorIPSets...)
 			nsSelectorList = append(nsSelectorList, psResult.psList...)
-			err := peerAndPortRule(npmNetPol, direction, ports, nsSelectorList)
+			err := peerAndPortRule(npmNetPol, direction, ports, nsSelectorList, npmLiteToggle)
 			if err != nil {
 				return err
 			}
@@ -641,6 +649,13 @@ func TranslatePolicy(npObj *networkingv1.NetworkPolicy, npmLiteToggle bool) (*po
 // validates only CIDR based peer is present + no combination of CIDR with pod/namespace selectors are present
 func npmLiteValidPolicy(peer networkingv1.NetworkPolicyPeer, npmLiteEnabled bool) error {
 	if npmLiteEnabled && (peer.PodSelector != nil || peer.NamespaceSelector != nil) {
+		return ErrUnsupportedNonCIDR
+	}
+	return nil
+}
+
+func checkForNamedPortType(portKind netpolPortType, npmLiteToggle bool) error {
+	if npmLiteToggle && portKind == namedPortType {
 		return ErrUnsupportedNonCIDR
 	}
 	return nil

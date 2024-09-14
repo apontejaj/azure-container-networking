@@ -1436,6 +1436,7 @@ func TestPeerAndPortRule(t *testing.T) {
 	for i, tt := range tests {
 		tt := tt
 		setInfo := setInfos[i]
+		npmLiteToggle := false
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			for _, acl := range tt.npmNetPol.ACLs {
@@ -1446,7 +1447,7 @@ func TestPeerAndPortRule(t *testing.T) {
 				PolicyKey:   tt.npmNetPol.PolicyKey,
 				ACLPolicyID: tt.npmNetPol.ACLPolicyID,
 			}
-			err := peerAndPortRule(npmNetPol, policies.Ingress, tt.ports, setInfo)
+			err := peerAndPortRule(npmNetPol, policies.Ingress, tt.ports, setInfo, npmLiteToggle)
 			if tt.skipWindows && util.IsWindowsDP() {
 				require.Error(t, err)
 			} else {
