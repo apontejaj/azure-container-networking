@@ -435,7 +435,7 @@ cni-image-name-and-tag: # util target to print the cni image name and tag.
 	@echo $(IMAGE_REGISTRY)/$(CNI_IMAGE):$(CNI_PLATFORM_TAG)
 
 cni-image-tag: # util target to print the cni image name and tag without platform.
-	@echo $(IMAGE_REGISTRY)/$(CNI_IMAGE):$(CNI_IMAGE)
+	@echo $(IMAGE_REGISTRY)/$(CNI_IMAGE):$(CNI_VERSION)
 
 cni-image: ## build cni container image.
 	$(MAKE) container \

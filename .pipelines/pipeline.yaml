@@ -398,6 +398,7 @@ stages:
         name: "swiftv2_e2e"
         displayName: Swiftv2 Multitenancy
         os: linux
+        arch: amd64
         clusterType: swiftv2-multitenancy-cluster-up
         clusterName: "mtacluster"
         nodePoolName: "mtapool"
