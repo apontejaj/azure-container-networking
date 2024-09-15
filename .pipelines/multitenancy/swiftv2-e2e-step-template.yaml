@@ -39,7 +39,7 @@ steps:
       addSpnToEnvironment: true
       inlineScript: |
         set -ex
-        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}-$(commitID)
+        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}
         echo "Upload CNI"
         echo "Deploying on Linux nodes"
         if [ "${{parameters.os}}" == "windows" ]; then
