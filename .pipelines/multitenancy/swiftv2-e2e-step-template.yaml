@@ -2,6 +2,8 @@ parameters:
   name: ""
   clusterName: ""
   continueOnError: true
+  arch: ""
+  os: ""
 
 steps:
   - bash: |

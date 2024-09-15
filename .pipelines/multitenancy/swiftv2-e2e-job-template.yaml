@@ -4,6 +4,7 @@ parameters:
   clusterType: ""
   clusterName: ""
   vmSize: ""
+  arch: ""
   k8sVersion: ""
   dependsOn: ""
   nodePoolName: ""
@@ -60,3 +61,4 @@ stages:
               name: ${{ parameters.name }}
               clusterName: ${{ parameters.clusterName }}-$(commitID)
               os: linux
+              arch: ${{ parameters.arch }}
