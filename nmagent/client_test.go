@@ -811,7 +811,7 @@ func TestGetHomeAz(t *testing.T) {
 	}
 }
 
-func TestRefreshSecondaryIPsIfNeeded(t *testing.T) {
+func TestGetInterfaceIPInfo(t *testing.T) {
 	tests := []struct {
 		name     string
 		expURL   string
