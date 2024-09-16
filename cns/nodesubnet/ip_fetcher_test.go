@@ -13,9 +13,9 @@ type TestClient struct {
 	fetchCalled bool
 }
 
-func (c *TestClient) GetSecondaryIPs(ctx context.Context) (nmagent.InterfaceIpsResponse, error) {
+func (c *TestClient) GetInterfaceIPInfo(ctx context.Context) (nmagent.Interfaces, error) {
 	c.fetchCalled = true
-	return nmagent.InterfaceIpsResponse{}, nil
+	return nmagent.Interfaces{}, nil
 }
 
 func TestRefreshSecondaryIPsIfNeeded(t *testing.T) {

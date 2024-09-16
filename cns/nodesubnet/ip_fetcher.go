@@ -8,8 +8,9 @@ import (
 	"github.com/Azure/azure-container-networking/nmagent"
 )
 
+// This interface is implemented by the NMAgent Client, and also a mock client for testing
 type ClientInterface interface {
-	GetSecondaryIPs(ctx context.Context) (nmagent.InterfaceIpsResponse, error)
+	GetInterfaceIPInfo(ctx context.Context) (nmagent.Interfaces, error)
 }
 
 type IPFetcher struct {
@@ -27,17 +28,19 @@ func NewIPFetcher(nmaClient ClientInterface, queryInterval time.Duration) *IPFet
 	}
 }
 
+// Exposed for testing
 func (c *IPFetcher) SetSecondaryIPQueryInterval(interval time.Duration) {
 	c.secondaryIPQueryInterval = interval
 }
 
+// If secondaryIPQueryInterval has elapsed since the last fetch, fetch secondary IPs
 func (c *IPFetcher) RefreshSecondaryIPsIfNeeded(ctx context.Context) (refreshNeeded bool, ips []string, err error) {
 	if time.Since(c.secondaryIPLastRefreshTime) < c.secondaryIPQueryInterval {
 		return false, nil, nil
 	}
 
 	c.secondaryIPLastRefreshTime = time.Now()
-	response, err := c.nmaClient.GetSecondaryIPs(ctx)
+	response, err := c.nmaClient.GetInterfaceIPInfo(ctx)
 	if err != nil {
 		return true, nil, err
 	}
@@ -46,9 +49,10 @@ func (c *IPFetcher) RefreshSecondaryIPsIfNeeded(ctx context.Context) (refreshNee
 	return true, res, err
 }
 
-func flattenIPListFromResponse(resp *nmagent.InterfaceIpsResponse) (res []string, err error) {
+// Get the list of secondary IPs from fetched Interfaces
+func flattenIPListFromResponse(resp *nmagent.Interfaces) (res []string, err error) {
 	// For each interface...
-	for _, intf := range resp.Interfaces {
+	for _, intf := range resp.Entries {
 		if !intf.IsPrimary {
 			continue
 		}

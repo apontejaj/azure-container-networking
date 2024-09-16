@@ -872,7 +872,7 @@ func TestRefreshSecondaryIPsIfNeeded(t *testing.T) {
 			ctx, cancel := testContext(t)
 			defer cancel()
 
-			resp, err := client.GetSecondaryIPs(ctx)
+			resp, err := client.GetInterfaceIPInfo(ctx)
 			checkErr(t, err, false)
 
 			if gotURL != test.expURL {
