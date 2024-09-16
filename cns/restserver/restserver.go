@@ -134,11 +134,11 @@ type GetEndpointResponse struct {
 
 // containerstatus is used to save status of an existing container
 type containerstatus struct {
-	ID                            string                            // hard coded ID
-	VMVersion                     string                            // "0"
-	HostVersion                   string                            // "0"
-	CreateNetworkContainerRequest cns.CreateNetworkContainerRequest // uninitialized
-	VfpUpdateComplete             bool                              // True when VFP programming is completed for the NC  // true
+	ID                            string
+	VMVersion                     string
+	HostVersion                   string
+	CreateNetworkContainerRequest cns.CreateNetworkContainerRequest
+	VfpUpdateComplete             bool // True when VFP programming is completed for the NC
 }
 
 // httpRestServiceState contains the state we would like to persist.
