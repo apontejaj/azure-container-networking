@@ -1,0 +1,84 @@
+package nodesubnet_test
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/Azure/azure-container-networking/cns/nodesubnet"
+	"github.com/Azure/azure-container-networking/nmagent"
+)
+
+type TestClient struct {
+	fetchCalled bool
+}
+
+func (c *TestClient) GetSecondaryIPs(ctx context.Context) (nmagent.InterfaceIpsResponse, error) {
+	c.fetchCalled = true
+	return nmagent.InterfaceIpsResponse{}, nil
+}
+
+func TestRefreshSecondaryIPsIfNeeded(t *testing.T) {
+	getTests := []struct {
+		name       string
+		shouldCall bool
+		interval   time.Duration
+	}{
+		{
+			"fetch called",
+			true,
+			-1 * time.Second,
+		},
+		{
+			"no refresh needed",
+			false,
+			10 * time.Hour,
+		},
+	}
+
+	clientPtr := &TestClient{}
+	fetcher := nodesubnet.NewIPFetcher(clientPtr, 0)
+
+	for _, test := range getTests {
+		test := test
+		t.Run(test.name, func(t *testing.T) { // Do not parallelize, as we are using a shared client
+			fetcher.SetSecondaryIPQueryInterval(test.interval)
+			ctx, cancel := testContext(t)
+			defer cancel()
+			clientPtr.fetchCalled = false
+			_, _, err := fetcher.RefreshSecondaryIPsIfNeeded(ctx)
+			checkErr(t, err, false)
+
+			if test.shouldCall {
+				if !clientPtr.fetchCalled {
+					t.Error("IP refresh expected, but didn't happen")
+				}
+			} else {
+				if clientPtr.fetchCalled {
+					t.Error("IP refresh not expected, but happened")
+				}
+			}
+		})
+	}
+}
+
+// testContext creates a context from the provided testing.T that will be
+// canceled if the test suite is terminated.
+func testContext(t *testing.T) (context.Context, context.CancelFunc) {
+	if deadline, ok := t.Deadline(); ok {
+		return context.WithDeadline(context.Background(), deadline)
+	}
+	return context.WithCancel(context.Background())
+}
+
+// checkErr is an assertion of the presence or absence of an error
+func checkErr(t *testing.T, err error, shouldErr bool) {
+	t.Helper()
+	if err != nil && !shouldErr {
+		t.Fatal("unexpected error: err:", err)
+	}
+
+	if err == nil && shouldErr {
+		t.Fatal("expected error but received none")
+	}
+}
