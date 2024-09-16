@@ -866,7 +866,7 @@ func TestRefreshSecondaryIPsIfNeeded(t *testing.T) {
 
 	for _, test := range getTests {
 		test := test
-		t.Run(test.name, func(t *testing.T) {
+		t.Run(test.name, func(t *testing.T) { // Do not parallelize, as we are using a shared client
 			client.SetSecondaryIPQueryInterval(test.interval)
 			interfaceResult = &(test.interfaces)
 			ctx, cancel := testContext(t)
@@ -882,22 +882,22 @@ func TestRefreshSecondaryIPsIfNeeded(t *testing.T) {
 			if test.shouldCall {
 				if !resultsPresent {
 					t.Error("No results obtained from IP refresh, expected a result")
+				}
 
-					if len(ips) != 1 {
-						t.Error("Expected 1 IP, got ", len(ips))
-					}
+				if len(ips) != 1 {
+					t.Error("Expected 1 IP, got ", len(ips))
+				}
 
-					if ips[0] != "10.240.0.6" {
-						t.Error("Expected IP 10.240.0.6, got ", got)
-					}
+				if ips[0] != "10.240.0.6" {
+					t.Error("Expected IP 10.240.0.6, got ", got)
 				}
 			} else {
 				if resultsPresent {
 					t.Error("No results were expected from IP refresh, got a result")
+				}
 
-					if len(ips) != 0 {
-						t.Error("Expected 0 IPs, got ", len(ips))
-					}
+				if len(ips) != 0 {
+					t.Error("Expected 0 IPs, got ", len(ips))
 				}
 			}
 		})
