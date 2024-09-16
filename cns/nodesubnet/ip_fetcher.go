@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-container-networking/nmagent"
+	"github.com/pkg/errors"
 )
 
 // This interface is implemented by the NMAgent Client, and also a mock client for testing
@@ -42,15 +43,15 @@ func (c *IPFetcher) RefreshSecondaryIPsIfNeeded(ctx context.Context) (refreshNee
 	c.secondaryIPLastRefreshTime = time.Now()
 	response, err := c.ipFectcherClient.GetInterfaceIPInfo(ctx)
 	if err != nil {
-		return true, nil, err
+		return true, nil, errors.Wrap(err, "Getting Interface IPs")
 	}
 
-	res, err := flattenIPListFromResponse(&response)
-	return true, res, err
+	res := flattenIPListFromResponse(&response)
+	return true, res, nil
 }
 
 // Get the list of secondary IPs from fetched Interfaces
-func flattenIPListFromResponse(resp *nmagent.Interfaces) (res []string, err error) {
+func flattenIPListFromResponse(resp *nmagent.Interfaces) (res []string) {
 	// For each interface...
 	for _, intf := range resp.Entries {
 		if !intf.IsPrimary {
@@ -74,5 +75,5 @@ func flattenIPListFromResponse(resp *nmagent.Interfaces) (res []string, err erro
 		}
 	}
 
-	return res, nil
+	return res
 }

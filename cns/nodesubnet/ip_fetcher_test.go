@@ -15,7 +15,7 @@ type TestClient struct {
 }
 
 // Mock refresh
-func (c *TestClient) GetInterfaceIPInfo(ctx context.Context) (nmagent.Interfaces, error) {
+func (c *TestClient) GetInterfaceIPInfo(_ context.Context) (nmagent.Interfaces, error) {
 	c.fetchCalled = true
 	return nmagent.Interfaces{}, nil
 }
