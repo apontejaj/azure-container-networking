@@ -57,6 +57,9 @@ type Interface struct {
 	IsPrimary        bool                  `xml:"IsPrimary,attr"`
 }
 
+// Response from NMAgent for getinterfaceinfov1 (interface IP information)
+// If we change this name, we need to tell the XML encoder to look for
+// "Interfaces" in the respose.
 type Interfaces struct {
 	Entries []Interface `xml:"Interface"`
 }
