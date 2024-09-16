@@ -40,3 +40,23 @@ type NCVersionList struct {
 type AzResponse struct {
 	HomeAz uint `json:"homeAz"`
 }
+
+type IPAddress struct {
+	Address   string `xml:"Address,attr"`
+	IsPrimary bool   `xml:"IsPrimary,attr"`
+}
+
+type InterfaceSubnetInfo struct {
+	IPAddress []IPAddress `xml:"IPAddress"`
+	Prefix    string      `xml:"Prefix,attr"`
+}
+
+type Interface struct {
+	InterfaceSubnets []InterfaceSubnetInfo `xml:"IPSubnet"`
+	MacAddress       string                `xml:"MacAddress,attr"`
+	IsPrimary        bool                  `xml:"IsPrimary,attr"`
+}
+
+type Interfaces struct {
+	Entries []Interface `xml:"Interface"`
+}

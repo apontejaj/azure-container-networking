@@ -3,12 +3,12 @@ package nmagent_test
 import (
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/Azure/azure-container-networking/nmagent"
 	"github.com/google/go-cmp/cmp"
@@ -812,93 +812,83 @@ func TestGetHomeAz(t *testing.T) {
 }
 
 func TestRefreshSecondaryIPsIfNeeded(t *testing.T) {
-	getTests := []struct {
-		name       string
-		expURL     string
-		interfaces string
-		shouldCall bool
-		shouldErr  bool
-		interval   time.Duration
+	tests := []struct {
+		name     string
+		expURL   string
+		response nmagent.Interfaces
+		respStr  string
 	}{
 		{
 			"happy path",
 			"/machine/plugins?comp=nmagent&type=getinterfaceinfov1",
-			`<Interfaces>
-			    <Interface MacAddress="000D3AF9DCA6" IsPrimary="true">
-				<IPSubnet Prefix="10.240.0.0/16">
-				<IPAddress Address="10.240.0.5" IsPrimary="true"/>
-				<IPAddress Address="10.240.0.6" IsPrimary="false"/>
-				</IPSubnet>
-				</Interface>
-			</Interfaces>`,
-			true,
-			false,
-			-1 * time.Second,
-		},
-		{
-			"no refresh needed because same client is used, and interval is not expired",
-			"/machine/plugins?comp=nmagent&type=getinterfaceinfov1",
-			"",
-			false,
-			false,
-			10 * time.Hour,
-		},
-	}
-
-	var interfaceResult *string
-	var got string
-	clientTransport := &TestTripper{
-		RoundTripF: func(req *http.Request) (*http.Response, error) {
-			rr := httptest.NewRecorder()
-			got = req.URL.RequestURI()
-			rr.WriteHeader(http.StatusOK)
-			bytes, _ := rr.WriteString(*interfaceResult)
-
-			if bytes == 0 {
-				return nil, errors.New("no bytes written")
-			}
-
-			return rr.Result(), nil
+			nmagent.Interfaces{
+				Entries: []nmagent.Interface{
+					{
+						MacAddress: "000D3AF9DCA6",
+						IsPrimary:  true,
+						InterfaceSubnets: []nmagent.InterfaceSubnetInfo{
+							{
+								Prefix: "10.240.0.0/16",
+								IPAddress: []nmagent.IPAddress{
+									{
+										Address:   "10.240.0.5",
+										IsPrimary: true,
+									},
+									{
+										Address:   "10.240.0.6",
+										IsPrimary: false,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"<Interfaces><Interface MacAddress=\"000D3AF9DCA6\" IsPrimary=\"true\"><IPSubnet Prefix=\"10.240.0.0/16\">" +
+				"<IPAddress Address=\"10.240.0.5\" IsPrimary=\"true\"/><IPAddress Address=\"10.240.0.6\" IsPrimary=\"false\"/>" +
+				"</IPSubnet></Interface></Interfaces>",
 		},
 	}
 
-	client := nmagent.NewTestClient(clientTransport)
-
-	for _, test := range getTests {
+	for _, test := range tests {
 		test := test
-		t.Run(test.name, func(t *testing.T) { // Do not parallelize, as we are using a shared client
-			client.SetSecondaryIPQueryInterval(test.interval)
-			interfaceResult = &(test.interfaces)
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			var gotURL string
+			client := nmagent.NewTestClient(&TestTripper{
+				RoundTripF: func(req *http.Request) (*http.Response, error) {
+					gotURL = req.URL.RequestURI()
+					rr := httptest.NewRecorder()
+					rr.WriteHeader(http.StatusOK)
+					err := xml.NewEncoder(rr).Encode(test.response)
+					if err != nil {
+						t.Fatal("unexpected error encoding response: err:", err)
+					}
+					return rr.Result(), nil
+				},
+			})
+
 			ctx, cancel := testContext(t)
 			defer cancel()
 
-			resultsPresent, ips, err := client.RefreshSecondaryIPsIfNeeded(ctx)
-			checkErr(t, err, test.shouldErr)
+			resp, err := client.GetSecondaryIPs(ctx)
+			checkErr(t, err, false)
 
-			if got != test.expURL && test.shouldCall {
-				t.Error("unexpected URL: got:", got, "exp:", test.expURL)
+			if gotURL != test.expURL {
+				t.Error("received URL differs from expected: got:", gotURL, "exp:", test.expURL)
 			}
 
-			if test.shouldCall {
-				if !resultsPresent {
-					t.Error("No results obtained from IP refresh, expected a result")
-				}
+			if got := resp; !cmp.Equal(got, test.response) {
+				t.Error("response differs from expectation: diff:", cmp.Diff(got, test.response))
+			}
 
-				if len(ips) != 1 {
-					t.Error("Expected 1 IP, got ", len(ips))
-				}
+			var unmarshaled nmagent.Interfaces
+			err = xml.Unmarshal([]byte(test.respStr), &unmarshaled)
+			checkErr(t, err, false)
 
-				if ips[0] != "10.240.0.6" {
-					t.Error("Expected IP 10.240.0.6, got ", got)
-				}
-			} else {
-				if resultsPresent {
-					t.Error("No results were expected from IP refresh, got a result")
-				}
-
-				if len(ips) != 0 {
-					t.Error("Expected 0 IPs, got ", len(ips))
-				}
+			if !cmp.Equal(resp, unmarshaled) {
+				t.Error("response differs from expected decoded string: diff:", cmp.Diff(resp, unmarshaled))
 			}
 		})
 	}
