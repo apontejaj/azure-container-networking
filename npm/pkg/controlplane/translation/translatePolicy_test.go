@@ -2922,7 +2922,6 @@ func TestEgressPolicy(t *testing.T) {
 }
 
 func TestNpmLiteCidrPolicy(t *testing.T) {
-	// 3 tests
 	// Test 1) Npm lite enabled, CIDR + Namespace label Peers, returns error
 	// Test 2) NPM lite disabled, CIDR + Namespace label Peers, returns no error
 	// Test 3) Npm Lite enabled, CIDR Peers , returns no error
@@ -3077,6 +3076,60 @@ func TestNpmLiteCidrPolicy(t *testing.T) {
 					break
 				}
 			}
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestCheckForNamedPortType(t *testing.T) {
+	port8000 := intstr.FromInt(8000)
+	namedPort := intstr.FromString("namedPort")
+	tcp := v1.ProtocolTCP
+	tests := []struct {
+		name           string
+		targetSelector *metav1.LabelSelector
+		ports          []networkingv1.NetworkPolicyPort
+		portKind       netpolPortType
+		npmLiteEnabled bool
+		wantErr        bool
+	}{
+		{
+			name:           "unnamedPortOnly",
+			targetSelector: nil,
+			ports: []networkingv1.NetworkPolicyPort{
+				{
+					Protocol: &tcp,
+					Port:     &port8000,
+				},
+			},
+			portKind:       numericPortType,
+			npmLiteEnabled: true,
+			wantErr:        false,
+		},
+		{
+			name:           "namedPortOnly",
+			targetSelector: nil,
+			ports: []networkingv1.NetworkPolicyPort{
+				{
+					Protocol: &tcp,
+					Port:     &namedPort,
+				},
+			},
+			portKind:       namedPortType,
+			npmLiteEnabled: true,
+			wantErr:        true,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			// run the function passing in peers and a flag indicating whether npm lite is enabled
+			err := checkForNamedPortType(tt.portKind, tt.npmLiteEnabled)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
