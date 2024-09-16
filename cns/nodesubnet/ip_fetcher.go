@@ -18,12 +18,12 @@ type IPFetcher struct {
 	secondaryIPQueryInterval   time.Duration // Minimum time between secondary IP fetches
 	secondaryIPLastRefreshTime time.Time     // Time of last secondary IP fetch
 
-	nmaClient ClientInterface
+	ipFectcherClient ClientInterface
 }
 
 func NewIPFetcher(nmaClient ClientInterface, queryInterval time.Duration) *IPFetcher {
 	return &IPFetcher{
-		nmaClient:                nmaClient,
+		ipFectcherClient:         nmaClient,
 		secondaryIPQueryInterval: queryInterval,
 	}
 }
@@ -40,7 +40,7 @@ func (c *IPFetcher) RefreshSecondaryIPsIfNeeded(ctx context.Context) (refreshNee
 	}
 
 	c.secondaryIPLastRefreshTime = time.Now()
-	response, err := c.nmaClient.GetInterfaceIPInfo(ctx)
+	response, err := c.ipFectcherClient.GetInterfaceIPInfo(ctx)
 	if err != nil {
 		return true, nil, err
 	}
