@@ -48,7 +48,6 @@ steps:
         echo "CNI image: $CNI_IMAGE"
         envsubst '${CNI_IMAGE}' < ./test/integration/manifests/cni/cni-installer-v1.yaml | kubectl apply -f -
         kubectl rollout status daemonset/azure-cni -n kube-system
-        fi
         kubectl get pods -A -owide
     name: "deployCNI"
     displayName: "Deploy CNI"
