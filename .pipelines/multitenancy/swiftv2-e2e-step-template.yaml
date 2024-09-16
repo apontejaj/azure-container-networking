@@ -68,6 +68,7 @@ steps:
           make -C ./hack/aks restart-vmss AZCLI=az CLUSTER=${{ parameters.clusterName }} REGION=$(REGION_SWIFTV2_CLUSTER_TEST) VMSS_NAME=${val}
         done
         kubectl get node
+        kubectl rollout status daemonset/azure-cns -n kube-system
         kubectl get pod -A
     name: "UpdateCNSVersion"
     displayName: "Update CNS Version"
