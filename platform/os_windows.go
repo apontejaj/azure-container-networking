@@ -65,9 +65,7 @@ const (
 	SDNRemoteArpMacAddress = "12-34-56-78-9a-bc"
 
 	// Command to fetch netadapter and pnp id
-	// TODO can we replace this (and things in endpoint_windows) with "golang.org/x/sys/windows"
-	// var adapterInfo windows.IpAdapterInfo
-	// var bufferSize uint32 = uint32(unsafe.Sizeof(adapterInfo))
+	// TODO: can we replace this (and things in endpoint_windows) with other utils from "golang.org/x/sys/windows"?
 	GetMacAddressVFPPnpIDMapping = "Get-NetAdapter | Select-Object MacAddress, PnpDeviceID| Format-Table -HideTableHeaders"
 
 	// Interval between successive checks for mellanox adapter's PriorityVLANTag value
@@ -248,7 +246,8 @@ func (p *execClient) ExecutePowershellCommandWithContext(ctx context.Context, co
 }
 
 // SetSdnRemoteArpMacAddress sets the regkey for SDNRemoteArpMacAddress needed for multitenancy if hns is enabled
-func SetSdnRemoteArpMacAddress() error {
+func SetSdnRemoteArpMacAddress(ctx context.Context) error {
+	log.Printf("Setting SDNRemoteArpMacAddress regKey")
 	// open the registry key
 	k, err := registry.OpenKey(registry.LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\hns\\State", registry.READ|registry.SET_VALUE)
 	if err != nil {
@@ -262,6 +261,8 @@ func SetSdnRemoteArpMacAddress() error {
 	if err = setSDNRemoteARPMACAddress(k); err != nil {
 		return errors.Wrap(err, "could not set registry key")
 	}
+	log.Printf("SDNRemoteArpMacAddress regKey set successfully")
+	log.Printf("Restarting HNS service")
 	// connect to the service manager
 	m, err := mgr.Connect()
 	if err != nil {
@@ -274,7 +275,11 @@ func SetSdnRemoteArpMacAddress() error {
 		return errors.Wrap(err, "could not access service")
 	}
 	defer service.Close()
-	return errors.Wrap(restartService(service), "could not restart service")
+	if err := restartService(ctx, service); err != nil {
+		return errors.Wrap(err, "could not restart service")
+	}
+	log.Printf("HNS service restarted successfully")
+	return nil
 }
 
 type key interface {
@@ -287,31 +292,37 @@ func setSDNRemoteARPMACAddress(k key) error {
 	if err := k.SetStringValue("SDNRemoteArpMacAddress", SDNRemoteArpMacAddress); err != nil {
 		return errors.Wrap(err, "could not set registry key")
 	}
-	log.Printf("[Azure CNS] SDNRemoteArpMacAddress regKey set successfully. Restarting hns service.")
 	return nil
 }
 
-type serv interface {
-	Control(code svc.Cmd) (svc.Status, error)
-	Query() (svc.Status, error)
-	Start(...string) error
-}
-
-func restartService(s serv) error {
+func restartService(ctx context.Context, s *mgr.Service) error {
 	// Stop the service
 	_, err := s.Control(svc.Stop)
 	if err != nil {
 		return errors.Wrap(err, "could not stop service")
 	}
 	// Wait for the service to stop
-	for status, err := s.Query(); status.State != svc.Stopped; status, err = s.Query() {
+	ticker := time.NewTicker(500 * time.Millisecond) //nolint:gomnd // 500ms
+	defer ticker.Stop()
+	for { // hacky cancellable do-while
+		status, err := s.Query()
 		if err != nil {
 			return errors.Wrap(err, "could not query service status")
 		}
-		time.Sleep(500 * time.Millisecond) //nolint:gomnd // 500ms
+		if status.State == svc.Stopped {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return errors.New("context cancelled")
+		case <-ticker.C:
+		}
 	}
 	// Start the service again
-	return errors.Wrap(s.Start(), "could not start service")
+	if err := s.Start(); err != nil {
+		return errors.Wrap(err, "could not start service")
+	}
+	return nil
 }
 
 func HasMellanoxAdapter() bool {
@@ -384,7 +395,6 @@ func GetProcessNameByID(pidstr string) (string, error) {
 	pidstr = strings.Trim(pidstr, "\r\n")
 	cmd := fmt.Sprintf("Get-Process -Id %s|Format-List", pidstr)
 	p := NewExecClient(nil)
-	// TODO not riemovign this because it seems to only be called in test?
 	out, err := p.ExecutePowershellCommand(cmd)
 	if err != nil {
 		log.Printf("Process is not running. Output:%v, Error %v", out, err)
