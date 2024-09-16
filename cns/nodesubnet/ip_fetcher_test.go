@@ -9,10 +9,12 @@ import (
 	"github.com/Azure/azure-container-networking/nmagent"
 )
 
+// Mock client that simply tracks if refresh has been called
 type TestClient struct {
 	fetchCalled bool
 }
 
+// Mock refresh
 func (c *TestClient) GetInterfaceIPInfo(ctx context.Context) (nmagent.Interfaces, error) {
 	c.fetchCalled = true
 	return nmagent.Interfaces{}, nil
@@ -27,12 +29,12 @@ func TestRefreshSecondaryIPsIfNeeded(t *testing.T) {
 		{
 			"fetch called",
 			true,
-			-1 * time.Second,
+			-1 * time.Second, // Negative timeout to force refresh
 		},
 		{
 			"no refresh needed",
 			false,
-			10 * time.Hour,
+			10 * time.Hour, // High timeout to avoid refresh
 		},
 	}
 
