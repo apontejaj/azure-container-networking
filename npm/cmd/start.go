@@ -195,7 +195,7 @@ func start(config npmconfig.Config, flags npmconfig.Flags) error {
 		}
 		dp.RunPeriodicTasks()
 	}
-	npMgr := npm.NewNetworkPolicyManager(config, factory, podFactory, dp, exec.New(), version, k8sServerVersion, config.Toggles.EnableNPMLite)
+	npMgr := npm.NewNetworkPolicyManager(config, factory, podFactory, dp, exec.New(), version, k8sServerVersion)
 	err = metrics.CreateTelemetryHandle(config.NPMVersion(), version, npm.GetAIMetadata())
 	if err != nil {
 		klog.Infof("CreateTelemetryHandle failed with error %v. AITelemetry is not initialized.", err)

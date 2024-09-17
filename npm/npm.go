@@ -64,14 +64,13 @@ func NewNetworkPolicyManager(config npmconfig.Config,
 	dp dataplane.GenericDataplane,
 	exec utilexec.Interface,
 	npmVersion string,
-	k8sServerVersion *version.Info,
-	npmLiteToggle bool) *NetworkPolicyManager {
+	k8sServerVersion *version.Info) *NetworkPolicyManager {
 	klog.Infof("API server version: %+v AI metadata %+v", k8sServerVersion, aiMetadata)
 
 	npMgr := &NetworkPolicyManager{
 		config:        config,
 		Dataplane:     dp,
-		NpmLiteToggle: npmLiteToggle,
+		NpmLiteToggle: config.Toggles.EnableNPMLite,
 		Informers: models.Informers{
 			InformerFactory:    informerFactory,
 			PodInformerFactory: podFactory,
