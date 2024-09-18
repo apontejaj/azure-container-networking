@@ -77,7 +77,7 @@ steps:
     name: runSwiftv2Tests
     displayName: "Run Tests"
     inputs:
-      azureSubscription: ${{ parameters.serviceConn }}
+      azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
       addSpnToEnvironment: true
       scriptType: "bash"
       scriptLocation: "inlineScript"
