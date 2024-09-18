@@ -53,7 +53,7 @@ type InterfaceSubnet struct {
 
 type Interface struct {
 	InterfaceSubnets []InterfaceSubnet `xml:"IPSubnet"`
-	MacAddress       MacAddress        `xml:"MacAddress,attr"`
+	MacAddress       MACAddress        `xml:"MacAddress,attr"`
 	IsPrimary        bool              `xml:"IsPrimary,attr"`
 }
 

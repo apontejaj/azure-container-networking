@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+<<<<<<< HEAD
 const (
 	// Minimum time between secondary IP fetches
 	MinRefreshInterval = 4 * time.Second
@@ -18,8 +19,11 @@ const (
 )
 
 var ErrorRefreshSkipped = errors.New("refresh skipped due to throttling")
+=======
+var ErrRefreshSkipped = errors.New("refresh skipped due to throttling")
+>>>>>>> sanprabhu/cilium-node-subnet-nma-client-changes
 
-// This interface is implemented by the NMAgent Client, and also a mock client for testing
+// InterfaceRetriever is an interface is implemented by the NMAgent Client, and also a mock client for testing.
 type InterfaceRetriever interface {
 	GetInterfaceIPInfo(ctx context.Context) (nmagent.Interfaces, error)
 }
@@ -44,6 +48,7 @@ func NewIPFetcher(nmaClient InterfaceRetriever, c SecondaryIPConsumer) *IPFetche
 	}
 }
 
+<<<<<<< HEAD
 func (c *IPFetcher) updateFetchIntervalForNoObservedDiff() {
 	c.tickerInterval = min(c.tickerInterval*2, MaxRefreshInterval)
 	c.ticker.Reset(c.tickerInterval)
@@ -77,6 +82,15 @@ func (c *IPFetcher) Start(ctx context.Context) {
 
 // If secondaryIPQueryInterval has elapsed since the last fetch, fetch secondary IPs
 func (c *IPFetcher) RefreshSecondaryIPs(ctx context.Context) error {
+=======
+func (c *IPFetcher) RefreshSecondaryIPsIfNeeded(ctx context.Context) (ips []net.IP, err error) {
+	// If secondaryIPQueryInterval has elapsed since the last fetch, fetch secondary IPs
+	if time.Since(c.secondaryIPLastRefreshTime) < c.secondaryIPQueryInterval {
+		return nil, ErrRefreshSkipped
+	}
+
+	c.secondaryIPLastRefreshTime = time.Now()
+>>>>>>> sanprabhu/cilium-node-subnet-nma-client-changes
 	response, err := c.ipFectcherClient.GetInterfaceIPInfo(ctx)
 	if err != nil {
 		return errors.Wrap(err, "getting interface IPs")

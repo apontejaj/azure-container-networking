@@ -9,40 +9,40 @@ import (
 )
 
 const (
-	MacAddressSize = 6
+	MACAddressSize = 6
 )
 
-type MacAddress net.HardwareAddr
+type MACAddress net.HardwareAddr
 
-func (h *MacAddress) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+func (h *MACAddress) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var macStr string
 	if err := d.DecodeElement(&macStr, &start); err != nil {
 		return errors.Wrap(err, "decoding MAC address")
 	}
 
-	// Convert the string (without colons) into a valid MacAddress
+	// Convert the string (without colons) into a valid MACAddress
 	mac, err := hex.DecodeString(macStr)
 	if err != nil {
 		return &net.ParseError{Type: "MAC address", Text: macStr}
 	}
 
-	*h = MacAddress(mac)
+	*h = MACAddress(mac)
 	return nil
 }
 
-func (h *MacAddress) UnmarshalXMLAttr(attr xml.Attr) error {
+func (h *MACAddress) UnmarshalXMLAttr(attr xml.Attr) error {
 	macStr := attr.Value
 	mac, err := hex.DecodeString(macStr)
 	if err != nil {
 		return &net.ParseError{Type: "MAC address", Text: macStr}
 	}
 
-	*h = MacAddress(mac)
+	*h = MACAddress(mac)
 	return nil
 }
 
-func (h MacAddress) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	if len(h) != MacAddressSize {
+func (h MACAddress) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	if len(h) != MACAddressSize {
 		return &net.AddrError{Err: "invalid MAC address", Addr: hex.EncodeToString(h)}
 	}
 
@@ -51,8 +51,8 @@ func (h MacAddress) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return errors.Wrap(err, "encoding MAC address")
 }
 
-func (h MacAddress) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
-	if len(h) != MacAddressSize {
+func (h MACAddress) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
+	if len(h) != MACAddressSize {
 		return xml.Attr{}, &net.AddrError{Err: "invalid MAC address", Addr: hex.EncodeToString(h)}
 	}
 

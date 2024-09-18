@@ -52,12 +52,12 @@ func TestRefreshSecondaryIPsIfNeeded(t *testing.T) {
 			_, err := fetcher.RefreshSecondaryIPsIfNeeded(ctx)
 
 			if test.shouldCall {
-				if err != nil && errors.Is(err, nodesubnet.ErrorRefreshSkipped) {
+				if err != nil && errors.Is(err, nodesubnet.ErrRefreshSkipped) {
 					t.Error("refresh expected, but didn't happen")
 				}
 
 				checkErr(t, err, false)
-			} else if err == nil || !errors.Is(err, nodesubnet.ErrorRefreshSkipped) {
+			} else if err == nil || !errors.Is(err, nodesubnet.ErrRefreshSkipped) {
 				t.Error("refresh not expected, but happened")
 			}
 		})
