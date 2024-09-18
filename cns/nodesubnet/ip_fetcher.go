@@ -3,13 +3,14 @@ package nodesubnet
 import (
 	"context"
 	"log"
+	"net"
 	"time"
 
 	"github.com/Azure/azure-container-networking/nmagent"
 	"github.com/pkg/errors"
 )
 
-var RefreshSkippedError = errors.New("Refresh skipped due to throttling")
+var ErrorRefreshSkipped = errors.New("Refresh skipped due to throttling")
 
 // This interface is implemented by the NMAgent Client, and also a mock client for testing
 type InterfaceRetriever interface {
@@ -32,9 +33,9 @@ func NewIPFetcher(nmaClient InterfaceRetriever, queryInterval time.Duration) *IP
 }
 
 // If secondaryIPQueryInterval has elapsed since the last fetch, fetch secondary IPs
-func (c *IPFetcher) RefreshSecondaryIPsIfNeeded(ctx context.Context) (ips []nmagent.IPAddress, err error) {
+func (c *IPFetcher) RefreshSecondaryIPsIfNeeded(ctx context.Context) (ips []net.IP, err error) {
 	if time.Since(c.secondaryIPLastRefreshTime) < c.secondaryIPQueryInterval {
-		return nil, RefreshSkippedError
+		return nil, ErrorRefreshSkipped
 	}
 
 	c.secondaryIPLastRefreshTime = time.Now()
@@ -48,7 +49,7 @@ func (c *IPFetcher) RefreshSecondaryIPsIfNeeded(ctx context.Context) (ips []nmag
 }
 
 // Get the list of secondary IPs from fetched Interfaces
-func flattenIPListFromResponse(resp *nmagent.Interfaces) (res []nmagent.IPAddress) {
+func flattenIPListFromResponse(resp *nmagent.Interfaces) (res []net.IP) {
 	// For each interface...
 	for _, intf := range resp.Entries {
 		if !intf.IsPrimary {
@@ -65,7 +66,7 @@ func flattenIPListFromResponse(resp *nmagent.Interfaces) (res []nmagent.IPAddres
 					continue
 				}
 
-				res = append(res, a.Address)
+				res = append(res, net.IP(a.Address))
 				addressCount++
 			}
 			log.Printf("Got %d addresses from subnet %s", addressCount, s.Prefix)

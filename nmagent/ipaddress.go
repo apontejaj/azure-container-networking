@@ -2,8 +2,9 @@ package nmagent
 
 import (
 	"encoding/xml"
-	"fmt"
 	"net"
+
+	"github.com/pkg/errors"
 )
 
 type IPAddress net.IP
@@ -16,7 +17,7 @@ func (h *IPAddress) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 
 	ip := net.ParseIP(ipStr)
 	if ip == nil {
-		return fmt.Errorf("invalid IP address")
+		return &net.ParseError{Type: "IP address", Text: ipStr}
 	}
 
 	*h = IPAddress(ip)
@@ -27,7 +28,7 @@ func (h *IPAddress) UnmarshalXMLAttr(attr xml.Attr) error {
 	ipStr := attr.Value
 	ip := net.ParseIP(ipStr)
 	if ip == nil {
-		return fmt.Errorf("invalid IP address")
+		return &net.ParseError{Type: "IP address", Text: ipStr}
 	}
 
 	*h = IPAddress(ip)
@@ -35,7 +36,8 @@ func (h *IPAddress) UnmarshalXMLAttr(attr xml.Attr) error {
 }
 
 func (h IPAddress) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	return e.EncodeElement(net.IP(h).String(), start)
+	err := e.EncodeElement(net.IP(h).String(), start)
+	return errors.Wrap(err, "Encoding IP address")
 }
 
 func (h IPAddress) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
