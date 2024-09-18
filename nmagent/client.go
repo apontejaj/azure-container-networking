@@ -11,8 +11,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Azure/azure-container-networking/common"
-	"github.com/Azure/azure-container-networking/log"
 	"github.com/Azure/azure-container-networking/nmagent/internal"
 	"github.com/pkg/errors"
 )
@@ -51,9 +49,6 @@ type Client struct {
 	host      string
 	port      uint16
 	enableTLS bool
-	// Node subnet state
-	secondaryIPQueryInterval   time.Duration // Minimum time between secondary IP fetches
-	secondaryIPLastRefreshTime time.Time     // Time of last secondary IP fetch
 
 	retrier interface {
 		Do(context.Context, func() error) error
@@ -290,68 +285,34 @@ func (c *Client) GetHomeAz(ctx context.Context) (AzResponse, error) {
 	return homeAzResponse, nil
 }
 
-func (c *Client) RefreshSecondaryIPsIfNeeded(ctx context.Context) (refreshNeeded bool, ips []string, err error) {
-	if time.Since(c.secondaryIPLastRefreshTime) < c.secondaryIPQueryInterval {
-		return false, nil, nil
-	}
-
-	c.secondaryIPLastRefreshTime = time.Now()
-	res, err := c.getSecondaryIPs(ctx)
-	return true, res, err
-}
-
-func (c *Client) getSecondaryIPs(ctx context.Context) ([]string, error) {
+func (c *Client) GetInterfaceIPInfo(ctx context.Context) (Interfaces, error) {
 	req, err := c.buildRequest(ctx, &GetSecondaryIPsRequest{})
+	var out Interfaces
+
 	if err != nil {
-		return nil, errors.Wrap(err, "building request")
+		return out, errors.Wrap(err, "building request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "submitting request")
+		return out, errors.Wrap(err, "submitting request")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, die(resp.StatusCode, resp.Header, resp.Body, req.URL.Path)
+		return out, die(resp.StatusCode, resp.Header, resp.Body, req.URL.Path)
 	}
 
-	return parseSecondaryIPsFromWireServerResponse(resp)
-}
+	if resp.StatusCode != http.StatusOK {
+		return out, die(resp.StatusCode, resp.Header, resp.Body, req.URL.Path)
+	}
 
-func parseSecondaryIPsFromWireServerResponse(resp *http.Response) (res []string, err error) {
-	// Decode XML document.
-	var doc common.XmlDocument
-	decoder := xml.NewDecoder(resp.Body)
-	err = decoder.Decode(&doc)
+	err = xml.NewDecoder(resp.Body).Decode(&out)
 	if err != nil {
-		return nil, errors.Wrap(err, "decoding nmagent response")
+		return out, errors.Wrap(err, "decoding response")
 	}
 
-	// For each interface...
-	for _, i := range doc.Interface {
-		if !i.IsPrimary {
-			continue
-		}
-
-		// For each subnet on the interface...
-		for _, s := range i.IPSubnet {
-			addressCount := 0
-			// For each address in the subnet...
-			for _, a := range s.IPAddress {
-				// Primary addresses are reserved for the host.
-				if a.IsPrimary {
-					continue
-				}
-
-				res = append(res, a.Address)
-				addressCount++
-			}
-			log.Printf("Got %d addresses from subnet %s", addressCount, s.Prefix)
-		}
-	}
-
-	return res, nil
+	return out, nil
 }
 
 func die(code int, headers http.Header, body io.ReadCloser, path string) error {
@@ -403,8 +364,4 @@ func (c *Client) scheme() string {
 		return "https"
 	}
 	return "http"
-}
-
-func (c *Client) SetSecondaryIPQueryInterval(interval time.Duration) {
-	c.secondaryIPQueryInterval = interval
 }
