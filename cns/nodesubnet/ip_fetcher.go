@@ -10,6 +10,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	// Minimum time between secondary IP fetches
+	MinRefreshInterval = 4 * time.Second
+	// Maximum time between secondary IP fetches
+	MaxRefreshInterval = 1024 * time.Second
+)
+
 var ErrorRefreshSkipped = errors.New("refresh skipped due to throttling")
 
 // This interface is implemented by the NMAgent Client, and also a mock client for testing
@@ -17,35 +24,71 @@ type InterfaceRetriever interface {
 	GetInterfaceIPInfo(ctx context.Context) (nmagent.Interfaces, error)
 }
 
-type IPFetcher struct {
-	// Node subnet state
-	secondaryIPQueryInterval   time.Duration // Minimum time between secondary IP fetches
-	secondaryIPLastRefreshTime time.Time     // Time of last secondary IP fetch
-
-	ipFectcherClient InterfaceRetriever
+// This interface is implemented by whoever consumes the secondary IPs fetched in nodesubnet
+type SecondaryIPConsumer interface {
+	UpdateSecondaryIPs([]net.IP) error
 }
 
-func NewIPFetcher(nmaClient InterfaceRetriever, queryInterval time.Duration) *IPFetcher {
+type IPFetcher struct {
+	// Node subnet config
+	ipFectcherClient InterfaceRetriever
+	ticker           *time.Ticker
+	tickerInterval   time.Duration
+	consumer         SecondaryIPConsumer
+}
+
+func NewIPFetcher(nmaClient InterfaceRetriever, c SecondaryIPConsumer) *IPFetcher {
 	return &IPFetcher{
-		ipFectcherClient:         nmaClient,
-		secondaryIPQueryInterval: queryInterval,
+		ipFectcherClient: nmaClient,
+		consumer:         c,
 	}
+}
+
+func (c *IPFetcher) updateFetchIntervalForNoObservedDiff() {
+	c.tickerInterval = min(c.tickerInterval*2, MaxRefreshInterval)
+	c.ticker.Reset(c.tickerInterval)
+}
+
+func (c *IPFetcher) updateFetchIntervalForObservedDiff() {
+	c.tickerInterval = MinRefreshInterval
+	c.ticker.Reset(c.tickerInterval)
+}
+
+func (c *IPFetcher) Start(ctx context.Context) {
+	go func() {
+		c.tickerInterval = MinRefreshInterval
+		c.ticker = time.NewTicker(c.tickerInterval)
+		defer c.ticker.Stop()
+
+		for {
+			select {
+			case <-c.ticker.C:
+				err := c.RefreshSecondaryIPs(ctx)
+				if err != nil {
+					log.Printf("Error refreshing secondary IPs: %v", err)
+				}
+			case <-ctx.Done():
+				log.Println("IPFetcher stopped")
+				return
+			}
+		}
+	}()
 }
 
 // If secondaryIPQueryInterval has elapsed since the last fetch, fetch secondary IPs
-func (c *IPFetcher) RefreshSecondaryIPsIfNeeded(ctx context.Context) (ips []net.IP, err error) {
-	if time.Since(c.secondaryIPLastRefreshTime) < c.secondaryIPQueryInterval {
-		return nil, ErrorRefreshSkipped
-	}
-
-	c.secondaryIPLastRefreshTime = time.Now()
+func (c *IPFetcher) RefreshSecondaryIPs(ctx context.Context) error {
 	response, err := c.ipFectcherClient.GetInterfaceIPInfo(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting interface IPs")
+		return errors.Wrap(err, "getting interface IPs")
 	}
 
 	res := flattenIPListFromResponse(&response)
-	return res, nil
+	err = c.consumer.UpdateSecondaryIPs(res)
+	if err != nil {
+		return errors.Wrap(err, "updating secondary IPs")
+	}
+
+	return nil
 }
 
 // Get the list of secondary IPs from fetched Interfaces
