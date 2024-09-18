@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"strings"
 	"testing"
 
@@ -832,11 +832,11 @@ func TestGetInterfaceIPInfo(t *testing.T) {
 								Prefix: "10.240.0.0/16",
 								IPAddress: []nmagent.NodeIP{
 									{
-										Address:   nmagent.IPAddress(net.IPv4(10, 240, 0, 5)),
+										Address:   nmagent.IPAddress(netip.AddrFrom4([4]byte{10, 240, 0, 5})),
 										IsPrimary: true,
 									},
 									{
-										Address:   nmagent.IPAddress(net.IPv4(10, 240, 0, 6)),
+										Address:   nmagent.IPAddress(netip.AddrFrom4([4]byte{10, 240, 0, 6})),
 										IsPrimary: false,
 									},
 								},
