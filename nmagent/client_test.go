@@ -825,7 +825,7 @@ func TestGetInterfaceIPInfo(t *testing.T) {
 			nmagent.Interfaces{
 				Entries: []nmagent.Interface{
 					{
-						MacAddress: nmagent.MacAddress{0x00, 0x0D, 0x3A, 0xF9, 0xDC, 0xA6},
+						MacAddress: nmagent.MACAddress{0x00, 0x0D, 0x3A, 0xF9, 0xDC, 0xA6},
 						IsPrimary:  true,
 						InterfaceSubnets: []nmagent.InterfaceSubnet{
 							{
