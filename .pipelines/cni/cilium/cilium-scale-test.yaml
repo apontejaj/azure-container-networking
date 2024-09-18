@@ -464,3 +464,32 @@ stages:
               kubectl delete -f netperf-pod.yaml
           name: "DeleteTestNamespaces"
           displayName: "Delete Test Namespaces"
+  - stage: parse_results
+    displayName: "Parse Results"
+    jobs:
+      - job: parse_results
+        pool:
+          name: "$(BUILD_POOL_NAME_DEFAULT)"
+        steps:
+        - task: AzureCLI@2
+          inputs:
+            azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+            scriptLocation: "inlineScript"
+            scriptType: "bash"
+            addSpnToEnvironment: true
+            inlineScript: |
+              mkdir ~/artifacts/
+        - task: DownloadPipelineArtifact@2
+          inputs:
+            buildType: 'current'
+            allowPartiallySucceededBuilds: true
+            targetPath: ~/artifacts/
+        - task: AzureCLI@2
+          inputs:
+            azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
+            scriptLocation: "inlineScript"
+            scriptType: "bash"
+            addSpnToEnvironment: true
+            inlineScript: |
+              cd ~/artifacts/
+              ls -lah
