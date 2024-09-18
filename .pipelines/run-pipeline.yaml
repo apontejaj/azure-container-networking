@@ -69,8 +69,8 @@ stages:
             STORAGE_ID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.StorageID'] ]
             ob_outputDirectory: $(Build.ArtifactStagingDirectory)
             ob_git_checkout: true
-            #ob_artifactSuffix: 
-            ob_artifactBaseName: 'drop_binaries_build'
+            ob_artifactSuffix: $(System.JobAttempt)
+            ob_artifactBaseName: drop_binaries_build
           pool:
             isCustom: true
             type: linux
@@ -96,9 +96,9 @@ stages:
               name: "PrepareArtifacts"
               displayName: "Prepare Artifacts"
 
-            - publish: ${Build.ArtifactStagingDirectory)
-              artifact: drop_binaries_build
-              condition: succeeded()
+#            - publish: ${Build.ArtifactStagingDirectory)
+#              artifact: drop_binaries_build
+#              condition: succeeded()
 #            - task: CopVyFiles@2
 #              inputs:
 #                sourceFolder: "output"
