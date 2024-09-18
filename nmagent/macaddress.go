@@ -17,7 +17,7 @@ type MacAddress net.HardwareAddr
 func (h *MacAddress) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var macStr string
 	if err := d.DecodeElement(&macStr, &start); err != nil {
-		return errors.Wrap(err, "Decoding MAC address")
+		return errors.Wrap(err, "decoding MAC address")
 	}
 
 	// Convert the string (without colons) into a valid MacAddress
@@ -48,7 +48,7 @@ func (h MacAddress) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 
 	macStr := hex.EncodeToString(h)
 	err := e.EncodeElement(macStr, start)
-	return errors.Wrap(err, "Encoding MAC address")
+	return errors.Wrap(err, "encoding MAC address")
 }
 
 func (h MacAddress) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {

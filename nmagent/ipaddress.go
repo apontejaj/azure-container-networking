@@ -12,7 +12,7 @@ type IPAddress net.IP
 func (h *IPAddress) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var ipStr string
 	if err := d.DecodeElement(&ipStr, &start); err != nil {
-		return errors.Wrap(err, "Decoding IP address")
+		return errors.Wrap(err, "decoding IP address")
 	}
 
 	ip := net.ParseIP(ipStr)
@@ -37,7 +37,7 @@ func (h *IPAddress) UnmarshalXMLAttr(attr xml.Attr) error {
 
 func (h IPAddress) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	err := e.EncodeElement(net.IP(h).String(), start)
-	return errors.Wrap(err, "Encoding IP address")
+	return errors.Wrap(err, "encoding IP address")
 }
 
 func (h IPAddress) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
