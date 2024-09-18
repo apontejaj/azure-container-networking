@@ -283,6 +283,7 @@ func (c *Client) GetHomeAz(ctx context.Context) (AzResponse, error) {
 	return homeAzResponse, nil
 }
 
+// GetInterfaceIPInfo fetches the node's interface IP information from nmagent
 func (c *Client) GetInterfaceIPInfo(ctx context.Context) (Interfaces, error) {
 	req, err := c.buildRequest(ctx, &GetSecondaryIPsRequest{})
 	var out Interfaces

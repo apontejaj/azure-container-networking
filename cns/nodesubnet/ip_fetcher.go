@@ -10,9 +10,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-var ErrorRefreshSkipped = errors.New("refresh skipped due to throttling")
+var ErrRefreshSkipped = errors.New("refresh skipped due to throttling")
 
-// This interface is implemented by the NMAgent Client, and also a mock client for testing
+// InterfaceRetriever is an interface is implemented by the NMAgent Client, and also a mock client for testing.
 type InterfaceRetriever interface {
 	GetInterfaceIPInfo(ctx context.Context) (nmagent.Interfaces, error)
 }
@@ -32,10 +32,10 @@ func NewIPFetcher(nmaClient InterfaceRetriever, queryInterval time.Duration) *IP
 	}
 }
 
-// If secondaryIPQueryInterval has elapsed since the last fetch, fetch secondary IPs
 func (c *IPFetcher) RefreshSecondaryIPsIfNeeded(ctx context.Context) (ips []net.IP, err error) {
+	// If secondaryIPQueryInterval has elapsed since the last fetch, fetch secondary IPs
 	if time.Since(c.secondaryIPLastRefreshTime) < c.secondaryIPQueryInterval {
-		return nil, ErrorRefreshSkipped
+		return nil, ErrRefreshSkipped
 	}
 
 	c.secondaryIPLastRefreshTime = time.Now()
