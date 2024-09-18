@@ -26,7 +26,7 @@ type InterfaceRetriever interface {
 
 // This interface is implemented by whoever consumes the secondary IPs fetched in nodesubnet
 type SecondaryIPConsumer interface {
-	UpdateSecondaryIPs([]net.IP) error
+	UpdateSecondaryIPsForNodeSubnet([]net.IP) error
 }
 
 type IPFetcher struct {
@@ -83,7 +83,7 @@ func (c *IPFetcher) RefreshSecondaryIPs(ctx context.Context) error {
 	}
 
 	res := flattenIPListFromResponse(&response)
-	err = c.consumer.UpdateSecondaryIPs(res)
+	err = c.consumer.UpdateSecondaryIPsForNodeSubnet(res)
 	if err != nil {
 		return errors.Wrap(err, "updating secondary IPs")
 	}
