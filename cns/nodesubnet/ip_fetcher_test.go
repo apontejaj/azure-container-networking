@@ -53,12 +53,12 @@ func TestRefreshSecondaryIPsIfNeeded(t *testing.T) {
 
 			if test.shouldCall {
 				if err != nil && errors.Is(err, nodesubnet.ErrorRefreshSkipped) {
-					t.Error("IP refresh expected, but didn't happen")
+					t.Error("refresh expected, but didn't happen")
 				}
 
 				checkErr(t, err, false)
 			} else if err == nil || !errors.Is(err, nodesubnet.ErrorRefreshSkipped) {
-				t.Error("IP refresh not expected, but happened")
+				t.Error("refresh not expected, but happened")
 			}
 		})
 	}
