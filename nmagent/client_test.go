@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -824,18 +825,18 @@ func TestGetInterfaceIPInfo(t *testing.T) {
 			nmagent.Interfaces{
 				Entries: []nmagent.Interface{
 					{
-						MacAddress: "000D3AF9DCA6",
+						MacAddress: nmagent.MacAddress{0x00, 0x0D, 0x3A, 0xF9, 0xDC, 0xA6},
 						IsPrimary:  true,
-						InterfaceSubnets: []nmagent.InterfaceSubnetInfo{
+						InterfaceSubnets: []nmagent.InterfaceSubnet{
 							{
 								Prefix: "10.240.0.0/16",
-								IPAddress: []nmagent.IPAddress{
+								IPAddress: []nmagent.NodeIP{
 									{
-										Address:   "10.240.0.5",
+										Address:   nmagent.IPAddress(net.IPv4(10, 240, 0, 5)),
 										IsPrimary: true,
 									},
 									{
-										Address:   "10.240.0.6",
+										Address:   nmagent.IPAddress(net.IPv4(10, 240, 0, 6)),
 										IsPrimary: false,
 									},
 								},

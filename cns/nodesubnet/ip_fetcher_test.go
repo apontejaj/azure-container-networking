@@ -2,6 +2,7 @@ package nodesubnet_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -48,15 +49,16 @@ func TestRefreshSecondaryIPsIfNeeded(t *testing.T) {
 			ctx, cancel := testContext(t)
 			defer cancel()
 			clientPtr.fetchCalled = false
-			_, _, err := fetcher.RefreshSecondaryIPsIfNeeded(ctx)
-			checkErr(t, err, false)
+			_, err := fetcher.RefreshSecondaryIPsIfNeeded(ctx)
 
 			if test.shouldCall {
-				if !clientPtr.fetchCalled {
+				if err != nil && errors.Is(err, nodesubnet.RefreshSkippedError) {
 					t.Error("IP refresh expected, but didn't happen")
 				}
+
+				checkErr(t, err, false)
 			} else {
-				if clientPtr.fetchCalled {
+				if err == nil || !errors.Is(err, nodesubnet.RefreshSkippedError) {
 					t.Error("IP refresh not expected, but happened")
 				}
 			}

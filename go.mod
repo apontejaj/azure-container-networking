@@ -137,6 +137,7 @@ require (
 )
 
 require (
+	github.com/go-errors/errors v1.4.2 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 )

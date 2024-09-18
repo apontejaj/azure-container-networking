@@ -41,20 +41,20 @@ type AzResponse struct {
 	HomeAz uint `json:"homeAz"`
 }
 
-type IPAddress struct {
-	Address   string `xml:"Address,attr"`
-	IsPrimary bool   `xml:"IsPrimary,attr"`
+type NodeIP struct {
+	Address   IPAddress `xml:"Address,attr"`
+	IsPrimary bool      `xml:"IsPrimary,attr"`
 }
 
-type InterfaceSubnetInfo struct {
-	IPAddress []IPAddress `xml:"IPAddress"`
-	Prefix    string      `xml:"Prefix,attr"`
+type InterfaceSubnet struct {
+	IPAddress []NodeIP `xml:"IPAddress"`
+	Prefix    string   `xml:"Prefix,attr"`
 }
 
 type Interface struct {
-	InterfaceSubnets []InterfaceSubnetInfo `xml:"IPSubnet"`
-	MacAddress       string                `xml:"MacAddress,attr"`
-	IsPrimary        bool                  `xml:"IsPrimary,attr"`
+	InterfaceSubnets []InterfaceSubnet `xml:"IPSubnet"`
+	MacAddress       MacAddress        `xml:"MacAddress,attr"`
+	IsPrimary        bool              `xml:"IsPrimary,attr"`
 }
 
 // Response from NMAgent for getinterfaceinfov1 (interface IP information)

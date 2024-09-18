@@ -9,8 +9,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+var RefreshSkippedError = errors.New("Refresh skipped due to throttling")
+
 // This interface is implemented by the NMAgent Client, and also a mock client for testing
-type ClientInterface interface {
+type InterfaceRetriever interface {
 	GetInterfaceIPInfo(ctx context.Context) (nmagent.Interfaces, error)
 }
 
@@ -19,39 +21,34 @@ type IPFetcher struct {
 	secondaryIPQueryInterval   time.Duration // Minimum time between secondary IP fetches
 	secondaryIPLastRefreshTime time.Time     // Time of last secondary IP fetch
 
-	ipFectcherClient ClientInterface
+	ipFectcherClient InterfaceRetriever
 }
 
-func NewIPFetcher(nmaClient ClientInterface, queryInterval time.Duration) *IPFetcher {
+func NewIPFetcher(nmaClient InterfaceRetriever, queryInterval time.Duration) *IPFetcher {
 	return &IPFetcher{
 		ipFectcherClient:         nmaClient,
 		secondaryIPQueryInterval: queryInterval,
 	}
 }
 
-// Exposed for testing
-func (c *IPFetcher) SetSecondaryIPQueryInterval(interval time.Duration) {
-	c.secondaryIPQueryInterval = interval
-}
-
 // If secondaryIPQueryInterval has elapsed since the last fetch, fetch secondary IPs
-func (c *IPFetcher) RefreshSecondaryIPsIfNeeded(ctx context.Context) (refreshNeeded bool, ips []string, err error) {
+func (c *IPFetcher) RefreshSecondaryIPsIfNeeded(ctx context.Context) (ips []nmagent.IPAddress, err error) {
 	if time.Since(c.secondaryIPLastRefreshTime) < c.secondaryIPQueryInterval {
-		return false, nil, nil
+		return nil, RefreshSkippedError
 	}
 
 	c.secondaryIPLastRefreshTime = time.Now()
 	response, err := c.ipFectcherClient.GetInterfaceIPInfo(ctx)
 	if err != nil {
-		return true, nil, errors.Wrap(err, "Getting Interface IPs")
+		return nil, errors.Wrap(err, "Getting Interface IPs")
 	}
 
 	res := flattenIPListFromResponse(&response)
-	return true, res, nil
+	return res, nil
 }
 
 // Get the list of secondary IPs from fetched Interfaces
-func flattenIPListFromResponse(resp *nmagent.Interfaces) (res []string) {
+func flattenIPListFromResponse(resp *nmagent.Interfaces) (res []nmagent.IPAddress) {
 	// For each interface...
 	for _, intf := range resp.Entries {
 		if !intf.IsPrimary {
