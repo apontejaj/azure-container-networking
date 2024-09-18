@@ -3,7 +3,7 @@ package nodesubnet
 import (
 	"context"
 	"log"
-	"net"
+	"net/netip"
 	"time"
 
 	"github.com/Azure/azure-container-networking/nmagent"
@@ -32,7 +32,7 @@ func NewIPFetcher(nmaClient InterfaceRetriever, queryInterval time.Duration) *IP
 	}
 }
 
-func (c *IPFetcher) RefreshSecondaryIPsIfNeeded(ctx context.Context) (ips []net.IP, err error) {
+func (c *IPFetcher) RefreshSecondaryIPsIfNeeded(ctx context.Context) (ips []netip.Addr, err error) {
 	// If secondaryIPQueryInterval has elapsed since the last fetch, fetch secondary IPs
 	if time.Since(c.secondaryIPLastRefreshTime) < c.secondaryIPQueryInterval {
 		return nil, ErrRefreshSkipped
@@ -49,7 +49,7 @@ func (c *IPFetcher) RefreshSecondaryIPsIfNeeded(ctx context.Context) (ips []net.
 }
 
 // Get the list of secondary IPs from fetched Interfaces
-func flattenIPListFromResponse(resp *nmagent.Interfaces) (res []net.IP) {
+func flattenIPListFromResponse(resp *nmagent.Interfaces) (res []netip.Addr) {
 	// For each interface...
 	for _, intf := range resp.Entries {
 		if !intf.IsPrimary {
@@ -66,7 +66,7 @@ func flattenIPListFromResponse(resp *nmagent.Interfaces) (res []net.IP) {
 					continue
 				}
 
-				res = append(res, net.IP(a.Address))
+				res = append(res, netip.Addr(a.Address))
 				addressCount++
 			}
 			log.Printf("Got %d addresses from subnet %s", addressCount, s.Prefix)
