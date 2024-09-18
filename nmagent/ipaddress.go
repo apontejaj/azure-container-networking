@@ -12,7 +12,7 @@ type IPAddress net.IP
 func (h *IPAddress) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var ipStr string
 	if err := d.DecodeElement(&ipStr, &start); err != nil {
-		return err
+		return errors.Wrap(err, "Decoding IP address")
 	}
 
 	ip := net.ParseIP(ipStr)
