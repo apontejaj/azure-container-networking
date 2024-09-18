@@ -72,7 +72,23 @@ steps:
         kubectl get pod -A
     name: "UpdateCNSVersion"
     displayName: "Update CNS Version"
-    
+
+  - task: AzureCLI@2
+    name: runSwiftv2Tests
+    displayName: "Run Tests"
+    inputs:
+      azureSubscription: ${{ parameters.serviceConn }}
+      addSpnToEnvironment: true
+      scriptType: "bash"
+      scriptLocation: "inlineScript"
+      inlineScript: |
+        set -xe
+
+        bash .pipelines/swiftv2-runner/az-login.sh \
+          --service-principal "$servicePrincipalId" \
+          --id-token "$idToken" \
+          --tenant "$tenantId"
+                
   # - task: AzureCLI@2
   #   inputs:
   #     azureSubscription: $(TEST_SUB_SERVICE_CONNECTION)
