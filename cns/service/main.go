@@ -26,6 +26,7 @@ import (
 	"github.com/Azure/azure-container-networking/cns/cnireconciler"
 	"github.com/Azure/azure-container-networking/cns/common"
 	"github.com/Azure/azure-container-networking/cns/configuration"
+	"github.com/Azure/azure-container-networking/cns/endpointmanager"
 	"github.com/Azure/azure-container-networking/cns/fsnotify"
 	"github.com/Azure/azure-container-networking/cns/grpc"
 	"github.com/Azure/azure-container-networking/cns/healthserver"
@@ -960,12 +961,9 @@ func main() {
 			_ = retry.Do(func() error {
 				z.Info("starting fsnotify watcher to process missed Pod deletes")
 				logger.Printf("starting fsnotify watcher to process missed Pod deletes")
-				var endpointCleanup fsnotify.ReleaseIPsClient
+				var endpointCleanup fsnotify.ReleaseIPsClient = cnsclient
 				if isStalessCNIWindows(cnsconfig) {
-					endpointCleanup = hnsclient.NewEndpointManager(cnsclient)
-
-				} else {
-					endpointCleanup = cnsclient
+					endpointCleanup = endpointmanager.WithPlatformReleaseIPsManager(cnsclient)
 				}
 				w, err := fsnotify.New(endpointCleanup, cnsconfig.AsyncPodDeletePath, z)
 				if err != nil {

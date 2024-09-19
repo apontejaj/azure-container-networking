@@ -276,7 +276,8 @@ func configureHostNCApipaNetwork(localIPConfiguration cns.IPConfiguration) (*hcn
 }
 
 func createHostNCApipaNetwork(
-	localIPConfiguration cns.IPConfiguration) (*hcn.HostComputeNetwork, error) {
+	localIPConfiguration cns.IPConfiguration,
+) (*hcn.HostComputeNetwork, error) {
 	var (
 		network *hcn.HostComputeNetwork
 		err     error
@@ -352,7 +353,8 @@ func LogNetworkInterfaces() {
 
 func addAclToEndpointPolicy(
 	aclPolicySetting hcn.AclPolicySetting,
-	endpointPolicies *[]hcn.EndpointPolicy) error {
+	endpointPolicies *[]hcn.EndpointPolicy,
+) error {
 	var (
 		rawJSON []byte
 		err     error
@@ -378,7 +380,8 @@ func configureAclSettingHostNCApipaEndpoint(
 	hostApipaIP string,
 	allowNCToHostCommunication bool,
 	allowHostToNCCommunication bool,
-	ncRequestedPolicies []cns.NetworkContainerRequestPolicies) ([]hcn.EndpointPolicy, error) {
+	ncRequestedPolicies []cns.NetworkContainerRequestPolicies,
+) ([]hcn.EndpointPolicy, error) {
 	var (
 		err              error
 		endpointPolicies []hcn.EndpointPolicy
@@ -493,7 +496,8 @@ func configureHostNCApipaEndpoint(
 	localIPConfiguration cns.IPConfiguration,
 	allowNCToHostCommunication bool,
 	allowHostToNCCommunication bool,
-	ncPolicies []cns.NetworkContainerRequestPolicies) (*hcn.HostComputeEndpoint, error) {
+	ncPolicies []cns.NetworkContainerRequestPolicies,
+) (*hcn.HostComputeEndpoint, error) {
 	endpoint := &hcn.HostComputeEndpoint{
 		Name:               endpointName,
 		HostComputeNetwork: networkID,
@@ -548,7 +552,8 @@ func CreateHostNCApipaEndpoint(
 	localIPConfiguration cns.IPConfiguration,
 	allowNCToHostCommunication bool,
 	allowHostToNCCommunication bool,
-	ncPolicies []cns.NetworkContainerRequestPolicies) (string, error) {
+	ncPolicies []cns.NetworkContainerRequestPolicies,
+) (string, error) {
 	var (
 		network      *hcn.HostComputeNetwork
 		endpoint     *hcn.HostComputeEndpoint
@@ -605,12 +610,14 @@ func CreateHostNCApipaEndpoint(
 }
 
 func getHostNCApipaEndpointName(
-	networkContainerID string) string {
+	networkContainerID string,
+) string {
 	return hostNCApipaEndpointNamePrefix + "-" + networkContainerID
 }
 
 func deleteNetworkByIDHnsV2(
-	networkID string) error {
+	networkID string,
+) error {
 	var (
 		network *hcn.HostComputeNetwork
 		err     error
@@ -640,7 +647,8 @@ func deleteNetworkByIDHnsV2(
 }
 
 func deleteEndpointByNameHnsV2(
-	endpointName string) error {
+	endpointName string,
+) error {
 	var (
 		endpoint *hcn.HostComputeEndpoint
 		err      error
@@ -672,7 +680,8 @@ func deleteEndpointByNameHnsV2(
 
 // DeleteHostNCApipaEndpoint deletes the endpoint in the apipa network created for host container connectivity
 func DeleteHostNCApipaEndpoint(
-	networkContainerID string) error {
+	networkContainerID string,
+) error {
 	endpointName := getHostNCApipaEndpointName(networkContainerID)
 
 	namedLock.LockAcquire(endpointName)

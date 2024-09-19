@@ -2,7 +2,6 @@ package hnsclient
 
 import (
 	"fmt"
-	"net"
 
 	"github.com/Azure/azure-container-networking/cns"
 )
@@ -40,7 +39,8 @@ func CreateHostNCApipaEndpoint(
 	localIPConfiguration cns.IPConfiguration,
 	allowNCToHostCommunication bool,
 	allowHostToNCCommunication bool,
-	ncPolicies []cns.NetworkContainerRequestPolicies) (string, error) {
+	ncPolicies []cns.NetworkContainerRequestPolicies,
+) (string, error) {
 	return "", nil
 }
 
@@ -48,16 +48,7 @@ func CreateHostNCApipaEndpoint(
 // created for host container connectivity
 // This is windows platform specific.
 func DeleteHostNCApipaEndpoint(
-	networkContainerID string) error {
+	networkContainerID string,
+) error {
 	return nil
-}
-
-// DeleteHNSEndpointbyID deletes the HNS endpoint
-// created for Satateless CNI Asynch delete
-func DeleteHNSEndpointbyID(_ string) error {
-	return nil
-}
-
-func GetHNSEndpointbyIP(_, _ []net.IPNet) (string, error) {
-	return "", nil
 }

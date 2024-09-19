@@ -1025,31 +1025,6 @@ func (c *Client) GetHomeAz(ctx context.Context) (*cns.GetHomeAzResponse, error) 
 }
 
 // GetEndpoint calls the EndpointHandlerAPI in CNS to retrieve the state of a given EndpointID
-func (c *Client) GetHNSEndpointID(ctx context.Context, endpointID string) ([]string, [][]net.IPNet, error) {
-	endpointResponse, err := c.GetEndpoint(ctx, endpointID)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to read the endpoint from CNS state")
-	}
-	var hnsEndpointIDs []string
-	var ips [][]net.IPNet
-	for _, ipInfo := range endpointResponse.EndpointInfo.IfnameToIPMap {
-		hnsEndpointID := ipInfo.HnsEndpointID
-		// we need to get the HNSENdpoint via the IP address if the HNSEndpointID is not present in the statefile
-		if ipInfo.HnsEndpointID == "" {
-			if ipInfo.IPv4 != nil {
-				ips = append(ips, ipInfo.IPv4)
-			}
-			if ipInfo.IPv6 != nil {
-				ips = append(ips, ipInfo.IPv6)
-			}
-		} else {
-			hnsEndpointIDs = append(hnsEndpointIDs, hnsEndpointID)
-		}
-	}
-	return hnsEndpointIDs, ips, nil
-}
-
-// GetEndpoint calls the EndpointHandlerAPI in CNS to retrieve the state of a given EndpointID
 func (c *Client) GetEndpoint(ctx context.Context, endpointID string) (*restserver.GetEndpointResponse, error) {
 	// build the request
 	u := c.routes[cns.EndpointAPI]
@@ -1115,7 +1090,6 @@ func (c *Client) UpdateEndpoint(ctx context.Context, endpointID string, ipInfo m
 
 	var response cns.Response
 	err = json.NewDecoder(res.Body).Decode(&response)
-
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decode CNS Response")
 	}
