@@ -107,7 +107,7 @@ func TestIntervalUpdate(t *testing.T) {
 		t.Error("Default min interval not used")
 	}
 
-	for range 10 {
+	for i := 1; i <= 10; i++ {
 		fetcher.UpdateFetchIntervalForNoObservedDiff()
 		exp := interval * 2
 		if interval == nodesubnet.DefaultMaxRefreshInterval {

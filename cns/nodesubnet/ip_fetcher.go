@@ -67,7 +67,7 @@ func NewIPFetcher(
 }
 
 func (c *IPFetcher) UpdateFetchIntervalForNoObservedDiff() {
-	c.tickerInterval = min(c.tickerInterval*2, c.maxRefreshInterval)
+	c.tickerInterval = min(c.tickerInterval*2, c.maxRefreshInterval) //nolint:gomnd // doubling interval
 
 	if c.ticker != nil {
 		c.ticker.Reset(c.tickerInterval)
@@ -85,7 +85,10 @@ func (c *IPFetcher) UpdateFetchIntervalForObservedDiff() {
 func (c *IPFetcher) Start(ctx context.Context) {
 	go func() {
 		// Do an initial fetch
-		c.RefreshSecondaryIPs(ctx)
+		err := c.RefreshSecondaryIPs(ctx)
+		if err != nil {
+			log.Printf("Error refreshing secondary IPs: %v", err)
+		}
 
 		if c.ticker == nil {
 			c.ticker = NewTimedTickProvider(c.tickerInterval)
