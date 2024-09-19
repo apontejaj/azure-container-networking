@@ -10,6 +10,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	// Minimum time between secondary IP fetches
+	MinRefreshInterval = 4 * time.Second
+	// Maximum time between secondary IP fetches
+	MaxRefreshInterval = 1024 * time.Second
+)
+
 var ErrRefreshSkipped = errors.New("refresh skipped due to throttling")
 
 // InterfaceRetriever is an interface is implemented by the NMAgent Client, and also a mock client for testing.
@@ -17,39 +24,76 @@ type InterfaceRetriever interface {
 	GetInterfaceIPInfo(ctx context.Context) (nmagent.Interfaces, error)
 }
 
+// SecondaryIPConsumer is an interface implemented by whoever consumes the secondary IPs fetched in nodesubnet
+type SecondaryIPConsumer interface {
+	UpdateSecondaryIPsForNodeSubnet(netip.Addr, []netip.Addr) error
+}
+
 type IPFetcher struct {
-	// Node subnet state
-	secondaryIPQueryInterval   time.Duration // Minimum time between secondary IP fetches
-	secondaryIPLastRefreshTime time.Time     // Time of last secondary IP fetch
-
-	ipFectcherClient InterfaceRetriever
+	// Node subnet config
+	intfFetcherClient InterfaceRetriever
+	ticker            *time.Ticker
+	tickerInterval    time.Duration
+	consumer          SecondaryIPConsumer
 }
 
-func NewIPFetcher(nmaClient InterfaceRetriever, queryInterval time.Duration) *IPFetcher {
+func NewIPFetcher(nmaClient InterfaceRetriever, c SecondaryIPConsumer) *IPFetcher {
 	return &IPFetcher{
-		ipFectcherClient:         nmaClient,
-		secondaryIPQueryInterval: queryInterval,
+		intfFetcherClient: nmaClient,
+		consumer:          c,
 	}
 }
 
-func (c *IPFetcher) RefreshSecondaryIPsIfNeeded(ctx context.Context) (ips []netip.Addr, err error) {
-	// If secondaryIPQueryInterval has elapsed since the last fetch, fetch secondary IPs
-	if time.Since(c.secondaryIPLastRefreshTime) < c.secondaryIPQueryInterval {
-		return nil, ErrRefreshSkipped
-	}
+func (c *IPFetcher) updateFetchIntervalForNoObservedDiff() {
+	c.tickerInterval = min(c.tickerInterval*2, MaxRefreshInterval)
+	c.ticker.Reset(c.tickerInterval)
+}
 
-	c.secondaryIPLastRefreshTime = time.Now()
-	response, err := c.ipFectcherClient.GetInterfaceIPInfo(ctx)
+func (c *IPFetcher) updateFetchIntervalForObservedDiff() {
+	c.tickerInterval = MinRefreshInterval
+	c.ticker.Reset(c.tickerInterval)
+}
+
+func (c *IPFetcher) Start(ctx context.Context) {
+	go func() {
+		c.tickerInterval = MinRefreshInterval
+		c.ticker = time.NewTicker(c.tickerInterval)
+		defer c.ticker.Stop()
+
+		for {
+			select {
+			case <-c.ticker.C:
+				err := c.RefreshSecondaryIPs(ctx)
+				if err != nil {
+					log.Printf("Error refreshing secondary IPs: %v", err)
+				}
+			case <-ctx.Done():
+				log.Println("IPFetcher stopped")
+				return
+			}
+		}
+	}()
+}
+
+// If secondaryIPQueryInterval has elapsed since the last fetch, fetch secondary IPs
+func (c *IPFetcher) RefreshSecondaryIPs(ctx context.Context) error {
+	response, err := c.intfFetcherClient.GetInterfaceIPInfo(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting interface IPs")
+		return errors.Wrap(err, "getting interface IPs")
 	}
 
-	res := flattenIPListFromResponse(&response)
-	return res, nil
+	primaryIP, secondaryIPs := flattenIPListFromResponse(&response)
+	err = c.consumer.UpdateSecondaryIPsForNodeSubnet(primaryIP, secondaryIPs)
+	if err != nil {
+		return errors.Wrap(err, "updating secondary IPs")
+	}
+
+	return nil
 }
 
 // Get the list of secondary IPs from fetched Interfaces
-func flattenIPListFromResponse(resp *nmagent.Interfaces) (res []netip.Addr) {
+func flattenIPListFromResponse(resp *nmagent.Interfaces) (primary netip.Addr, secondaryIPs []netip.Addr) {
+	var primaryIP netip.Addr
 	// For each interface...
 	for _, intf := range resp.Entries {
 		if !intf.IsPrimary {
@@ -63,15 +107,16 @@ func flattenIPListFromResponse(resp *nmagent.Interfaces) (res []netip.Addr) {
 			for _, a := range s.IPAddress {
 				// Primary addresses are reserved for the host.
 				if a.IsPrimary {
+					primaryIP = netip.Addr(a.Address)
 					continue
 				}
 
-				res = append(res, netip.Addr(a.Address))
+				secondaryIPs = append(secondaryIPs, netip.Addr(a.Address))
 				addressCount++
 			}
 			log.Printf("Got %d addresses from subnet %s", addressCount, s.Prefix)
 		}
 	}
 
-	return res
+	return primaryIP, secondaryIPs
 }
