@@ -115,6 +115,10 @@ func (c *IPFetcher) RefreshSecondaryIPs(ctx context.Context) error {
 		return errors.Wrap(err, "getting interface IPs")
 	}
 
+	if len(response.Entries) == 0 {
+		return errors.New("no interfaces found in response from NMAgent")
+	}
+
 	primaryIP, secondaryIPs := flattenIPListFromResponse(&response)
 	err = c.consumer.UpdateIPsForNodeSubnet(primaryIP, secondaryIPs)
 	if err != nil {
