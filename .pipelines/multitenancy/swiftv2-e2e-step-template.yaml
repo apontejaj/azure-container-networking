@@ -84,7 +84,7 @@ steps:
       inlineScript: |
         set -xe
 
-        bash .pipelines/swiftv2-runner/az-login.sh \
+        bash .pipelines/multitenancy/scripts/az-login.sh \
           --service-principal "$servicePrincipalId" \
           --id-token "$idToken" \
           --tenant "$tenantId"
