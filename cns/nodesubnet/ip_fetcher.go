@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	// Minimum time between secondary IP fetches
-	MinRefreshInterval = 4 * time.Second
-	// Maximum time between secondary IP fetches
-	MaxRefreshInterval = 1024 * time.Second
+	// Default minimum time between secondary IP fetches
+	DefaultMinRefreshInterval = 4 * time.Second
+	// Default maximum time between secondary IP fetches
+	DefaultMaxRefreshInterval = 1024 * time.Second
 )
 
 var ErrRefreshSkipped = errors.New("refresh skipped due to throttling")
@@ -24,45 +24,78 @@ type InterfaceRetriever interface {
 	GetInterfaceIPInfo(ctx context.Context) (nmagent.Interfaces, error)
 }
 
-// SecondaryIPConsumer is an interface implemented by whoever consumes the secondary IPs fetched in nodesubnet
-type SecondaryIPConsumer interface {
-	UpdateSecondaryIPsForNodeSubnet(netip.Addr, []netip.Addr) error
+// IPConsumer is an interface implemented by whoever consumes the secondary IPs fetched in nodesubnet
+type IPConsumer interface {
+	UpdateIPsForNodeSubnet(netip.Addr, []netip.Addr) error
 }
 
 type IPFetcher struct {
 	// Node subnet config
-	intfFetcherClient InterfaceRetriever
-	ticker            *time.Ticker
-	tickerInterval    time.Duration
-	consumer          SecondaryIPConsumer
+	intfFetcherClient  InterfaceRetriever
+	ticker             TickProvider
+	tickerInterval     time.Duration
+	consumer           IPConsumer
+	minRefreshInterval time.Duration
+	maxRefreshInterval time.Duration
 }
 
-func NewIPFetcher(nmaClient InterfaceRetriever, c SecondaryIPConsumer) *IPFetcher {
+// NewIPFetcher creates a new IPFetcher. If minInterval is 0, it will default to 4 seconds.
+// If maxInterval is 0, it will default to 1024 seconds (or minInterval, if it is higher).
+func NewIPFetcher(
+	client InterfaceRetriever,
+	consumer IPConsumer,
+	minInterval time.Duration,
+	maxInterval time.Duration,
+) *IPFetcher {
+	if minInterval == 0 {
+		minInterval = DefaultMinRefreshInterval
+	}
+
+	if maxInterval == 0 {
+		maxInterval = DefaultMaxRefreshInterval
+	}
+
+	maxInterval = max(maxInterval, minInterval)
+
 	return &IPFetcher{
-		intfFetcherClient: nmaClient,
-		consumer:          c,
+		intfFetcherClient:  client,
+		consumer:           consumer,
+		minRefreshInterval: minInterval,
+		maxRefreshInterval: maxInterval,
+		tickerInterval:     minInterval,
 	}
 }
 
-func (c *IPFetcher) updateFetchIntervalForNoObservedDiff() {
-	c.tickerInterval = min(c.tickerInterval*2, MaxRefreshInterval)
-	c.ticker.Reset(c.tickerInterval)
+func (c *IPFetcher) UpdateFetchIntervalForNoObservedDiff() {
+	c.tickerInterval = min(c.tickerInterval*2, c.maxRefreshInterval)
+
+	if c.ticker != nil {
+		c.ticker.Reset(c.tickerInterval)
+	}
 }
 
-func (c *IPFetcher) updateFetchIntervalForObservedDiff() {
-	c.tickerInterval = MinRefreshInterval
-	c.ticker.Reset(c.tickerInterval)
+func (c *IPFetcher) UpdateFetchIntervalForObservedDiff() {
+	c.tickerInterval = c.minRefreshInterval
+
+	if c.ticker != nil {
+		c.ticker.Reset(c.tickerInterval)
+	}
 }
 
 func (c *IPFetcher) Start(ctx context.Context) {
 	go func() {
-		c.tickerInterval = MinRefreshInterval
-		c.ticker = time.NewTicker(c.tickerInterval)
+		// Do an initial fetch
+		c.RefreshSecondaryIPs(ctx)
+
+		if c.ticker == nil {
+			c.ticker = NewTimedTickProvider(c.tickerInterval)
+		}
+
 		defer c.ticker.Stop()
 
 		for {
 			select {
-			case <-c.ticker.C:
+			case <-c.ticker.C():
 				err := c.RefreshSecondaryIPs(ctx)
 				if err != nil {
 					log.Printf("Error refreshing secondary IPs: %v", err)
@@ -83,7 +116,7 @@ func (c *IPFetcher) RefreshSecondaryIPs(ctx context.Context) error {
 	}
 
 	primaryIP, secondaryIPs := flattenIPListFromResponse(&response)
-	err = c.consumer.UpdateSecondaryIPsForNodeSubnet(primaryIP, secondaryIPs)
+	err = c.consumer.UpdateIPsForNodeSubnet(primaryIP, secondaryIPs)
 	if err != nil {
 		return errors.Wrap(err, "updating secondary IPs")
 	}
