@@ -91,7 +91,7 @@ steps:
           --id-token "$idToken" \
           --tenant "$tenantId"
 
-        bash .pipelines/swiftv2-runner/run-tests.sh \
+        bash .pipelines/multitenancy/scripts/run-tests.sh \
           --test-dir "$(System.DefaultWorkingDirectory)/.pipelines/multitenancy/scripts" \
           --mt-test-cluster ${{ parameters.clusterName }}
           --scenario ${{ parameters.scenario }}
