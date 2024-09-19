@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ./.pipelines/multitenancy/utils.sh
+source ./.pipelines/multitenancy/scripts/utils.sh
 
 function main() {
     # parse the arguments

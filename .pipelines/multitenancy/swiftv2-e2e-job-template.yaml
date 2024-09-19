@@ -62,3 +62,6 @@ stages:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
               os: linux
               arch: ${{ parameters.arch }}
+              region: $(REGION_SWIFTV2_CLUSTER_TEST) # Swiftv2 has a specific region requirements
+              scenario: westcentralus
+

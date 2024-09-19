@@ -4,6 +4,8 @@ parameters:
   continueOnError: true
   arch: ""
   os: ""
+  scenario: ""
+  region: ""
 
 steps:
   - bash: |
@@ -88,6 +90,11 @@ steps:
           --service-principal "$servicePrincipalId" \
           --id-token "$idToken" \
           --tenant "$tenantId"
+
+        bash .pipelines/swiftv2-runner/run-tests.sh \
+          --test-dir "$(System.DefaultWorkingDirectory)/.pipelines/multitenancy/scripts" \
+          --mt-test-cluster ${{ parameters.clusterName }}
+          --scenario ${{ parameters.scenario }}
                 
   # - task: AzureCLI@2
   #   inputs:
