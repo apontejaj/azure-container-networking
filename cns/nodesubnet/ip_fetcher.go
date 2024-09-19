@@ -111,7 +111,7 @@ func (c *IPFetcher) Start(ctx context.Context) {
 	}()
 }
 
-// If secondaryIPQueryInterval has elapsed since the last fetch, fetch secondary IPs
+// Fetch IPs from NMAgent and pass to the consumer
 func (c *IPFetcher) RefreshSecondaryIPs(ctx context.Context) error {
 	response, err := c.intfFetcherClient.GetInterfaceIPInfo(ctx)
 	if err != nil {

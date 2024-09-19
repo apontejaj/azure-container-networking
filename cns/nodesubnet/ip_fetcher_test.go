@@ -89,7 +89,7 @@ func TestRefresh(t *testing.T) {
 		t.Error("Not enough refreshes")
 	}
 
-	// At least 2 consumes - one initial and one after the first tick should be done
+	// No consumes, since the responses are empty
 	if atomic.LoadInt32(&consumerPtr.consumeCount) > 0 {
 		t.Error("Consume called unexpectedly, shouldn't be called since responses are empty")
 	}
