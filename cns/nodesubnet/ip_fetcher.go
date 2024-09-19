@@ -3,7 +3,7 @@ package nodesubnet
 import (
 	"context"
 	"log"
-	"net"
+	"net/netip"
 	"time"
 
 	"github.com/Azure/azure-container-networking/nmagent"
@@ -26,7 +26,7 @@ type InterfaceRetriever interface {
 
 // SecondaryIPConsumer is an interface implemented by whoever consumes the secondary IPs fetched in nodesubnet
 type SecondaryIPConsumer interface {
-	UpdateSecondaryIPsForNodeSubnet([]net.IP) error
+	UpdateSecondaryIPsForNodeSubnet(netip.Addr, []netip.Addr) error
 }
 
 type IPFetcher struct {
@@ -82,8 +82,8 @@ func (c *IPFetcher) RefreshSecondaryIPs(ctx context.Context) error {
 		return errors.Wrap(err, "getting interface IPs")
 	}
 
-	res := flattenIPListFromResponse(&response)
-	err = c.consumer.UpdateSecondaryIPsForNodeSubnet(res)
+	primaryIP, secondaryIPs := flattenIPListFromResponse(&response)
+	err = c.consumer.UpdateSecondaryIPsForNodeSubnet(primaryIP, secondaryIPs)
 	if err != nil {
 		return errors.Wrap(err, "updating secondary IPs")
 	}
@@ -92,7 +92,8 @@ func (c *IPFetcher) RefreshSecondaryIPs(ctx context.Context) error {
 }
 
 // Get the list of secondary IPs from fetched Interfaces
-func flattenIPListFromResponse(resp *nmagent.Interfaces) (res []net.IP) {
+func flattenIPListFromResponse(resp *nmagent.Interfaces) (primary netip.Addr, secondaryIPs []netip.Addr) {
+	var primaryIP netip.Addr
 	// For each interface...
 	for _, intf := range resp.Entries {
 		if !intf.IsPrimary {
@@ -106,15 +107,16 @@ func flattenIPListFromResponse(resp *nmagent.Interfaces) (res []net.IP) {
 			for _, a := range s.IPAddress {
 				// Primary addresses are reserved for the host.
 				if a.IsPrimary {
+					primaryIP = netip.Addr(a.Address)
 					continue
 				}
 
-				res = append(res, net.IP(a.Address))
+				secondaryIPs = append(secondaryIPs, netip.Addr(a.Address))
 				addressCount++
 			}
 			log.Printf("Got %d addresses from subnet %s", addressCount, s.Prefix)
 		}
 	}
 
-	return res
+	return primaryIP, secondaryIPs
 }
