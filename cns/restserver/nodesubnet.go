@@ -5,6 +5,7 @@ import (
 	"net/netip"
 
 	"github.com/Azure/azure-container-networking/cns"
+	"github.com/Azure/azure-container-networking/cns/logger"
 	nodesubnet "github.com/Azure/azure-container-networking/cns/nodesubnet"
 	"github.com/Azure/azure-container-networking/cns/types"
 	errors "github.com/pkg/errors"
@@ -21,10 +22,13 @@ func (service *HTTPRestService) UpdateIPsForNodeSubnet(primaryIP netip.Addr, sec
 
 	code, msg := service.saveNetworkContainerGoalState(*networkContainerRequest)
 	if code == types.NodeSubnetSecondaryIPChange {
+		logger.Printf("Secondary IP change detected, updating fetch interval")
 		service.nodesubnetIPFetcher.UpdateFetchIntervalForObservedDiff()
 	} else if code != types.Success {
+		logger.Printf("failed to save fetched ips. code: %d, message %s", code, msg)
 		return errors.Errorf("failed to save fetched ips. code: %d, message %s", code, msg)
 	} else {
+		logger.Printf("No secondary IP change detected, updating fetch interval")
 		service.nodesubnetIPFetcher.UpdateFetchIntervalForNoObservedDiff()
 	}
 

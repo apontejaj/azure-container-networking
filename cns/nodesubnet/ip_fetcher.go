@@ -68,6 +68,7 @@ func NewIPFetcher(
 
 func (c *IPFetcher) UpdateFetchIntervalForNoObservedDiff() {
 	c.tickerInterval = min(c.tickerInterval*2, c.maxRefreshInterval) //nolint:gomnd // doubling interval
+	log.Printf("New fetch interval: %v", c.tickerInterval)
 
 	if c.ticker != nil {
 		c.ticker.Reset(c.tickerInterval)
