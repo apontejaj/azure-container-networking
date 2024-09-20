@@ -11,14 +11,14 @@ type TickProvider interface {
 
 // TimedTickProvider wraps a time.Ticker to implement TickProvider
 type TimedTickProvider struct {
-	ticker time.Ticker
+	ticker *time.Ticker
 }
 
 var _ TickProvider = &TimedTickProvider{}
 
 // NewTickerWrapper creates a new TickerWrapper
 func NewTimedTickProvider(d time.Duration) *TimedTickProvider {
-	return &TimedTickProvider{ticker: *time.NewTicker(d)}
+	return &TimedTickProvider{ticker: time.NewTicker(d)}
 }
 
 // Stop stops the ticker
