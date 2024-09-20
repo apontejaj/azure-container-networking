@@ -29,7 +29,7 @@ function main() {
 function setup_aks_mt_cluster() {
     local mt_test_cluster
     mt_test_cluster="${2}"
-    local regscenarioion
+    local scenario
     scenario="${3}"
 
     #get configvars
