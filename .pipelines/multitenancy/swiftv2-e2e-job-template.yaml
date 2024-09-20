@@ -6,6 +6,7 @@ parameters:
   vmSize: ""
   arch: ""
   k8sVersion: ""
+  scenario: ""
   dependsOn: ""
   nodePoolName: ""
   continueOnError: true
@@ -32,6 +33,7 @@ stages:
           dependsOn: ${{ parameters.dependsOn }}
           continueOnError: ${{ parameters.continueOnError }}
           region: $(REGION_SWIFTV2_CLUSTER_TEST) # Swiftv2 has a specific region requirements
+          scenario: ${{ parameters.scenario }}
 
   - stage: ${{ parameters.name }}
     condition: and( succeeded(), not(eq(dependencies.mtacluster.result,'SucceededWithIssues')) ) # Cant use parameters in dependencies
@@ -63,5 +65,5 @@ stages:
               os: linux
               arch: ${{ parameters.arch }}
               region: $(REGION_SWIFTV2_CLUSTER_TEST) # Swiftv2 has a specific region requirements
-              scenario: westcentralus
+              scenario: ${{ parameters.scenario }}
 

@@ -407,22 +407,23 @@ stages:
         dummyClusterName: "swiftv2dummy"
         dummyClusterType: "swiftv2-dummy-cluster-up"
         dummyClusterDisplayName: Swiftv2 Multitenancy Dummy Cluster
+        scenario: westcentralus
 
     - stage: delete
       displayName: Delete Clusters
       condition: always()
       dependsOn:
         - setup
-        # - azure_overlay_e2e
-        # - aks_swift_e2e
-        # - cilium_e2e
-        # - cilium_overlay_e2e
-        # - cilium_h_overlay_e2e
-        # - aks_ubuntu_22_linux_e2e
-        # - aks_swift_vnetscale_e2e
-        # - aks_windows_22_e2e
-        # - dualstackoverlay_e2e
-        # - cilium_dualstackoverlay_e2e
+        - azure_overlay_e2e
+        - aks_swift_e2e
+        - cilium_e2e
+        - cilium_overlay_e2e
+        - cilium_h_overlay_e2e
+        - aks_ubuntu_22_linux_e2e
+        - aks_swift_vnetscale_e2e
+        - aks_windows_22_e2e
+        - dualstackoverlay_e2e
+        - cilium_dualstackoverlay_e2e
         - swiftv2_e2e
       variables:
         commitID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.commitID'] ]
@@ -504,3 +505,4 @@ stages:
                 region: $(region)
                 sub: $(SUB_AZURE_NETWORK_AGENT_TEST)
                 svcConn: $(ACN_TEST_SERVICE_CONNECTION)
+                scenario: westcentralus
