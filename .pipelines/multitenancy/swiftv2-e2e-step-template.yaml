@@ -31,7 +31,9 @@ steps:
       addSpnToEnvironment: true
       inlineScript: |
         set -e
-        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}
+        source ./.pipelines/multitenancy/scripts/utils.sh
+        export_envVars ${{ parameters.scenario }} 
+        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }} GROUP=${{ parameters.clusterName }}
     name: "kubeconfig"
     displayName: "Set Kubeconfig"
 
@@ -43,7 +45,9 @@ steps:
       addSpnToEnvironment: true
       inlineScript: |
         set -ex
-        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}
+        source ./.pipelines/multitenancy/scripts/utils.sh
+        export_envVars ${{ parameters.scenario }} 
+        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }} GROUP=${{ parameters.clusterName }}
         echo "Upload CNI"
         echo "Deploying on Linux nodes"
         export CNI_IMAGE=$(make cni-image-name-and-tag OS=${{ parameters.os }} ARCH=${{ parameters.arch }} CNI_VERSION=$(make cni-version))
