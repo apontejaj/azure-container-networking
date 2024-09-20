@@ -948,9 +948,6 @@ func main() {
 				}
 			}()
 		}
-	} else if config.ChannelMode == cns.AzureHost {
-		logger.Errorf("[Azure CNS] AzureHost (node subnet) mode is not supported with local server disabled")
-		return
 	}
 
 	if cnsconfig.EnableAsyncPodDelete {
