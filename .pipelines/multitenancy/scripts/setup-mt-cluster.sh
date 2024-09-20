@@ -28,9 +28,9 @@ function main() {
 
 function setup_aks_mt_cluster() {
     local mt_test_cluster
-    mt_test_cluster="${2}"
+    mt_test_cluster="${1}"
     local scenario
-    scenario="${3}"
+    scenario="${2}"
 
     #get configvars
     export_envVars "${scenario}"
