@@ -93,7 +93,7 @@ steps:
 
         bash .pipelines/multitenancy/scripts/run-tests.sh \
           --test-dir "$(System.DefaultWorkingDirectory)/.pipelines/multitenancy/scripts" \
-          --mt-test-cluster ${{ parameters.clusterName }}
+          --mt-test-cluster ${{ parameters.clusterName }} \
           --scenario ${{ parameters.scenario }}
                 
   # - task: AzureCLI@2
