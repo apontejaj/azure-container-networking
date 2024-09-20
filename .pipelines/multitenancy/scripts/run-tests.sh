@@ -52,6 +52,7 @@ function run_tests() {
     # Get identity client ID
     export USER_ASSIGNED_CLIENT_ID=$(az identity show --resource-group "$RG" --name "$USER_ASSIGNED_IDENTITY_NAME" --query 'clientId' -o tsv)
 
+    chmod +x ./akse2e.sh
     ./akse2e.sh $mt_test_cluster && passed="true" || passed="false"
 }
 
