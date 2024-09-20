@@ -2,12 +2,8 @@ package nodesubnet_test
 
 import (
 	"context"
-<<<<<<< HEAD
-	"errors"
-=======
 	"net/netip"
 	"sync/atomic"
->>>>>>> origin/sanprabhu/cilium-node-subnet-intelligent-refresh
 	"testing"
 	"time"
 
@@ -17,11 +13,7 @@ import (
 
 // Mock client that simply tracks if refresh has been called
 type TestClient struct {
-<<<<<<< HEAD
-	fetchCalled bool
-=======
 	refreshCount int32
->>>>>>> origin/sanprabhu/cilium-node-subnet-intelligent-refresh
 }
 
 // Mock refresh

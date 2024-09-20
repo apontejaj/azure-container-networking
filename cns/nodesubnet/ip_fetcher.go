@@ -11,17 +11,10 @@ import (
 )
 
 const (
-<<<<<<< HEAD
-	// Minimum time between secondary IP fetches
-	MinRefreshInterval = 4 * time.Second
-	// Maximum time between secondary IP fetches
-	MaxRefreshInterval = 1024 * time.Second
-=======
 	// Default minimum time between secondary IP fetches
 	DefaultMinRefreshInterval = 4 * time.Second
 	// Default maximum time between secondary IP fetches
 	DefaultMaxRefreshInterval = 1024 * time.Second
->>>>>>> origin/sanprabhu/cilium-node-subnet-intelligent-refresh
 )
 
 var ErrRefreshSkipped = errors.New("refresh skipped due to throttling")
