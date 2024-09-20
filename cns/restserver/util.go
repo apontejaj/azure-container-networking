@@ -265,6 +265,11 @@ func (service *HTTPRestService) updateIPConfigsStateUntransacted(
 	newIPConfigs := req.SecondaryIPConfigs
 	tobeDeletedIPConfigs := make(map[string]cns.SecondaryIPConfig)
 
+	churnObserved := false
+	if len(existingSecondaryIPConfigs) != len(newIPConfigs) {
+		churnObserved = true
+	}
+
 	// Populate the ToBeDeleted list, Secondary IPs which doesnt exist in New request anymore.
 	// We will later remove them from the in-memory cache
 	for secondaryIpId, existingIPConfig := range existingSecondaryIPConfigs {
@@ -272,6 +277,7 @@ func (service *HTTPRestService) updateIPConfigsStateUntransacted(
 		if !exists {
 			// IP got removed in the updated request, add it in tobeDeletedIps
 			tobeDeletedIPConfigs[secondaryIpId] = existingIPConfig
+			churnObserved = true
 		}
 	}
 
@@ -302,8 +308,13 @@ func (service *HTTPRestService) updateIPConfigsStateUntransacted(
 	if hostNCVersionInInt, err = strconv.Atoi(hostVersion); err != nil {
 		return types.UnsupportedNCVersion, fmt.Sprintf("Invalid hostVersion is %s, err:%s", hostVersion, err)
 	}
+
 	service.addIPConfigStateUntransacted(req.NetworkContainerid, hostNCVersionInInt, req.SecondaryIPConfigs,
 		existingSecondaryIPConfigs)
+
+	if req.NetworkContainerType == cns.NodeSubnet && churnObserved {
+		return types.NodeSubnetSecondaryIPChange, ""
+	}
 
 	return 0, ""
 }

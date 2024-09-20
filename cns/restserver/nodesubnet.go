@@ -6,6 +6,7 @@ import (
 
 	"github.com/Azure/azure-container-networking/cns"
 	nodesubnet "github.com/Azure/azure-container-networking/cns/nodesubnet"
+	"github.com/Azure/azure-container-networking/cns/types"
 	errors "github.com/pkg/errors"
 )
 
@@ -19,8 +20,12 @@ func (service *HTTPRestService) UpdateIPsForNodeSubnet(primaryIP netip.Addr, sec
 	}
 
 	code, msg := service.saveNetworkContainerGoalState(*networkContainerRequest)
-	if code != 0 {
+	if code == types.NodeSubnetSecondaryIPChange {
+		service.nodesubnetIPFetcher.UpdateFetchIntervalForObservedDiff()
+	} else if code != types.Success {
 		return errors.Errorf("failed to save fetched ips. code: %d, message %s", code, msg)
+	} else {
+		service.nodesubnetIPFetcher.UpdateFetchIntervalForNoObservedDiff()
 	}
 
 	// saved NC successfully, generate conflist to indicate CNS is ready
