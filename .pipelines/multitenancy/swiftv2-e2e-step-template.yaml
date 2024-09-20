@@ -30,10 +30,10 @@ steps:
       scriptType: "bash"
       addSpnToEnvironment: true
       inlineScript: |
-        set -e
+        set -ex
         source ./.pipelines/multitenancy/scripts/utils.sh
         export_envVars ${{ parameters.scenario }} 
-        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }} GROUP=${{ parameters.clusterName }}
+        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }} GROUP=$RG
     name: "kubeconfig"
     displayName: "Set Kubeconfig"
 
@@ -47,7 +47,7 @@ steps:
         set -ex
         source ./.pipelines/multitenancy/scripts/utils.sh
         export_envVars ${{ parameters.scenario }} 
-        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }} GROUP=${{ parameters.clusterName }}
+        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }} GROUP=GROUP=$RG
         echo "Upload CNI"
         echo "Deploying on Linux nodes"
         export CNI_IMAGE=$(make cni-image-name-and-tag OS=${{ parameters.os }} ARCH=${{ parameters.arch }} CNI_VERSION=$(make cni-version))
@@ -65,7 +65,9 @@ steps:
       addSpnToEnvironment: true
       inlineScript: |
         set -ex
-        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}
+        source ./.pipelines/multitenancy/scripts/utils.sh
+        export_envVars ${{ parameters.scenario }} 
+        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }} GROUP=GROUP=$RG
         echo "Keep CNS version up to date, grabbing pipeline parameter"
         CNS_IMAGE=$(make cns-image-name-and-tag)
         sed -i '/containers:/{n;n;s/\(image\).*/\1: '"${CNS_IMAGE//\//\\/}"'/}' ./test/integration/manifests/cns/daemonset-linux.yaml
