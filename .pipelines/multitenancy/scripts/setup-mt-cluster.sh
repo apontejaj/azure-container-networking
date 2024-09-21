@@ -51,7 +51,7 @@ function setup_aks_mt_cluster() {
         --node-count 2 \
         --node-vm-size $VM_SIZE \
         --node-os-upgrade-channel NodeImage \
-        --kubernetes-version 1.28 \
+        --kubernetes-version 1.30 \
         --nodepool-name "mtapool0" \
         --nodepool-tags fastpathenabled=true aks-nic-enable-multi-tenancy=true \
         --enable-oidc-issuer \
