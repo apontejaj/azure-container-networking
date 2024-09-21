@@ -51,7 +51,7 @@ function setup_aks_mt_cluster() {
         --node-count 2 \
         --node-vm-size $VM_SIZE \
         --node-os-upgrade-channel NodeImage \
-        --kubernetes-version 1.30 \
+        --kubernetes-version 1.28 \
         --nodepool-name "mtapool0" \
         --nodepool-tags fastpathenabled=true aks-nic-enable-multi-tenancy=true \
         --enable-oidc-issuer \
@@ -69,6 +69,12 @@ function setup_aks_mt_cluster() {
         --issuer "$AKS_OIDC_ISSUER" \
         --subject system:serviceaccount:mtpod-to-service-endpoint:workload-identity-sa
 
+    if [[ "$passed" == "true" ]]; then
+        echo "Tests passed"
+    else
+        echo "Tests failed"
+        return 1
+    fi
 }
 
 main $@

@@ -65,6 +65,13 @@ function delete_aks_mt_cluster() {
 
     #Clean up user-assigned identity
     az identity federated-credential delete --name "$FEDERATED_IDENTITY_CREDENTIAL_PREFIX-$mt_test_cluster" --identity-name "$USER_ASSIGNED_IDENTITY_NAME" --resource-group "$RG" --yes
+  
+    if [[ "$passed" == "true" ]]; then
+        echo "Tests passed"
+    else
+        echo "Tests failed"
+        return 1
+    fi
 }
 
 main $@

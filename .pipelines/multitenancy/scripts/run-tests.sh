@@ -54,6 +54,13 @@ function run_tests() {
 
     chmod +x ./akse2e.sh
     ./akse2e.sh $mt_test_cluster && passed="true" || passed="false"
+
+    if [[ "$passed" == "true" ]]; then
+        echo "Tests passed"
+    else
+        echo "Tests failed"
+        return 1
+    fi
 }
 
 main $@
