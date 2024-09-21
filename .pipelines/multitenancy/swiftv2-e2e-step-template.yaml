@@ -47,7 +47,7 @@ steps:
         set -ex
         source ./.pipelines/multitenancy/scripts/utils.sh
         export_envVars ${{ parameters.scenario }} 
-        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }} GROUP=GROUP=$RG
+        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }} GROUP=$RG
         echo "Upload CNI"
         echo "Deploying on Linux nodes"
         export CNI_IMAGE=$(make cni-image-name-and-tag OS=${{ parameters.os }} ARCH=${{ parameters.arch }} CNI_VERSION=$(make cni-version))
@@ -67,7 +67,7 @@ steps:
         set -ex
         source ./.pipelines/multitenancy/scripts/utils.sh
         export_envVars ${{ parameters.scenario }} 
-        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }} GROUP=GROUP=$RG
+        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }} GROUP=$RG
         echo "Keep CNS version up to date, grabbing pipeline parameter"
         CNS_IMAGE=$(make cns-image-name-and-tag)
         sed -i '/containers:/{n;n;s/\(image\).*/\1: '"${CNS_IMAGE//\//\\/}"'/}' ./test/integration/manifests/cns/daemonset-linux.yaml
