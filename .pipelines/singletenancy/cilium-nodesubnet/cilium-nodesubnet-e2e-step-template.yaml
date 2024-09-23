@@ -8,7 +8,7 @@ steps:
     inputs:
       scriptSource: 'filePath' # 'filePath' | 'inline'. Required. Script source. Default: filePath.
       scriptPath: "./ipconfigupdate.py"
-      arguments: ${{ join (' ', ['--resource-group', MC_${{ parameters.clusterName }}_${{ parameters.clusterName }}_$(REGION_AKS_CLUSTER_TEST), '--secondary-config-count', ${{ parameters.scaleup }}]) }}
+      arguments: --resource-group MC_${{ parameters.clusterName }}_${{ parameters.clusterName }}_$(REGION_AKS_CLUSTER_TEST) --secondary-config-count ${{ parameters.scaleup }}
 
   - bash: |
       echo $UID
