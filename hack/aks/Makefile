@@ -103,6 +103,7 @@ nodesubnet-cilium-up: rg-up overlay-net-up ## Brings up an Overlay BYO CNI clust
 		--kubernetes-version $(K8S_VER) \
 		--node-count $(NODE_COUNT) \
 		--node-vm-size $(VM_SIZE) \
+		--load-balancer-sku basic \
 		--max-pods 250 \
 		--network-plugin none \
 		--vnet-subnet-id /subscriptions/$(SUB)/resourceGroups/$(GROUP)/providers/Microsoft.Network/virtualNetworks/$(VNET)/subnets/nodenet \
