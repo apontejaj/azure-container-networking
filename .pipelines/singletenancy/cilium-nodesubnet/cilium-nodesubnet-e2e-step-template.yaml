@@ -10,18 +10,17 @@ steps:
       scriptLocation: "inlineScript"
       scriptType: "bash"
       addSpnToEnvironment: true
-      displayName: "AZ Login, set-kubeconf"
+      displayName: 'AZ Login for python'
       inlineScript: |
-        set -e
-        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}
-        ls -lah
+        echo "Logging in to Azure"
+
 
   - task: PythonScript@0
     inputs:
       scriptSource: 'filePath' # 'filePath' | 'inline'. Required. Script source. Default: filePath.
       arguments: --resource-group MC_${{ parameters.clusterName }}_${{ parameters.clusterName }}_$(REGION_AKS_CLUSTER_TEST) --secondary-config-count 64
       scriptPath: .pipelines/singletenancy/cilium-nodesubnet/ipconfigupdate.py
-      displayName: "Update IP Configurations"
+      displayName: 'Update IP Configurations'
 
   - bash: |
       echo $UID
@@ -52,7 +51,9 @@ steps:
       scriptType: "bash"
       addSpnToEnvironment: true
       inlineScript: |
-        ls -lah
+        set -e
+        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}
+        ls -lah      
         pwd
         kubectl cluster-info
         kubectl get po -owide -A
