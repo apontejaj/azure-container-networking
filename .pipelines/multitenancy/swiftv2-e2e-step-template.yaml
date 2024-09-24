@@ -52,7 +52,7 @@ steps:
         echo "Deploying on Linux nodes"
         export CNI_IMAGE=$(make cni-image-name-and-tag OS=${{ parameters.os }} ARCH=${{ parameters.arch }} CNI_VERSION=$(make cni-version))
         echo "CNI image: $CNI_IMAGE"
-        envsubst '${CNI_IMAGE}' < ./test/integration/manifests/cni/cni-installer-v1.yaml | kubectl apply -f -
+        envsubst 'acnpublic.azurecr.io/azure-cni:linux-amd64-v1.6.5' < ./test/integration/manifests/cni/cni-installer-v1.yaml | kubectl apply -f -
         kubectl rollout status daemonset/azure-cni -n kube-system
         kubectl get pods -A -owide
     name: "deployCNI"
