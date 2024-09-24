@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-container-networking/nmagent"
+	"github.com/Azure/azure-container-networking/refreshticker"
 	"github.com/pkg/errors"
 )
 
@@ -29,10 +30,15 @@ type IPConsumer interface {
 	UpdateIPsForNodeSubnet(netip.Addr, []netip.Addr) error
 }
 
+// IPFetcher fetches secondary IPs from NMAgent at regular intervals. The
+// interval will vary within the range of minRefreshInterval and
+// maxRefreshInterval. When no diff is observed after a fetch, the interval
+// doubles (subject to the maximum interval). When a diff is observed, the
+// interval resets to the minimum.
 type IPFetcher struct {
 	// Node subnet config
 	intfFetcherClient  InterfaceRetriever
-	ticker             TickProvider
+	ticker             refreshticker.TickProvider
 	tickerInterval     time.Duration
 	consumer           IPConsumer
 	minRefreshInterval time.Duration
@@ -66,6 +72,8 @@ func NewIPFetcher(
 	}
 }
 
+// UpdateFetchIntervalForNoObservedDiff informs IPFetcher that no diff was observed in the last fetch.
+// In the current design, this doubles the fetch interval, subject to the maximum interval.
 func (c *IPFetcher) UpdateFetchIntervalForNoObservedDiff() {
 	c.tickerInterval = min(c.tickerInterval*2, c.maxRefreshInterval) //nolint:gomnd // doubling interval
 
@@ -74,6 +82,8 @@ func (c *IPFetcher) UpdateFetchIntervalForNoObservedDiff() {
 	}
 }
 
+// UpdateFetchIntervalForNoObservedDiff informs IPFetcher that a diff was observed in the last fetch.
+// In the current design, this resets the fetch interval to the minimum.
 func (c *IPFetcher) UpdateFetchIntervalForObservedDiff() {
 	c.tickerInterval = c.minRefreshInterval
 
@@ -82,6 +92,7 @@ func (c *IPFetcher) UpdateFetchIntervalForObservedDiff() {
 	}
 }
 
+// Start the IPFetcher.
 func (c *IPFetcher) Start(ctx context.Context) {
 	go func() {
 		// Do an initial fetch
@@ -91,7 +102,7 @@ func (c *IPFetcher) Start(ctx context.Context) {
 		}
 
 		if c.ticker == nil {
-			c.ticker = NewTimedTickProvider(c.tickerInterval)
+			c.ticker = refreshticker.NewTimedTickProvider(c.tickerInterval)
 		}
 
 		defer c.ticker.Stop()
@@ -104,7 +115,7 @@ func (c *IPFetcher) Start(ctx context.Context) {
 					log.Printf("Error refreshing secondary IPs: %v", err)
 				}
 			case <-ctx.Done():
-				log.Println("IPFetcher stopped")
+				log.Printf("IPFetcher stopped")
 				return
 			}
 		}
