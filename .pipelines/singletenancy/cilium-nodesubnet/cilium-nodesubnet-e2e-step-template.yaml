@@ -10,85 +10,43 @@ steps:
       scriptLocation: "inlineScript"
       scriptType: "bash"
       addSpnToEnvironment: true
-      displayName: 'AZ Login for python'
+      displayName: 'Update IP configs'
       inlineScript: |
-        echo "Logging in to Azure"
+          set -e
+          clusterName=${{ parameters.clusterName }}
+          RESOURCE_GROUP="MC_${clusterName}_${clusterName}_$(REGION_AKS_CLUSTER_TEST)"
+          VMSS_NAME=$(az vmss list -g "$RESOURCE_GROUP" --query '[0].name' -o tsv)
+          if [ -z "$VMSS_NAME" ]; then
+              echo "Failed to get VMSS name."
+              exit 1
+          fi
 
+          vmss_info=$(az vmss show -g "$RESOURCE_GROUP" -n "$VMSS_NAME")
 
-  - task: PythonScript@0
-    inputs:
-      scriptSource: 'inline' # 'filePath' | 'inline'. Required. Script source. Default: filePath.
-      arguments: --resource-group MC_${{ parameters.clusterName }}_${{ parameters.clusterName }}_$(REGION_AKS_CLUSTER_TEST) --secondary-config-count 64
-      script: |
-          import json
-          import subprocess
-          import argparse
+          secondary_configs=()
 
-          parser = argparse.ArgumentParser(description="Update IP configuration for VMSS.")
-          parser.add_argument("--resource-group", required=True, help="The resource group of the VMSS.")
-          parser.add_argument("--secondary-config-count", type=int, required=True, help="The count of secondary IP configurations.")
-          args = parser.parse_args()
-          resource_group = args.resource_group
-          secondary_config_count = args.secondary_config_count
+          network_profile=$(echo "$vmss_info" | jq -r '.virtualMachineProfile.networkProfile')
 
-          command = f"az vmss list -g {resource_group} --query '[0].name' -o tsv"
-          result = subprocess.run(command, shell=True, capture_output=True, text=True)
+          if [ "$network_profile" != "null" ]; then
+              network_interface_configurations=$(echo "$network_profile" | jq -c '.networkInterfaceConfigurations[]')
+              for nic_config in $network_interface_configurations; do
+                  primary_ip_config=$(echo "$nic_config" | jq -c '.ipConfigurations[] | select(.primary == true)')
 
-          if result.returncode == 0:
-              vmss_name = result.stdout.strip()
-          else:
-              raise Exception(f"Command failed with error: {result.stderr}")
+                  if [ ! -z "$primary_ip_config" ]; then
+                      for ((i=2; i<=secondary_config_count+1; i++)); do
+                          ip_config_name="ipconfig$i"
+                          new_ip_config=$(echo "$primary_ip_config" | jq --arg name "$ip_config_name" '.name = $name | .primary = false')
+                          secondary_configs+=("$new_ip_config")
+                      done
+                  fi
 
-          command = f"az vmss show -g {resource_group} -n {vmss_name}"
-          result = subprocess.run(command, shell=True, capture_output=True, text=True)
+                  updated_ip_configs=$(echo "$nic_config" | jq --argjson new_configs "$(printf '%s\n' "${secondary_configs[@]}" | jq -s '.')" '.ipConfigurations += $new_configs')
+                  network_profile=$(echo "$network_profile" | jq --argjson updated_nic "$updated_ip_configs" '.networkInterfaceConfigurations |= map(if .name == $updated_nic.name then $updated_nic else . end)')
+              done
+          fi
 
-          if result.returncode == 0:
-              vmss_info = json.loads(result.stdout)
-          else:
-              raise Exception(f"Command failed with error: {result.stderr}")
-
-          used_ip_config_names = []    
-          secondary_configs = []
-
-          if "virtualMachineProfile" in vmss_info and "networkProfile" in vmss_info["virtualMachineProfile"]:
-              network_profile = vmss_info["virtualMachineProfile"]["networkProfile"]
-              if "networkInterfaceConfigurations" in network_profile:
-                  for nic_config in network_profile["networkInterfaceConfigurations"]:
-                      primary_ip_config = None
-
-                      if "ipConfigurations" in nic_config:
-                          for ip_config in nic_config["ipConfigurations"]:
-                              if "name" in ip_config:
-                                  used_ip_config_names.append(ip_config["name"])
-
-                              if "primary" in ip_config and ip_config["primary"]:
-                                  primary_ip_config = ip_config
-
-                          if primary_ip_config is not None:        
-                              for i in range(2, secondary_config_count + 2):
-                                  ip_config = primary_ip_config.copy()
-                                  if f"ipconfig{i}" not in used_ip_config_names:
-                                      ip_config["name"] = f"ipconfig{i}"
-                                      ip_config["primary"] = False
-                                      used_ip_config_names.append(ip_config["name"])
-                                      secondary_configs.append(ip_config)
-
-                          nic_config["ipConfigurations"].extend(secondary_configs)
-
-                                  
-              command = f"az vmss update -g {resource_group} -n {vmss_name} --set virtualMachineProfile.networkProfile='{json.dumps(network_profile)}'"
-              print("Command to update VMSS: ", command)
-              result = subprocess.run(command, shell=True)
-              if result.returncode != 0:
-                  raise Exception(f"Command failed with error: {result.stderr}")
-
-              command = f"az vmss update-instances -g {resource_group} -n {vmss_name} --instance-ids '*'"
-              print("Command to update VMSS instances: ", command)
-              result = subprocess.run(command, shell=True)
-              if result.returncode != 0:
-                  raise Exception(f"Command failed with error: {result.stderr}")
-                  
-    displayName: 'Update IP Configurations'
+          az vmss update -g "$RESOURCE_GROUP" -n "$VMSS_NAME" --set virtualMachineProfile.networkProfile="$network_profile"
+          az vmss update-instances -g "$RESOURCE_GROUP" -n "$VMSS_NAME" --instance-ids '*'
 
   - bash: |
       echo $UID
