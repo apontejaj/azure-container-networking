@@ -439,6 +439,10 @@ cni-image-name: # util target to print the cni image name.
 cni-image-name-and-tag: # util target to print the cni image name and tag.
 	@echo $(IMAGE_REGISTRY)/$(CNI_IMAGE):$(CNI_PLATFORM_TAG)
 
+
+cni-image-name-and-tag-multiarch: # util target to print the cni image name and tag.
+	@echo $(IMAGE_REGISTRY)/$(CNI_IMAGE):$(CNI_VERSION)
+
 cni-image: ## build cni container image.
 	$(MAKE) container \
 		DOCKERFILE=cni/Dockerfile \
