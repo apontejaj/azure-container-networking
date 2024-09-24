@@ -429,7 +429,7 @@ func initCNSScenarioVars() (map[CNSScenario]map[corev1.OSName]cnsDetails, error)
 				},
 				initContainerName:  initContainerNameIPAM,
 				configMapPath:      cnsNodeSubnetLinuxConfigMapPath,
-				installIPMasqAgent: false,
+				installIPMasqAgent: true,
 			},
 			corev1.Windows: {
 				daemonsetPath:          cnsWindowsDaemonSetPath,
@@ -445,7 +445,7 @@ func initCNSScenarioVars() (map[CNSScenario]map[corev1.OSName]cnsDetails, error)
 				},
 				initContainerName:  initContainerNameCNI,
 				configMapPath:      cnsNodeSubnetWindowsConfigMapPath,
-				installIPMasqAgent: false,
+				installIPMasqAgent: true,
 			},
 		},
 		EnvInstallOverlay: {
