@@ -31,6 +31,7 @@ import (
 	"github.com/Azure/azure-container-networking/cns/healthserver"
 	"github.com/Azure/azure-container-networking/cns/hnsclient"
 	"github.com/Azure/azure-container-networking/cns/imds"
+	"github.com/Azure/azure-container-networking/cns/ipam"
 	"github.com/Azure/azure-container-networking/cns/ipampool"
 	"github.com/Azure/azure-container-networking/cns/ipampool/metrics"
 	ipampoolv2 "github.com/Azure/azure-container-networking/cns/ipampool/v2"
@@ -45,7 +46,6 @@ import (
 	"github.com/Azure/azure-container-networking/cns/multitenantcontroller/multitenantoperator"
 	"github.com/Azure/azure-container-networking/cns/restserver"
 	restserverv2 "github.com/Azure/azure-container-networking/cns/restserver/v2"
-	cnstypes "github.com/Azure/azure-container-networking/cns/types"
 	"github.com/Azure/azure-container-networking/cns/wireserver"
 	acn "github.com/Azure/azure-container-networking/common"
 	"github.com/Azure/azure-container-networking/crd"
@@ -1128,13 +1128,9 @@ type nodeNetworkConfigGetter interface {
 	Get(context.Context) (*v1alpha.NodeNetworkConfig, error)
 }
 
-type ipamStateReconciler interface {
-	ReconcileIPAMState(ncRequests []*cns.CreateNetworkContainerRequest, podInfoByIP map[string]cns.PodInfo, nnc *v1alpha.NodeNetworkConfig) cnstypes.ResponseCode
-}
-
 // TODO(rbtr) where should this live??
 // reconcileInitialCNSState initializes cns by passing pods and a CreateNetworkContainerRequest
-func reconcileInitialCNSState(ctx context.Context, cli nodeNetworkConfigGetter, ipamReconciler ipamStateReconciler, podInfoByIPProvider cns.PodInfoByIPProvider) error {
+func reconcileInitialCNSState(ctx context.Context, cli nodeNetworkConfigGetter, ipamReconciler ipam.IpamStateReconciler, podInfoByIPProvider cns.PodInfoByIPProvider) error {
 	// Get nnc using direct client
 	nnc, err := cli.Get(ctx)
 	if err != nil {

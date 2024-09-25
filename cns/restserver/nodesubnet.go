@@ -15,7 +15,12 @@ var _ nodesubnet.IPConsumer = &HTTPRestService{}
 
 // Implement the UpdateIPsForNodeSubnet method for HTTPRestService
 func (service *HTTPRestService) UpdateIPsForNodeSubnet(primaryIP netip.Addr, secondaryIPs []netip.Addr) error {
-	networkContainerRequest, err := nodesubnet.CreateNodeSubnetNCRequest(primaryIP, secondaryIPs)
+	secondaryIPStrs := make([]string, len(secondaryIPs))
+	for i, ip := range secondaryIPs {
+		secondaryIPStrs[i] = ip.String()
+	}
+
+	networkContainerRequest, err := nodesubnet.CreateNodeSubnetNCRequest(primaryIP.String(), secondaryIPStrs)
 	if err != nil {
 		return errors.Wrap(err, "creating network container request")
 	}

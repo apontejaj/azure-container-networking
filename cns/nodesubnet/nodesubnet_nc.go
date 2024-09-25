@@ -1,7 +1,6 @@
 package nodesubnet
 
 import (
-	"net/netip"
 	"strconv"
 
 	"github.com/Azure/azure-container-networking/cns"
@@ -17,19 +16,19 @@ const (
 )
 
 // CreateNodeSubnetNCRequest generates a CreateNetworkContainerRequest that simply stores the static secondary IPs.
-func CreateNodeSubnetNCRequest(primaryIP netip.Addr, secondaryIPs []netip.Addr) (*cns.CreateNetworkContainerRequest, error) {
+func CreateNodeSubnetNCRequest(primaryIP string, secondaryIPs []string) (*cns.CreateNetworkContainerRequest, error) {
 	secondaryIPConfigs := map[string]cns.SecondaryIPConfig{}
 
 	for _, secondaryIP := range secondaryIPs {
 		// iterate through all secondary IP addresses add them to the request as secondary IPConfigs.
-		secondaryIPConfigs[secondaryIP.String()] = cns.SecondaryIPConfig{
-			IPAddress: secondaryIP.String(),
+		secondaryIPConfigs[secondaryIP] = cns.SecondaryIPConfig{
+			IPAddress: secondaryIP,
 			NCVersion: NodeSubnetNCVersion,
 		}
 	}
 
 	return &cns.CreateNetworkContainerRequest{
-		HostPrimaryIP:        primaryIP.String(),
+		HostPrimaryIP:        primaryIP,
 		SecondaryIPConfigs:   secondaryIPConfigs,
 		NetworkContainerid:   NodeSubnetNCID,
 		NetworkContainerType: cns.NodeSubnet,
