@@ -14,13 +14,13 @@ import (
 var _ nodesubnet.IPConsumer = &HTTPRestService{}
 
 // Implement the UpdateIPsForNodeSubnet method for HTTPRestService
-func (service *HTTPRestService) UpdateIPsForNodeSubnet(primaryIP netip.Addr, secondaryIPs []netip.Addr) error {
+func (service *HTTPRestService) UpdateIPsForNodeSubnet(secondaryIPs []netip.Addr) error {
 	secondaryIPStrs := make([]string, len(secondaryIPs))
 	for i, ip := range secondaryIPs {
 		secondaryIPStrs[i] = ip.String()
 	}
 
-	networkContainerRequest, err := nodesubnet.CreateNodeSubnetNCRequest(primaryIP.String(), secondaryIPStrs)
+	networkContainerRequest, err := nodesubnet.CreateNodeSubnetNCRequest(secondaryIPStrs)
 	if err != nil {
 		return errors.Wrap(err, "creating network container request")
 	}
@@ -42,12 +42,17 @@ func (service *HTTPRestService) UpdateIPsForNodeSubnet(primaryIP netip.Addr, sec
 	return nil
 }
 
-func (service *HTTPRestService) InitializeNodeSubnet(ctx context.Context) {
+func (service *HTTPRestService) InitializeNodeSubnet(ctx context.Context, podInfoByIPProvider cns.PodInfoByIPProvider) error {
 	// Set orchestrator type
 	orchestrator := cns.SetOrchestratorTypeRequest{
 		OrchestratorType: cns.KubernetesNodeSubnet,
 	}
 	service.SetNodeOrchestrator(&orchestrator)
 	service.nodesubnetIPFetcher = nodesubnet.NewIPFetcher(service.nma, service, 0, 0)
+	if err := nodesubnet.ReconcileInitialCNSState(ctx, service, podInfoByIPProvider); err != nil {
+		return errors.Wrap(err, "reconcile initial CNS state")
+	}
+
 	service.nodesubnetIPFetcher.Start(ctx)
+	return nil
 }

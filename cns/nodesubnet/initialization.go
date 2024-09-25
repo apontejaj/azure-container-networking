@@ -9,7 +9,7 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-func reconcileInitialCNSState(ctx context.Context, ipamReconciler ipam.IpamStateReconciler, podInfoByIPProvider cns.PodInfoByIPProvider) error {
+func ReconcileInitialCNSState(ctx context.Context, ipamReconciler ipam.IpamStateReconciler, podInfoByIPProvider cns.PodInfoByIPProvider) error {
 	// Get previous PodInfo state from podInfoByIPProvider
 	podInfoByIP, err := podInfoByIPProvider.PodInfoByIP()
 	if err != nil {
@@ -18,9 +18,11 @@ func reconcileInitialCNSState(ctx context.Context, ipamReconciler ipam.IpamState
 
 	// Create a network container request that holds all the IPs from PodInfoByIP
 	secondaryIPs := maps.Keys(podInfoByIP)
-	ncRequest, err := CreateNodeSubnetNCRequest("", secondaryIPs)
+	ncRequest, err := CreateNodeSubnetNCRequest(secondaryIPs)
 	if err != nil {
 		return errors.Wrap(err, "ncRequest creation failed")
 	}
+
 	ipamReconciler.ReconcileIPAMState([]*cns.CreateNetworkContainerRequest{ncRequest}, podInfoByIP, nil)
+	return nil
 }

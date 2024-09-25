@@ -1027,8 +1027,13 @@ func main() {
 			return
 		}
 
-		initializeIPState(rootCtx, cnsconfig, httpRemoteRestService, nil, "")
-		httpRemoteRestService.InitializeNodeSubnet(rootCtx)
+		podInfoByIPProvider, err := getPodInfoByIPProvider(rootCtx, cnsconfig, httpRemoteRestService, nil, "")
+		if err != nil {
+			logger.Errorf("[Azure CNS] Failed to get PodInfoByIPProvider: %v", err)
+			return
+		}
+
+		httpRemoteRestService.InitializeNodeSubnet(rootCtx, podInfoByIPProvider)
 	}
 
 	// mark the service as "ready"
@@ -1257,7 +1262,7 @@ func InitializeCRDState(ctx context.Context, httpRestService cns.HTTPService, cn
 		}
 	}
 
-	podInfoByIPProvider, err := initializeIPState(ctx, cnsconfig, httpRestServiceImplementation, clientset, nodeName)
+	podInfoByIPProvider, err := getPodInfoByIPProvider(ctx, cnsconfig, httpRestServiceImplementation, clientset, nodeName)
 	if err != nil {
 		return errors.Wrap(err, "failed to initialize ip state")
 	}
@@ -1471,7 +1476,7 @@ func InitializeCRDState(ctx context.Context, httpRestService cns.HTTPService, cn
 	return nil
 }
 
-func initializeIPState(ctx context.Context, cnsconfig *configuration.CNSConfig, httpRestServiceImplementation *restserver.HTTPRestService, clientset *kubernetes.Clientset, nodeName string) (cns.PodInfoByIPProvider, error) {
+func getPodInfoByIPProvider(ctx context.Context, cnsconfig *configuration.CNSConfig, httpRestServiceImplementation *restserver.HTTPRestService, clientset *kubernetes.Clientset, nodeName string) (cns.PodInfoByIPProvider, error) {
 	var podInfoByIPProvider cns.PodInfoByIPProvider
 	switch {
 	case cnsconfig.ManageEndpointState:
