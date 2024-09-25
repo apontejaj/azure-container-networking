@@ -44,7 +44,8 @@ const (
 	StatusUnauthorized                     ResponseCode = 42
 	UnsupportedAPI                         ResponseCode = 43
 	FailedToAllocateBackendConfig          ResponseCode = 44
-	NodeSubnetSecondaryIPChange            ResponseCode = 45
+	ConnectionError                        ResponseCode = 45
+	NodeSubnetSecondaryIPChange            ResponseCode = 46
 	UnexpectedError                        ResponseCode = 99
 )
 

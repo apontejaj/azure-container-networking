@@ -26,6 +26,7 @@ import (
 	"github.com/Azure/azure-container-networking/cns/cnireconciler"
 	"github.com/Azure/azure-container-networking/cns/common"
 	"github.com/Azure/azure-container-networking/cns/configuration"
+	"github.com/Azure/azure-container-networking/cns/endpointmanager"
 	"github.com/Azure/azure-container-networking/cns/fsnotify"
 	"github.com/Azure/azure-container-networking/cns/grpc"
 	"github.com/Azure/azure-container-networking/cns/healthserver"
@@ -651,16 +652,14 @@ func main() {
 		return
 	}
 
+	// copy ChannelMode from cnsconfig to HTTPRemoteRestService config
+	config.ChannelMode = cnsconfig.ChannelMode
 	if cnsconfig.ChannelMode == cns.Managed {
-		config.ChannelMode = cns.Managed
 		privateEndpoint = cnsconfig.ManagedSettings.PrivateEndpoint
 		infravnet = cnsconfig.ManagedSettings.InfrastructureNetworkID
 		nodeID = cnsconfig.ManagedSettings.NodeID
-	} else if cnsconfig.ChannelMode == cns.CRD {
-		config.ChannelMode = cns.CRD
-	} else if cnsconfig.ChannelMode == cns.MultiTenantCRD {
-		config.ChannelMode = cns.MultiTenantCRD
-	} else if acn.GetArg(acn.OptManaged).(bool) {
+	}
+	if isManaged, ok := acn.GetArg(acn.OptManaged).(bool); ok && isManaged {
 		config.ChannelMode = cns.Managed
 	} else if cnsconfig.ChannelMode == cns.AzureHost {
 		config.ChannelMode = cns.AzureHost
@@ -952,6 +951,8 @@ func main() {
 
 	if cnsconfig.EnableAsyncPodDelete {
 		// Start fs watcher here
+		z.Info("AsyncPodDelete is enabled")
+		logger.Printf("AsyncPodDelete is enabled")
 		cnsclient, err := cnsclient.New("", cnsReqTimeout) //nolint
 		if err != nil {
 			z.Error("failed to create cnsclient", zap.Error(err))
@@ -959,7 +960,13 @@ func main() {
 		go func() {
 			_ = retry.Do(func() error {
 				z.Info("starting fsnotify watcher to process missed Pod deletes")
-				w, err := fsnotify.New(cnsclient, cnsconfig.AsyncPodDeletePath, z)
+				logger.Printf("starting fsnotify watcher to process missed Pod deletes")
+				var endpointCleanup fsnotify.ReleaseIPsClient = cnsclient
+				// using endpointmanager implmentation for stateless CNI sceanrio to remove HNS endpoint alongside the IPs
+				if cnsconfig.IsStalessCNIWindows() {
+					endpointCleanup = endpointmanager.WithPlatformReleaseIPsManager(cnsclient)
+				}
+				w, err := fsnotify.New(endpointCleanup, cnsconfig.AsyncPodDeletePath, z)
 				if err != nil {
 					z.Error("failed to create fsnotify watcher", zap.Error(err))
 					return errors.Wrap(err, "failed to create fsnotify watcher, will retry")

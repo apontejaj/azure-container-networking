@@ -1,8 +1,8 @@
-package nodesubnet
+package refreshticker
 
 import "time"
 
-// TickProvider defines a wrapper for time.Ticker
+// TickProvider defines an interface for a type that provides a channel that ticks at a regular interval
 type TickProvider interface {
 	Stop()
 	Reset(d time.Duration)
@@ -16,7 +16,7 @@ type TimedTickProvider struct {
 
 var _ TickProvider = &TimedTickProvider{}
 
-// NewTickerWrapper creates a new TickerWrapper
+// NewTimedTickProvider creates a new TimedTickProvider
 func NewTimedTickProvider(d time.Duration) *TimedTickProvider {
 	return &TimedTickProvider{ticker: time.NewTicker(d)}
 }

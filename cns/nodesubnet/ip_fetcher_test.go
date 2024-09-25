@@ -3,22 +3,37 @@ package nodesubnet_test
 import (
 	"context"
 	"net/netip"
-	"sync/atomic"
+	"sync"
 	"testing"
-	"time"
 
 	"github.com/Azure/azure-container-networking/cns/nodesubnet"
 	"github.com/Azure/azure-container-networking/nmagent"
+	"github.com/Azure/azure-container-networking/refreshticker"
 )
 
 // Mock client that simply tracks if refresh has been called
 type TestClient struct {
 	refreshCount int32
+	mu           sync.Mutex
+}
+
+// FetchRefreshCount atomically fetches the refresh count
+func (c *TestClient) FetchRefreshCount() int32 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.refreshCount
+}
+
+// UpdateRefreshCount atomically updates the refresh count
+func (c *TestClient) UpdateRefreshCount() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.refreshCount++
 }
 
 // Mock refresh
 func (c *TestClient) GetInterfaceIPInfo(_ context.Context) (nmagent.Interfaces, error) {
-	atomic.AddInt32(&c.refreshCount, 1)
+	c.UpdateRefreshCount()
 	return nmagent.Interfaces{}, nil
 }
 
@@ -27,55 +42,36 @@ var _ nodesubnet.InterfaceRetriever = &TestClient{}
 // Mock client that simply consumes fetched IPs
 type TestConsumer struct {
 	consumeCount int32
+	mu           sync.Mutex
+}
+
+// FetchConsumeCount atomically fetches the consume count
+func (c *TestConsumer) FetchConsumeCount() int32 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.consumeCount
+}
+
+// UpdateConsumeCount atomically updates the consume count
+func (c *TestConsumer) UpdateConsumeCount() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.consumeCount++
 }
 
 // Mock IP update
-func (c *TestConsumer) UpdateIPsForNodeSubnet(_ netip.Addr, _ []netip.Addr) error {
-	atomic.AddInt32(&c.consumeCount, 1)
+func (c *TestConsumer) UpdateIPsForNodeSubnet(_ []netip.Addr) error {
+	c.UpdateConsumeCount()
 	return nil
 }
 
 var _ nodesubnet.IPConsumer = &TestConsumer{}
 
-// MockTickProvider is a mock implementation of the TickProvider interface
-type MockTickProvider struct {
-	tickChan        chan time.Time
-	currentDuration time.Duration
-}
-
-// NewMockTickProvider creates a new MockTickProvider
-func NewMockTickProvider() *MockTickProvider {
-	return &MockTickProvider{
-		tickChan: make(chan time.Time, 1),
-	}
-}
-
-// C returns the channel on which ticks are delivered
-func (m *MockTickProvider) C() <-chan time.Time {
-	return m.tickChan
-}
-
-// Stop stops the ticker
-func (m *MockTickProvider) Stop() {
-	close(m.tickChan)
-}
-
-// Tick manually sends a tick to the channel
-func (m *MockTickProvider) Tick() {
-	m.tickChan <- time.Now()
-}
-
-func (m *MockTickProvider) Reset(d time.Duration) {
-	m.currentDuration = d
-}
-
-var _ nodesubnet.TickProvider = &MockTickProvider{}
-
 func TestRefresh(t *testing.T) {
 	clientPtr := &TestClient{}
 	consumerPtr := &TestConsumer{}
 	fetcher := nodesubnet.NewIPFetcher(clientPtr, consumerPtr, 0, 0)
-	ticker := NewMockTickProvider()
+	ticker := refreshticker.NewMockTickProvider()
 	fetcher.SetTicker(ticker)
 	ctx, cancel := testContext(t)
 	defer cancel()
@@ -85,12 +81,12 @@ func TestRefresh(t *testing.T) {
 	ticker.Tick() // This call will block until the prevous tick is read
 
 	// At least 2 refreshes - one initial and one after the first tick should be done
-	if atomic.LoadInt32(&clientPtr.refreshCount) < 2 {
+	if clientPtr.FetchRefreshCount() < 2 {
 		t.Error("Not enough refreshes")
 	}
 
-	// At least 2 consumes - one initial and one after the first tick should be done
-	if atomic.LoadInt32(&consumerPtr.consumeCount) > 0 {
+	// No consumes, since the responses are empty
+	if consumerPtr.FetchConsumeCount() > 0 {
 		t.Error("Consume called unexpectedly, shouldn't be called since responses are empty")
 	}
 }
@@ -100,7 +96,7 @@ func TestIntervalUpdate(t *testing.T) {
 	consumerPtr := &TestConsumer{}
 	fetcher := nodesubnet.NewIPFetcher(clientPtr, consumerPtr, 0, 0)
 	interval := fetcher.GetCurrentQueryInterval()
-	ticker := NewMockTickProvider()
+	ticker := refreshticker.NewMockTickProvider()
 	fetcher.SetTicker(ticker)
 
 	if interval != nodesubnet.DefaultMinRefreshInterval {
@@ -113,7 +109,7 @@ func TestIntervalUpdate(t *testing.T) {
 		if interval == nodesubnet.DefaultMaxRefreshInterval {
 			exp = nodesubnet.DefaultMaxRefreshInterval
 		}
-		if fetcher.GetCurrentQueryInterval() != exp || ticker.currentDuration != exp {
+		if fetcher.GetCurrentQueryInterval() != exp || ticker.GetCurrentDuration() != exp {
 			t.Error("Interval not updated correctly")
 		} else {
 			interval = exp
@@ -122,7 +118,7 @@ func TestIntervalUpdate(t *testing.T) {
 
 	fetcher.UpdateFetchIntervalForObservedDiff()
 
-	if fetcher.GetCurrentQueryInterval() != nodesubnet.DefaultMinRefreshInterval || ticker.currentDuration != nodesubnet.DefaultMinRefreshInterval {
+	if fetcher.GetCurrentQueryInterval() != nodesubnet.DefaultMinRefreshInterval || ticker.GetCurrentDuration() != nodesubnet.DefaultMinRefreshInterval {
 		t.Error("Observed diff update incorrect")
 	}
 }
