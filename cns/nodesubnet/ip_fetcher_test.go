@@ -60,7 +60,7 @@ func (c *TestConsumer) UpdateConsumeCount() {
 }
 
 // Mock IP update
-func (c *TestConsumer) UpdateIPsForNodeSubnet(_ netip.Addr, _ []netip.Addr) error {
+func (c *TestConsumer) UpdateIPsForNodeSubnet(_ []netip.Addr) error {
 	c.UpdateConsumeCount()
 	return nil
 }

@@ -27,7 +27,7 @@ type InterfaceRetriever interface {
 
 // IPConsumer is an interface implemented by whoever consumes the secondary IPs fetched in nodesubnet
 type IPConsumer interface {
-	UpdateIPsForNodeSubnet(netip.Addr, []netip.Addr) error
+	UpdateIPsForNodeSubnet([]netip.Addr) error
 }
 
 // IPFetcher fetches secondary IPs from NMAgent at regular intervals. The
@@ -133,8 +133,8 @@ func (c *IPFetcher) RefreshSecondaryIPs(ctx context.Context) error {
 		return errors.New("no interfaces found in response from NMAgent")
 	}
 
-	primaryIP, secondaryIPs := flattenIPListFromResponse(&response)
-	err = c.consumer.UpdateIPsForNodeSubnet(primaryIP, secondaryIPs)
+	_, secondaryIPs := flattenIPListFromResponse(&response)
+	err = c.consumer.UpdateIPsForNodeSubnet(secondaryIPs)
 	if err != nil {
 		return errors.Wrap(err, "updating secondary IPs")
 	}
