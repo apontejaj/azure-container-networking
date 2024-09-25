@@ -655,7 +655,7 @@ func checkForNamedPortType(portKind netpolPortType, npmLiteToggle bool) error {
 	return nil
 }
 
-func checkOnlyPortRuleExists(portRuleExists bool, peerRuleExists bool, allowExternal bool, ports []networkingv1.NetworkPolicyPort, npmLiteToggle bool, direction policies.Direction, npmNetPol *policies.NPMNetworkPolicy) error {
+func checkOnlyPortRuleExists(portRuleExists, peerRuleExists, allowExternal bool, ports []networkingv1.NetworkPolicyPort, npmLiteToggle bool, direction policies.Direction, npmNetPol *policies.NPMNetworkPolicy) error {
 	// #1. Only Ports fields exist in rule
 	if portRuleExists && !peerRuleExists && !allowExternal {
 		for i := range ports {
