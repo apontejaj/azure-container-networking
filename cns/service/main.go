@@ -1476,12 +1476,11 @@ func InitializeCRDState(ctx context.Context, httpRestService cns.HTTPService, cn
 	return nil
 }
 
-func getPodInfoByIPProvider(ctx context.Context, cnsconfig *configuration.CNSConfig, httpRestServiceImplementation *restserver.HTTPRestService, clientset *kubernetes.Clientset, nodeName string) (cns.PodInfoByIPProvider, error) {
-	var podInfoByIPProvider cns.PodInfoByIPProvider
+func getPodInfoByIPProvider(ctx context.Context, cnsconfig *configuration.CNSConfig, httpRestServiceImplementation *restserver.HTTPRestService, clientset *kubernetes.Clientset, nodeName string) (podInfoByIPProvider cns.PodInfoByIPProvider, err error) {
 	switch {
 	case cnsconfig.ManageEndpointState:
 		logger.Printf("Initializing from self managed endpoint store")
-		podInfoByIPProvider, err := cnireconciler.NewCNSPodInfoProvider(httpRestServiceImplementation.EndpointStateStore) // get reference to endpoint state store from rest server
+		podInfoByIPProvider, err = cnireconciler.NewCNSPodInfoProvider(httpRestServiceImplementation.EndpointStateStore) // get reference to endpoint state store from rest server
 		if err != nil {
 			if errors.Is(err, store.ErrKeyNotFound) {
 				logger.Printf("[Azure CNS] No endpoint state found, skipping initializing CNS state")
@@ -1491,7 +1490,7 @@ func getPodInfoByIPProvider(ctx context.Context, cnsconfig *configuration.CNSCon
 		}
 	case cnsconfig.InitializeFromCNI:
 		logger.Printf("Initializing from CNI")
-		podInfoByIPProvider, err := cnireconciler.NewCNIPodInfoProvider()
+		podInfoByIPProvider, err = cnireconciler.NewCNIPodInfoProvider()
 		if err != nil {
 			return podInfoByIPProvider, errors.Wrap(err, "failed to create CNI PodInfoProvider")
 		}
