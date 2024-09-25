@@ -1015,6 +1015,12 @@ func main() {
 	}
 
 	if config.ChannelMode == cns.AzureHost {
+		if !cnsconfig.ManageEndpointState {
+			logger.Errorf("[Azure CNS] ManageEndpointState must be set to true for AzureHost mode")
+			return
+		}
+
+		initializeIPState(rootCtx, cnsconfig, httpRemoteRestService, nil, "")
 		httpRemoteRestService.InitializeNodeSubnet(rootCtx)
 	}
 
@@ -1248,40 +1254,11 @@ func InitializeCRDState(ctx context.Context, httpRestService cns.HTTPService, cn
 		}
 	}
 
-	var podInfoByIPProvider cns.PodInfoByIPProvider
-	switch {
-	case cnsconfig.ManageEndpointState:
-		logger.Printf("Initializing from self managed endpoint store")
-		podInfoByIPProvider, err = cnireconciler.NewCNSPodInfoProvider(httpRestServiceImplementation.EndpointStateStore) // get reference to endpoint state store from rest server
-		if err != nil {
-			if errors.Is(err, store.ErrKeyNotFound) {
-				logger.Printf("[Azure CNS] No endpoint state found, skipping initializing CNS state")
-			} else {
-				return errors.Wrap(err, "failed to create CNS PodInfoProvider")
-			}
-		}
-	case cnsconfig.InitializeFromCNI:
-		logger.Printf("Initializing from CNI")
-		podInfoByIPProvider, err = cnireconciler.NewCNIPodInfoProvider()
-		if err != nil {
-			return errors.Wrap(err, "failed to create CNI PodInfoProvider")
-		}
-	default:
-		logger.Printf("Initializing from Kubernetes")
-		podInfoByIPProvider = cns.PodInfoByIPProviderFunc(func() (map[string]cns.PodInfo, error) {
-			pods, err := clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{ //nolint:govet // ignore err shadow
-				FieldSelector: "spec.nodeName=" + nodeName,
-			})
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to list Pods for PodInfoProvider")
-			}
-			podInfo, err := cns.KubePodsToPodInfoByIP(pods.Items)
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to convert Pods to PodInfoByIP")
-			}
-			return podInfo, nil
-		})
+	podInfoByIPProvider, err := initializeIPState(ctx, cnsconfig, httpRestServiceImplementation, clientset, nodeName)
+	if err != nil {
+		return errors.Wrap(err, "failed to initialize ip state")
 	}
+
 	// create scoped kube clients.
 	directcli, err := client.New(kubeConfig, client.Options{Scheme: nodenetworkconfig.Scheme})
 	if err != nil {
@@ -1489,6 +1466,45 @@ func InitializeCRDState(ctx context.Context, httpRestService cns.HTTPService, cn
 	}()
 	logger.Printf("Initialized SyncHostNCVersion loop.")
 	return nil
+}
+
+func initializeIPState(ctx context.Context, cnsconfig *configuration.CNSConfig, httpRestServiceImplementation *restserver.HTTPRestService, clientset *kubernetes.Clientset, nodeName string) (cns.PodInfoByIPProvider, error) {
+	var podInfoByIPProvider cns.PodInfoByIPProvider
+	switch {
+	case cnsconfig.ManageEndpointState:
+		logger.Printf("Initializing from self managed endpoint store")
+		podInfoByIPProvider, err := cnireconciler.NewCNSPodInfoProvider(httpRestServiceImplementation.EndpointStateStore) // get reference to endpoint state store from rest server
+		if err != nil {
+			if errors.Is(err, store.ErrKeyNotFound) {
+				logger.Printf("[Azure CNS] No endpoint state found, skipping initializing CNS state")
+			} else {
+				return podInfoByIPProvider, errors.Wrap(err, "failed to create CNS PodInfoProvider")
+			}
+		}
+	case cnsconfig.InitializeFromCNI:
+		logger.Printf("Initializing from CNI")
+		podInfoByIPProvider, err := cnireconciler.NewCNIPodInfoProvider()
+		if err != nil {
+			return podInfoByIPProvider, errors.Wrap(err, "failed to create CNI PodInfoProvider")
+		}
+	default:
+		logger.Printf("Initializing from Kubernetes")
+		podInfoByIPProvider = cns.PodInfoByIPProviderFunc(func() (map[string]cns.PodInfo, error) {
+			pods, err := clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{ //nolint:govet // ignore err shadow
+				FieldSelector: "spec.nodeName=" + nodeName,
+			})
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to list Pods for PodInfoProvider")
+			}
+			podInfo, err := cns.KubePodsToPodInfoByIP(pods.Items)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to convert Pods to PodInfoByIP")
+			}
+			return podInfo, nil
+		})
+	}
+
+	return podInfoByIPProvider, nil
 }
 
 // createOrUpdateNodeInfoCRD polls imds to learn the VM Unique ID and then creates or updates the NodeInfo CRD
