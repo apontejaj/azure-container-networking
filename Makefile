@@ -428,8 +428,11 @@ ipv6-hp-bpf-image-pull: ## pull ipv6-hp-bpf container image.
 
 # cns
 
-cns-image-name-and-tag: # util target to print the cni image name and tag.
+cns-image-name-and-tag: # util target to print the cns image name and tag.
 	@echo $(IMAGE_REGISTRY)/$(CNS_IMAGE):$(CNS_PLATFORM_TAG)
+
+cns-image-name-and-tag-multiarch: # util target to print the cns image name and tag.
+	@echo $(IMAGE_REGISTRY)/$(CNS_IMAGE):$(CNS_VERSION)
 
 # cni
 
