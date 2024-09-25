@@ -5,6 +5,7 @@ import (
 
 	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/cns/ipam"
+	"github.com/Azure/azure-container-networking/cns/logger"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/maps"
 )
@@ -15,6 +16,8 @@ func ReconcileInitialCNSState(ctx context.Context, ipamReconciler ipam.IpamState
 	if err != nil {
 		return errors.Wrap(err, "provider failed to provide PodInfoByIP")
 	}
+
+	logger.Printf("Reconciling initial CNS state with %d IPs", len(podInfoByIP))
 
 	// Create a network container request that holds all the IPs from PodInfoByIP
 	secondaryIPs := maps.Keys(podInfoByIP)

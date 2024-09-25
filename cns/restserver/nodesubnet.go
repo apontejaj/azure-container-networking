@@ -49,7 +49,9 @@ func (service *HTTPRestService) InitializeNodeSubnet(ctx context.Context, podInf
 	}
 	service.SetNodeOrchestrator(&orchestrator)
 	service.nodesubnetIPFetcher = nodesubnet.NewIPFetcher(service.nma, service, 0, 0)
-	if err := nodesubnet.ReconcileInitialCNSState(ctx, service, podInfoByIPProvider); err != nil {
+	if podInfoByIPProvider == nil {
+		logger.Printf("PodInfoByIPProvider is nil, this usually means no saved endpoint state. Skipping reconciliation")
+	} else if err := nodesubnet.ReconcileInitialCNSState(ctx, service, podInfoByIPProvider); err != nil {
 		return errors.Wrap(err, "reconcile initial CNS state")
 	}
 
