@@ -660,7 +660,8 @@ func checkOnlyPortRuleExists(
 	peerRuleExists,
 	allowExternal bool,
 	ports []networkingv1.NetworkPolicyPort,
-	npmLiteToggle bool, direction policies.Direction,
+	npmLiteToggle bool,
+	direction policies.Direction,
 	npmNetPol *policies.NPMNetworkPolicy) error {
 	// #1. Only Ports fields exist in rule
 	if portRuleExists && !peerRuleExists && !allowExternal {
