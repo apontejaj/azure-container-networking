@@ -67,7 +67,8 @@ steps:
         set -ex
         source ./.pipelines/multitenancy/scripts/utils.sh
         export_envVars ${{ parameters.scenario }} 
-        echo "Update CNI and CNS"
+        echo "Deploying on Linux nodes"
+        export CNI_IMAGE=$(make cni-image-name-and-tag-multiarch CNI_VERSION=$(make cni-version))
         make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }} GROUP=$RG
         echo "Keep CNS version up to date, grabbing pipeline parameter"
         CNS_IMAGE=$(make cns-image-name-and-tag-multiarch)
@@ -76,7 +77,6 @@ steps:
         sed -i '/- name: cni-installer/,/volumeMounts:/ {    
           /command: \["\/dropgz"\]/!b; a \ \ \ \ \ \ \ \ \ \ args:\n\ \ \ \ \ \ \ \ \ \ \ \ - deploy\n\ \ \ \ \ \ \ \ \ \ \ \ - --skip-verify\n\ \ \ \ \ \ \ \ \ \ \ \ - azure-vnet\n\ \ \ \ \ \ \ \ \ \ \ \ - -o\n\ \ \ \ \ \ \ \ \ \ \ \ - /opt/cni/bin/azure-vnet\n\ \ \ \ \ \ \ \ \ \ \ \ - azure-vnet-telemetry\n\ \ \ \ \ \ \ \ \ \ \ \ - -o\n\ \ \ \ \ \ \ \ \ \ \ \ - /opt/cni/bin/azure-vnet-telemetry
         }' ./test/integration/manifests/cns/daemonset-linux.yaml
-        cat ./test/integration/manifests/cns/daemonset-linux.yaml
         kubectl apply -f ./test/integration/manifests/cns/daemonset-linux.yaml
         kubectl rollout status daemonset/azure-cns -n kube-system
         kubectl get pod -A
