@@ -389,21 +389,9 @@ func translateRule(npmNetPol *policies.NPMNetworkPolicy,
 		return nil
 	}
 
-	// #1. Only Ports fields exist in rule
-	if portRuleExists && !peerRuleExists && !allowExternal {
-		for i := range ports {
-			portKind, err := portType(ports[i])
-			if err != nil {
-				return err
-			}
-			err = checkForNamedPortType(portKind, npmLiteToggle)
-			if err != nil {
-				return err
-			}
-			portACL := policies.NewACLPolicy(policies.Allowed, direction)
-			npmNetPol.RuleIPSets = portRule(npmNetPol.RuleIPSets, portACL, &ports[i], portKind)
-			npmNetPol.ACLs = append(npmNetPol.ACLs, portACL)
-		}
+	var err = checkOnlyPortRuleExists(portRuleExists, peerRuleExists, allowExternal, ports, npmLiteToggle, direction, npmNetPol)
+	if err != nil {
+		return err
 	}
 
 	// #2. From or To fields exist in rule
@@ -663,6 +651,26 @@ func npmLiteValidPolicy(peer networkingv1.NetworkPolicyPeer, npmLiteEnabled bool
 func checkForNamedPortType(portKind netpolPortType, npmLiteToggle bool) error {
 	if npmLiteToggle && portKind == namedPortType {
 		return ErrUnsupportedNonCIDR
+	}
+	return nil
+}
+
+func checkOnlyPortRuleExists(portRuleExists bool, peerRuleExists bool, allowExternal bool, ports []networkingv1.NetworkPolicyPort, npmLiteToggle bool, direction policies.Direction, npmNetPol *policies.NPMNetworkPolicy) error {
+	// #1. Only Ports fields exist in rule
+	if portRuleExists && !peerRuleExists && !allowExternal {
+		for i := range ports {
+			portKind, err := portType(ports[i])
+			if err != nil {
+				return err
+			}
+			err = checkForNamedPortType(portKind, npmLiteToggle)
+			if err != nil {
+				return err
+			}
+			portACL := policies.NewACLPolicy(policies.Allowed, direction)
+			npmNetPol.RuleIPSets = portRule(npmNetPol.RuleIPSets, portACL, &ports[i], portKind)
+			npmNetPol.ACLs = append(npmNetPol.ACLs, portACL)
+		}
 	}
 	return nil
 }
