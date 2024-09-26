@@ -286,11 +286,17 @@ func (service *HTTPRestService) ReconcileIPAMState(ncReqs []*cns.CreateNetworkCo
 	// first step in reconciliation is to create all the NCs in CNS, no IP assignment yet.
 	for _, ncReq := range ncReqs {
 		returnCode := service.CreateOrUpdateNetworkContainerInternal(ncReq)
-		if returnCode != types.Success {
+		if ncReq.NetworkContainerType == cns.NodeSubnet {
+			if returnCode != types.NodeSubnetSecondaryIPChange {
+				logger.Errorf("IPAM reconciliation didn't add IPs in nodesubnet")
+				return returnCode
+			}
+		} else if returnCode != types.Success {
 			return returnCode
 		}
 	}
 
+	logger.Printf("Saved NC")
 	// index all the secondary IP configs for all the nc reqs, for easier lookup later on.
 	allSecIPsIdx := make(map[string]*cns.CreateNetworkContainerRequest)
 	for i := range ncReqs {
@@ -298,6 +304,8 @@ func (service *HTTPRestService) ReconcileIPAMState(ncReqs []*cns.CreateNetworkCo
 			allSecIPsIdx[secIPConfig.IPAddress] = ncReqs[i]
 		}
 	}
+
+	logger.Printf("0")
 
 	// we now need to reconcile IP assignment.
 	// considering that a single pod may have multiple ips (such as in dual stack scenarios)
@@ -327,7 +335,10 @@ func (service *HTTPRestService) ReconcileIPAMState(ncReqs []*cns.CreateNetworkCo
 		return types.UnexpectedError
 	}
 
+	logger.Printf("1")
+
 	for podKey, podIPs := range podKeyToPodIPs {
+		logger.Printf("Pod is %s", podKey)
 		var (
 			desiredIPs []string
 			ncIDs      []string
@@ -378,9 +389,11 @@ func (service *HTTPRestService) ReconcileIPAMState(ncReqs []*cns.CreateNetworkCo
 		}
 	}
 
-	if err := service.MarkExistingIPsAsPendingRelease(nnc.Spec.IPsNotInUse); err != nil {
-		logger.Errorf("[Azure CNS] Error. Failed to mark IPs as pending %v", nnc.Spec.IPsNotInUse)
-		return types.UnexpectedError
+	if nnc != nil {
+		if err := service.MarkExistingIPsAsPendingRelease(nnc.Spec.IPsNotInUse); err != nil {
+			logger.Errorf("[Azure CNS] Error. Failed to mark IPs as pending %v", nnc.Spec.IPsNotInUse)
+			return types.UnexpectedError
+		}
 	}
 
 	return 0
