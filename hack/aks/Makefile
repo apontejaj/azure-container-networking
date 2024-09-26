@@ -96,7 +96,7 @@ cilium-up: swift-cilium-up ## Alias to swift-cilium-up
 up: swift-up ## Alias to swift-up
 
 
-nodesubnet-cilium-up: rg-up overlay-net-up ## Brings up an Overlay BYO CNI cluster without kube-proxy
+nodesubnet-byocni-nokubeproxy-up: rg-up overlay-net-up ## Brings up an NodeSubnet BYO CNI cluster without kube-proxy
 	$(AZCLI) aks create -n $(CLUSTER) -g $(GROUP) -l $(REGION) \
 		--auto-upgrade-channel $(AUTOUPGRADE) \
 		--node-os-upgrade-channel $(NODEUPGRADE) \
