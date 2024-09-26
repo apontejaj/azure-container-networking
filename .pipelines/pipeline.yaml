@@ -409,6 +409,7 @@ stages:
         name: "swiftv2_e2e"
         displayName: Swiftv2 Multitenancy
         os: linux
+        arch: amd64
         clusterType: swiftv2-multitenancy-cluster-up
         clusterName: "mtacluster"
         nodePoolName: "mtapool"
@@ -417,6 +418,7 @@ stages:
         dummyClusterName: "swiftv2dummy"
         dummyClusterType: "swiftv2-dummy-cluster-up"
         dummyClusterDisplayName: Swiftv2 Multitenancy Dummy Cluster
+        scenario: westcentralus
 
     - stage: delete
       displayName: Delete Clusters
@@ -507,10 +509,10 @@ stages:
                 name: swiftv2_e2e
                 clusterName: "mtacluster"
                 region: $(REGION_SWIFTV2_CLUSTER_TEST)
-              swiftv2_dummy_e2e:
-                name: swiftv2_dummy_e2e
-                clusterName: "swiftv2dummy"
-                region: $(REGION_SWIFTV2_CLUSTER_TEST)
+              # swiftv2_dummy_e2e:
+              #   name: swiftv2_dummy_e2e
+              #   clusterName: "swiftv2dummy"
+              #   region: $(REGION_SWIFTV2_CLUSTER_TEST)
           steps:
             - template: templates/delete-cluster.yaml
               parameters:
@@ -519,3 +521,4 @@ stages:
                 region: $(region)
                 sub: $(SUB_AZURE_NETWORK_AGENT_TEST)
                 svcConn: $(ACN_TEST_SERVICE_CONNECTION)
+                scenario: westcentralus
