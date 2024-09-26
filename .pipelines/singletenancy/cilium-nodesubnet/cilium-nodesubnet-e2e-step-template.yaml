@@ -4,18 +4,6 @@ parameters:
   scaleup: ""
 
 steps:
-  - task: AzureCLI@2
-    inputs:
-      azureSubscription: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
-      scriptLocation: "inlineScript"
-      scriptType: "bash"
-      addSpnToEnvironment: true
-      displayName: 'Update IP configs'
-      inlineScript: |
-          set -e
-          clusterName=${{ parameters.clusterName }}
-          SECONDARY_CONFIG_COUNT=64 RESOURCE_GROUP="MC_${clusterName}_${clusterName}_$(REGION_AKS_CLUSTER_TEST)" go run ./ipconfigupdate.go
-
   - bash: |
       echo $UID
       sudo rm -rf $(System.DefaultWorkingDirectory)/*
@@ -33,6 +21,18 @@ steps:
       echo '##vso[task.prependpath]$(GOROOT)/bin'
     name: "GoEnv"
     displayName: "Set up the Go environment"
+
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
+      scriptLocation: "inlineScript"
+      scriptType: "bash"
+      addSpnToEnvironment: true
+      displayName: 'Update IP configs'
+      inlineScript: |
+          set -e
+          clusterName=${{ parameters.clusterName }}
+          SECONDARY_CONFIG_COUNT=64 RESOURCE_GROUP="MC_${clusterName}_${clusterName}_$(REGION_AKS_CLUSTER_TEST)" go run ./ipconfigupdate.go
 
   - task: KubectlInstaller@0
     inputs:
