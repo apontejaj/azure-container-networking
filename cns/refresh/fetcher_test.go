@@ -7,7 +7,6 @@ import (
 
 	"github.com/Azure/azure-container-networking/cns/nodesubnet"
 	"github.com/Azure/azure-container-networking/nmagent"
-	"github.com/Azure/azure-container-networking/refresh"
 )
 
 // Mock client that simply tracks if refresh has been called
