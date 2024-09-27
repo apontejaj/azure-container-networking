@@ -288,7 +288,7 @@ stages:
       parameters:
         name: "cilium_nodesubnet_e2e"
         displayName: Cilium NodeSubnet
-        clusterType: nodesubnet-cilium-up
+        clusterType: nodesubnet-byocni-nokubeproxy-up
         clusterName: "cilndsubnete2e"
         vmSize: Standard_B2s
         k8sVersion: ""
