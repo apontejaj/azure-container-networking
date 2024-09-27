@@ -1,7 +1,7 @@
 parameters:
   dependsOn: ""
   name: "cilium_nodesubnet_e2e"
-  clusterType: "nodesubnet-cilium-up"
+  clusterType: "nodesubnet-byocni-nokubeproxy-up"
   clusterName: "cilndsubnete2e"
   vmSize: ""
   os: "linux"
