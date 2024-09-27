@@ -125,7 +125,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	command = fmt.Sprintf("az vmss update -g %s -n %s --set virtualMachineProfile.networkProfile='%s'", resourceGroup, vmssName, string(networkProfileJSON))
+	escapedNetworkProfileJSON := strings.ReplaceAll(string(networkProfileJSON), `\`, `\\`)
+	escapedNetworkProfileJSON = strings.ReplaceAll(escapedNetworkProfileJSON, `'`, `\'`)
+
+	command = fmt.Sprintf("az vmss update -g %s -n %s --set virtualMachineProfile.networkProfile='%s'", resourceGroup, vmssName, escapedNetworkProfileJSON)
 	fmt.Println("Command to update VMSS: ", command)
 	_, err = runCommand(command)
 	if err != nil {
