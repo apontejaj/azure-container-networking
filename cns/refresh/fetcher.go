@@ -99,7 +99,7 @@ func (f *Fetcher[T]) Start(ctx context.Context) {
 }
 
 func (f *Fetcher[T]) updateFetchIntervalForNoObservedDiff() {
-	f.currentInterval = min(f.currentInterval*2, f.maxInterval)
+	f.currentInterval = min(f.currentInterval*2, f.maxInterval) // nolint:gomnd // doubling logic
 }
 
 func (f *Fetcher[T]) updateFetchIntervalForObservedDiff() {

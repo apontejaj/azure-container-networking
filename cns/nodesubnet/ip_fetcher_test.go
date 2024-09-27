@@ -50,7 +50,10 @@ func (c *TestClient) GetInterfaceIPInfo(_ context.Context) (nmagent.Interfaces, 
 func TestEmptyResponse(t *testing.T) {
 	consumerPtr := &TestConsumer{}
 	fetcher := nodesubnet.NewIPFetcher(&TestClient{}, consumerPtr, 0, 0)
-	fetcher.ProcessInterfaces(nmagent.Interfaces{})
+	err := fetcher.ProcessInterfaces(nmagent.Interfaces{})
+	if err != nil {
+		t.Error("Error processing empty interfaces")
+	}
 
 	// No consumes, since the responses are empty
 	if consumerPtr.FetchConsumeCount() > 0 {
@@ -84,7 +87,10 @@ func TestFlatten(t *testing.T) {
 	}
 	consumerPtr := &TestConsumer{}
 	fetcher := nodesubnet.NewIPFetcher(&TestClient{}, consumerPtr, 0, 0)
-	fetcher.ProcessInterfaces(interfaces)
+	err := fetcher.ProcessInterfaces(interfaces)
+	if err != nil {
+		t.Error("Error processing interfaces")
+	}
 
 	// 1 consume to be called
 	if consumerPtr.FetchConsumeCount() != 1 {
