@@ -33,7 +33,7 @@ steps:
           set -e
           clusterName=${{ parameters.clusterName }}
           SECONDARY_CONFIG_COUNT=64 RESOURCE_GROUP="MC_${clusterName}_${clusterName}_$(REGION_AKS_CLUSTER_TEST)" \
-          go run $(Build.SourcesDirectory)/.pipelines/singletenancy/cilium-nodesubnet/ipconfigupdate.go
+          go run $(Build.SourcesDirectory)/test/integration/cilium-nodesubnet/ipconfigupdate.go
 
   - task: KubectlInstaller@0
     inputs:
