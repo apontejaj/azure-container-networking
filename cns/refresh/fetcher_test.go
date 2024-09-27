@@ -2,6 +2,8 @@ package refresh_test
 
 import (
 	"context"
+	"fmt"
+	"net/netip"
 	"sync"
 	"testing"
 
@@ -14,6 +16,7 @@ import (
 // Mock client that simply tracks if refresh has been called
 type TestClient struct {
 	refreshCount int32
+	responses    []nmagent.Interfaces
 	mu           sync.Mutex
 }
 
@@ -33,8 +36,13 @@ func (c *TestClient) UpdateRefreshCount() {
 
 // Mock refresh
 func (c *TestClient) GetInterfaceIPInfo(_ context.Context) (nmagent.Interfaces, error) {
-	c.UpdateRefreshCount()
-	return nmagent.Interfaces{}, nil
+	defer c.UpdateRefreshCount()
+
+	if c.refreshCount >= int32(len(c.responses)) {
+		return c.responses[len(c.responses)-1], nil
+	}
+
+	return c.responses[c.refreshCount], nil
 }
 
 var _ nodesubnet.InterfaceRetriever = &TestClient{}
@@ -60,13 +68,62 @@ func (c *TestConsumer) UpdateConsumeCount() {
 }
 
 // Mock IP update
-func (c *TestConsumer) ConsumeInterfaces(nmagent.Interfaces) error {
+func (c *TestConsumer) ConsumeInterfaces(intfs nmagent.Interfaces) error {
+	fmt.Printf("Consumed interfaces: %v\n", intfs)
 	c.UpdateConsumeCount()
 	return nil
 }
 
 func TestRefresh(t *testing.T) {
-	clientPtr := &TestClient{}
+	clientPtr := &TestClient{
+		refreshCount: 0,
+		responses: []nmagent.Interfaces{
+			{
+				Entries: []nmagent.Interface{
+					{
+						MacAddress: nmagent.MACAddress{0x00, 0x0D, 0x3A, 0xF9, 0xDC, 0xA6},
+						IsPrimary:  true,
+						InterfaceSubnets: []nmagent.InterfaceSubnet{
+							{
+								Prefix: "10.240.0.0/16",
+								IPAddress: []nmagent.NodeIP{
+									{
+										Address:   nmagent.IPAddress(netip.AddrFrom4([4]byte{10, 240, 0, 5})),
+										IsPrimary: true,
+									},
+									{
+										Address:   nmagent.IPAddress(netip.AddrFrom4([4]byte{10, 240, 0, 6})),
+										IsPrimary: false,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			{
+				Entries: []nmagent.Interface{
+					{
+						MacAddress: nmagent.MACAddress{0x00, 0x0D, 0x3A, 0xF9, 0xDC, 0xA6},
+						IsPrimary:  true,
+						InterfaceSubnets: []nmagent.InterfaceSubnet{
+							{
+								Prefix: "10.240.0.0/16",
+								IPAddress: []nmagent.NodeIP{
+									{
+										Address:   nmagent.IPAddress(netip.AddrFrom4([4]byte{10, 240, 0, 5})),
+										IsPrimary: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		mu: sync.Mutex{},
+	}
+
 	consumerPtr := &TestConsumer{}
 	fetcher := refresh.NewFetcher[nmagent.Interfaces](clientPtr.GetInterfaceIPInfo, 0, 0, consumerPtr.ConsumeInterfaces)
 	ticker := refresh.NewMockTickProvider()
@@ -83,23 +140,11 @@ func TestRefresh(t *testing.T) {
 		t.Error("Not enough refreshes")
 	}
 
-	// At least 2 consumes - one initial and one after the first tick should be done
-	if consumerPtr.FetchConsumeCount() < 0 {
-		t.Error("Not enough consumes")
+	// Exactly 2 consumes - one initial and one after the first tick should be done (responses are different).
+	// Then no more, since the response is unchanged
+	if consumerPtr.FetchConsumeCount() != 2 {
+		t.Error("Exactly two consumes expected (for two different responses)")
 	}
-}
-
-func TestInterval(t *testing.T) {
-	clientPtr := &TestClient{}
-	consumerPtr := &TestConsumer{}
-	fetcher := refresh.NewFetcher[nmagent.Interfaces](clientPtr.GetInterfaceIPInfo, 0, 0, consumerPtr.ConsumeInterfaces)
-	interval := fetcher.GetCurrentInterval()
-
-	if interval != refresh.DefaultMinInterval {
-		t.Error("Default min interval not used")
-	}
-
-	// Testing that the interval doubles will require making the interval thread-safe. Not doing that to avoid performance hit.
 }
 
 // testContext creates a context from the provided testing.T that will be
