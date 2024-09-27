@@ -23,12 +23,12 @@ steps:
     displayName: "Set up the Go environment"
 
   - task: AzureCLI@2
+    displayName: 'Update IP configs'
     inputs:
       azureSubscription: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
       scriptLocation: "inlineScript"
       scriptType: "bash"
       addSpnToEnvironment: true
-      displayName: 'Update IP configs'
       inlineScript: |
           set -e
           clusterName=${{ parameters.clusterName }}
