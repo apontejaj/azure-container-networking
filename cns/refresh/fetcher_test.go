@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-container-networking/cns/nodesubnet"
+	"github.com/Azure/azure-container-networking/cns/refresh"
 	"github.com/Azure/azure-container-networking/nmagent"
 )
 
