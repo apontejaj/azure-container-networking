@@ -4,51 +4,6 @@ parameters:
   scaleup: ""
 
 steps:
-  - task: AzureCLI@2
-    displayName: 'Update IP configs'
-    inputs:
-      azureSubscription: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
-      scriptLocation: "inlineScript"
-      scriptType: "bash"
-      addSpnToEnvironment: true
-      inlineScript: |
-          set -e
-          clusterName=${{ parameters.clusterName }}
-          secondary_config_count=64
-          RESOURCE_GROUP="MC_${clusterName}_${clusterName}_$(REGION_AKS_CLUSTER_TEST)"
-          VMSS_NAME=$(az vmss list -g "$RESOURCE_GROUP" --query '[0].name' -o tsv)
-          if [ -z "$VMSS_NAME" ]; then
-              echo "Failed to get VMSS name."
-              exit 1
-          fi
-
-          vmss_info=$(az vmss show -g "$RESOURCE_GROUP" -n "$VMSS_NAME")
-
-          secondary_configs=()
-
-          network_profile=$(echo "$vmss_info" | jq -r '.virtualMachineProfile.networkProfile')
-
-          if [ "$network_profile" != "null" ]; then
-              network_interface_configurations=$(echo "$network_profile" | jq -c '.networkInterfaceConfigurations[]')
-              for nic_config in $network_interface_configurations; do
-                  primary_ip_config=$(echo "$nic_config" | jq -c '.ipConfigurations[] | select(.primary == true)')
-
-                  if [ ! -z "$primary_ip_config" ]; then
-                      for ((i=2; i<=secondary_config_count+1; i++)); do
-                          ip_config_name="ipconfig$i"
-                          new_ip_config=$(echo "$primary_ip_config" | jq --arg name "$ip_config_name" '.name = $name | .primary = false')
-                          secondary_configs+=("$new_ip_config")
-                      done
-                  fi
-
-                  updated_ip_configs=$(echo "$nic_config" | jq --argjson new_configs "$(printf '%s\n' "${secondary_configs[@]}" | jq -s '.')" '.ipConfigurations += $new_configs')
-                  network_profile=$(echo "$network_profile" | jq --argjson updated_nic "$updated_ip_configs" '.networkInterfaceConfigurations |= map(if .name == $updated_nic.name then $updated_nic else . end)')
-              done
-          fi
-
-          az vmss update -g "$RESOURCE_GROUP" -n "$VMSS_NAME" --set virtualMachineProfile.networkProfile="$network_profile"
-          az vmss update-instances -g "$RESOURCE_GROUP" -n "$VMSS_NAME" --instance-ids '*'
-
   - bash: |
       echo $UID
       sudo rm -rf $(System.DefaultWorkingDirectory)/*
@@ -66,6 +21,19 @@ steps:
       echo '##vso[task.prependpath]$(GOROOT)/bin'
     name: "GoEnv"
     displayName: "Set up the Go environment"
+
+  - task: AzureCLI@2
+    displayName: 'Update IP configs'
+    inputs:
+      azureSubscription: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
+      scriptLocation: "inlineScript"
+      scriptType: "bash"
+      addSpnToEnvironment: true
+      inlineScript: |
+          set -e
+          clusterName=${{ parameters.clusterName }}
+          SECONDARY_CONFIG_COUNT=64 RESOURCE_GROUP="MC_${clusterName}_${clusterName}_$(REGION_AKS_CLUSTER_TEST)" \
+          go run $(Build.SourcesDirectory)/.pipelines/singletenancy/cilium-nodesubnet/ipconfigupdate.go
 
   - task: KubectlInstaller@0
     inputs:
