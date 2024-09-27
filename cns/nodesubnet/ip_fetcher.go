@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-container-networking/nmagent"
-	"github.com/Azure/azure-container-networking/refreshticker"
+	"github.com/Azure/azure-container-networking/refresh"
 	"github.com/pkg/errors"
 )
 
@@ -37,12 +37,9 @@ type IPConsumer interface {
 // interval resets to the minimum.
 type IPFetcher struct {
 	// Node subnet config
-	intfFetcherClient  InterfaceRetriever
-	ticker             refreshticker.TickProvider
-	tickerInterval     time.Duration
-	consumer           IPConsumer
-	minRefreshInterval time.Duration
-	maxRefreshInterval time.Duration
+	intfFetcherClient InterfaceRetriever
+	consumer          IPConsumer
+	fetcher           *refresh.Fetcher[nmagent.Interfaces]
 }
 
 // NewIPFetcher creates a new IPFetcher. If minInterval is 0, it will default to 4 seconds.
@@ -63,78 +60,29 @@ func NewIPFetcher(
 
 	maxInterval = max(maxInterval, minInterval)
 
-	return &IPFetcher{
-		intfFetcherClient:  client,
-		consumer:           consumer,
-		minRefreshInterval: minInterval,
-		maxRefreshInterval: maxInterval,
-		tickerInterval:     minInterval,
+	newIPFetcher := &IPFetcher{
+		intfFetcherClient: client,
+		consumer:          consumer,
+		fetcher:           nil,
 	}
-}
-
-// UpdateFetchIntervalForNoObservedDiff informs IPFetcher that no diff was observed in the last fetch.
-// In the current design, this doubles the fetch interval, subject to the maximum interval.
-func (c *IPFetcher) UpdateFetchIntervalForNoObservedDiff() {
-	c.tickerInterval = min(c.tickerInterval*2, c.maxRefreshInterval) //nolint:gomnd // doubling interval
-
-	if c.ticker != nil {
-		c.ticker.Reset(c.tickerInterval)
-	}
-}
-
-// UpdateFetchIntervalForNoObservedDiff informs IPFetcher that a diff was observed in the last fetch.
-// In the current design, this resets the fetch interval to the minimum.
-func (c *IPFetcher) UpdateFetchIntervalForObservedDiff() {
-	c.tickerInterval = c.minRefreshInterval
-
-	if c.ticker != nil {
-		c.ticker.Reset(c.tickerInterval)
-	}
+	fetcher := refresh.NewFetcher[nmagent.Interfaces](client.GetInterfaceIPInfo, minInterval, maxInterval, newIPFetcher.ProcessInterfaces)
+	newIPFetcher.fetcher = fetcher
+	return newIPFetcher
 }
 
 // Start the IPFetcher.
 func (c *IPFetcher) Start(ctx context.Context) {
-	go func() {
-		// Do an initial fetch
-		err := c.RefreshSecondaryIPs(ctx)
-		if err != nil {
-			log.Printf("Error refreshing secondary IPs: %v", err)
-		}
-
-		if c.ticker == nil {
-			c.ticker = refreshticker.NewTimedTickProvider(c.tickerInterval)
-		}
-
-		defer c.ticker.Stop()
-
-		for {
-			select {
-			case <-c.ticker.C():
-				err := c.RefreshSecondaryIPs(ctx)
-				if err != nil {
-					log.Printf("Error refreshing secondary IPs: %v", err)
-				}
-			case <-ctx.Done():
-				log.Printf("IPFetcher stopped")
-				return
-			}
-		}
-	}()
+	c.fetcher.Start(ctx)
 }
 
 // Fetch IPs from NMAgent and pass to the consumer
-func (c *IPFetcher) RefreshSecondaryIPs(ctx context.Context) error {
-	response, err := c.intfFetcherClient.GetInterfaceIPInfo(ctx)
-	if err != nil {
-		return errors.Wrap(err, "getting interface IPs")
-	}
-
+func (c *IPFetcher) ProcessInterfaces(response nmagent.Interfaces) error {
 	if len(response.Entries) == 0 {
 		return errors.New("no interfaces found in response from NMAgent")
 	}
 
 	_, secondaryIPs := flattenIPListFromResponse(&response)
-	err = c.consumer.UpdateIPsForNodeSubnet(secondaryIPs)
+	err := c.consumer.UpdateIPsForNodeSubnet(secondaryIPs)
 	if err != nil {
 		return errors.Wrap(err, "updating secondary IPs")
 	}

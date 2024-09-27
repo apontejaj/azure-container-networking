@@ -1,4 +1,4 @@
-package refreshticker
+package refresh
 
 import "time"
 

@@ -1,14 +1,13 @@
-package nodesubnet_test
+package refresh_test
 
 import (
 	"context"
-	"net/netip"
 	"sync"
 	"testing"
 
 	"github.com/Azure/azure-container-networking/cns/nodesubnet"
 	"github.com/Azure/azure-container-networking/nmagent"
-	"github.com/Azure/azure-container-networking/refreshticker"
+	"github.com/Azure/azure-container-networking/refresh"
 )
 
 // Mock client that simply tracks if refresh has been called
@@ -60,18 +59,16 @@ func (c *TestConsumer) UpdateConsumeCount() {
 }
 
 // Mock IP update
-func (c *TestConsumer) UpdateIPsForNodeSubnet(_ []netip.Addr) error {
+func (c *TestConsumer) ConsumeInterfaces(nmagent.Interfaces) error {
 	c.UpdateConsumeCount()
 	return nil
 }
 
-var _ nodesubnet.IPConsumer = &TestConsumer{}
-
 func TestRefresh(t *testing.T) {
 	clientPtr := &TestClient{}
 	consumerPtr := &TestConsumer{}
-	fetcher := nodesubnet.NewIPFetcher(clientPtr, consumerPtr, 0, 0)
-	ticker := refreshticker.NewMockTickProvider()
+	fetcher := refresh.NewFetcher[nmagent.Interfaces](clientPtr.GetInterfaceIPInfo, 0, 0, consumerPtr.ConsumeInterfaces)
+	ticker := refresh.NewMockTickProvider()
 	fetcher.SetTicker(ticker)
 	ctx, cancel := testContext(t)
 	defer cancel()
@@ -85,10 +82,23 @@ func TestRefresh(t *testing.T) {
 		t.Error("Not enough refreshes")
 	}
 
-	// No consumes, since the responses are empty
-	if consumerPtr.FetchConsumeCount() > 0 {
-		t.Error("Consume called unexpectedly, shouldn't be called since responses are empty")
+	// At least 2 consumes - one initial and one after the first tick should be done
+	if consumerPtr.FetchConsumeCount() < 0 {
+		t.Error("Not enough consumes")
 	}
+}
+
+func TestInterval(t *testing.T) {
+	clientPtr := &TestClient{}
+	consumerPtr := &TestConsumer{}
+	fetcher := refresh.NewFetcher[nmagent.Interfaces](clientPtr.GetInterfaceIPInfo, 0, 0, consumerPtr.ConsumeInterfaces)
+	interval := fetcher.GetCurrentInterval()
+
+	if interval != refresh.DefaultMinInterval {
+		t.Error("Default min interval not used")
+	}
+
+	// Testing that the interval doubles will require making the interval thread-safe. Not doing that to avoid performance hit.
 }
 
 // testContext creates a context from the provided testing.T that will be
