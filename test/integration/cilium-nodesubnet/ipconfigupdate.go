@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 func runCommand(command string) (string, error) {
@@ -16,11 +18,16 @@ func runCommand(command string) (string, error) {
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
+	var err error
 	for i := 0; i < 3; i++ {
-		err := cmd.Run()
+		err = cmd.Run()
 		if err == nil {
 			break
 		}
+	}
+
+	if err != nil {
+		return "", errors.Wrap(err, "command failed")
 	}
 
 	return out.String(), nil
