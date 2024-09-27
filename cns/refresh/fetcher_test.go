@@ -5,6 +5,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/Azure/azure-container-networking/cns/logger"
 	"github.com/Azure/azure-container-networking/cns/nodesubnet"
 	"github.com/Azure/azure-container-networking/cns/refresh"
 	"github.com/Azure/azure-container-networking/nmagent"
@@ -108,4 +109,8 @@ func testContext(t *testing.T) (context.Context, context.CancelFunc) {
 		return context.WithDeadline(context.Background(), deadline)
 	}
 	return context.WithCancel(context.Background())
+}
+
+func init() {
+	logger.InitLogger("testlogs", 0, 0, "./")
 }

@@ -5,6 +5,7 @@ import (
 	"net/netip"
 	"testing"
 
+	"github.com/Azure/azure-container-networking/cns/logger"
 	"github.com/Azure/azure-container-networking/cns/nodesubnet"
 	"github.com/Azure/azure-container-networking/nmagent"
 )
@@ -51,9 +52,7 @@ func TestEmptyResponse(t *testing.T) {
 	consumerPtr := &TestConsumer{}
 	fetcher := nodesubnet.NewIPFetcher(&TestClient{}, consumerPtr, 0, 0)
 	err := fetcher.ProcessInterfaces(nmagent.Interfaces{})
-	if err != nil {
-		t.Error("Error processing empty interfaces")
-	}
+	checkErr(t, err, true)
 
 	// No consumes, since the responses are empty
 	if consumerPtr.FetchConsumeCount() > 0 {
@@ -88,9 +87,7 @@ func TestFlatten(t *testing.T) {
 	consumerPtr := &TestConsumer{}
 	fetcher := nodesubnet.NewIPFetcher(&TestClient{}, consumerPtr, 0, 0)
 	err := fetcher.ProcessInterfaces(interfaces)
-	if err != nil {
-		t.Error("Error processing interfaces")
-	}
+	checkErr(t, err, false)
 
 	// 1 consume to be called
 	if consumerPtr.FetchConsumeCount() != 1 {
@@ -101,4 +98,20 @@ func TestFlatten(t *testing.T) {
 	if consumerPtr.FetchSecondaryIPCount() != 1 {
 		t.Error("Wrong number of secondary IPs ", consumerPtr.FetchSecondaryIPCount())
 	}
+}
+
+// checkErr is an assertion of the presence or absence of an error
+func checkErr(t *testing.T, err error, shouldErr bool) {
+	t.Helper()
+	if err != nil && !shouldErr {
+		t.Fatal("unexpected error: err:", err)
+	}
+
+	if err == nil && shouldErr {
+		t.Fatal("expected error but received none")
+	}
+}
+
+func init() {
+	logger.InitLogger("testlogs", 0, 0, "./")
 }
