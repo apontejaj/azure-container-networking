@@ -6,8 +6,8 @@ import (
 	"net/netip"
 	"time"
 
+	"github.com/Azure/azure-container-networking/cns/refresh"
 	"github.com/Azure/azure-container-networking/nmagent"
-	"github.com/Azure/azure-container-networking/refresh"
 	"github.com/pkg/errors"
 )
 

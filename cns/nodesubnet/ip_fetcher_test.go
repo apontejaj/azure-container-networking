@@ -3,87 +3,54 @@ package nodesubnet_test
 import (
 	"context"
 	"net/netip"
-	"sync"
 	"testing"
 
 	"github.com/Azure/azure-container-networking/cns/nodesubnet"
 	"github.com/Azure/azure-container-networking/nmagent"
-	"github.com/Azure/azure-container-networking/refreshticker"
 )
-
-// Mock client that simply tracks if refresh has been called
-type TestClient struct {
-	refreshCount int32
-	mu           sync.Mutex
-}
-
-// FetchRefreshCount atomically fetches the refresh count
-func (c *TestClient) FetchRefreshCount() int32 {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.refreshCount
-}
-
-// UpdateRefreshCount atomically updates the refresh count
-func (c *TestClient) UpdateRefreshCount() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.refreshCount++
-}
-
-// Mock refresh
-func (c *TestClient) GetInterfaceIPInfo(_ context.Context) (nmagent.Interfaces, error) {
-	c.UpdateRefreshCount()
-	return nmagent.Interfaces{}, nil
-}
-
-var _ nodesubnet.InterfaceRetriever = &TestClient{}
 
 // Mock client that simply consumes fetched IPs
 type TestConsumer struct {
-	consumeCount int32
-	mu           sync.Mutex
+	consumeCount     int32
+	secondaryIPCount int32
 }
 
 // FetchConsumeCount atomically fetches the consume count
 func (c *TestConsumer) FetchConsumeCount() int32 {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	return c.consumeCount
+}
+
+// FetchSecondaryIPCount atomically fetches the last IP count
+func (c *TestConsumer) FetchSecondaryIPCount() int32 {
 	return c.consumeCount
 }
 
 // UpdateConsumeCount atomically updates the consume count
-func (c *TestConsumer) UpdateConsumeCount() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func (c *TestConsumer) updateCounts(ipCount int32) {
 	c.consumeCount++
+	c.secondaryIPCount = ipCount
 }
 
 // Mock IP update
-func (c *TestConsumer) UpdateIPsForNodeSubnet(_ []netip.Addr) error {
-	c.UpdateConsumeCount()
+func (c *TestConsumer) UpdateIPsForNodeSubnet(ips []netip.Addr) error {
+	c.updateCounts(int32(len(ips)))
 	return nil
 }
 
 var _ nodesubnet.IPConsumer = &TestConsumer{}
 
-func TestRefresh(t *testing.T) {
-	clientPtr := &TestClient{}
-	consumerPtr := &TestConsumer{}
-	fetcher := nodesubnet.NewIPFetcher(clientPtr, consumerPtr, 0, 0)
-	ticker := refreshticker.NewMockTickProvider()
-	fetcher.SetTicker(ticker)
-	ctx, cancel := testContext(t)
-	defer cancel()
-	fetcher.Start(ctx)
-	ticker.Tick() // Trigger a refresh
-	ticker.Tick() // This tick will be read only after previous refresh is done
-	ticker.Tick() // This call will block until the prevous tick is read
+// Mock client that simply satisfies the interface
+type TestClient struct{}
 
-	// At least 2 refreshes - one initial and one after the first tick should be done
-	if clientPtr.FetchRefreshCount() < 2 {
-		t.Error("Not enough refreshes")
-	}
+// Mock refresh
+func (c *TestClient) GetInterfaceIPInfo(_ context.Context) (nmagent.Interfaces, error) {
+	return nmagent.Interfaces{}, nil
+}
+
+func TestEmptyResponse(t *testing.T) {
+	consumerPtr := &TestConsumer{}
+	fetcher := nodesubnet.NewIPFetcher(&TestClient{}, consumerPtr, 0, 0)
+	fetcher.ProcessInterfaces(nmagent.Interfaces{})
 
 	// No consumes, since the responses are empty
 	if consumerPtr.FetchConsumeCount() > 0 {
@@ -91,11 +58,41 @@ func TestRefresh(t *testing.T) {
 	}
 }
 
-// testContext creates a context from the provided testing.T that will be
-// canceled if the test suite is terminated.
-func testContext(t *testing.T) (context.Context, context.CancelFunc) {
-	if deadline, ok := t.Deadline(); ok {
-		return context.WithDeadline(context.Background(), deadline)
+func TestFlatten(t *testing.T) {
+	interfaces := nmagent.Interfaces{
+		Entries: []nmagent.Interface{
+			{
+				MacAddress: nmagent.MACAddress{0x00, 0x0D, 0x3A, 0xF9, 0xDC, 0xA6},
+				IsPrimary:  true,
+				InterfaceSubnets: []nmagent.InterfaceSubnet{
+					{
+						Prefix: "10.240.0.0/16",
+						IPAddress: []nmagent.NodeIP{
+							{
+								Address:   nmagent.IPAddress(netip.AddrFrom4([4]byte{10, 240, 0, 5})),
+								IsPrimary: true,
+							},
+							{
+								Address:   nmagent.IPAddress(netip.AddrFrom4([4]byte{10, 240, 0, 6})),
+								IsPrimary: false,
+							},
+						},
+					},
+				},
+			},
+		},
 	}
-	return context.WithCancel(context.Background())
+	consumerPtr := &TestConsumer{}
+	fetcher := nodesubnet.NewIPFetcher(&TestClient{}, consumerPtr, 0, 0)
+	fetcher.ProcessInterfaces(interfaces)
+
+	// 1 consume to be called
+	if consumerPtr.FetchConsumeCount() != 1 {
+		t.Error("Consume expected to be called, but not called")
+	}
+
+	// 1 consume to be called
+	if consumerPtr.FetchSecondaryIPCount() != 1 {
+		t.Error("Wrong number of secondary IPs ", consumerPtr.FetchSecondaryIPCount())
+	}
 }
