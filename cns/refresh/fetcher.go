@@ -81,6 +81,7 @@ func (f *Fetcher[T]) Start(ctx context.Context) {
 				} else {
 					if reflect.DeepEqual(result, f.cache) {
 						f.updateFetchIntervalForNoObservedDiff()
+						logger.Printf("No diff observed in fetch, not invoking the consumer")
 					} else {
 						f.cache = result
 						f.updateFetchIntervalForObservedDiff()
