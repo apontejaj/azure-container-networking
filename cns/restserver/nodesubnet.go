@@ -26,15 +26,11 @@ func (service *HTTPRestService) UpdateIPsForNodeSubnet(secondaryIPs []netip.Addr
 	}
 
 	code, msg := service.saveNetworkContainerGoalState(*networkContainerRequest)
-	if code == types.NodeSubnetSecondaryIPChange {
-		logger.Debugf("Secondary IP change detected, updating fetch interval")
-		service.nodesubnetIPFetcher.UpdateFetchIntervalForObservedDiff()
-	} else if code != types.Success {
-		logger.Debugf("Error in processing IP change, refresh interval not updated")
+	if code != types.Success {
+		logger.Debugf("Error in processing IP change")
 		return errors.Errorf("failed to save fetched ips. code: %d, message %s", code, msg)
 	} else {
-		logger.Debugf("No secondary IP change detected, updating fetch interval")
-		service.nodesubnetIPFetcher.UpdateFetchIntervalForNoObservedDiff()
+		logger.Debugf("IP change processed successfully")
 	}
 
 	// saved NC successfully, generate conflist to indicate CNS is ready
