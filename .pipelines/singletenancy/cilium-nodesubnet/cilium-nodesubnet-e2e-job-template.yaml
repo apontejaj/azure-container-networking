@@ -29,9 +29,6 @@ stages:
           clusterType: ${{ parameters.clusterType }}
           clusterName: ${{ parameters.clusterName }}-$(commitID)
           vmSize: ${{ parameters.vmSize }}
-          vmSizeWin: ${{ parameters.vmSize }} # Matching linux vmSize
-          k8sVersion: ${{ parameters.k8sVersion }}
-          dependsOn: ${{ parameters.dependsOn }}
           region: $(REGION_AKS_CLUSTER_TEST)
 
   - stage: ${{ parameters.name }}
@@ -65,7 +62,6 @@ stages:
               clusterName: ${{ parameters.clusterName }}-$(commitID)
               arch: ${{ parameters.arch }}
               os: ${{ parameters.os }}
-              os_version: ${{ parameters.os_version }}
               scaleup: ${{ parameters.scaleup }}
 
       - template: ../../cni/k8s-e2e/k8s-e2e-job-template.yaml
@@ -76,7 +72,6 @@ stages:
           datapath: true
           dns: true
           portforward: true
-          hybridWin: true
           service: true
           hostport: true
           dependsOn: ${{ parameters.name }}
