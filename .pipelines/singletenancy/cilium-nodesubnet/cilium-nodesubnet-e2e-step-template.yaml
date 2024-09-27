@@ -33,6 +33,9 @@ steps:
           set -e
           clusterName=${{ parameters.clusterName }}
           SCALE_UP=${{ parameters.scaleup }}
+          if [ -z "$SCALE_UP" ]; then
+            SCALE_UP=32
+          fi
           SECONDARY_IP_COUNT=$((SCALE_UP * 2))
           RESOURCE_GROUP="MC_${clusterName}_${clusterName}_$(REGION_AKS_CLUSTER_TEST)"
           go run $(Build.SourcesDirectory)/test/integration/cilium-nodesubnet/ipconfigupdate.go
