@@ -286,10 +286,10 @@ func (service *HTTPRestService) ReconcileIPAMState(ncReqs []*cns.CreateNetworkCo
 	// first step in reconciliation is to create all the NCs in CNS, no IP assignment yet.
 	for _, ncReq := range ncReqs {
 		returnCode := service.CreateOrUpdateNetworkContainerInternal(ncReq)
- 		if returnCode != types.Success {
+		if returnCode != types.Success {
 			return returnCode
 		}
-	
+	}
 
 	logger.Printf("Saved NC")
 	// index all the secondary IP configs for all the nc reqs, for easier lookup later on.
