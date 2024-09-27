@@ -286,15 +286,10 @@ func (service *HTTPRestService) ReconcileIPAMState(ncReqs []*cns.CreateNetworkCo
 	// first step in reconciliation is to create all the NCs in CNS, no IP assignment yet.
 	for _, ncReq := range ncReqs {
 		returnCode := service.CreateOrUpdateNetworkContainerInternal(ncReq)
-		if ncReq.NetworkContainerType == cns.NodeSubnet {
-			if returnCode != types.NodeSubnetSecondaryIPChange {
-				logger.Errorf("IPAM reconciliation didn't add IPs in nodesubnet")
-				return returnCode
-			}
-		} else if returnCode != types.Success {
+ 		if returnCode != types.Success {
 			return returnCode
 		}
-	}
+	
 
 	logger.Printf("Saved NC")
 	// index all the secondary IP configs for all the nc reqs, for easier lookup later on.
@@ -539,7 +534,13 @@ func (service *HTTPRestService) CreateOrUpdateNetworkContainerInternal(req *cns.
 		return types.UnsupportedOrchestratorType
 	}
 
-	if req.NetworkContainerType != cns.NodeSubnet {
+	if req.NetworkContainerType == cns.NodeSubnet {
+		// For NodeSubnet scenarios, Validate PrimaryCA must be empty
+		if req.IPConfiguration.IPSubnet.IPAddress != "" {
+			logger.Errorf("[Azure CNS] Error. PrimaryCA is invalid, NC Req: %v", req)
+			return types.InvalidPrimaryIPConfig
+		}
+	} else {
 		// For Swift scenarios, Validate PrimaryCA must never be empty
 		err := validateIPSubnet(req.IPConfiguration.IPSubnet)
 		if err != nil {
