@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,10 +16,13 @@ func runCommand(command string) (string, error) {
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-		return "", errors.New(stderr.String())
+	for i := 0; i < 3; i++ {
+		err := cmd.Run()
+		if err == nil {
+			break
+		}
 	}
+
 	return out.String(), nil
 }
 
