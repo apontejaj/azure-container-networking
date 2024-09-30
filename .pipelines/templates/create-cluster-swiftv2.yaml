@@ -23,9 +23,16 @@ jobs:
               az extension update --name aks-preview
             fi
 
-            bash .pipelines/multitenancy/scripts/setup-mt-cluster.sh \
-              --mt-test-cluster "${{ parameters.clusterName}}" \
-              --scenario ${{ parameters.scenario }}
+            source ./.pipelines/multitenancy/scripts/utils.sh
+            export_envVars ${{ parameters.scenario }} 
+            mkdir -p ~/.kube/
+            make -C ./hack/aks azcfg AZCLI=az REGION=${LOCATION}
+
+            make -C ./hack/aks ${{ parameters.clusterType }} \
+            AZCLI=az REGION=$LOCATION SUB=$(ACN_TEST_SERVICE_CONNECTION) \
+            CLUSTER=${{ parameters.clusterName }} \
+            VM_SIZE=${{ parameters.vmSize }} \
+            GROUP=$RG
 
             echo "Cluster successfully created"
         displayName: Cluster - ${{ parameters.clusterType }}

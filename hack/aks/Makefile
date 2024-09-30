@@ -233,8 +233,9 @@ swift-up: rg-up swift-net-up ## Bring up a SWIFT AzCNI cluster
 		--yes
 	@$(MAKE) set-kubeconf
 
-swiftv2-multitenancy-cluster-up: rg-up
+swiftv2-multitenancy-cluster-up:
 	$(AZCLI) aks create -n $(CLUSTER) -g $(GROUP) -l $(REGION) \
+		--tags acntestcluster=true stampcreatorserviceinfo=true \
 		--network-plugin azure \
 		--network-plugin-mode overlay \
 		--kubernetes-version $(K8S_VER) \
@@ -242,6 +243,10 @@ swiftv2-multitenancy-cluster-up: rg-up
 		--node-vm-size $(VM_SIZE) \
 		--node-count 2 \
 		--nodepool-tags fastpathenabled=true \
+		--node-os-upgrade-channel $(NODEUPGRADE) \
+		--nodepool-tags fastpathenabled=true aks-nic-enable-multi-tenancy=true \
+        --enable-oidc-issuer \
+        --enable-workload-identity \
 		--no-ssh-key \
 		--yes
 	@$(MAKE) set-kubeconf

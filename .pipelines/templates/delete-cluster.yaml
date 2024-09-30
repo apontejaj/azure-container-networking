@@ -12,9 +12,9 @@ steps:
       addSpnToEnvironment: true
       inlineScript: |
         echo "Deleting cluster"
-        bash .pipelines/multitenancy/scripts/delete-mt-cluster.sh \
-          --mt-test-cluster "${{ parameters.clusterName }}" \
-          --scenario ${{ parameters.scenario }}
+        make -C ./hack/aks azcfg AZCLI=az REGION=${{ parameters.region }}
+        make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }}
+        make -C ./hack/aks down AZCLI=az REGION=${{ parameters.region }} SUB=${{ parameters.sub }} CLUSTER=${{ parameters.clusterName }}
         echo "Cluster and resources down"
     name: delete
     displayName: Delete - ${{ parameters.name }}
