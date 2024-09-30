@@ -13,7 +13,7 @@ jobs:
           scriptType: "bash"
           addSpnToEnvironment: true
           inlineScript: |
-            set -e
+            set -ex
             echo "Check az version"
             az version
             if ${{ lower(contains(parameters.clusterType, 'dualstack')) }}
