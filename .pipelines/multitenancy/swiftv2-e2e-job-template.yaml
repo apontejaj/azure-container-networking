@@ -32,6 +32,7 @@ stages:
           k8sVersion: ${{ parameters.k8sVersion }}
           dependsOn: ${{ parameters.dependsOn }}
           continueOnError: ${{ parameters.continueOnError }}
+          scenario: ${{ parameters.scenario }}
 
   - stage: ${{ parameters.name }}
     condition: and( succeeded(), not(eq(dependencies.mtacluster.result,'SucceededWithIssues')) ) # Cant use parameters in dependencies
