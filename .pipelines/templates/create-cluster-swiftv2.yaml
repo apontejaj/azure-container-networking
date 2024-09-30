@@ -31,7 +31,7 @@ jobs:
             make -C ./hack/aks ${{ parameters.clusterType }} \
             AZCLI=az REGION=$LOCATION SUB=$(ACN_TEST_SERVICE_CONNECTION) \
             CLUSTER=${{ parameters.clusterName }} \
-            VM_SIZE=${{ parameters.vmSize }} \
+            VM_SIZE=$VM_SIZE \
             GROUP=$RG
 
             echo "Cluster successfully created"
