@@ -17,7 +17,7 @@ steps:
 
         make -C ./hack/aks azcfg AZCLI=az REGION=${{ parameters.region }}
         make -C ./hack/aks set-kubeconf AZCLI=az CLUSTER=${{ parameters.clusterName }} GROUP=$RG
-        make -C ./hack/aks down AZCLI=az REGION=$LOCATION SUB=$SUB CLUSTER=${{ parameters.clusterName }} GROUP=$RG
+        make -C ./hack/aks cluster-down AZCLI=az REGION=$LOCATION SUB=$SUB CLUSTER=${{ parameters.clusterName }} GROUP=$RG
         echo "Cluster and resources down"
     name: delete
     displayName: Delete - ${{ parameters.name }}
