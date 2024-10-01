@@ -9,8 +9,8 @@ import (
 
 	"github.com/Azure/azure-container-networking/cns/logger"
 	"github.com/Azure/azure-container-networking/cns/nodesubnet"
-	"github.com/Azure/azure-container-networking/cns/refresh"
 	"github.com/Azure/azure-container-networking/nmagent"
+	"github.com/Azure/azure-container-networking/refresh"
 )
 
 // Mock client that simply tracks if refresh has been called
@@ -125,7 +125,7 @@ func TestRefresh(t *testing.T) {
 	}
 
 	consumerPtr := &TestConsumer{}
-	fetcher := refresh.NewFetcher[nmagent.Interfaces](clientPtr.GetInterfaceIPInfo, 0, 0, consumerPtr.ConsumeInterfaces)
+	fetcher := refresh.NewFetcher[nmagent.Interfaces](clientPtr.GetInterfaceIPInfo, 0, 0, consumerPtr.ConsumeInterfaces, logger.Log)
 	ticker := refresh.NewMockTickProvider()
 	fetcher.SetTicker(ticker)
 	ctx, cancel := testContext(t)

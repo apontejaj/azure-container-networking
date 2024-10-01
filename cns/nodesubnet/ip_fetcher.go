@@ -6,8 +6,8 @@ import (
 	"net/netip"
 	"time"
 
-	"github.com/Azure/azure-container-networking/cns/refresh"
 	"github.com/Azure/azure-container-networking/nmagent"
+	"github.com/Azure/azure-container-networking/refresh"
 	"github.com/pkg/errors"
 )
 
@@ -49,6 +49,7 @@ func NewIPFetcher(
 	consumer IPConsumer,
 	minInterval time.Duration,
 	maxInterval time.Duration,
+	logger refresh.Logger,
 ) *IPFetcher {
 	if minInterval == 0 {
 		minInterval = DefaultMinRefreshInterval
@@ -65,7 +66,7 @@ func NewIPFetcher(
 		consumer:          consumer,
 		fetcher:           nil,
 	}
-	fetcher := refresh.NewFetcher[nmagent.Interfaces](client.GetInterfaceIPInfo, minInterval, maxInterval, newIPFetcher.ProcessInterfaces)
+	fetcher := refresh.NewFetcher[nmagent.Interfaces](client.GetInterfaceIPInfo, minInterval, maxInterval, newIPFetcher.ProcessInterfaces, logger)
 	newIPFetcher.fetcher = fetcher
 	return newIPFetcher
 }

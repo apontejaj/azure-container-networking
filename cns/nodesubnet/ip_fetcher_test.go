@@ -50,7 +50,7 @@ func (c *TestClient) GetInterfaceIPInfo(_ context.Context) (nmagent.Interfaces, 
 
 func TestEmptyResponse(t *testing.T) {
 	consumerPtr := &TestConsumer{}
-	fetcher := nodesubnet.NewIPFetcher(&TestClient{}, consumerPtr, 0, 0)
+	fetcher := nodesubnet.NewIPFetcher(&TestClient{}, consumerPtr, 0, 0, logger.Log)
 	err := fetcher.ProcessInterfaces(nmagent.Interfaces{})
 	checkErr(t, err, true)
 
@@ -85,7 +85,7 @@ func TestFlatten(t *testing.T) {
 		},
 	}
 	consumerPtr := &TestConsumer{}
-	fetcher := nodesubnet.NewIPFetcher(&TestClient{}, consumerPtr, 0, 0)
+	fetcher := nodesubnet.NewIPFetcher(&TestClient{}, consumerPtr, 0, 0, logger.Log)
 	err := fetcher.ProcessInterfaces(interfaces)
 	checkErr(t, err, false)
 
