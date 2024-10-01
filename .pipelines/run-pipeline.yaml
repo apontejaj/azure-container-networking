@@ -138,8 +138,7 @@ stages:
 
           - template: templates/download-storage-artifacts.steps.yaml
             parameters:
-              targetFolder: $(Build.ArtifactStagingDirectory)
-              blobTarget: $(BLOB_PATH)/$(blobName)
+              artifactName: binary-output
               
 #            - publish: ${Build.ArtifactStagingDirectory)
 #              artifact: drop_binaries_build

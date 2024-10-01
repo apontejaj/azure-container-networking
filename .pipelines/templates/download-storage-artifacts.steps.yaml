@@ -1,7 +1,4 @@
 parameters:
-- name: sourceFolder
-  type: string
-
 - name: artifactName
   type: string
 
@@ -30,7 +27,6 @@ steps:
         --source "$CONTAINER_NAME" \
         --pattern "$BLOB_PATH/$ARTIFACT_NAME/*"
   env:
-    SOURCE: ${{ parameters.sourceFolder }}
     ARTIFACT_NAME: ${{ parameters.artifactName }}
     DOWNLOAD_TARGET: ${{ parameters.targetFolder }}
 
