@@ -40,4 +40,3 @@ steps:
       fi
   env:
     VARNAME_SA_LIST: '${{ parameters.varNameStorageAccountList }}'
-    VAR_IS_OUTPUT: ${{ parameters.isOutput }}
