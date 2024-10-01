@@ -44,7 +44,7 @@ func (service *HTTPRestService) InitializeNodeSubnet(ctx context.Context, podInf
 		OrchestratorType: cns.KubernetesNodeSubnet,
 	}
 	service.SetNodeOrchestrator(&orchestrator)
-	service.nodesubnetIPFetcher = nodesubnet.NewIPFetcher(service.nma, service, 0, 0)
+	service.nodesubnetIPFetcher = nodesubnet.NewIPFetcher(service.nma, service, 0, 0, logger.Log)
 	if podInfoByIPProvider == nil {
 		logger.Printf("PodInfoByIPProvider is nil, this usually means no saved endpoint state. Skipping reconciliation")
 	} else if err := nodesubnet.ReconcileInitialCNSState(ctx, service, podInfoByIPProvider); err != nil {
