@@ -26,7 +26,7 @@ jobs:
             source ./.pipelines/multitenancy/scripts/utils.sh
             export_envVars ${{ parameters.scenario }} 
             mkdir -p ~/.kube/
-            make -C ./hack/aks azcfg AZCLI=az REGION=${LOCATION}
+            make -C ./hack/aks azcfg AZCLI=az REGION=$LOCATION
 
             make -C ./hack/aks ${{ parameters.clusterType }} \
             AZCLI=az REGION=$LOCATION SUB=$(ACN_TEST_SERVICE_CONNECTION) \
