@@ -66,6 +66,10 @@ stages:
           ACNCI_SA_LOCATION: centralus
           ACNCI_SA_POOL_SIZE: 3
           CREATE_NEW_SA: False
+          ob_outputDirectory: $(Build.ArtifactStagingDirectory)
+          ob_git_checkout: true
+        pool:
+          type: linux
         steps:
         - checkout: ACNTools
           clean: true
