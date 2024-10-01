@@ -247,7 +247,7 @@ swiftv2-multitenancy-cluster-up:
 		--nodepool-tags fastpathenabled=true aks-nic-enable-multi-tenancy=true \
         --enable-oidc-issuer \
         --enable-workload-identity \
-		--no-ssh-key \
+		--generate-ssh-key \
 		--yes
 	@$(MAKE) set-kubeconf
 
