@@ -2,10 +2,9 @@ package refresh
 
 import (
 	"context"
-	"reflect"
 	"time"
 
-	"github.com/Azure/azure-container-networking/cns/logger"
+	"github.com/google/go-cmp/cmp"
 )
 
 const (
@@ -25,10 +24,17 @@ type Fetcher[T any] struct {
 	currentInterval time.Duration
 	ticker          TickProvider
 	consumeFunc     func(T) error
+	logger          Logger
 }
 
 // NewFetcher creates a new Fetcher. If minInterval is 0, it will default to 4 seconds.
-func NewFetcher[T any](fetchFunc func(context.Context) (T, error), minInterval, maxInterval time.Duration, consumeFunc func(T) error) *Fetcher[T] {
+func NewFetcher[T any](
+	fetchFunc func(context.Context) (T, error),
+	minInterval time.Duration,
+	maxInterval time.Duration,
+	consumeFunc func(T) error,
+	logger Logger,
+) *Fetcher[T] {
 	if minInterval == 0 {
 		minInterval = DefaultMinInterval
 	}
@@ -45,6 +51,7 @@ func NewFetcher[T any](fetchFunc func(context.Context) (T, error), minInterval, 
 		maxInterval:     maxInterval,
 		currentInterval: minInterval,
 		consumeFunc:     consumeFunc,
+		logger:          logger,
 	}
 }
 
@@ -53,13 +60,13 @@ func (f *Fetcher[T]) Start(ctx context.Context) {
 		// do an initial fetch
 		res, err := f.fetchFunc(ctx)
 		if err != nil {
-			logger.Printf("Error refreshing secondary IPs: %v", err)
+			f.logger.Printf("Error invoking fetch: %v", err)
 		}
 
 		f.cache = res
 		if f.consumeFunc != nil {
 			if err := f.consumeFunc(res); err != nil {
-				logger.Errorf("Error consuming data: %v", err)
+				f.logger.Errorf("Error consuming data: %v", err)
 			}
 		}
 
@@ -72,22 +79,22 @@ func (f *Fetcher[T]) Start(ctx context.Context) {
 		for {
 			select {
 			case <-ctx.Done():
-				logger.Printf("Fetcher stopped")
+				f.logger.Printf("Fetcher stopped")
 				return
 			case <-f.ticker.C():
 				result, err := f.fetchFunc(ctx)
 				if err != nil {
-					logger.Errorf("Error fetching data: %v", err)
+					f.logger.Errorf("Error fetching data: %v", err)
 				} else {
-					if reflect.DeepEqual(result, f.cache) {
+					if cmp.Equal(result, f.cache) {
 						f.updateFetchIntervalForNoObservedDiff()
-						logger.Printf("No diff observed in fetch, not invoking the consumer")
+						f.logger.Printf("No diff observed in fetch, not invoking the consumer")
 					} else {
 						f.cache = result
 						f.updateFetchIntervalForObservedDiff()
 						if f.consumeFunc != nil {
 							if err := f.consumeFunc(result); err != nil {
-								logger.Errorf("Error consuming data: %v", err)
+								f.logger.Errorf("Error consuming data: %v", err)
 							}
 						}
 					}
