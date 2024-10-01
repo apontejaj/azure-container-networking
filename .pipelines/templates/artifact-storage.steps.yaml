@@ -1,0 +1,145 @@
+
+steps:
+- template: get-storage-accounts.steps.yaml
+  parameters:
+    STORAGE_ACCOUNT_SERVICE_CONNECTION: $(ACN_TEST_SERVICE_CONNECTION)
+
+- task: AzureCLI@2
+  displayName: "Check Resource Pool"
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    addSpnToEnvironment: true
+    inlineScript: |
+      set -e
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+      
+      if (( "$SA_LIST_LENGTH" < "$ACNCI_SA_POOL_SIZE" )); then
+        echo >&2 "##vso[setvariable variable=CREATE_NEW_SA;]True"
+      fi
+  env:
+    SA_LIST_LENGTH: $(SA_LIST_LENGTH)
+
+# Create new storage account
+- bash: |
+    SA_ID=`tr -dc '[:alnum:]' < /dev/urandom | head -c${1:-7}`
+    echo >&2 "##vso[setvariable variable=ACNCI_UNIQUE_ID;issecret=true]$SA_ID"
+  condition: and(succeeded(), variable.CREATE_NEW_SA)
+  displayName: "Generate Name"
+
+- task: AzureCLI@2
+  displayName: "Add Storage Account to Pool"
+  condition: and(succeeded(), variable.CREATE_NEW_SA)
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    addSpnToEnvironment: true
+    inlineScript: |
+      set -e
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+
+      az group create --name "${ACNCI_RG_PREFIX}-${ACNCI_UNIQUE_ID}"
+      az storage account create \
+        --name "${ACNCI_SA_PREFIX}-${ACNCI_UNIQUE_ID}" \
+        --location "$ACNCI_SA_LOCATION" \
+        --user-identity-id "$SERVICEPRINCIPALID" \
+        --enable-files-aadds true \
+        --public-network-access false \
+        --require-infrastructure-encryption \
+        --allow-shared-key-access false \
+        --allow-blob-public-access false \
+        --tags PipelineResource="$SYSTEM_DEFINITIONID" CreatedByBuild="$BUILD_BUILDID"
+
+- template: get-storage-accounts.steps.yaml
+  parameters:
+    STORAGE_ACCOUNT_SERVICE_CONNECTION: $(ACN_TEST_SERVICE_CONNECTION)
+
+# Select Storage Account for use.
+- bash: |
+    SA_RANDOM_SELECT=`tr -dc '1-9' < /dev/urandom | head -c${1:-7}`
+    R_INDEX=$(( "$SA_RANDOM_SELECT" % "$SA_LIST_LENGTH" ))
+    echo >&2 "##vso[setvariable variable=SA_IDX;issecret=true]$R_INDEX"
+  displayName: "Generate Selection"
+  env:
+    SA_LIST_LENGTH: $(SA_LIST_LENGTH)
+
+- task: AzureCLI@2
+  name: artifact_storage
+  displayName: "Add Storage Account to Pool"
+  condition: and(succeeded(), variable.CREATE_NEW_SA)
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    addSpnToEnvironment: true
+    inlineScript: |
+      set -e
+
+      # Make a random selection from the pool
+      SA_DATA=$(echo "$SA_LIST" | jq -arg IDX "$SA_IDX" -rc '.[$IDX]')
+      echo "Delete me"
+      echo "$SA_DATA"
+      if (( "$SA_LIST_LENGTH" > 0 )); then
+        # Azure Resource ID
+        SA_ID=$(echo "$SA_DATA" | jq -r '.id')
+        echo >&2 "##vso[setvariable variable=ACNCI_STORAGEACCOUNT_ID;issecret=true;isoutput=true]$SA_ID"
+        # Azure Resource Name
+        SA_NAME=$(echo "$SA_DATA" | jq -r '.name')
+        echo >&2 "##vso[setvariable variable=ACNCI_STORAGEACCOUNT_NAME;issecret=true;isoutput=true]$SA_NAME"
+        # Storage Account Subscription
+        SA_SUBSCRIPTION=$(echo "$SA_DATA" | jq -r '.subscription')
+        echo >&2 "##vso[setvariable variable=ACNCI_STORAGEACCOUNT_SUBSCRIPTION;issecret=true;isoutput=true]$SA_SUBSCRIPTION"
+        # Service Connection
+        echo >&2 "##vso[setvariable variable=ACNCI_STORAGEACCOUNT_SERVICECONNECTION;issecret=true;isoutput=true]$SA_SERVICE_CONN"
+        # Storage Account Resource Group
+        SA_RG=$(echo "$SA_DATA" | jq -r '.resourceGroup')
+        echo >&2 "##vso[setvariable variable=ACNCI_STORAGEACCOUNT_RESOURCEGROUP;issecret=true;isoutput=true]$SA_RG"
+        # Storage Account Location
+        SA_LOCATION=$(echo "$SA_DATA" | jq -r '.location')
+        echo >&2 "##vso[setvariable variable=ACNCI_STORAGEACCOUNT_LOCATION;issecret=true;isoutput=true]$SA_LOCATION"
+      else
+        echo >&2 "##[error]No storage accounts available for use."
+        exit 1
+      fi
+  env:
+    SA_IDX: $(SA_IDX)
+    SA_LIST: $(SA_LIST)
+    SA_LIST_LENGTH: $(SA_LIST_LENGTH)
+    SA_SERVICE_CONN: $(ACN_TEST_SERVICE_CONNECTION)
+
+- task: AzureCLI@2
+  name: artifact_container
+  displayName: "Ensure Storage Container"
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    inlineScript: |
+      set -e
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+
+      az storage container create \
+        --account-name "$SA_NAME" \
+        --name "$CONTAINER_NAME" \
+        --public-access off
+
+      echo >&2 "##vso[task.setvariable variable=ACNCI_STORAGEACCOUNT_ARTIFACT_CONTAINER;isoutput=true]$CONTAINER_NAME"
+  env:
+    CONTAINER_NAME: "azure-container-networking-pr" 
+
+- task: AzureCLI@2
+  name: artifact_blob
+  displayName: "Get Blob Path"
+  # Always run to generate new blob name
+  condition: always()
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    inlineScript: |
+      set -e
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+
+      echo >&2 "##vso[task.setvariable variable=ACNCI_STORAGEACCOUNT_BLOBPATH;isoutput=true]$BUILD_BUILD_ID/$SYSTEM_JOB_ATTEMPT

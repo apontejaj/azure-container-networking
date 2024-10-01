@@ -16,6 +16,8 @@ parameters:
   type: string
   default: ''
 
+variables:
+  IS_TRUE: '$[T|t]rue$'
 
 stages:
   - stage: setup
@@ -52,6 +54,27 @@ stages:
             name: "EnvironmentalVariables"
             displayName: "Set environmental variables"
 
+      ## Outputs Storage Account for use
+      ##   artifact_storage.ACNCI_STORAGEACCOUNT_ID
+      ##   artifact_storage.ACNCI_STORAGEACCOUNT_SUBSCRIPTION
+      ##   artifact_storage.ACNCI_STORAGEACCOUNT_SERVICECONNECTION
+      ##   artifact_storage.ACNCI_STORAGEACCOUNT_RESOURCEGROUP
+      ##   artifact_storage.ACNCI_STORAGEACCOUNT_LOCATION
+      ##   
+      - job: "[Resources] Retrieve Artifact Storage Information"
+        name: resources
+        variables:
+          ACNCI_RG_PREFIX: acnci-rg-
+          ACNCI_SA_PREFIX: acnci-pipelines
+          ACNCI_SA_LOCATION: centralus
+          ACNCI_SA_POOL_SIZE: 3
+          CREATE_NEW_SA: False
+        steps:
+        - checkout: ACNTools
+          clean: true
+  
+        - template: templates/artifact-storage.steps.yaml@ACNTools
+
   - template: templates/unit-tests.stages.yaml@ACNTools
 
   - ${{ if not(contains(parameters.triggerBuildSourceBranch, 'refs/pull')) }}:
@@ -62,6 +85,9 @@ stages:
         - test
       variables:
         ACN_DIR: $(Build.SourcesDirectory)
+        SA_NAME: $[ stageDependencies.setup.resources.outputs['artifact_storage.ACNCI_STORAGEACCOUNT_NAME'] ]
+        CONTAINER_NAME: $[ stageDependencies.setup.resources.outputs['artifact_container.ACNCI_STORAGEACCOUNT_ARTIFACT_CONTAINER'] ]
+        BLOB_PATH: $[ stageDependencies.setup.resources.outputs['artifact_blob.ACNCI_STORAGEACCOUNT_BLOBPATH'] ]
       jobs:
         - job: build
           displayName: Build Binaries
@@ -96,6 +122,28 @@ stages:
               name: "PrepareArtifacts"
               displayName: "Prepare Artifacts"
 
+            - template: templates/copy-storage-artifacts.steps.yaml@ACNTools
+              parameters:
+                targetFolder: binary-output
+                sourceFolder: $(Build.ArtifactStagingDirectory)
+
+        - job: "[Publish] Generate Binary Artifacts"
+          pool:
+            type: linux
+          dependsOn:
+          - build
+          variables:
+            ob_outputDirectory: $(Build.ArtifactStagingDirectory)
+            blobName: binary-output
+          steps:
+          - checkout: ACNTools
+            clean: true
+
+          - template: templates/download-storage-artifacts.steps.yaml
+            parameters:
+              targetFolder: $(Build.ArtifactStagingDirectory)
+              blobTarget: $(BLOB_PATH)/$(blobName)
+              
 #            - publish: ${Build.ArtifactStagingDirectory)
 #              artifact: drop_binaries_build
 #              condition: succeeded()
