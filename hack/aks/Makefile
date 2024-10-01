@@ -453,6 +453,10 @@ down: ## Delete the cluster
 	@$(MAKE) unset-kubeconf
 	@$(MAKE) rg-down
 
+cluster-down: ## Delete the cluster
+	$(AZCLI) aks delete -g $(GROUP) -n $(CLUSTER) --yes
+	@$(MAKE) unset-kubeconf
+
 restart-vmss: ## Restarts the nodes in the cluster
 	$(AZCLI) vmss restart -g MC_${GROUP}_${CLUSTER}_${REGION} --name $(VMSS_NAME)
 
