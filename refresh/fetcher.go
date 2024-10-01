@@ -14,7 +14,8 @@ const (
 
 // Fetcher fetches data at regular intervals. The interval will vary within the range of minInterval and
 // maxInterval. When no diff is observed after a fetch, the interval doubles (subject to the maximum interval).
-// When a diff is observed, the interval resets to the minimum.
+// When a diff is observed, the interval resets to the minimum. The interval can be made unchanging by setting
+// minInterval and maxInterval to the same desired value.
 
 type Fetcher[T any] struct {
 	fetchFunc       func(context.Context) (T, error)
