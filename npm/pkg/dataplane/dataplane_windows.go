@@ -327,6 +327,22 @@ func (dp *DataPlane) getEndpointsToApplyPolicies(netPols []*policies.NPMNetworkP
 	return endpointList, nil
 }
 
+func (dp *DataPlane) getAllPodEndpoints() ([]*hcn.HostComputeEndpoint, error) {
+	klog.Infof("getting all endpoints for network ID %s", dp.networkID)
+	timer := metrics.StartNewTimer()
+	endpoints, err := dp.ioShim.Hns.ListEndpointsOfNetwork(dp.networkID)
+	metrics.RecordListEndpointsLatency(timer)
+	if err != nil {
+		metrics.IncListEndpointsFailures()
+		return nil, npmerrors.SimpleErrorWrapper("failed to get all pod endpoints", err)
+	}
+	epPointers := make([]*hcn.HostComputeEndpoint, 0, len(endpoints))
+	for k := range endpoints {
+		epPointers = append(epPointers, &endpoints[k])
+	}
+	return epPointers, nil
+}
+
 func (dp *DataPlane) getLocalPodEndpoints() ([]*hcn.HostComputeEndpoint, error) {
 	klog.Info("getting local endpoints")
 	timer := metrics.StartNewTimer()
@@ -362,7 +378,7 @@ Why can we refresh only once before updating all pods in the updatePodCache (see
 - We won't miss the endpoint (see the assumption). At the time the pod event came in (when AddToSets/RemoveFromSets were called), HNS already knew about the endpoint.
 */
 func (dp *DataPlane) refreshPodEndpoints() error {
-	endpoints, err := dp.getLocalPodEndpoints()
+	endpoints, err := dp.getAllPodEndpoints()
 	if err != nil {
 		return err
 	}
