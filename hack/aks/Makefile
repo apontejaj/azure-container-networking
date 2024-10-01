@@ -49,7 +49,7 @@ unset-kubeconf: ## Deletes the kubeconf for $CLUSTER
 	@kubectl config unset current-context
 	@kubectl config delete-cluster $(CLUSTER)
 	@kubectl config delete-context $(CLUSTER)
-	@kubectl config delete-user clusterUser_$(CLUSTER)_$(CLUSTER)
+	@kubectl config delete-user clusterUser_$(GROUP)_$(CLUSTER)
 
 shell: ## print $AZCLI so it can be used outside of make
 	@echo $(AZCLI)
@@ -245,11 +245,13 @@ swiftv2-multitenancy-cluster-up:
 		--nodepool-tags fastpathenabled=true \
 		--node-os-upgrade-channel $(NODEUPGRADE) \
 		--nodepool-tags fastpathenabled=true aks-nic-enable-multi-tenancy=true \
-        --enable-oidc-issuer \
-        --enable-workload-identity \
+		--enable-oidc-issuer \
+		--enable-workload-identity \
 		--generate-ssh-key \
 		--yes
 	@$(MAKE) set-kubeconf
+
+swiftv2-multitenancy-cluster-down:
 
 swiftv2-dummy-cluster-up: rg-up swift-net-up ## Bring up a SWIFT AzCNI cluster
 	$(AZCLI) aks create -n $(CLUSTER) -g $(GROUP) -l $(REGION) \
