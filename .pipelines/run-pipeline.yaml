@@ -16,9 +16,6 @@ parameters:
   type: string
   default: ''
 
-variables:
-  IS_TRUE: '$[T|t]rue$'
-
 stages:
   - stage: setup
     displayName: ACN
@@ -61,8 +58,8 @@ stages:
       ##   artifact_storage.ACNCI_STORAGEACCOUNT_RESOURCEGROUP
       ##   artifact_storage.ACNCI_STORAGEACCOUNT_LOCATION
       ##   
-      - job: "[Resources] Retrieve Artifact Storage Information"
-        name: resources
+      - job: resources
+        displayName: "[Resources] Retrieve Artifact Storage Information"
         variables:
           ACNCI_RG_PREFIX: acnci-rg-
           ACNCI_SA_PREFIX: acnci-pipelines
