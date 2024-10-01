@@ -97,7 +97,7 @@ func (dp *DataPlane) bootupDataPlane() error {
 		return npmerrors.SimpleErrorWrapper("failed to initialize dataplane", err)
 	}
 
-	allEndpoints, err := dp.getLocalPodEndpoints()
+	allEndpoints, err := dp.getAllPodEndpoints()
 	if err != nil {
 		return err
 	}
@@ -378,7 +378,7 @@ Why can we refresh only once before updating all pods in the updatePodCache (see
 - We won't miss the endpoint (see the assumption). At the time the pod event came in (when AddToSets/RemoveFromSets were called), HNS already knew about the endpoint.
 */
 func (dp *DataPlane) refreshPodEndpoints() error {
-	endpoints, err := dp.getAllPodEndpoints()
+	endpoints, err := dp.getLocalPodEndpoints()
 	if err != nil {
 		return err
 	}
