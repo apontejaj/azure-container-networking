@@ -13,7 +13,7 @@ jobs:
           scriptType: "bash"
           addSpnToEnvironment: true
           inlineScript: |
-            set -ex
+            set -e
             echo "Check az version"
             az version
             if ${{ lower(contains(parameters.clusterType, 'dualstack')) }}
@@ -22,7 +22,6 @@ jobs:
               az extension add --name aks-preview
               az extension update --name aks-preview
             fi
-
             source ./.pipelines/multitenancy/scripts/utils.sh
             export_envVars ${{ parameters.scenario }} 
             mkdir -p ~/.kube/
