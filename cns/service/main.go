@@ -872,6 +872,26 @@ func main() {
 		}
 	}
 
+	if config.ChannelMode == cns.AzureHost {
+		if !cnsconfig.ManageEndpointState {
+			logger.Errorf("[Azure CNS] ManageEndpointState must be set to true for AzureHost mode")
+			return
+		} else {
+			// If cns manageendpointstate is true, then cns maintains its own state and reconciles from it.
+			// in this case, cns maintains state with containerid as key and so in-memory cache can lookup
+			// and update based on container id.
+			cns.GlobalPodInfoScheme = cns.InfraIDPodInfoScheme
+		}
+
+		podInfoByIPProvider, err := getPodInfoByIPProvider(rootCtx, cnsconfig, httpRemoteRestService, nil, "")
+		if err != nil {
+			logger.Errorf("[Azure CNS] Failed to get PodInfoByIPProvider: %v", err)
+			return
+		}
+
+		httpRemoteRestService.InitializeNodeSubnet(rootCtx, podInfoByIPProvider)
+	}
+
 	// Initialize multi-tenant controller if the CNS is running in MultiTenantCRD mode.
 	// It must be started before we start HTTPRemoteRestService.
 	if config.ChannelMode == cns.MultiTenantCRD {
@@ -1022,18 +1042,7 @@ func main() {
 	}
 
 	if config.ChannelMode == cns.AzureHost {
-		if !cnsconfig.ManageEndpointState {
-			logger.Errorf("[Azure CNS] ManageEndpointState must be set to true for AzureHost mode")
-			return
-		}
-
-		podInfoByIPProvider, err := getPodInfoByIPProvider(rootCtx, cnsconfig, httpRemoteRestService, nil, "")
-		if err != nil {
-			logger.Errorf("[Azure CNS] Failed to get PodInfoByIPProvider: %v", err)
-			return
-		}
-
-		httpRemoteRestService.InitializeNodeSubnet(rootCtx, podInfoByIPProvider)
+		httpRemoteRestService.StartNodeSubnet(rootCtx)
 	}
 
 	// mark the service as "ready"

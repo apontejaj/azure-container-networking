@@ -51,6 +51,9 @@ func (service *HTTPRestService) InitializeNodeSubnet(ctx context.Context, podInf
 		return errors.Wrap(err, "reconcile initial CNS state")
 	}
 
-	service.nodesubnetIPFetcher.Start(ctx)
 	return nil
+}
+
+func (service *HTTPRestService) StartNodeSubnet(ctx context.Context) {
+	service.nodesubnetIPFetcher.Start(ctx)
 }
