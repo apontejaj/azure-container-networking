@@ -251,8 +251,6 @@ swiftv2-multitenancy-cluster-up:
 		--yes
 	@$(MAKE) set-kubeconf
 
-swiftv2-multitenancy-cluster-down:
-
 swiftv2-dummy-cluster-up: rg-up swift-net-up ## Bring up a SWIFT AzCNI cluster
 	$(AZCLI) aks create -n $(CLUSTER) -g $(GROUP) -l $(REGION) \
 		--network-plugin azure \
@@ -455,7 +453,7 @@ down: ## Delete the cluster
 
 cluster-down: ## Delete the cluster
 	$(AZCLI) aks delete -g $(GROUP) -n $(CLUSTER) --yes
-	@$(MAKE) unset-kubeconf
+	@$(MAKE) unset-kubeconf $
 
 restart-vmss: ## Restarts the nodes in the cluster
 	$(AZCLI) vmss restart -g MC_${GROUP}_${CLUSTER}_${REGION} --name $(VMSS_NAME)
