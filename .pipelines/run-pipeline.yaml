@@ -128,7 +128,8 @@ stages:
                 targetFolder: binary-output
                 sourceFolder: $(Build.ArtifactStagingDirectory)
 
-        - job: "[Publish] Generate Binary Artifacts"
+        - job:
+          displayName: "[Publish] Generate Binary Artifacts" 
           dependsOn:
           - build
           pool:
