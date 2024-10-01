@@ -125,13 +125,14 @@ stages:
                 sourceFolder: $(Build.ArtifactStagingDirectory)
 
         - job: "[Publish] Generate Binary Artifacts"
-          pool:
-            type: linux
           dependsOn:
           - build
+          pool:
+            type: linux
           variables:
-            ob_outputDirectory: $(Build.ArtifactStagingDirectory)
             blobName: binary-output
+            ob_outputDirectory: $(Build.ArtifactStagingDirectory)
+            ob_git_checkout: true
           steps:
           - checkout: ACNTools
             clean: true

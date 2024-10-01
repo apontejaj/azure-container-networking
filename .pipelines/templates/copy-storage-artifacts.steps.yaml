@@ -6,16 +6,8 @@ parameters:
   type: string
   default: $(Build.ArtifactStagingDirectory)
 
-      ##   artifact_storage.ACNCI_STORAGEACCOUNT_ID
-      ##   artifact_storage.ACNCI_STORAGEACCOUNT_SUBSCRIPTION
-      ##   artifact_storage.ACNCI_STORAGEACCOUNT_SERVICECONNECTION
-      ##   artifact_storage.ACNCI_STORAGEACCOUNT_RESOURCEGROUP
-      ##   artifact_storage.ACNCI_STORAGEACCOUNT_LOCATION
 steps:
 
-# Create Storage Container if not exists - BuildId
-# Add Artifacts at Build.Attempts folder
-# Upload artifact to targetFolder
 # Dependency Variables: 
 #   IS_TRUE (run-pipeline level pipeline var)
 #   SYSTEM_DEBUG (global pipeline var)
