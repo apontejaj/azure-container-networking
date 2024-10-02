@@ -74,7 +74,7 @@ steps:
 
 - task: AzureCLI@2
   name: artifact_storage
-  displayName: "Add Storage Account to Pool"
+  displayName: "Get Storage Account Data"
   condition: and(succeeded(), variables.CREATE_NEW_SA)
   inputs:
     azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
@@ -123,6 +123,7 @@ steps:
     azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
     scriptType: bash
     scriptLocation: inlineScript
+    addSpnToEnvironment: true
     inlineScript: |
       set -e
       [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
