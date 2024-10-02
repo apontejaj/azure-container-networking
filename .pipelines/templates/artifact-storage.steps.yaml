@@ -135,6 +135,7 @@ steps:
       echo >&2 "##vso[task.setvariable variable=ACNCI_STORAGEACCOUNT_ARTIFACT_CONTAINER;isoutput=true]$CONTAINER_NAME"
   env:
     CONTAINER_NAME: "azure-container-networking-pr" 
+    SA_NAME: $(artifact_storage.ACNCI_STORAGEACCOUNT_NAME)
 
 - task: AzureCLI@2
   name: artifact_blob
