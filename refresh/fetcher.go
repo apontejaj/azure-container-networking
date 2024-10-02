@@ -3,8 +3,6 @@ package refresh
 import (
 	"context"
 	"time"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 const (
@@ -17,7 +15,7 @@ const (
 // When a diff is observed, the interval resets to the minimum. The interval can be made unchanging by setting
 // minInterval and maxInterval to the same desired value.
 
-type Fetcher[T any] struct {
+type Fetcher[T Equaler[T]] struct {
 	fetchFunc       func(context.Context) (T, error)
 	cache           T
 	minInterval     time.Duration
@@ -29,7 +27,7 @@ type Fetcher[T any] struct {
 }
 
 // NewFetcher creates a new Fetcher. If minInterval is 0, it will default to 4 seconds.
-func NewFetcher[T any](
+func NewFetcher[T Equaler[T]](
 	fetchFunc func(context.Context) (T, error),
 	minInterval time.Duration,
 	maxInterval time.Duration,
@@ -87,7 +85,7 @@ func (f *Fetcher[T]) Start(ctx context.Context) {
 				if err != nil {
 					f.logger.Errorf("Error fetching data: %v", err)
 				} else {
-					if cmp.Equal(result, f.cache) {
+					if result.Equal(f.cache) {
 						f.updateFetchIntervalForNoObservedDiff()
 						f.logger.Printf("No diff observed in fetch, not invoking the consumer")
 					} else {
