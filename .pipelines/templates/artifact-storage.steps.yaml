@@ -85,7 +85,7 @@ steps:
       set -e
 
       # Make a random selection from the pool
-      SA_DATA=$(echo "$SA_LIST" | jq -arg IDX "$SA_IDX" -rc '.[$IDX]')
+      SA_DATA=$(echo "$SA_LIST" | jq --arg IDX "$SA_IDX" -rc '.[$IDX]')
       echo "Delete me"
       echo "$SA_DATA"
       if (( "$SA_LIST_LENGTH" > 0 )); then
