@@ -16,7 +16,7 @@ steps:
       [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
       
       if (( "$SA_LIST_LENGTH" < "$ACNCI_SA_POOL_SIZE" )); then
-        echo >&2 "##vso[setvariable variable=CREATE_NEW_SA;]True"
+        echo >&2 "##vso[task.setvariable variable=CREATE_NEW_SA;]True"
       fi
   env:
     SA_LIST_LENGTH: $(SA_LIST_LENGTH)
@@ -24,13 +24,13 @@ steps:
 # Create new storage account
 - bash: |
     SA_ID=`tr -dc '[:alnum:]' < /dev/urandom | head -c${1:-7}`
-    echo >&2 "##vso[setvariable variable=ACNCI_UNIQUE_ID;issecret=true]$SA_ID"
-  condition: and(succeeded(), variable.CREATE_NEW_SA)
+    echo >&2 "##vso[task.setvariable variable=ACNCI_UNIQUE_ID;issecret=true]$SA_ID"
+  condition: and(succeeded(), variables.CREATE_NEW_SA)
   displayName: "Generate Name"
 
 - task: AzureCLI@2
   displayName: "Add Storage Account to Pool"
-  condition: and(succeeded(), variable.CREATE_NEW_SA)
+  condition: and(succeeded(), variables.CREATE_NEW_SA)
   inputs:
     azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
     scriptType: bash
@@ -60,7 +60,7 @@ steps:
 - bash: |
     SA_RANDOM_SELECT=`tr -dc '1-9' < /dev/urandom | head -c${1:-7}`
     R_INDEX=$(( "$SA_RANDOM_SELECT" % "$SA_LIST_LENGTH" ))
-    echo >&2 "##vso[setvariable variable=SA_IDX;issecret=true]$R_INDEX"
+    echo >&2 "##vso[task.setvariable variable=SA_IDX;issecret=true]$R_INDEX"
   displayName: "Generate Selection"
   env:
     SA_LIST_LENGTH: $(SA_LIST_LENGTH)
@@ -68,7 +68,7 @@ steps:
 - task: AzureCLI@2
   name: artifact_storage
   displayName: "Add Storage Account to Pool"
-  condition: and(succeeded(), variable.CREATE_NEW_SA)
+  condition: and(succeeded(), variables.CREATE_NEW_SA)
   inputs:
     azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
     scriptType: bash
@@ -84,21 +84,21 @@ steps:
       if (( "$SA_LIST_LENGTH" > 0 )); then
         # Azure Resource ID
         SA_ID=$(echo "$SA_DATA" | jq -r '.id')
-        echo >&2 "##vso[setvariable variable=ACNCI_STORAGEACCOUNT_ID;issecret=true;isoutput=true]$SA_ID"
+        echo >&2 "##vso[task.setvariable variable=ACNCI_STORAGEACCOUNT_ID;issecret=true;isoutput=true]$SA_ID"
         # Azure Resource Name
         SA_NAME=$(echo "$SA_DATA" | jq -r '.name')
-        echo >&2 "##vso[setvariable variable=ACNCI_STORAGEACCOUNT_NAME;issecret=true;isoutput=true]$SA_NAME"
+        echo >&2 "##vso[task.setvariable variable=ACNCI_STORAGEACCOUNT_NAME;issecret=true;isoutput=true]$SA_NAME"
         # Storage Account Subscription
         SA_SUBSCRIPTION=$(echo "$SA_DATA" | jq -r '.subscription')
-        echo >&2 "##vso[setvariable variable=ACNCI_STORAGEACCOUNT_SUBSCRIPTION;issecret=true;isoutput=true]$SA_SUBSCRIPTION"
+        echo >&2 "##vso[task.setvariable variable=ACNCI_STORAGEACCOUNT_SUBSCRIPTION;issecret=true;isoutput=true]$SA_SUBSCRIPTION"
         # Service Connection
-        echo >&2 "##vso[setvariable variable=ACNCI_STORAGEACCOUNT_SERVICECONNECTION;issecret=true;isoutput=true]$SA_SERVICE_CONN"
+        echo >&2 "##vso[task.setvariable variable=ACNCI_STORAGEACCOUNT_SERVICECONNECTION;issecret=true;isoutput=true]$SA_SERVICE_CONN"
         # Storage Account Resource Group
         SA_RG=$(echo "$SA_DATA" | jq -r '.resourceGroup')
-        echo >&2 "##vso[setvariable variable=ACNCI_STORAGEACCOUNT_RESOURCEGROUP;issecret=true;isoutput=true]$SA_RG"
+        echo >&2 "##vso[task.setvariable variable=ACNCI_STORAGEACCOUNT_RESOURCEGROUP;issecret=true;isoutput=true]$SA_RG"
         # Storage Account Location
         SA_LOCATION=$(echo "$SA_DATA" | jq -r '.location')
-        echo >&2 "##vso[setvariable variable=ACNCI_STORAGEACCOUNT_LOCATION;issecret=true;isoutput=true]$SA_LOCATION"
+        echo >&2 "##vso[task.setvariable variable=ACNCI_STORAGEACCOUNT_LOCATION;issecret=true;isoutput=true]$SA_LOCATION"
       else
         echo >&2 "##[error]No storage accounts available for use."
         exit 1
