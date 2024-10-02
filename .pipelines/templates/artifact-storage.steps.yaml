@@ -40,7 +40,7 @@ steps:
       set -e
       [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
 
-      az group create --name "${ACNCI_RG_PREFIX}-${ACNCI_UNIQUE_ID}"
+      az group create --name "${ACNCI_RG_PREFIX}-${ACNCI_UNIQUE_ID}" --location "$ACNCI_SA_LOCATION"
       az storage account create \
         --name "${ACNCI_SA_PREFIX}-${ACNCI_UNIQUE_ID}" \
         --location "$ACNCI_SA_LOCATION" \
