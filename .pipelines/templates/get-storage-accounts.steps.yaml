@@ -31,7 +31,7 @@ steps:
       # Export the available storage account list..
       #  uses custom variable naming if specified.
       if [[ -n $VARNAME_SA_LIST ]] && \
-        ! [[ $VARNAME_SA_LIST ~= ^[N|n][O|o][N|n][E|e]$ ]]; then
+        ! [[ $VARNAME_SA_LIST =~ ^[N|n][O|o][N|n][E|e]$ ]]; then
         echo >&2 "##vso[task.setvariable variable=${VARNAME_SA_LIST};issecret=true;]${R_LIST}"
         echo >&2 "##vso[task.setvariable variable=${VARNAME_SA_LIST}_LENGTH;issecret=true]${R_LIST_LENGTH}"
       else
