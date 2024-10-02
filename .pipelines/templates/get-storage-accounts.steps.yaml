@@ -22,11 +22,16 @@ steps:
 
       # Query for Test Storage Accounts
       R_QUERY="[?type == 'Microsoft.Storage/storageAccounts']"
+      az resource list \
+        --query "$R_QUERY" \
+        --tag PipelineResource="$SYSTEM_DEFINITIONID" -o json
       R_LIST=$(az resource list \
         --query "$R_QUERY" \
-        --tag PipelineResource="$SYSTEM_DEFINITIONID" -o json)
+        --tag PipelineResource="$SYSTEM_DEFINITIONID" -o json | jq -rc '.')
 
       R_LIST_LENGTH=$(echo "$R_LIST" | jq -rc '. | length')
+      echo $R_LIST_LENGTH
+      echo $R_LIST
 
       # Export the available storage account list..
       #  uses custom variable naming if specified.
@@ -35,8 +40,10 @@ steps:
         echo >&2 "##vso[task.setvariable variable=${VARNAME_SA_LIST};issecret=true;]${R_LIST}"
         echo >&2 "##vso[task.setvariable variable=${VARNAME_SA_LIST}_LENGTH;issecret=true]${R_LIST_LENGTH}"
       else
-        echo >&2 "##vso[task.setvariable variable=SA_LIST;issecret=true;]$R_LIST"
-        echo >&2 "##vso[task.setvariable variable=SA_LIST_LENGTH;issecret=true;]$R_LIST_LENGTH"
+        #echo >&2 "##vso[task.setvariable variable=SA_LIST;issecret=true;]$R_LIST"
+        #echo >&2 "##vso[task.setvariable variable=SA_LIST_LENGTH;issecret=true;]$R_LIST_LENGTH"
+        echo >&2 "##vso[task.setvariable variable=SA_LIST;]$R_LIST"
+        echo >&2 "##vso[task.setvariable variable=SA_LIST_LENGTH;]$R_LIST_LENGTH"
       fi
   env:
     VARNAME_SA_LIST: '${{ parameters.varNameStorageAccountList }}'
