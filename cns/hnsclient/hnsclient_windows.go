@@ -54,6 +54,7 @@ const (
 
 	defaultHnsGwIPAddress       = "169.254.128.2"
 	hnsLoopbackAdapterIPAddress = "169.254.128.1"
+	apipaRemoteIPAddress        = "169.254.128.1"
 	// protocolTCP indicates the TCP protocol identifier in HCN
 	protocolTCP = "6"
 
@@ -508,7 +509,7 @@ func configureHostNCApipaEndpoint(
 	endpointPolicies, err := configureAclSettingHostNCApipaEndpoint(
 		protocolList,
 		networkContainerApipaIP,
-		hostApipaIP,
+		apipaRemoteIPAddress,
 		allowNCToHostCommunication,
 		allowHostToNCCommunication,
 		ncPolicies)
