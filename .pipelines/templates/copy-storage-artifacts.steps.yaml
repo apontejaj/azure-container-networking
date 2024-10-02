@@ -29,7 +29,10 @@ steps:
         --account-name "$SA_NAME" \
         --destination "$CONTAINER_NAME" \
         --source "$SOURCE" \
-        --destination-path "$BLOB_PATH" 
+        --destination-path "$BLOB_PATH" \
+        --auth-mode login 
   env:
     SOURCE: ${{ parameters.sourceFolder }}
     TARGET: ${{ parameters.targetFolder }}
+    SA_NAME: $(SA_NAME)
+    CONTAINER_NAME: $(CONTAINER_NAME)

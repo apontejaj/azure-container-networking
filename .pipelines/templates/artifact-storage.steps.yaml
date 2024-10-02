@@ -130,7 +130,8 @@ steps:
       az storage container create \
         --account-name "$SA_NAME" \
         --name "$CONTAINER_NAME" \
-        --public-access off
+        --public-access off \
+        --auth-mode login
 
       echo >&2 "##vso[task.setvariable variable=ACNCI_STORAGEACCOUNT_ARTIFACT_CONTAINER;isoutput=true]$CONTAINER_NAME"
   env:
