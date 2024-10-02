@@ -24,8 +24,8 @@ steps:
 # Create new storage account
 - bash: |
     set -x
-    SA_ID=`tr -dc '[:alnum:]' < /dev/urandom | head -c${1:-7}`
-    echo >&2 "##vso[task.setvariable variable=ACNCI_UNIQUE_ID;issecret=true]$SA_ID"
+    SA_ID=`tr -dc '0-9a-z' < /dev/urandom | head -c${1:-7}`
+    echo >&2 "##vso[task.setvariable variable=ACNCI_UNIQUE_ID]$SA_ID"
   condition: and(succeeded(), variables.CREATE_NEW_SA)
   displayName: "Generate Name"
 
