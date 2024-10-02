@@ -152,4 +152,4 @@ steps:
       set -e
       [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
 
-      echo >&2 "##vso[task.setvariable variable=ACNCI_STORAGEACCOUNT_BLOBPATH;isoutput=true]$BUILD_BUILD_ID/$SYSTEM_JOB_ATTEMPT
+      echo >&2 "##vso[task.setvariable variable=ACNCI_STORAGEACCOUNT_BLOBPATH;isoutput=true]$BUILD_BUILD_ID/$SYSTEM_JOB_ATTEMPT"
