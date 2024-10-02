@@ -45,12 +45,12 @@ steps:
         --name "${ACNCI_SA_PREFIX}-${ACNCI_UNIQUE_ID}" \
         --location "$ACNCI_SA_LOCATION" \
         --user-identity-id "$SERVICEPRINCIPALID" \
-        --enable-files-aadds true \
-        --public-network-access false \
+        --public-network-access Disabled \
         --require-infrastructure-encryption \
         --allow-shared-key-access false \
         --allow-blob-public-access false \
         --tags PipelineResource="$SYSTEM_DEFINITIONID" CreatedByBuild="$BUILD_BUILDID"
+        #--enable-files-aadds true 
 
 - template: get-storage-accounts.steps.yaml
   parameters:
