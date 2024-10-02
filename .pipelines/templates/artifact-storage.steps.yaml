@@ -23,6 +23,7 @@ steps:
 
 # Create new storage account
 - bash: |
+    set -x
     SA_ID=`tr -dc '[:alnum:]' < /dev/urandom | head -c${1:-7}`
     echo >&2 "##vso[task.setvariable variable=ACNCI_UNIQUE_ID;issecret=true]$SA_ID"
   condition: and(succeeded(), variables.CREATE_NEW_SA)
@@ -40,10 +41,12 @@ steps:
       set -e
       [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
 
-      az group create --name "${ACNCI_RG_PREFIX}-${ACNCI_UNIQUE_ID}" --location "$ACNCI_SA_LOCATION"
+      RG_NAME="${ACNCI_RG_PREFIX}-${ACNCI_UNIQUE_ID}"
+      az group create --name "$RG_NAME" --location "$ACNCI_SA_LOCATION"
       az storage account create \
         --name "${ACNCI_SA_PREFIX}-${ACNCI_UNIQUE_ID}" \
         --location "$ACNCI_SA_LOCATION" \
+        --resource-group "$RG_NAME" \
         --user-identity-id "$SERVICEPRINCIPALID" \
         --public-network-access Disabled \
         --require-infrastructure-encryption \
@@ -51,6 +54,9 @@ steps:
         --allow-blob-public-access false \
         --tags PipelineResource="$SYSTEM_DEFINITIONID" CreatedByBuild="$BUILD_BUILDID"
         #--enable-files-aadds true 
+  env:
+    ACNCI_UNIQUE_ID: $(ACNCI_UNIQUE_ID)
+    
 
 - template: get-storage-accounts.steps.yaml
   parameters:
