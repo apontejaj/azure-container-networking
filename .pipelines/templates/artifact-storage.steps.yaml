@@ -41,10 +41,10 @@ steps:
       set -e
       [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
 
-      RG_NAME="${ACNCI_RG_PREFIX}-${ACNCI_UNIQUE_ID}"
+      RG_NAME="${ACNCI_RG_PREFIX}${ACNCI_UNIQUE_ID}"
       az group create --name "$RG_NAME" --location "$ACNCI_SA_LOCATION"
       az storage account create \
-        --name "${ACNCI_SA_PREFIX}-${ACNCI_UNIQUE_ID}" \
+        --name "${ACNCI_SA_PREFIX}${ACNCI_UNIQUE_ID}" \
         --location "$ACNCI_SA_LOCATION" \
         --resource-group "$RG_NAME" \
         --user-identity-id "$SERVICEPRINCIPALID" \
