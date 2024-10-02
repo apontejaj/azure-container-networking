@@ -23,6 +23,7 @@ stages:
     dependsOn: pre_build
     variables:
       ACN_DIR: $(Build.SourcesDirectory)
+      SYSTEM_DEBUG: $[ coalesce(variables.SYSTEM_DEBUG, 'False') ]
     jobs:
       - job: env
         displayName: Setup
@@ -89,6 +90,7 @@ stages:
         SA_NAME: $[ stageDependencies.setup.resources.outputs['artifact_storage.ACNCI_STORAGEACCOUNT_NAME'] ]
         CONTAINER_NAME: $[ stageDependencies.setup.resources.outputs['artifact_container.ACNCI_STORAGEACCOUNT_ARTIFACT_CONTAINER'] ]
         BLOB_PATH: $[ stageDependencies.setup.resources.outputs['artifact_blob.ACNCI_STORAGEACCOUNT_BLOBPATH'] ]
+        SYSTEM_DEBUG: $[ coalesce(variables.SYSTEM_DEBUG, 'False') ]
       jobs:
         - job: build
           displayName: Build Binaries
@@ -163,6 +165,7 @@ stages:
         - test
       variables:
         ACN_DIR: $(Build.SourcesDirectory)
+        SYSTEM_DEBUG: $[ coalesce(variables.SYSTEM_DEBUG, 'False') ]
       jobs:
         - job: containerize_amd64
           displayName: Build Images
@@ -346,6 +349,7 @@ stages:
       variables:
         Packaging.EnableSBOMSigning: false
         ACN_DIR: $(Build.SourcesDirectory)
+        SYSTEM_DEBUG: $[ coalesce(variables.SYSTEM_DEBUG, 'False') ]
       jobs:
         - job: manifest
           displayName: Compile Manifests
@@ -557,6 +561,7 @@ stages:
       variables:
         ACN_DIR: $(Build.SourcesDirectory)
         commitID: $[ stagedependencies.setup.env.outputs['EnvironmentalVariables.commitID'] ]
+        SYSTEM_DEBUG: $[ coalesce(variables.SYSTEM_DEBUG, 'False') ]
       jobs:
         - job: delete
           displayName: Delete Cluster
