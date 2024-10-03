@@ -393,7 +393,7 @@ stages:
         nodePoolName: "mtapool"
         vmSize: $(SWIFTV2_MT_CLUSTER_SKU)
         dependsOn: "containerize"
-        scenario: $(SWIFTV2_SCENARIO) #the scenario maps to the configuration file in acnshared to be used or the swiftv2 e2es
+        scenario: $(SWIFTV2_SCENARIO)
 
     - stage: delete
       displayName: Delete Clusters
@@ -492,4 +492,4 @@ stages:
                 region: $(region)
                 sub: $(SUB_AZURE_NETWORK_AGENT_TEST)
                 svcConn: $(ACN_TEST_SERVICE_CONNECTION)
-                scenario: $(SWIFTV2_SCENARIO) #the scenario maps to the configuration file in acnshared to be used or the swiftv2 e2es
+                scenario: $(SWIFTV2_SCENARIO)

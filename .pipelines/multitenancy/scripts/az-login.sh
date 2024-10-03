@@ -35,6 +35,7 @@ function main() {
     fi
 }
 
+# gets the service principal infomation for an app id
 function get_sp_info() {
     local sp_appid
     sp_appid="${1}"
