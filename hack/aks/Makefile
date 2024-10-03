@@ -109,7 +109,7 @@ nodesubnet-byocni-nokubeproxy-up: rg-up overlay-net-up ## Brings up an NodeSubne
 		--vnet-subnet-id /subscriptions/$(SUB)/resourceGroups/$(GROUP)/providers/Microsoft.Network/virtualNetworks/$(VNET)/subnets/nodenet \
 		--os-sku $(OS_SKU) \
 		--no-ssh-key \
-		--kube-proxy-config /root/tmpsrc/kube-proxy.json \
+		--kube-proxy-config ./kube-proxy.json \
 		--yes
 	$(AZCLI) aks disable-addons --addons azure-policy --name $(CLUSTER) -g $(GROUP) --yes	
 	@$(MAKE) set-kubeconf
