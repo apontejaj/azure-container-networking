@@ -111,6 +111,7 @@ nodesubnet-byocni-nokubeproxy-up: rg-up overlay-net-up ## Brings up an NodeSubne
 		--no-ssh-key \
 		--kube-proxy-config ./kube-proxy.json \
 		--yes
+	$(AZCLI) aks disable-addons --addons azure-policy --n $(CLUSTER) -g $(GROUP) --yes	
 	@$(MAKE) set-kubeconf
 
 overlay-byocni-up: rg-up overlay-net-up ## Brings up an Overlay BYO CNI cluster
