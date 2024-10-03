@@ -36,24 +36,23 @@ steps:
 
       set -x
       
+      # App OID
+      SP_APP_OID=$(az ad app list --show-mine | \
+        jq -rc --arg SP_APPID "$servicePrincipalId" \
+        '.[] | select(.appId == $SP_APPID) | .id') 
       # Get Subscription ID.
-      SC_DATA_JSON=$(az devops service-endpoint list --project One \
-        | jq -rc \
-          --arg SP_APPID "$servicePrincipalId" \
-      '[ \
-        .[] | \
-        { name: .name, data: .data } | \
-        select((.serviceEndpointReferences | length) | select(.data.appObjectId == $SP_APPID) ][0]')
+      SC_DATA_JSON=$(az devops service-endpoint list --project One | \
+        jq -rc --arg SP_APP_OID "$SP_APP_OID" \
+        '[ .[] | { name: .name, data: .data } | select((.serviceEndpointReferences | length) > 0) | select(.data.appObjectId == $SP_APP_OID) ][0]')
       SUBSCRIPTION_ID=$(echo "$SC_DATA_JSON" | jq -rc '.data.subscriptionId')
 
       # Get Pipeline Build Subscriptions.
       INFRA_RG_LIST=$(az group list --query '[? tags."Pipelines.DefinitionID" && tags."Pipelines.CreatedBy"]' -o json)
-      INFRA_RG_LIST=$(echo "$INFRA_RG_LIST" | jq -rc \
+      INFRA_RG_LIST=$(echo "$INFRA_RG_LIST" | \
+        jq -rc \
         --arg SP_APPID "$servicePrincipalId" \
         --arg DEFINITIONID "$SYSTEM_DEFINITIONID" \
-      '.[] | \
-        select(.tags["Pipelines.CreatedBy"] == $SP_APPID) | \
-        select(.tags["Pipelines.DefinitionID"] == $DEFINITIONID)' )
+      '.[] | select(.tags["Pipelines.CreatedBy"] == $SP_APPID) | select(.tags["Pipelines.DefinitionID"] == $DEFINITIONID)' )
       INFRA_RG_LENGTH=$(echo "$INFRA_RG_LIST" | jq length)
 
       if (( $INFRA_RG_LENGTH < $ACNCI_SA_POOL_SIZE )); then
@@ -65,11 +64,12 @@ steps:
           --location "$ACNCI_SA_LOCATION" \
           --tags Pipelines.CreatedBy="$servicePrincipalId" Pipelines.DefinitionID="$SYSTEM_DEFINITIONID"
         # Storage Blob Data Contributor on RG
+        RG_ID="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RG_NAME}"
         az role assignment create \
           --role "Storage Blob Data Contributor" \
           --assignee-principal-type ServicePrincipal \
           --assignee-object-id "$servicePrincipalId" \
-          --scope $RG_ID" "/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/$RG_NAME"
+          --scope "$RG_ID"
 
       else
         # Select one resource group to use.
