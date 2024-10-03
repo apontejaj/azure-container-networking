@@ -2,13 +2,13 @@ package dhcp
 
 import (
 	"context"
-	"golang.org/x/sys/windows"
 	"net"
 	"regexp"
 	"time"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	"golang.org/x/sys/windows"
 )
 
 const (
@@ -21,7 +21,7 @@ const (
 )
 
 var (
-	dummyIPAddress = net.IPv4(169, 254, 128, 10)
+	dummyIPAddress = net.IPv4(169, 254, 128, 10) // nolint
 	// matches if the string fully consists of zero or more alphanumeric, dots, dashes, parentheses, spaces, or underscores
 	allowedInput = regexp.MustCompile(`^[a-zA-Z0-9._\-\(\) ]*$`)
 )
@@ -41,7 +41,6 @@ func NewSocket(destAddr windows.SockaddrInet4) (*Socket, error) {
 	if err != nil {
 		return ret, errors.Wrap(err, "error creating socket")
 	}
-	defer windows.Closesocket(fd)
 
 	// Set IP_HDRINCL to indicate that we are including our own IP header
 	err = windows.SetsockoptInt(fd, windows.IPPROTO_IP, windows.IP_HDRINCL, 1)
@@ -67,6 +66,7 @@ func (s *Socket) Write(packetBytes []byte) (int, error) {
 	}
 	return len(packetBytes), nil
 }
+
 func (s *Socket) Read(p []byte) (n int, err error) {
 	n, _, innerErr := windows.Recvfrom(s.fd, p, 0)
 	if innerErr != nil {
@@ -81,7 +81,7 @@ func (s *Socket) Close() error {
 		return nil
 	}
 	// Ensure the file descriptor is closed when done
-	if err := windows.Close(s.fd); err != nil {
+	if err := windows.Closesocket(s.fd); err != nil {
 		return errors.Wrap(err, "error closing dhcp windows socket")
 	}
 	return nil
@@ -108,8 +108,8 @@ func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr,
 	}
 	// ensure we always remove the dummy ip we added from the interface
 	defer func() {
-		ret, err := c.execClient.ExecuteCommand(ctx, "netsh", "interface", "ipv4", "delete", "address", ifName, dummyIPAddressStr)
-		if err != nil {
+		ret, cleanupErr := c.execClient.ExecuteCommand(ctx, "netsh", "interface", "ipv4", "delete", "address", ifName, dummyIPAddressStr)
+		if cleanupErr != nil {
 			c.logger.Info("Could not remove dummy ip on leaving function", zap.String("output", ret), zap.Error(err))
 		}
 	}()
@@ -139,7 +139,7 @@ func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr,
 
 	destAddr := windows.SockaddrInet4{
 		Addr: [4]byte{255, 255, 255, 255}, // Destination IP
-		Port: 67,                          // Destination Port
+		Port: dhcpServerPort,              // Destination Port
 	}
 	// create new socket for writing and reading
 	sock, err := NewSocket(destAddr)
