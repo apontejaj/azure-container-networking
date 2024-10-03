@@ -47,13 +47,19 @@ var (
 	DefaultTimeout     = 3 * time.Second
 )
 
-type DHCP struct {
-	logger *zap.Logger
+type ExecClient interface {
+	ExecuteCommand(ctx context.Context, command string, args ...string) (string, error)
 }
 
-func New(logger *zap.Logger) *DHCP {
+type DHCP struct {
+	logger     *zap.Logger
+	execClient ExecClient
+}
+
+func New(logger *zap.Logger, plc ExecClient) *DHCP {
 	return &DHCP{
-		logger: logger,
+		logger:     logger,
+		execClient: plc,
 	}
 }
 
