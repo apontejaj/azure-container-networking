@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"time"
 
 	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/netio"
@@ -142,21 +141,6 @@ func (nw *network) getEndpointWithVFDevice(plc platform.ExecClient, epInfo *Endp
 	return ep, nil
 }
 
-func (nw *network) sendDHCPDiscoverOnSecondary(client dhcpClient, mac net.HardwareAddr, ifName string) error {
-	// issue dhcp discover packet to ensure mapping created for dns via wireserver to work
-	// we do not use the response for anything
-	numSecs := 15 // we need to wait for the address to be assigned
-	timeout := time.Duration(numSecs) * time.Second
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(timeout))
-	defer cancel()
-	logger.Info("Sending DHCP packet", zap.Any("macAddress", mac), zap.String("ifName", ifName))
-	err := client.DiscoverRequest(ctx, mac, ifName)
-	if err != nil {
-		return errors.Wrapf(err, "failed to issue dhcp discover packet to create mapping in host")
-	}
-	return nil
-}
-
 // newEndpointImpl creates a new endpoint in the network.
 func (nw *network) newEndpointImpl(
 	cli apipaClient,
@@ -171,12 +155,6 @@ func (nw *network) newEndpointImpl(
 ) (*endpoint, error) {
 	if epInfo.NICType == cns.BackendNIC {
 		return nw.getEndpointWithVFDevice(plc, epInfo)
-	}
-	if epInfo.NICType == cns.NodeNetworkInterfaceFrontendNIC {
-		// use master interface name, interface name, or adapter name?
-		if err := nw.sendDHCPDiscoverOnSecondary(dhcpc, epInfo.MacAddress, epInfo.MasterIfName); err != nil {
-			return nil, err
-		}
 	}
 
 	if useHnsV2, err := UseHnsV2(epInfo.NetNsPath); useHnsV2 {

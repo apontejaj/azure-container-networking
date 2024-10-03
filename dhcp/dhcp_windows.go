@@ -12,12 +12,12 @@ import (
 )
 
 const (
-	dummyIPAddressStr      = "169.254.128.10"
-	dummySubnetMask        = "255.255.128.0"
-	addIPAddressTimeout    = 10 * time.Second
-	deleteIPAddressTimeout = 2 * time.Second
+	dummyIPAddressStr    = "169.254.128.10"
+	dummySubnetMask      = "255.255.128.0"
+	addIPAddressDelay    = 4 * time.Second
+	deleteIPAddressDelay = 2 * time.Second
 
-	socketTimeout = 1000
+	socketTimeoutMillis = 1000
 )
 
 var (
@@ -53,7 +53,7 @@ func NewSocket(destAddr windows.SockaddrInet4) (*Socket, error) {
 		return ret, errors.Wrap(err, "error setting SO_BROADCAST")
 	}
 	// Set timeout
-	if err = windows.SetsockoptInt(windows.Handle(fd), windows.SOL_SOCKET, windows.SO_RCVTIMEO, socketTimeout); err != nil {
+	if err = windows.SetsockoptInt(windows.Handle(fd), windows.SOL_SOCKET, windows.SO_RCVTIMEO, socketTimeoutMillis); err != nil {
 		return ret, errors.Wrap(err, "error setting receive timeout")
 	}
 	return ret, nil
@@ -99,7 +99,7 @@ func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr,
 	if err != nil {
 		c.logger.Info("Could not remove dummy ip", zap.String("output", ret), zap.Error(err))
 	}
-	time.Sleep(deleteIPAddressTimeout)
+	time.Sleep(deleteIPAddressDelay)
 
 	// create dummy ip so we can direct the packet to the correct interface
 	ret, err = c.execClient.ExecuteCommand(ctx, "netsh", "interface", "ipv4", "add", "address", ifName, dummyIPAddressStr, dummySubnetMask)
@@ -114,7 +114,7 @@ func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr,
 		}
 	}()
 	// it takes time for the address to be assigned
-	time.Sleep(addIPAddressTimeout)
+	time.Sleep(addIPAddressDelay)
 
 	// now begin the dhcp request
 	txid, err := GenerateTransactionID()
