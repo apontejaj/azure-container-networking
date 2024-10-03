@@ -20,28 +20,28 @@ steps:
       set -eu
       [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
 
+      # Get Subscription ID.
+      SUBSCRIPTION_ID=$(az account show | jq -rc .)
       # Query for Test Storage Accounts
       R_QUERY="[?type == 'Microsoft.Storage/storageAccounts']"
       az resource list \
         --query "$R_QUERY" \
-        --tag PipelineResource="$SYSTEM_DEFINITIONID" -o json
+        --tag Pipelines.DefinitionID="$SYSTEM_DEFINITIONID" -o json
+      # JSON of Returned Results
       R_LIST=$(az resource list \
         --query "$R_QUERY" \
-        --tag PipelineResource="$SYSTEM_DEFINITIONID" -o json | jq -rc '.')
-
+        --tag Pipelines.DefinitionID="$SYSTEM_DEFINITIONID" -o json | \
+        jq -rc '.')
+      # Length of resource list
       R_LIST_LENGTH=$(echo "$R_LIST" | jq -rc '. | length')
-      echo $R_LIST_LENGTH
-      echo $R_LIST
 
       # Export the available storage account list..
       #  uses custom variable naming if specified.
       if [[ -n $VARNAME_SA_LIST ]] && \
         ! [[ $VARNAME_SA_LIST =~ ^[N|n][O|o][N|n][E|e]$ ]]; then
-        echo >&2 "##vso[task.setvariable variable=${VARNAME_SA_LIST};issecret=true;]${R_LIST}"
-        echo >&2 "##vso[task.setvariable variable=${VARNAME_SA_LIST}_LENGTH;issecret=true]${R_LIST_LENGTH}"
+        echo >&2 "##vso[task.setvariable variable=${VARNAME_SA_LIST}]${R_LIST}"
+        echo >&2 "##vso[task.setvariable variable=${VARNAME_SA_LIST}_LENGTH]${R_LIST_LENGTH}"
       else
-        #echo >&2 "##vso[task.setvariable variable=SA_LIST;issecret=true;]$R_LIST"
-        #echo >&2 "##vso[task.setvariable variable=SA_LIST_LENGTH;issecret=true;]$R_LIST_LENGTH"
         echo >&2 "##vso[task.setvariable variable=SA_LIST;]$R_LIST"
         echo >&2 "##vso[task.setvariable variable=SA_LIST_LENGTH;]$R_LIST_LENGTH"
       fi

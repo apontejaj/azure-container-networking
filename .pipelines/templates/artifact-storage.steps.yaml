@@ -21,6 +21,69 @@ steps:
   env:
     SA_LIST_LENGTH: $(SA_LIST_LENGTH)
 
+- task: AzureCLI@2
+  name: resourcegroups
+  displayName: "Check Build Resource Groups"
+  condition: and(succeeded(), variables.CREATE_NEW_SA)
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    addSpnToEnvironment: true
+    inlineScript: |
+      set -e
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+
+      set -x
+      
+      # Get Subscription ID.
+      SC_DATA_JSON=$(az devops service-endpoint list --project One \
+        | jq -rc \
+          --arg SP_APPID "$servicePrincipalId" \
+      '[ \
+        .[] | \
+        { name: .name, data: .data } | \
+        select((.serviceEndpointReferences | length) | select(.data.appObjectId == $SP_APPID) ][0]')
+      SUBSCRIPTION_ID=$(echo "$SC_DATA_JSON" | jq -rc '.data.subscriptionId')
+
+      # Get Pipeline Build Subscriptions.
+      INFRA_RG_LIST=$(az group list --query '[? tags."Pipelines.DefinitionID" && tags."Pipelines.CreatedBy"]' -o json)
+      INFRA_RG_LIST=$(echo "$INFRA_RG_LIST" | jq -rc \
+        --arg SP_APPID "$servicePrincipalId" \
+        --arg DEFINITIONID "$SYSTEM_DEFINITIONID" \
+      '.[] | \
+        select(.tags["Pipelines.CreatedBy"] == $SP_APPID) | \
+        select(.tags["Pipelines.DefinitionID"] == $DEFINITIONID)' )
+      INFRA_RG_LENGTH=$(echo "$INFRA_RG_LIST" | jq length)
+
+      if (( $INFRA_RG_LENGTH < $ACNCI_SA_POOL_SIZE )); then
+        # Construct RG Name
+        RG_NAME="${ACNCI_RG_PREFIX}${ACNCI_UNIQUE_ID}"
+        # Create rg
+        az group create \
+          --name "$RG_NAME" \
+          --location "$ACNCI_SA_LOCATION" \
+          --tags Pipelines.CreatedBy="$servicePrincipalId" Pipelines.DefinitionID="$SYSTEM_DEFINITIONID"
+        # Storage Blob Data Contributor on RG
+        az role assignment create \
+          --role "Storage Blob Data Contributor" \
+          --assignee-principal-type ServicePrincipal \
+          --assignee-object-id "$servicePrincipalId" \
+          --scope $RG_ID" "/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/$RG_NAME"
+
+      else
+        # Select one resource group to use.
+        RANDOM_SELECT=`tr -dc '1-9' < /dev/urandom | head -c${1:-7}`
+        IDX=$(( "$RANDOM_SELECT" % "$INFRA_RG_LENGTH" ))
+        RG_DATA=$(echo "$INFRA_RG_LIST" | jq --argjson IDX "$IDX" -rc '.[$IDX]')
+        RG_NAME=$(echo "$RG_DATA" | jq -rc '.name')
+        RG_ID=$(echo "$RG_DATA" | jq -rc '.id')
+      fi
+      echo >&2 "##vso[task.setvariable variable=ACNCI_BUILD_RESOURCEGROUP;isoutput=true;]$RG_NAME"
+      echo >&2 "##vso[task.setvariable variable=ACNCI_BUILD_RESOURCEGROUP_ID;isoutput=true;]$RG_ID"
+  env:
+    ACNCI_UNIQUE_ID: $(ACNCI_UNIQUE_ID)
+
 # Create new storage account
 - bash: |
     set -x
@@ -41,10 +104,10 @@ steps:
       set -e
       [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
 
-      RG_NAME="${ACNCI_RG_PREFIX}${ACNCI_UNIQUE_ID}"
-      az group create --name "$RG_NAME" --location "$ACNCI_SA_LOCATION"
+      SA_NAME="${ACNCI_SA_PREFIX}${ACNCI_UNIQUE_ID}"
+
       az storage account create \
-        --name "${ACNCI_SA_PREFIX}${ACNCI_UNIQUE_ID}" \
+        --name "$SA_NAME" \
         --location "$ACNCI_SA_LOCATION" \
         --resource-group "$RG_NAME" \
         --user-identity-id "$SERVICEPRINCIPALID" \
@@ -52,10 +115,11 @@ steps:
         --require-infrastructure-encryption \
         --allow-shared-key-access false \
         --allow-blob-public-access false \
-        --tags PipelineResource="$SYSTEM_DEFINITIONID" CreatedByBuild="$BUILD_BUILDID"
+        --tags Pipelines.DefinitionID="$SYSTEM_DEFINITIONID" Pipelines.CreatedByBuildID="$BUILD_BUILDID"
         #--enable-files-aadds true 
   env:
     ACNCI_UNIQUE_ID: $(ACNCI_UNIQUE_ID)
+    RG_NAME: $(resourcegroups.ACNCI_BUILD_RESOURCEGROUP)
     
 
 - template: get-storage-accounts.steps.yaml
@@ -130,13 +194,16 @@ steps:
 
       az storage container create \
         --account-name "$SA_NAME" \
+        --resource-group "RG_NAME" \
         --name "$CONTAINER_NAME" \
-        --public-access off \
         --auth-mode login
+        #--public-access off 
+      az storage account show -n "$SA_NAME" --query networkRuleSet
 
       echo >&2 "##vso[task.setvariable variable=ACNCI_STORAGEACCOUNT_ARTIFACT_CONTAINER;isoutput=true]$CONTAINER_NAME"
   env:
     CONTAINER_NAME: "azure-container-networking-pr" 
+    RG_NAME: $(resourcegroups.ACNCI_BUILD_RESOURCEGROUP)
     SA_NAME: $(artifact_storage.ACNCI_STORAGEACCOUNT_NAME)
 
 - task: AzureCLI@2
