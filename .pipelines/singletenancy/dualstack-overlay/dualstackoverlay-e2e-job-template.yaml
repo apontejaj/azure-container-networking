@@ -73,19 +73,6 @@ stages:
                 hostport: true
                 service: true
 
-            - template: ../../cni/k8s-e2e/k8s-e2e-job-template.yaml
-              parameters:
-                sub: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
-                clusterName: ${{ parameters.clusterName }}-$(commitID)
-                os: windows
-                dependsOn: cni_linux
-                # dualstack: true # Currently broken for scenario and blocking releases, HNS is investigating. Covered by go test in E2E step template
-                dns: true
-                portforward: true
-                # service: true  # Currently broken for scenario and blocking releases, HNS is investigating.
-                hostport: true
-                hybridWin: true
-
         - job: failedE2ELogs_linux
           displayName: "Linux Failure Logs"
           dependsOn:
@@ -142,6 +129,19 @@ stages:
                 clusterName: ${{ parameters.clusterName }}-$(commitID)
                 os: windows
                 scaleup: 50
+
+            - template: ../../cni/k8s-e2e/k8s-e2e-job-template.yaml
+              parameters:
+                sub: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
+                clusterName: ${{ parameters.clusterName }}-$(commitID)
+                os: windows
+                dependsOn: cni_linux
+                # dualstack: true # Currently broken for scenario and blocking releases, HNS is investigating. Covered by go test in E2E step template
+                dns: true
+                portforward: true
+                # service: true  # Currently broken for scenario and blocking releases, HNS is investigating.
+                hostport: true
+                hybridWin: true
 
         - job: failedE2ELogs_windows
           displayName: "Windows Failure Logs"
