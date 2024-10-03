@@ -172,7 +172,7 @@ func (nw *network) newEndpointImpl(
 	if epInfo.NICType == cns.BackendNIC {
 		return nw.getEndpointWithVFDevice(plc, epInfo)
 	}
-	if epInfo.NICType == cns.DelegatedVMNIC {
+	if epInfo.NICType == cns.NodeNetworkInterfaceFrontendNIC {
 		// use master interface name, interface name, or adapter name?
 		if err := nw.sendDHCPDiscoverOnSecondary(dhcpc, epInfo.MacAddress, epInfo.MasterIfName); err != nil {
 			return nil, err
