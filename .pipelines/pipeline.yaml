@@ -393,10 +393,7 @@ stages:
         nodePoolName: "mtapool"
         vmSize: $(SWIFTV2_MT_CLUSTER_SKU)
         dependsOn: "containerize"
-        dummyClusterName: "swiftv2dummy"
-        dummyClusterType: "swiftv2-dummy-cluster-up"
-        dummyClusterDisplayName: Swiftv2 Multitenancy Dummy Cluster
-        scenario: westcentralus
+        scenario: $(SWIFTV2_SCENARIO) #the scenario maps to the configuration file in acnshared to be used or the swiftv2 e2es
 
     - stage: delete
       displayName: Delete Clusters
@@ -495,4 +492,4 @@ stages:
                 region: $(region)
                 sub: $(SUB_AZURE_NETWORK_AGENT_TEST)
                 svcConn: $(ACN_TEST_SERVICE_CONNECTION)
-                scenario: westcentralus
+                scenario: $(SWIFTV2_SCENARIO) #the scenario maps to the configuration file in acnshared to be used or the swiftv2 e2es
