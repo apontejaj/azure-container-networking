@@ -55,7 +55,8 @@ steps:
       '.[] | select(.tags["Pipelines.CreatedBy"] == $SP_APPID) | select(.tags["Pipelines.DefinitionID"] == $DEFINITIONID)' )
       INFRA_RG_LENGTH=$(echo "$INFRA_RG_LIST" | jq length)
 
-      if (( $INFRA_RG_LENGTH < $ACNCI_SA_POOL_SIZE )); then
+      if [[ -z $INFRA_RG_LENGTH ]] || \
+         (( $INFRA_RG_LENGTH < $ACNCI_SA_POOL_SIZE )); then
         # Construct RG Name
         RG_NAME="${ACNCI_RG_PREFIX}${ACNCI_UNIQUE_ID}"
         # Create rg
