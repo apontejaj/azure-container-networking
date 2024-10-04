@@ -60,7 +60,7 @@ steps:
         --arg CREATEDBY_APPID_TAG "$ACNCI_BUILDTAG_CREATEDBYAPPID" \
         --arg DEFINITIONID "$SYSTEM_DEFINITIONID" \
         --arg DEFINITIONID_TAG "$ACNCI_BUILDTAG_DEFINITIONID" \
-      '.[] | select(.tags[$CREATEDBYAPPID_TAG] == $SP_APPID) | select(.tags[$DEFINITIONID_TAG] == $DEFINITIONID)' )
+      '.[] | select(.tags["$CREATEDBYAPPID_TAG"] == $SP_APPID) | select(.tags["$DEFINITIONID_TAG"] == $DEFINITIONID)' )
       INFRA_RG_LENGTH=$(echo "$INFRA_RG_LIST" | jq length)
 
       if [[ -z $INFRA_RG_LENGTH ]] || \
