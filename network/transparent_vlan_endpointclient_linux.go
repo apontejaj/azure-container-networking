@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"time"
 
 	"github.com/Azure/azure-container-networking/iptables"
 	"github.com/Azure/azure-container-networking/netio"
@@ -13,6 +12,7 @@ import (
 	"github.com/Azure/azure-container-networking/network/networkutils"
 	"github.com/Azure/azure-container-networking/network/snat"
 	"github.com/Azure/azure-container-networking/platform"
+	"github.com/Azure/azure-container-networking/retry"
 	"github.com/pkg/errors"
 	vishnetlink "github.com/vishvananda/netlink"
 	"go.uber.org/zap"
@@ -192,7 +192,7 @@ func (client *TransparentVlanEndpointClient) setLinkNetNSAndConfirm(name string,
 	}
 
 	// confirm veth was moved successfully
-	err = RunWithRetries(func() error {
+	err = retry.Do(func() error {
 		// retry checking in the namespace if the interface is not detected
 		return ExecuteInNS(client.nsClient, client.vnetNSName, func() error {
 			_, ifDetectedErr := client.netioshim.GetNetworkInterfaceByName(client.vlanIfName)
@@ -220,7 +220,7 @@ func (client *TransparentVlanEndpointClient) PopulateVM(epInfo *EndpointInfo) er
 		// We assume the only possible error is that the namespace doesn't exist
 		logger.Info("No existing NS detected. Creating the vnet namespace and switching to it", zap.String("message", existingErr.Error()))
 
-		err = RunWithRetries(func() error {
+		err = retry.Do(func() error {
 			return client.createNetworkNamespace(vmNS)
 		}, numRetries, sleepInMs)
 		if err != nil {
@@ -279,7 +279,7 @@ func (client *TransparentVlanEndpointClient) PopulateVM(epInfo *EndpointInfo) er
 		}()
 
 		// sometimes there is slight delay in interface creation. check if it exists
-		err = RunWithRetries(func() error {
+		err = retry.Do(func() error {
 			_, err = client.netioshim.GetNetworkInterfaceByName(client.vlanIfName)
 			return errors.Wrap(err, "failed to get vlan veth")
 		}, numRetries, sleepInMs)
@@ -316,7 +316,7 @@ func (client *TransparentVlanEndpointClient) PopulateVM(epInfo *EndpointInfo) er
 	}
 
 	// Ensure vnet veth is created, as there may be a slight delay
-	err = RunWithRetries(func() error {
+	err = retry.Do(func() error {
 		_, getErr := client.netioshim.GetNetworkInterfaceByName(client.vnetVethName)
 		return errors.Wrap(getErr, "failed to get vnet veth")
 	}, numRetries, sleepInMs)
@@ -326,7 +326,7 @@ func (client *TransparentVlanEndpointClient) PopulateVM(epInfo *EndpointInfo) er
 
 	// Ensure container veth is created, as there may be a slight delay
 	var containerIf *net.Interface
-	err = RunWithRetries(func() error {
+	err = retry.Do(func() error {
 		var getErr error
 		containerIf, getErr = client.netioshim.GetNetworkInterfaceByName(client.containerVethName)
 		return errors.Wrap(getErr, "failed to get container veth")
@@ -711,17 +711,4 @@ func ExecuteInNS(nsc NamespaceClientInterface, nsName string, f func() error) er
 		}
 	}()
 	return f()
-}
-
-func RunWithRetries(f func() error, maxRuns, sleepMs int) error {
-	var err error
-	for i := 0; i < maxRuns; i++ {
-		err = f()
-		if err == nil {
-			break
-		}
-		logger.Info("Retrying after delay...", zap.String("error", err.Error()), zap.Int("retry", i), zap.Int("sleepMs", sleepMs))
-		time.Sleep(time.Duration(sleepMs) * time.Millisecond)
-	}
-	return err
 }

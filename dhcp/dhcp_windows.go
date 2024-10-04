@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-container-networking/cni/log"
+	"github.com/Azure/azure-container-networking/retry"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"golang.org/x/sys/windows"
@@ -18,8 +19,9 @@ const (
 	addIPAddressDelay    = 4 * time.Second
 	deleteIPAddressDelay = 2 * time.Second
 	returnDelay          = 8 * time.Second // time to wait before returning from DiscoverRequest
-
-	socketTimeoutMillis = 1000
+	retryCount           = 5
+	retryDelayMillis     = 500
+	socketTimeoutMillis  = 1000
 )
 
 var (
@@ -160,7 +162,11 @@ func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr,
 		return errors.Wrap(err, "failed to create socket")
 	}
 
-	_, err = sock.Write(bytesToSend)
+	// retry sending the packet until it succeeds
+	err = retry.Do(func() error {
+		_, sockErr := sock.Write(bytesToSend)
+		return sockErr
+	}, retryCount, retryDelayMillis)
 	if err != nil {
 		return errors.Wrap(err, "failed to write to dhcp socket")
 	}
