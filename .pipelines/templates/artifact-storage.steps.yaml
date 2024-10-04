@@ -45,9 +45,7 @@ steps:
       set -x
       
       # App OID
-      SP_APP_OID=$(az ad app list --show-mine | \
-        jq -rc --arg SP_APPID "$servicePrincipalId" \
-        '.[] | select(.appId == $SP_APPID) | .id') 
+      SP_APP_OID=$(az ad sp show --id "$servicePrincipalId" | jq -rc '.id') 
       # Get Subscription ID.
       SC_DATA_JSON=$(az devops service-endpoint list --project One | \
         jq -rc --arg SP_APP_OID "$SP_APP_OID" \
@@ -55,12 +53,14 @@ steps:
       SUBSCRIPTION_ID=$(echo "$SC_DATA_JSON" | jq -rc '.data.subscriptionId')
 
       # Get Pipeline Build Subscriptions.
-      INFRA_RG_LIST=$(az group list --query '[? tags."Pipelines.DefinitionID" && tags."Pipelines.CreatedBy"]' -o json)
+      INFRA_RG_LIST=$(az group list --query '[? tags."$ACNCI_BUILDTAG_DEFINITIONID" && tags."$ACNCI_BUILDTAG_CREATEDBY"]' -o json)
       INFRA_RG_LIST=$(echo "$INFRA_RG_LIST" | \
         jq -rc \
         --arg SP_APPID "$servicePrincipalId" \
+        --arg CREATEDBY_APPID_TAG "$ACNCI_BUILDTAG_CREATEDBY" \
         --arg DEFINITIONID "$SYSTEM_DEFINITIONID" \
-      '.[] | select(.tags["Pipelines.CreatedBy"] == $SP_APPID) | select(.tags["Pipelines.DefinitionID"] == $DEFINITIONID)' )
+        --arg DEFINITIONID_TAG "$ACNCI_BUILDTAG_DEFINITIONID" \
+      '.[] | select(.tags[$CREATEDBYAPPID_TAG] == $SP_APPID) | select(.tags["Pipelines.DefinitionID"] == $DEFINITIONID)' )
       INFRA_RG_LENGTH=$(echo "$INFRA_RG_LIST" | jq length)
 
       if [[ -z $INFRA_RG_LENGTH ]] || \
