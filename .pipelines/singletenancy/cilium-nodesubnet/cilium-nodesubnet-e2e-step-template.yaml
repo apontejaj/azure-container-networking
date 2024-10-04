@@ -39,7 +39,7 @@ steps:
           SECONDARY_IP_COUNT=$((SCALE_UP * 2)) \
           RESOURCE_GROUP="MC_${clusterName}_${clusterName}_$(REGION_AKS_CLUSTER_TEST)" \
           go run $(Build.SourcesDirectory)/test/integration/cilium-nodesubnet/ipconfigupdate.go
-          
+
   - task: AzureCLI@2
     displayName: 'Hack to disable unnecessary azure-policy related pods'
     inputs:
@@ -50,6 +50,13 @@ steps:
       inlineScript: |
           az extension add --name aks-preview
           az extension update --name aks-preview
+          for i in {1..5}; do
+            provisioningState=$(az aks show --resource-group sanprabhu-westus2 --name sanprabhu-westus2 --output json | jq -r '.provisioningState')
+            if [ "$provisioningState" == "Succeeded" ]; then
+              break
+            fi
+            sleep 30
+          done
           az aks enable-addons --addons azure-policy --name ${{ parameters.clusterName }} -g ${{ parameters.clusterName }}
           az aks disable-addons --addons azure-policy --name ${{ parameters.clusterName }} -g ${{ parameters.clusterName }}  
 
