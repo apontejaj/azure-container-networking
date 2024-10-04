@@ -20,10 +20,7 @@ func (service *HTTPRestService) UpdateIPsForNodeSubnet(secondaryIPs []netip.Addr
 		secondaryIPStrs[i] = ip.String()
 	}
 
-	networkContainerRequest, err := nodesubnet.CreateNodeSubnetNCRequest(secondaryIPStrs)
-	if err != nil {
-		return errors.Wrap(err, "creating network container request")
-	}
+	networkContainerRequest := nodesubnet.CreateNodeSubnetNCRequest(secondaryIPStrs)
 
 	code, msg := service.saveNetworkContainerGoalState(*networkContainerRequest)
 	if code != types.Success {
@@ -47,7 +44,7 @@ func (service *HTTPRestService) InitializeNodeSubnet(ctx context.Context, podInf
 	service.nodesubnetIPFetcher = nodesubnet.NewIPFetcher(service.nma, service, 0, 0, logger.Log)
 	if podInfoByIPProvider == nil {
 		logger.Printf("PodInfoByIPProvider is nil, this usually means no saved endpoint state. Skipping reconciliation")
-	} else if err := nodesubnet.ReconcileInitialCNSState(ctx, service, podInfoByIPProvider); err != nil {
+	} else if _, err := nodesubnet.ReconcileInitialCNSState(ctx, service, podInfoByIPProvider); err != nil {
 		return errors.Wrap(err, "reconcile initial CNS state")
 	}
 

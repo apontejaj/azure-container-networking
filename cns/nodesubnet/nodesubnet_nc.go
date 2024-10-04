@@ -9,7 +9,7 @@ import (
 
 const (
 	// ID for fake NC that we create to store NodeSubnet IPS
-	NodeSubnetNCID          = "NodeSubnetNC_IPv4"
+	NodeSubnetNCID          = "55022629-3854-499b-7133-5e6887959f4ea" // md5sum of "NodeSubnetNC_IPv4"
 	NodeSubnetNCVersion     = 0
 	NodeSubnetHostVersion   = "0"
 	NodeSubnetNCStatus      = v1alpha.NCUpdateSuccess
@@ -17,7 +17,7 @@ const (
 )
 
 // CreateNodeSubnetNCRequest generates a CreateNetworkContainerRequest that simply stores the static secondary IPs.
-func CreateNodeSubnetNCRequest(secondaryIPs []string) (*cns.CreateNetworkContainerRequest, error) {
+func CreateNodeSubnetNCRequest(secondaryIPs []string) *cns.CreateNetworkContainerRequest {
 	secondaryIPConfigs := map[string]cns.SecondaryIPConfig{}
 
 	for _, secondaryIP := range secondaryIPs {
@@ -36,5 +36,5 @@ func CreateNodeSubnetNCRequest(secondaryIPs []string) (*cns.CreateNetworkContain
 		Version:              strconv.FormatInt(NodeSubnetNCVersion, 10), //nolint:gomnd // it's decimal
 		IPConfiguration:      cns.IPConfiguration{},
 		NCStatus:             NodeSubnetNCStatus,
-	}, nil
+	}
 }
