@@ -47,10 +47,10 @@ steps:
       # App OID
       SP_APP_OID=$(az ad sp show --id "$servicePrincipalId" | jq -rc '.id') 
       # Get Subscription ID.
-      SC_DATA_JSON=$(az devops service-endpoint list --org msazure --project One | \
-        jq -rc --arg SP_APP_OID "$SP_APP_OID" \
-        '[ .[] | { name: .name, data: .data } | select((.serviceEndpointReferences | length) > 0) | select(.data.appObjectId == $SP_APP_OID) ][0]')
-      SUBSCRIPTION_ID=$(echo "$SC_DATA_JSON" | jq -rc '.data.subscriptionId')
+      #SC_DATA_JSON=$(az devops service-endpoint list --organization msazure --project One | \
+      #  jq -rc --arg SP_APP_OID "$SP_APP_OID" \
+      #  '[ .[] | { name: .name, data: .data } | select((.serviceEndpointReferences | length) > 0) | select(.data.appObjectId == $SP_APP_OID) ][0]')
+      SUBSCRIPTION_ID=$(az account show | jq -rc '.id')
 
       # Get Pipeline Build Subscriptions.
       INFRA_RG_LIST=$(az group list --query '[? tags."$ACNCI_BUILDTAG_DEFINITIONID" && tags."$ACNCI_BUILDTAG_CREATEDBYAPPID"]' -o json)
