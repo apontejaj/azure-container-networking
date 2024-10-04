@@ -150,7 +150,7 @@ func (nw *network) newEndpointImpl(
 	_ EndpointClient,
 	_ NamespaceClientInterface,
 	_ ipTablesClient,
-	dhcpc dhcpClient,
+	_ dhcpClient,
 	epInfo *EndpointInfo,
 ) (*endpoint, error) {
 	if epInfo.NICType == cns.BackendNIC {
