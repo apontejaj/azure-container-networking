@@ -234,7 +234,7 @@ func (c *DHCP) receiveDHCPResponse(ctx context.Context, reader io.ReadCloser, xi
 			if opcode != dhcpOpCodeReply {
 				continue // opcode is not a reply, so continue
 			}
-
+			c.logger.Info("Received DHCP reply packet", zap.Int("opCode", int(opcode)), zap.Any("transactionID", TransactionID(txid)))
 			if TransactionID(txid) == xid {
 				break
 			}

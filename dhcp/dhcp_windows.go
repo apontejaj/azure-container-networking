@@ -16,6 +16,7 @@ const (
 	dummySubnetMask      = "255.255.128.0"
 	addIPAddressDelay    = 4 * time.Second
 	deleteIPAddressDelay = 2 * time.Second
+	returnDelay          = 8 * time.Second // time to wait before returning from DiscoverRequest
 
 	socketTimeoutMillis = 1000
 )
@@ -97,7 +98,7 @@ func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr,
 	// delete dummy ip off the interface if it already exists
 	ret, err := c.execClient.ExecuteCommand(ctx, "netsh", "interface", "ipv4", "delete", "address", ifName, dummyIPAddressStr)
 	if err != nil {
-		c.logger.Info("Could not remove dummy ip", zap.String("output", ret), zap.Error(err))
+		c.logger.Info("Could not remove dummy ip, likely because it doesn't exist", zap.String("output", ret), zap.Error(err))
 	}
 	time.Sleep(deleteIPAddressDelay)
 
@@ -110,8 +111,10 @@ func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr,
 	defer func() {
 		ret, cleanupErr := c.execClient.ExecuteCommand(ctx, "netsh", "interface", "ipv4", "delete", "address", ifName, dummyIPAddressStr)
 		if cleanupErr != nil {
-			c.logger.Info("Could not remove dummy ip on leaving function", zap.String("output", ret), zap.Error(err))
+			c.logger.Info("Failed to remove dummy ip on leaving function", zap.String("output", ret), zap.Error(err))
 		}
+		// wait for nic to retrieve autoconfiguration ip
+		time.Sleep(returnDelay)
 	}()
 	// it takes time for the address to be assigned
 	time.Sleep(addIPAddressDelay)

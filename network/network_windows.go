@@ -447,6 +447,7 @@ func (nw *networkManager) sendDHCPDiscoverOnSecondary(client dhcpClient, mac net
 	if err != nil {
 		return errors.Wrapf(err, "failed to issue dhcp discover packet to create mapping in host")
 	}
+	logger.Info("Successfully received DHCP reply packet")
 	return nil
 }
 
