@@ -1,5 +1,5 @@
 package refresh
 
-type Equaler[T any] interface {
+type equaler[T any] interface {
 	Equal(T) bool
 }

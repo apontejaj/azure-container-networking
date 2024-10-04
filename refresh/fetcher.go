@@ -15,7 +15,7 @@ const (
 // When a diff is observed, the interval resets to the minimum. The interval can be made unchanging by setting
 // minInterval and maxInterval to the same desired value.
 
-type Fetcher[T Equaler[T]] struct {
+type Fetcher[T equaler[T]] struct {
 	fetchFunc       func(context.Context) (T, error)
 	cache           T
 	minInterval     time.Duration
@@ -27,7 +27,7 @@ type Fetcher[T Equaler[T]] struct {
 }
 
 // NewFetcher creates a new Fetcher. If minInterval is 0, it will default to 4 seconds.
-func NewFetcher[T Equaler[T]](
+func NewFetcher[T equaler[T]](
 	fetchFunc func(context.Context) (T, error),
 	minInterval time.Duration,
 	maxInterval time.Duration,
