@@ -3,6 +3,9 @@ parameters:
 - name: STORAGE_ACCOUNT_SERVICE_CONNECTION
   type: string
 
+- name: resourceGroupName
+  type: string
+
 - name: varNameStorageAccountList
   type: string
   default: None
@@ -22,23 +25,26 @@ steps:
 
       # Get Subscription ID.
       SUBSCRIPTION_ID=$(az account show | jq -rc .)
+      echo $SUBSCRIPTION_ID
       # Query for Test Storage Accounts
-      R_QUERY="[?type == 'Microsoft.Storage/storageAccounts']"
+      R_QUERY="[? type == 'Microsoft.Storage/storageAccounts' && resourceGroup == '$RG_NAME']"
       az resource list \
         --query "$R_QUERY" \
-        --tag Pipelines.DefinitionID="$SYSTEM_DEFINITIONID" -o json
+        --tag "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" -o json
+      echo $R_QUERY
       # JSON of Returned Results
       R_LIST=$(az resource list \
         --query "$R_QUERY" \
-        --tag Pipelines.DefinitionID="$SYSTEM_DEFINITIONID" -o json | \
-        jq -rc '.')
+        --tag "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" -o json)
+      echo $R_LIST
       # Length of resource list
-      R_LIST_LENGTH=$(echo "$R_LIST" | jq -rc '. | length')
+      R_LIST_LENGTH=$(echo "$R_LIST" | jq length)
+      echo $R_LIST_LENGTH
 
       # Export the available storage account list..
       #  uses custom variable naming if specified.
       if [[ -n $VARNAME_SA_LIST ]] && \
-        ! [[ $VARNAME_SA_LIST =~ ^[N|n][O|o][N|n][E|e]$ ]]; then
+         ! [[ $VARNAME_SA_LIST =~ ^[N|n][O|o][N|n][E|e]$ ]]; then
         echo >&2 "##vso[task.setvariable variable=${VARNAME_SA_LIST}]${R_LIST}"
         echo >&2 "##vso[task.setvariable variable=${VARNAME_SA_LIST}_LENGTH]${R_LIST_LENGTH}"
       else
@@ -47,3 +53,4 @@ steps:
       fi
   env:
     VARNAME_SA_LIST: '${{ parameters.varNameStorageAccountList }}'
+    RG_NAME: '${{ parameters.resourceGroup }}'

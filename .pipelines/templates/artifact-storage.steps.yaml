@@ -1,38 +1,14 @@
 
 steps:
-- template: get-storage-accounts.steps.yaml
-  parameters:
-    STORAGE_ACCOUNT_SERVICE_CONNECTION: $(ACN_TEST_SERVICE_CONNECTION)
-
-- task: AzureCLI@2
-  displayName: "Check Resource Pool"
-  inputs:
-    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
-    scriptType: bash
-    scriptLocation: inlineScript
-    addSpnToEnvironment: true
-    inlineScript: |
-      set -e
-      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
-      
-      if (( "$SA_LIST_LENGTH" < "$ACNCI_SA_POOL_SIZE" )); then
-        echo >&2 "##vso[task.setvariable variable=CREATE_NEW_SA;]True"
-      fi
-  env:
-    SA_LIST_LENGTH: $(SA_LIST_LENGTH)
-
-# Create new storage account
 - bash: |
     set -x
-    SA_ID=`tr -dc '0-9a-z' < /dev/urandom | head -c${1:-7}`
-    echo >&2 "##vso[task.setvariable variable=ACNCI_UNIQUE_ID]$SA_ID"
-  condition: and(succeeded(), variables.CREATE_NEW_SA)
-  displayName: "Generate Name"
+    UNIQUE_ID=`tr -dc '0-9a-z' < /dev/urandom | head -c${1:-7}`
+    echo >&2 "##vso[task.setvariable variable=ACNCI_UNIQUE_ID]$UNIQUE_ID"
+  displayName: "[Infra] Generate Unique ID"
 
 - task: AzureCLI@2
   name: resourcegroups
   displayName: "Check Build Resource Groups"
-  condition: and(succeeded(), variables.CREATE_NEW_SA)
   inputs:
     azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
     scriptType: bash
@@ -95,9 +71,32 @@ steps:
     # Allows use of az devops commands
     AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
 
+- template: get-storage-accounts.steps.yaml
+  parameters:
+    STORAGE_ACCOUNT_SERVICE_CONNECTION: $(ACN_TEST_SERVICE_CONNECTION)
+    resourceGroupName: $(resourcegroups.ACNCI_BUILD_RESOURCEGROUP)
+
+- task: AzureCLI@2
+  displayName: "Check Storage Account Pool"
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    addSpnToEnvironment: true
+    inlineScript: |
+      set -e
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+      
+      if (( "$SA_LIST_LENGTH" < "$ACNCI_SA_POOL_SIZE" )); then
+        echo >&2 "##vso[task.setvariable variable=CREATE_NEW_SA;]True"
+      fi
+  env:
+    SA_LIST_LENGTH: $(SA_LIST_LENGTH)
+
+
 - task: AzureCLI@2
   displayName: "Add Storage Account to Pool"
-  condition: and(succeeded(), variables.CREATE_NEW_SA)
+  condition: and(succeeded(), eq(variables.CREATE_NEW_SA, True))
   inputs:
     azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
     scriptType: bash
@@ -118,22 +117,27 @@ steps:
         --require-infrastructure-encryption \
         --allow-shared-key-access false \
         --allow-blob-public-access false \
-        --tags Pipelines.DefinitionID="$SYSTEM_DEFINITIONID" Pipelines.CreatedByBuildID="$BUILD_BUILDID"
+        --tags "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" \
+               "$ACNCI_BUILDTAG_CREATEDBYBUILDID"="$BUILD_BUILDID" \
+               "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId"
         #--enable-files-aadds true 
   env:
     ACNCI_UNIQUE_ID: $(ACNCI_UNIQUE_ID)
     RG_NAME: $(resourcegroups.ACNCI_BUILD_RESOURCEGROUP)
     
-
 - template: get-storage-accounts.steps.yaml
   parameters:
     STORAGE_ACCOUNT_SERVICE_CONNECTION: $(ACN_TEST_SERVICE_CONNECTION)
+    resourceGroupName: $(resourcegroups.ACNCI_BUILD_RESOURCEGROUP)
 
 # Select Storage Account for use.
 - bash: |
-    SA_RANDOM_SELECT=`tr -dc '1-9' < /dev/urandom | head -c${1:-7}`
-    R_INDEX=$(( "$SA_RANDOM_SELECT" % "$SA_LIST_LENGTH" ))
-    #echo >&2 "##vso[task.setvariable variable=SA_IDX;issecret=true]$R_INDEX"
+    if (( "$SA_LIST_LENGTH" > 0 )); then
+      SA_RANDOM_SELECT=`tr -dc '1-9' < /dev/urandom | head -c${1:-7}`
+      R_INDEX=$(( "$SA_RANDOM_SELECT" % "$SA_LIST_LENGTH" ))
+    else
+      R_INDEX=0
+    fi
     echo >&2 "##vso[task.setvariable variable=SA_IDX;]$R_INDEX"
   displayName: "Generate Selection"
   env:
@@ -142,7 +146,6 @@ steps:
 - task: AzureCLI@2
   name: artifact_storage
   displayName: "Get Storage Account Data"
-  condition: and(succeeded(), variables.CREATE_NEW_SA)
   inputs:
     azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
     scriptType: bash
