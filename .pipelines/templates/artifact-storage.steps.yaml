@@ -47,20 +47,20 @@ steps:
       # App OID
       SP_APP_OID=$(az ad sp show --id "$servicePrincipalId" | jq -rc '.id') 
       # Get Subscription ID.
-      SC_DATA_JSON=$(az devops service-endpoint list --project One | \
+      SC_DATA_JSON=$(az devops service-endpoint list --org msazure --project One | \
         jq -rc --arg SP_APP_OID "$SP_APP_OID" \
         '[ .[] | { name: .name, data: .data } | select((.serviceEndpointReferences | length) > 0) | select(.data.appObjectId == $SP_APP_OID) ][0]')
       SUBSCRIPTION_ID=$(echo "$SC_DATA_JSON" | jq -rc '.data.subscriptionId')
 
       # Get Pipeline Build Subscriptions.
-      INFRA_RG_LIST=$(az group list --query '[? tags."$ACNCI_BUILDTAG_DEFINITIONID" && tags."$ACNCI_BUILDTAG_CREATEDBY"]' -o json)
+      INFRA_RG_LIST=$(az group list --query '[? tags."$ACNCI_BUILDTAG_DEFINITIONID" && tags."$ACNCI_BUILDTAG_CREATEDBYAPPID"]' -o json)
       INFRA_RG_LIST=$(echo "$INFRA_RG_LIST" | \
         jq -rc \
         --arg SP_APPID "$servicePrincipalId" \
-        --arg CREATEDBY_APPID_TAG "$ACNCI_BUILDTAG_CREATEDBY" \
+        --arg CREATEDBY_APPID_TAG "$ACNCI_BUILDTAG_CREATEDBYAPPID" \
         --arg DEFINITIONID "$SYSTEM_DEFINITIONID" \
         --arg DEFINITIONID_TAG "$ACNCI_BUILDTAG_DEFINITIONID" \
-      '.[] | select(.tags[$CREATEDBYAPPID_TAG] == $SP_APPID) | select(.tags["Pipelines.DefinitionID"] == $DEFINITIONID)' )
+      '.[] | select(.tags[$CREATEDBYAPPID_TAG] == $SP_APPID) | select(.tags[$DEFINITIONID_TAG] == $DEFINITIONID)' )
       INFRA_RG_LENGTH=$(echo "$INFRA_RG_LIST" | jq length)
 
       if [[ -z $INFRA_RG_LENGTH ]] || \
@@ -92,6 +92,8 @@ steps:
       echo >&2 "##vso[task.setvariable variable=ACNCI_BUILD_RESOURCEGROUP_ID;isoutput=true;]$RG_ID"
   env:
     ACNCI_UNIQUE_ID: $(ACNCI_UNIQUE_ID)
+    # Allows use of az devops commands
+    AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
 
 - task: AzureCLI@2
   displayName: "Add Storage Account to Pool"
