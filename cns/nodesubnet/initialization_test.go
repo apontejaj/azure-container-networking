@@ -69,18 +69,13 @@ func TestNewCNSPodInfoProvider(t *testing.T) {
 	tests := []struct {
 		name       string
 		store      store.KeyValueStore
-		want       map[string]cns.PodInfo
 		wantErr    bool
 		reconciler ipam.IpamStateReconciler
 		exp        int
 	}{
 		{
-			name:  "good",
-			store: getMockStore(),
-			want: map[string]cns.PodInfo{
-				"10.10.0.52": cns.NewPodInfo("12e65d89e58cb23c784e97840cf76866bfc9902089bdc8e87e9f64032e312b0b", "12e65d89e58cb23c784e97840cf76866bfc9902089bdc8e87e9f64032e312b0b", "coredns-54b69f46b8-ldmwr", "kube-system"),
-				"10.10.0.63": cns.NewPodInfo("1fc5176913a3a1a7facfb823dde3b4ded404041134fef4f4a0c8bba140fc0413", "1fc5176913a3a1a7facfb823dde3b4ded404041134fef4f4a0c8bba140fc0413", "load-test-7f7d49687d-wxc9p", "load-test"),
-			},
+			name:       "happy_path",
+			store:      getMockStore(),
 			wantErr:    false,
 			reconciler: &MockIpamStateReconciler{},
 			exp:        2,
