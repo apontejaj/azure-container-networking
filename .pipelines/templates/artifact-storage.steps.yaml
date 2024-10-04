@@ -21,6 +21,14 @@ steps:
   env:
     SA_LIST_LENGTH: $(SA_LIST_LENGTH)
 
+# Create new storage account
+- bash: |
+    set -x
+    SA_ID=`tr -dc '0-9a-z' < /dev/urandom | head -c${1:-7}`
+    echo >&2 "##vso[task.setvariable variable=ACNCI_UNIQUE_ID]$SA_ID"
+  condition: and(succeeded(), variables.CREATE_NEW_SA)
+  displayName: "Generate Name"
+
 - task: AzureCLI@2
   name: resourcegroups
   displayName: "Check Build Resource Groups"
@@ -69,7 +77,7 @@ steps:
         az role assignment create \
           --role "Storage Blob Data Contributor" \
           --assignee-principal-type ServicePrincipal \
-          --assignee-object-id "$servicePrincipalId" \
+          --assignee-object-id "$SP_APP_OID" \
           --scope "$RG_ID"
 
       else
@@ -84,14 +92,6 @@ steps:
       echo >&2 "##vso[task.setvariable variable=ACNCI_BUILD_RESOURCEGROUP_ID;isoutput=true;]$RG_ID"
   env:
     ACNCI_UNIQUE_ID: $(ACNCI_UNIQUE_ID)
-
-# Create new storage account
-- bash: |
-    set -x
-    SA_ID=`tr -dc '0-9a-z' < /dev/urandom | head -c${1:-7}`
-    echo >&2 "##vso[task.setvariable variable=ACNCI_UNIQUE_ID]$SA_ID"
-  condition: and(succeeded(), variables.CREATE_NEW_SA)
-  displayName: "Generate Name"
 
 - task: AzureCLI@2
   displayName: "Add Storage Account to Pool"
