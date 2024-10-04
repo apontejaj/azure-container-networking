@@ -53,4 +53,4 @@ steps:
       fi
   env:
     VARNAME_SA_LIST: '${{ parameters.varNameStorageAccountList }}'
-    RG_NAME: '${{ parameters.resourceGroup }}'
+    RG_NAME: '${{ parameters.resourceGroupName }}'
