@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/Azure/azure-container-networking/cni/log"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"golang.org/x/sys/windows"
@@ -98,7 +99,7 @@ func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr,
 	// delete dummy ip off the interface if it already exists
 	ret, err := c.execClient.ExecuteCommand(ctx, "netsh", "interface", "ipv4", "delete", "address", ifName, dummyIPAddressStr)
 	if err != nil {
-		c.logger.Info("Could not remove dummy ip, likely because it doesn't exist", zap.String("output", ret), zap.Error(err))
+		c.logger.Info("Could not remove dummy ip, likely because it doesn't exist", zap.String("output", ret), zap.Error(log.NewErrorWithoutStackTrace(err)))
 	}
 	time.Sleep(deleteIPAddressDelay)
 
@@ -109,7 +110,9 @@ func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr,
 	}
 	// ensure we always remove the dummy ip we added from the interface
 	defer func() {
-		ret, cleanupErr := c.execClient.ExecuteCommand(ctx, "netsh", "interface", "ipv4", "delete", "address", ifName, dummyIPAddressStr)
+		// we always want to try to remove the dummy ip, even if the deadline was reached
+		// so we have context.Background()
+		ret, cleanupErr := c.execClient.ExecuteCommand(context.Background(), "netsh", "interface", "ipv4", "delete", "address", ifName, dummyIPAddressStr)
 		if cleanupErr != nil {
 			c.logger.Info("Failed to remove dummy ip on leaving function", zap.String("output", ret), zap.Error(err))
 		}
