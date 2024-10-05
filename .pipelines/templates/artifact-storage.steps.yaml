@@ -26,7 +26,7 @@ steps:
       SUBSCRIPTION_ID=$(az account show | jq -rc '.id')
 
       # Get Pipeline Build Subscriptions.
-      R_QUERY='[? tags."$ACNCI_BUILDTAG_DEFINITIONID" && tags."$ACNCI_BUILDTAG_CREATEDBYAPPID"]'
+      R_QUERY="[? tags.\""$ACNCI_BUILDTAG_DEFINITIONID"\" && tags.\""$ACNCI_BUILDTAG_CREATEDBYAPPID"\"]"
       INFRA_RG_LIST=$(az group list --query "$R_QUERY" \
         --tag "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" \
         --tag "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId" -o json)
