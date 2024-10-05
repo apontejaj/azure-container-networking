@@ -23,9 +23,6 @@ steps:
       # App OID
       SP_APP_OID=$(az ad sp show --id "$servicePrincipalId" | jq -rc '.id') 
       # Get Subscription ID.
-      #SC_DATA_JSON=$(az devops service-endpoint list --organization msazure --project One | \
-      #  jq -rc --arg SP_APP_OID "$SP_APP_OID" \
-      #  '[ .[] | { name: .name, data: .data } | select((.serviceEndpointReferences | length) > 0) | select(.data.appObjectId == $SP_APP_OID) ][0]')
       SUBSCRIPTION_ID=$(az account show | jq -rc '.id')
 
       # Get Pipeline Build Subscriptions.
@@ -47,7 +44,9 @@ steps:
         az group create \
           --name "$RG_NAME" \
           --location "$ACNCI_SA_LOCATION" \
-          --tags Pipelines.CreatedBy="$servicePrincipalId" Pipelines.DefinitionID="$SYSTEM_DEFINITIONID"
+          --tags "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" \
+                 "$ACNCI_BUILDTAG_CREATEDBYBUILDID"="$BUILD_BUILDID" \
+                 "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId"
         # Storage Blob Data Contributor on RG
         RG_ID="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RG_NAME}"
         az role assignment create \

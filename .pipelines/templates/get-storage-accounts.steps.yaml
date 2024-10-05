@@ -30,12 +30,15 @@ steps:
       R_QUERY="[? type == 'Microsoft.Storage/storageAccounts' && resourceGroup == '$RG_NAME']"
       az resource list \
         --query "$R_QUERY" \
-        --tag "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" -o json
+        --tag "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" \
+        --tag "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId" -o json
       echo $R_QUERY
+
       # JSON of Returned Results
       R_LIST=$(az resource list \
         --query "$R_QUERY" \
-        --tag "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" -o json)
+        --tag "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" \
+        --tag "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId" -o json)
       echo $R_LIST
       # Length of resource list
       R_LIST_LENGTH=$(echo "$R_LIST" | jq length)
