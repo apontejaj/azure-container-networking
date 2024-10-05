@@ -53,7 +53,7 @@ steps:
           for i in {1..5}; do
             provisioningState=$(az aks show --resource-group sanprabhu-westus2 --name sanprabhu-westus2 --output json | jq -r '.provisioningState')
             if [ "$provisioningState" == "Succeeded" ]; then
-              if az aks enable-addons --addons azure-policy --name ${{ parameters.clusterName }} -g ${{ parameters.clusterName }}
+              if az aks enable-addons --addons azure-policy --name ${{ parameters.clusterName }} -g ${{ parameters.clusterName }}; then
                 break
               fi
             fi
@@ -62,7 +62,7 @@ steps:
           for i in {1..5}; do
             provisioningState=$(az aks show --resource-group sanprabhu-westus2 --name sanprabhu-westus2 --output json | jq -r '.provisioningState')
             if [ "$provisioningState" == "Succeeded" ]; then
-              if az aks disable-addons --addons azure-policy --name ${{ parameters.clusterName }} -g ${{ parameters.clusterName }}
+              if az aks disable-addons --addons azure-policy --name ${{ parameters.clusterName }} -g ${{ parameters.clusterName }}; then
                 break
               fi
             fi
