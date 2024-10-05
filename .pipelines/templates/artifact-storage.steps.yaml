@@ -26,15 +26,14 @@ steps:
       SUBSCRIPTION_ID=$(az account show | jq -rc '.id')
 
       # Get Pipeline Build Subscriptions.
-      INFRA_RG_LIST=$(az group list --query '[? tags."$ACNCI_BUILDTAG_DEFINITIONID" && tags."$ACNCI_BUILDTAG_CREATEDBYAPPID"]' -o json)
-      INFRA_RG_LIST=$(echo "$INFRA_RG_LIST" | \
-        jq -rc \
-        --arg SP_APPID "$servicePrincipalId" \
-        --arg CREATEDBY_APPID_TAG "$ACNCI_BUILDTAG_CREATEDBYAPPID" \
-        --arg DEFINITIONID "$SYSTEM_DEFINITIONID" \
-        --arg DEFINITIONID_TAG "$ACNCI_BUILDTAG_DEFINITIONID" \
-      '.[] | select(.tags["$CREATEDBYAPPID_TAG"] == $SP_APPID) | select(.tags["$DEFINITIONID_TAG"] == $DEFINITIONID)' )
+      R_QUERY='[? tags."$ACNCI_BUILDTAG_DEFINITIONID" && tags."$ACNCI_BUILDTAG_CREATEDBYAPPID"]'
+      INFRA_RG_LIST=$(az group list --query "$R_QUERY" \
+        --tag "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" \
+        --tag "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId" -o json
+      echo "$INFRA_RG_LIST"
+
       INFRA_RG_LENGTH=$(echo "$INFRA_RG_LIST" | jq length)
+      echo "$INFRA_RG_LIST_LENGTH"
 
       if [[ -z $INFRA_RG_LENGTH ]] || \
          (( $INFRA_RG_LENGTH < $ACNCI_SA_POOL_SIZE )); then
@@ -131,6 +130,8 @@ steps:
 
 # Select Storage Account for use.
 - bash: |
+    [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+
     if (( "$SA_LIST_LENGTH" > 0 )); then
       SA_RANDOM_SELECT=`tr -dc '1-9' < /dev/urandom | head -c${1:-7}`
       R_INDEX=$(( "$SA_RANDOM_SELECT" % "$SA_LIST_LENGTH" ))
@@ -152,6 +153,8 @@ steps:
     addSpnToEnvironment: true
     inlineScript: |
       set -e
+
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
 
       # Make a random selection from the pool
       SA_DATA=$(echo "$SA_LIST" | jq --argjson IDX "$SA_IDX" -rc '.[$IDX]')
