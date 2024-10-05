@@ -38,7 +38,7 @@ steps:
       R_LIST=$(az resource list \
         --query "$R_QUERY" \
         --tag "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" \
-        --tag "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId" -o json)
+        --tag "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId" -o json | jq -rc '.[]')
       echo $R_LIST
       # Length of resource list
       R_LIST_LENGTH=$(echo "$R_LIST" | jq length)

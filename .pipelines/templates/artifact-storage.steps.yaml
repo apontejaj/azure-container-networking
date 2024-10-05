@@ -29,7 +29,7 @@ steps:
       R_QUERY="[? tags.\""$ACNCI_BUILDTAG_DEFINITIONID"\" && tags.\""$ACNCI_BUILDTAG_CREATEDBYAPPID"\"]"
       INFRA_RG_LIST=$(az group list --query "$R_QUERY" \
         --tag "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" \
-        --tag "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId" -o json)
+        --tag "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId" -o json | jq -rc '.[]')
       echo "$INFRA_RG_LIST"
 
       INFRA_RG_LENGTH=$(echo "$INFRA_RG_LIST" | jq length)
