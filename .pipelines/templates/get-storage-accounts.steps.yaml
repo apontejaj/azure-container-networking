@@ -4,7 +4,7 @@ parameters:
   type: string
 
 - name: condition
-  type: boolean
+  type: object
   default: true
 
 - name: resourceGroupName
