@@ -3,6 +3,10 @@ parameters:
 - name: STORAGE_ACCOUNT_SERVICE_CONNECTION
   type: string
 
+- name: condition
+  type: boolean
+  default: true
+
 - name: resourceGroupName
   type: string
 
@@ -14,6 +18,7 @@ steps:
 ## Storage Account Resource Query
 - task: AzureCLI@2
   displayName: "Get Storage Account Resources"
+  condition: ${{ parameters.condition }}
   inputs:
     azureSubscription: ${{ parameters.STORAGE_ACCOUNT_SERVICE_CONNECTION }}
     scriptType: bash
