@@ -49,6 +49,11 @@ steps:
         # Storage Blob Data Contributor on RG
         RG_ID="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RG_NAME}"
         az role assignment create \
+          --role "Storage Account Contributor" \
+          --assignee-principal-type ServicePrincipal \
+          --assignee-object-id "$SP_APP_OID" \
+          --scope "$RG_ID"
+        az role assignment create \
           --role "Storage Blob Data Contributor" \
           --assignee-principal-type ServicePrincipal \
           --assignee-object-id "$SP_APP_OID" \
