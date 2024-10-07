@@ -579,7 +579,6 @@ func (service *HTTPRestService) CreateOrUpdateNetworkContainerInternal(req *cns.
 	// If the NC was created successfully, log NC snapshot.
 	if returnCode == 0 {
 		logNCSnapshot(*req)
-
 		publishIPStateMetrics(service.buildIPState())
 	} else {
 		logger.Errorf(returnMessage)
