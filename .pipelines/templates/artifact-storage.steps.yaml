@@ -213,7 +213,7 @@ steps:
       az storage account show -n "$SA_NAME" --query networkRuleSet
       az storage container create \
         --account-name "$SA_NAME" \
-        --resource-group "RG_NAME" \
+        --resource-group "$RG_NAME" \
         --name "$CONTAINER_NAME" \
         --auth-mode login
         #--public-access off 
