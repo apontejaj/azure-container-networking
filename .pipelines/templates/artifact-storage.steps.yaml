@@ -51,12 +51,12 @@ steps:
         az role assignment create \
           --role "Storage Account Contributor" \
           --assignee-principal-type ServicePrincipal \
-          --assignee-object-id "$SP_APP_OID" \
+          --assignee-object-id "$servicePrincipalId" \
           --scope "$RG_ID"
         az role assignment create \
           --role "Storage Blob Data Contributor" \
           --assignee-principal-type ServicePrincipal \
-          --assignee-object-id "$SP_APP_OID" \
+          --assignee-object-id "$servicePrincipalId" \
           --scope "$RG_ID"
 
       else
