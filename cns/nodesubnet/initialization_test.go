@@ -83,10 +83,11 @@ func TestNewCNSPodInfoProvider(t *testing.T) {
 
 	for _, tt := range tests {
 		tt := tt
-		ctx, cancel := testContext(t)
-		defer cancel()
 
 		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := testContext(t)
+			defer cancel()
+
 			podInfoByIPProvider, err := cnireconciler.NewCNSPodInfoProvider(tt.store)
 			checkErr(t, err, false)
 
