@@ -122,11 +122,6 @@ steps:
                "$ACNCI_BUILDTAG_CREATEDBYBUILDID"="$BUILD_BUILDID" \
                "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId"
         #--enable-files-aadds true 
-        az role assignment create \
-          --role "Contributor" \
-          --assignee-principal-type ServicePrincipal \
-          --assignee-object-id "$SP_APP_OID" \
-          --scope "$RG_ID"/providers/Microsoft.Storage/storageAccounts/"$SA_NAME"
   env:
     ACNCI_UNIQUE_ID: $(ACNCI_UNIQUE_ID)
     RG_NAME: $(resourcegroups.ACNCI_BUILD_RESOURCEGROUP)
@@ -187,6 +182,9 @@ steps:
         # Storage Account Location
         SA_LOCATION=$(echo "$SA_DATA" | jq -r '.location')
         echo >&2 "##vso[task.setvariable variable=ACNCI_STORAGEACCOUNT_LOCATION;isoutput=true]$SA_LOCATION"
+        # - Local Use Only -
+        # SA Object
+        echo >&2 "##vso[task.setvariable variable=ACNCI_STORAGEACCOUNT]$SA_DATA"
       else
         echo >&2 "##[error]No storage accounts available for use."
         exit 1
@@ -208,7 +206,9 @@ steps:
       set -e
       [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
 
-      az storage account update --user-identity-id "$servicePrincipalId" --ids "$ACNCI_STORAGEACCOUNT_ID"
+      UPDATE_IDENTITY=$(echo "$ACNCI_STORAGEACCOUNT" | jq -r '.identity')
+      [[ -z $UPDATE_IDENTITY ]] && \
+        az storage account update --user-identity-id "$servicePrincipalId" --ids "$ACNCI_STORAGEACCOUNT_ID"
   env:
     ACNCI_STORAGEACCOUNT_ID: $(artifact_storage.ACNCI_STORAGEACCOUNT_ID)
 
