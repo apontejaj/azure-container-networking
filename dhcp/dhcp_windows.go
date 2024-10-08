@@ -3,6 +3,7 @@ package dhcp
 import (
 	"context"
 	"net"
+	"time"
 
 	"github.com/Azure/azure-container-networking/retry"
 	"github.com/pkg/errors"
@@ -11,10 +12,10 @@ import (
 )
 
 const (
-	retryCount               = 5
-	retryDelayMillis         = 500
-	ipAssignRetryDelayMillis = 2000
-	socketTimeoutMillis      = 1000
+	retryCount          = 4
+	retryDelay          = 500 * time.Millisecond
+	ipAssignRetryDelay  = 2000 * time.Millisecond
+	socketTimeoutMillis = 1000
 )
 
 var (
@@ -106,21 +107,24 @@ func (c *DHCP) getIPv4InterfaceAddresses(ifName string) ([]net.IP, error) {
 	return ret, err
 }
 
-func (c *DHCP) verifyIPv4InterfaceAddressCount(ifName string, count, maxRuns, sleepMs int) error {
-	addressCountErr := retry.Do(func() error {
+func (c *DHCP) verifyIPv4InterfaceAddressCount(ifName string, count, maxRuns int, sleep time.Duration) error {
+	retrier := retry.Retrier{
+		Cooldown: retry.Max(maxRuns, retry.Fixed(sleep)),
+	}
+	addressCountErr := retrier.Do(context.Background(), func() error {
 		addresses, err := c.getIPv4InterfaceAddresses(ifName)
 		if err != nil || len(addresses) != count {
 			return errIncorrectAddressCount
 		}
 		return nil
-	}, maxRuns, sleepMs)
+	})
 	return addressCountErr
 }
 
 // issues a dhcp discover request on an interface by finding the secondary's ip and sending on its ip
 func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr, ifName string) error {
 	// Find the ipv4 address of the secondary interface (we're betting that this gets autoconfigured)
-	err := c.verifyIPv4InterfaceAddressCount(ifName, 1, retryCount, ipAssignRetryDelayMillis)
+	err := c.verifyIPv4InterfaceAddressCount(ifName, 1, retryCount, ipAssignRetryDelay)
 	if err != nil {
 		return errors.Wrap(err, "failed to get auto ip config assigned in apipa range in time")
 	}
@@ -173,11 +177,14 @@ func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr,
 		return errors.Wrap(err, "failed to create socket")
 	}
 
+	retrier := retry.Retrier{
+		Cooldown: retry.Max(retryCount, retry.Fixed(retryDelay)),
+	}
 	// retry sending the packet until it succeeds
-	err = retry.Do(func() error {
+	err = retrier.Do(context.Background(), func() error {
 		_, sockErr := sock.Write(bytesToSend)
 		return sockErr
-	}, retryCount, retryDelayMillis)
+	})
 	if err != nil {
 		return errors.Wrap(err, "failed to write to dhcp socket")
 	}
