@@ -291,6 +291,7 @@ func (service *HTTPRestService) ReconcileIPAMState(ncReqs []*cns.CreateNetworkCo
 		}
 	}
 
+	logger.Printf("Saved NC")
 	// index all the secondary IP configs for all the nc reqs, for easier lookup later on.
 	allSecIPsIdx := make(map[string]*cns.CreateNetworkContainerRequest)
 	for i := range ncReqs {
@@ -298,6 +299,8 @@ func (service *HTTPRestService) ReconcileIPAMState(ncReqs []*cns.CreateNetworkCo
 			allSecIPsIdx[secIPConfig.IPAddress] = ncReqs[i]
 		}
 	}
+
+	logger.Printf("0")
 
 	// we now need to reconcile IP assignment.
 	// considering that a single pod may have multiple ips (such as in dual stack scenarios)
@@ -327,7 +330,10 @@ func (service *HTTPRestService) ReconcileIPAMState(ncReqs []*cns.CreateNetworkCo
 		return types.UnexpectedError
 	}
 
+	logger.Printf("1")
+
 	for podKey, podIPs := range podKeyToPodIPs {
+		logger.Printf("Pod is %s", podKey)
 		var (
 			desiredIPs []string
 			ncIDs      []string
@@ -378,9 +384,11 @@ func (service *HTTPRestService) ReconcileIPAMState(ncReqs []*cns.CreateNetworkCo
 		}
 	}
 
-	if err := service.MarkExistingIPsAsPendingRelease(nnc.Spec.IPsNotInUse); err != nil {
-		logger.Errorf("[Azure CNS] Error. Failed to mark IPs as pending %v", nnc.Spec.IPsNotInUse)
-		return types.UnexpectedError
+	if nnc != nil {
+		if err := service.MarkExistingIPsAsPendingRelease(nnc.Spec.IPsNotInUse); err != nil {
+			logger.Errorf("[Azure CNS] Error. Failed to mark IPs as pending %v", nnc.Spec.IPsNotInUse)
+			return types.UnexpectedError
+		}
 	}
 
 	return 0
@@ -521,16 +529,24 @@ func (service *HTTPRestService) CreateOrUpdateNetworkContainerInternal(req *cns.
 
 	// For now only RequestController uses this API which will be initialized only for AKS scenario.
 	// Validate ContainerType is set as Docker
-	if service.state.OrchestratorType != cns.KubernetesCRD && service.state.OrchestratorType != cns.Kubernetes {
+	if service.state.OrchestratorType != cns.KubernetesCRD && service.state.OrchestratorType != cns.Kubernetes && service.state.OrchestratorType != cns.KubernetesNodeSubnet {
 		logger.Errorf("[Azure CNS] Error. Unsupported OrchestratorType: %s", service.state.OrchestratorType)
 		return types.UnsupportedOrchestratorType
 	}
 
-	// Validate PrimaryCA must never be empty
-	err := validateIPSubnet(req.IPConfiguration.IPSubnet)
-	if err != nil {
-		logger.Errorf("[Azure CNS] Error. PrimaryCA is invalid, NC Req: %v", req)
-		return types.InvalidPrimaryIPConfig
+	if req.NetworkContainerType == cns.NodeSubnet {
+		// For NodeSubnet scenarios, Validate PrimaryCA must be empty
+		if req.IPConfiguration.IPSubnet.IPAddress != "" {
+			logger.Errorf("[Azure CNS] Error. PrimaryCA is invalid, NC Req: %v", req)
+			return types.InvalidPrimaryIPConfig
+		}
+	} else {
+		// For Swift scenarios, Validate PrimaryCA must never be empty
+		err := validateIPSubnet(req.IPConfiguration.IPSubnet)
+		if err != nil {
+			logger.Errorf("[Azure CNS] Error. PrimaryCA is invalid, NC Req: %v", req)
+			return types.InvalidPrimaryIPConfig
+		}
 	}
 
 	// Validate SecondaryIPConfig
