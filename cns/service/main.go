@@ -1123,13 +1123,13 @@ type nodeNetworkConfigGetter interface {
 	Get(context.Context) (*v1alpha.NodeNetworkConfig, error)
 }
 
-type ipamStateReconciler interface {
+type IpamStateReconciler interface {
 	ReconcileIPAMState(ncRequests []*cns.CreateNetworkContainerRequest, podInfoByIP map[string]cns.PodInfo, nnc *v1alpha.NodeNetworkConfig) cnstypes.ResponseCode
 }
 
 // TODO(rbtr) where should this live??
 // reconcileInitialCNSState initializes cns by passing pods and a CreateNetworkContainerRequest
-func reconcileInitialCNSState(ctx context.Context, cli nodeNetworkConfigGetter, ipamReconciler ipamStateReconciler, podInfoByIPProvider cns.PodInfoByIPProvider) error {
+func reconcileInitialCNSState(ctx context.Context, cli nodeNetworkConfigGetter, ipamReconciler IpamStateReconciler, podInfoByIPProvider cns.PodInfoByIPProvider) error {
 	// Get nnc using direct client
 	nnc, err := cli.Get(ctx)
 	if err != nil {

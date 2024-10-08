@@ -1,30 +1,25 @@
 package nmagent
 
-// equalPtr compares two Interfaces objects for equality.
-func (i *Interfaces) equalPtr(other *Interfaces) bool {
+// Equal compares two Interfaces objects for equality.
+func (i Interfaces) Equal(other Interfaces) bool {
 	if len(i.Entries) != len(other.Entries) {
 		return false
 	}
 	for idx, entry := range i.Entries {
-		if !entry.equalPtr(&other.Entries[idx]) {
+		if !entry.Equal(other.Entries[idx]) {
 			return false
 		}
 	}
 	return true
 }
 
-// Equal compares two Interfaces objects for equality.
-func (i Interfaces) Equal(other Interfaces) bool {
-	return i.equalPtr(&other)
-}
-
-// equalPtr compares two Interface objects for equality.
-func (i *Interface) equalPtr(other *Interface) bool {
+// Equal compares two Interface objects for equality.
+func (i Interface) Equal(other Interface) bool {
 	if len(i.InterfaceSubnets) != len(other.InterfaceSubnets) {
 		return false
 	}
 	for idx, subnet := range i.InterfaceSubnets {
-		if !subnet.equalPtr(&other.InterfaceSubnets[idx]) {
+		if !subnet.Equal(other.InterfaceSubnets[idx]) {
 			return false
 		}
 	}
@@ -34,13 +29,8 @@ func (i *Interface) equalPtr(other *Interface) bool {
 	return true
 }
 
-// Equal compares two Interface objects for equality.
-func (i Interface) Equal(other Interface) bool {
-	return i.equalPtr(&other)
-}
-
-// equalPtr compares two InterfaceSubnet objects for equality.
-func (s *InterfaceSubnet) equalPtr(other *InterfaceSubnet) bool {
+// Equal compares two InterfaceSubnet objects for equality.
+func (s InterfaceSubnet) Equal(other InterfaceSubnet) bool {
 	if len(s.IPAddress) != len(other.IPAddress) {
 		return false
 	}
@@ -48,24 +38,14 @@ func (s *InterfaceSubnet) equalPtr(other *InterfaceSubnet) bool {
 		return false
 	}
 	for idx, ip := range s.IPAddress {
-		if !ip.equalPtr(&other.IPAddress[idx]) {
+		if !ip.Equal(other.IPAddress[idx]) {
 			return false
 		}
 	}
 	return true
 }
 
-// Equal compares two InterfaceSubnet objects for equality.
-func (s InterfaceSubnet) Equal(other InterfaceSubnet) bool {
-	return s.equalPtr(&other)
-}
-
-// equalPtr compares two NodeIP objects for equality.
-func (ip *NodeIP) equalPtr(other *NodeIP) bool {
-	return ip.IsPrimary == other.IsPrimary && ip.Address.Equal(other.Address)
-}
-
 // Equal compares two NodeIP objects for equality.
 func (ip NodeIP) Equal(other NodeIP) bool {
-	return ip.equalPtr(&other)
+	return ip.IsPrimary == other.IsPrimary && ip.Address.Equal(other.Address)
 }
