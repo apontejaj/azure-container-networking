@@ -1,6 +1,7 @@
 package nodesubnet_test
 
 import (
+	"context"
 	"net"
 	"testing"
 
@@ -97,4 +98,12 @@ func TestNewCNSPodInfoProvider(t *testing.T) {
 			}
 		})
 	}
+}
+
+func testContext(t *testing.T) (context.Context, context.CancelFunc) {
+	ctx := context.Background()
+	if deadline, ok := t.Deadline(); ok {
+		return context.WithDeadline(ctx, deadline)
+	}
+	return context.WithCancel(ctx)
 }
