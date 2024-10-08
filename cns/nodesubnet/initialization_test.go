@@ -6,7 +6,6 @@ import (
 
 	"github.com/Azure/azure-container-networking/cns"
 	"github.com/Azure/azure-container-networking/cns/cnireconciler"
-	"github.com/Azure/azure-container-networking/cns/ipam"
 	"github.com/Azure/azure-container-networking/cns/nodesubnet"
 	"github.com/Azure/azure-container-networking/cns/restserver"
 	"github.com/Azure/azure-container-networking/cns/types"
@@ -69,7 +68,7 @@ func TestNewCNSPodInfoProvider(t *testing.T) {
 		name       string
 		store      store.KeyValueStore
 		wantErr    bool
-		reconciler ipam.StateReconciler
+		reconciler *MockIpamStateReconciler
 		exp        int
 	}{
 		{
