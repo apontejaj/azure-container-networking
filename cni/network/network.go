@@ -132,9 +132,9 @@ func NewPlugin(name string,
 
 	nl := netlink.NewNetlink()
 	plc := platform.NewExecClient(logger)
-	netio := &netio.NetIO{}
+	nio := &netio.NetIO{}
 	// Setup network manager.
-	nm, err := network.NewNetworkManager(nl, plc, netio, network.NewNamespaceClient(), iptables.NewClient(), dhcp.New(logger, netio))
+	nm, err := network.NewNetworkManager(nl, plc, nio, network.NewNamespaceClient(), iptables.NewClient(), dhcp.New(logger, nio))
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func NewPlugin(name string,
 		nm:                 nm,
 		nnsClient:          client,
 		multitenancyClient: multitenancyClient,
-		netClient:          netio,
+		netClient:          nio,
 	}, nil
 }
 

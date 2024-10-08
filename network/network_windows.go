@@ -438,8 +438,7 @@ func (nm *networkManager) newNetworkImplHnsV2(nwInfo *EndpointInfo, extIf *exter
 func (nm *networkManager) sendDHCPDiscoverOnSecondary(client dhcpClient, mac net.HardwareAddr, ifName string) error {
 	// issue dhcp discover packet to ensure mapping created for dns via wireserver to work
 	// we do not use the response for anything
-	numSecs := 15 // we need to wait for the address to be assigned
-	timeout := time.Duration(numSecs) * time.Second
+	timeout := 15 * time.Second
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(timeout))
 	defer cancel()
 	logger.Info("Sending DHCP packet", zap.Any("macAddress", mac), zap.String("ifName", ifName))

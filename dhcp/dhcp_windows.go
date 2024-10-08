@@ -17,6 +17,11 @@ const (
 	socketTimeoutMillis      = 1000
 )
 
+var (
+	errInvalidIPv4Address    = errors.New("invalid ipv4 address")
+	errIncorrectAddressCount = errors.New("address count found not equal to expected")
+)
+
 type Socket struct {
 	fd       windows.Handle
 	destAddr windows.SockaddrInet4
@@ -105,7 +110,7 @@ func (c *DHCP) verifyIPv4InterfaceAddressCount(ifName string, count, maxRuns, sl
 	addressCountErr := retry.Do(func() error {
 		addresses, err := c.getIPv4InterfaceAddresses(ifName)
 		if err != nil || len(addresses) != count {
-			return errors.New("address count found not equal to expected")
+			return errIncorrectAddressCount
 		}
 		return nil
 	}, maxRuns, sleepMs)
@@ -125,7 +130,7 @@ func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr,
 	}
 	uniqueAddress := ipv4Addresses[0].To4()
 	if uniqueAddress == nil {
-		return errors.New("invalid ipv4 address")
+		return errInvalidIPv4Address
 	}
 	uniqueAddressStr := uniqueAddress.String()
 	c.logger.Info("Retrieved automatic ip configuration: ", zap.Any("ip", uniqueAddress), zap.String("ipStr", uniqueAddressStr))
