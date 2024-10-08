@@ -194,11 +194,7 @@ func (service *HTTPRestService) saveNetworkContainerGoalState(req cns.CreateNetw
 		fallthrough
 	case cns.JobObject:
 		fallthrough
-	case cns.COW, cns.BackendNICNC:
-		fallthrough
-	case cns.NodeSubnet:
-		fallthrough
-	case cns.WebApps:
+	case cns.COW, cns.BackendNICNC, cns.NodeSubnet, cns.WebApps:
 		switch service.state.OrchestratorType {
 		case cns.Kubernetes:
 			fallthrough
@@ -232,9 +228,7 @@ func (service *HTTPRestService) saveNetworkContainerGoalState(req cns.CreateNetw
 
 			logger.Printf("service.state.ContainerIDByOrchestratorContext[%s] is %+v", orchestratorContext, *service.state.ContainerIDByOrchestratorContext[orchestratorContext])
 
-		case cns.KubernetesCRD:
-			fallthrough
-		case cns.KubernetesNodeSubnet:
+		case cns.KubernetesCRD, cns.KubernetesNodeSubnet:
 			// Validate and Update the SecondaryIpConfig state
 			returnCode, returnMesage := service.updateIPConfigsStateUntransacted(req, existingSecondaryIPConfigs, hostVersion)
 			if returnCode != 0 {

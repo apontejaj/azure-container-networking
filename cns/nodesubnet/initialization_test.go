@@ -1,7 +1,6 @@
 package nodesubnet_test
 
 import (
-	"context"
 	"net"
 	"testing"
 
@@ -57,7 +56,7 @@ func getMockStore() store.KeyValueStore {
 
 type MockIpamStateReconciler struct{}
 
-func (m *MockIpamStateReconciler) ReconcileIPAMState(ncRequests []*cns.CreateNetworkContainerRequest, podInfoByIP map[string]cns.PodInfo, nnc *v1alpha.NodeNetworkConfig) types.ResponseCode {
+func (m *MockIpamStateReconciler) ReconcileIPAMState(ncRequests []*cns.CreateNetworkContainerRequest, podInfoByIP map[string]cns.PodInfo, _ *v1alpha.NodeNetworkConfig) types.ResponseCode {
 	if len(ncRequests) == 1 && len(ncRequests[0].SecondaryIPConfigs) == len(podInfoByIP) {
 		return types.Success
 	}
@@ -70,7 +69,7 @@ func TestNewCNSPodInfoProvider(t *testing.T) {
 		name       string
 		store      store.KeyValueStore
 		wantErr    bool
-		reconciler ipam.IpamStateReconciler
+		reconciler ipam.StateReconciler
 		exp        int
 	}{
 		{
@@ -84,10 +83,11 @@ func TestNewCNSPodInfoProvider(t *testing.T) {
 
 	for _, tt := range tests {
 		tt := tt
-		ctx, cancel := testContext(t)
-		defer cancel()
 
 		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := testContext(t)
+			defer cancel()
+
 			podInfoByIPProvider, err := cnireconciler.NewCNSPodInfoProvider(tt.store)
 			checkErr(t, err, false)
 
@@ -98,13 +98,4 @@ func TestNewCNSPodInfoProvider(t *testing.T) {
 			}
 		})
 	}
-}
-
-// testContext creates a context from the provided testing.T that will be
-// canceled if the test suite is terminated.
-func testContext(t *testing.T) (context.Context, context.CancelFunc) {
-	if deadline, ok := t.Deadline(); ok {
-		return context.WithDeadline(context.Background(), deadline)
-	}
-	return context.WithCancel(context.Background())
 }

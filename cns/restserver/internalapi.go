@@ -291,7 +291,8 @@ func (service *HTTPRestService) ReconcileIPAMState(ncReqs []*cns.CreateNetworkCo
 		}
 	}
 
-	logger.Printf("Saved NC")
+	logger.Debugf("ncReqs created successfully, now save IPs")
+
 	// index all the secondary IP configs for all the nc reqs, for easier lookup later on.
 	allSecIPsIdx := make(map[string]*cns.CreateNetworkContainerRequest)
 	for i := range ncReqs {
@@ -299,8 +300,6 @@ func (service *HTTPRestService) ReconcileIPAMState(ncReqs []*cns.CreateNetworkCo
 			allSecIPsIdx[secIPConfig.IPAddress] = ncReqs[i]
 		}
 	}
-
-	logger.Printf("0")
 
 	// we now need to reconcile IP assignment.
 	// considering that a single pod may have multiple ips (such as in dual stack scenarios)
@@ -330,10 +329,7 @@ func (service *HTTPRestService) ReconcileIPAMState(ncReqs []*cns.CreateNetworkCo
 		return types.UnexpectedError
 	}
 
-	logger.Printf("1")
-
 	for podKey, podIPs := range podKeyToPodIPs {
-		logger.Printf("Pod is %s", podKey)
 		var (
 			desiredIPs []string
 			ncIDs      []string
