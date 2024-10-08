@@ -36,9 +36,11 @@ func (r RetriableError) Error() string {
 	}
 	return r.err.Error()
 }
+
 func (r RetriableError) Unwrap() error {
 	return r.err
 }
+
 func (r RetriableError) Temporary() bool {
 	return true
 }

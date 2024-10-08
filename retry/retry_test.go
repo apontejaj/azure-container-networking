@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var errTest = errors.New("mock error")
+
 type TestError struct{}
 
 func (t TestError) Error() string {
@@ -168,13 +170,12 @@ func TestMax(t *testing.T) {
 
 func TestRetriableError(t *testing.T) {
 	// wrapping nil returns a nil
-	require.Nil(t, WrapTemporaryError(nil))
+	require.NoError(t, WrapTemporaryError(nil))
 
-	mockError := errors.New("mock error")
-	wrappedMockError := WrapTemporaryError(pkgerrors.Wrap(mockError, "nested"))
+	wrappedMockError := WrapTemporaryError(pkgerrors.Wrap(errTest, "nested"))
 
 	// temporary errors should still be able to be unwrapped
-	require.ErrorIs(t, wrappedMockError, mockError)
+	require.ErrorIs(t, wrappedMockError, errTest)
 
 	var temporaryError TemporaryError
 	require.ErrorAs(t, wrappedMockError, &temporaryError)
@@ -194,7 +195,7 @@ func createFunctionWithFailurePattern(errorPattern []error) func() error {
 }
 
 func TestRunWithRetries(t *testing.T) {
-	errMock := WrapTemporaryError(errors.New("mock error"))
+	errMock := WrapTemporaryError(errTest)
 	retries := 3 // runs 4 times, then errors before the 5th
 	retrier := Retrier{
 		Cooldown: Max(retries, Fixed(100*time.Millisecond)),

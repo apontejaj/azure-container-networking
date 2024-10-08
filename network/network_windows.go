@@ -46,6 +46,7 @@ const (
 	defaultIPv6Route = "::/0"
 	// Default IPv6 nextHop
 	defaultIPv6NextHop = "fe80::1234:5678:9abc"
+	dhcpTimeout        = 15 * time.Second
 )
 
 // Windows implementation of route.
@@ -438,8 +439,7 @@ func (nm *networkManager) newNetworkImplHnsV2(nwInfo *EndpointInfo, extIf *exter
 func (nm *networkManager) sendDHCPDiscoverOnSecondary(client dhcpClient, mac net.HardwareAddr, ifName string) error {
 	// issue dhcp discover packet to ensure mapping created for dns via wireserver to work
 	// we do not use the response for anything
-	timeout := 15 * time.Second
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(timeout))
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(dhcpTimeout))
 	defer cancel()
 	logger.Info("Sending DHCP packet", zap.Any("macAddress", mac), zap.String("ifName", ifName))
 	err := client.DiscoverRequest(ctx, mac, ifName)

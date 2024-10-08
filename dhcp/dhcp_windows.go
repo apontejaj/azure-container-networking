@@ -87,44 +87,44 @@ func (s *Socket) Close() error {
 func (c *DHCP) getIPv4InterfaceAddresses(ifName string) ([]net.IP, error) {
 	nic, err := c.netioClient.GetNetworkInterfaceByName(ifName)
 	if err != nil {
-		return []net.IP{}, err
+		return []net.IP{}, errors.Wrap(err, "failed to get interface by name to find ipv4 addresses")
 	}
 	addresses, err := c.netioClient.GetNetworkInterfaceAddrs(nic)
 	if err != nil {
-		return []net.IP{}, err
+		return []net.IP{}, errors.Wrap(err, "failed to get interface addresses")
 	}
 	ret := []net.IP{}
 	for _, address := range addresses {
 		// check if the ip is ipv4 and parse it
-		ip, _, err := net.ParseCIDR(address.String())
-		if err != nil || ip.To4() == nil {
+		ip, _, cidrErr := net.ParseCIDR(address.String())
+		if cidrErr != nil || ip.To4() == nil {
 			continue
 		}
 		ret = append(ret, ip)
 	}
 
 	c.logger.Info("Interface addresses found", zap.Any("foundIPs", addresses), zap.Any("selectedIPs", ret))
-	return ret, err
+	return ret, nil
 }
 
-func (c *DHCP) verifyIPv4InterfaceAddressCount(ifName string, count, maxRuns int, sleep time.Duration) error {
+func (c *DHCP) verifyIPv4InterfaceAddressCount(ctx context.Context, ifName string, count, numRetries int, sleep time.Duration) error {
 	retrier := retry.Retrier{
-		Cooldown: retry.Max(maxRuns, retry.Fixed(sleep)),
+		Cooldown: retry.Max(numRetries, retry.Fixed(sleep)),
 	}
-	addressCountErr := retrier.Do(context.Background(), func() error {
+	addressCountErr := retrier.Do(ctx, func() error {
 		addresses, err := c.getIPv4InterfaceAddresses(ifName)
 		if err != nil || len(addresses) != count {
 			return errIncorrectAddressCount
 		}
 		return nil
 	})
-	return addressCountErr
+	return errors.Wrap(addressCountErr, "failed to verify interface ipv4 address count")
 }
 
 // issues a dhcp discover request on an interface by finding the secondary's ip and sending on its ip
 func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr, ifName string) error {
 	// Find the ipv4 address of the secondary interface (we're betting that this gets autoconfigured)
-	err := c.verifyIPv4InterfaceAddressCount(ifName, 1, retryCount, ipAssignRetryDelay)
+	err := c.verifyIPv4InterfaceAddressCount(ctx, ifName, 1, retryCount, ipAssignRetryDelay)
 	if err != nil {
 		return errors.Wrap(err, "failed to get auto ip config assigned in apipa range in time")
 	}
@@ -181,7 +181,7 @@ func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr,
 		Cooldown: retry.Max(retryCount, retry.Fixed(retryDelay)),
 	}
 	// retry sending the packet until it succeeds
-	err = retrier.Do(context.Background(), func() error {
+	err = retrier.Do(ctx, func() error {
 		_, sockErr := sock.Write(bytesToSend)
 		return sockErr
 	})

@@ -680,10 +680,10 @@ func (client *TransparentVlanEndpointClient) Retry(f func() error) error {
 	retrier := retry.Retrier{
 		Cooldown: retry.Max(numRetries, retry.Fixed(sleepDelay)),
 	}
-	return retrier.Do(context.Background(), func() error {
+	return errors.Wrap(retrier.Do(context.Background(), func() error {
 		// we always want to retry, so all errors are temporary errors
-		return retry.WrapTemporaryError(f())
-	})
+		return retry.WrapTemporaryError(f()) // nolint
+	}), "error during retry")
 }
 
 // Helper function that allows executing a function in a VM namespace
