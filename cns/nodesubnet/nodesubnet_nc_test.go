@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-container-networking/cns"
+	"github.com/Azure/azure-container-networking/cns/logger"
 	"github.com/Azure/azure-container-networking/cns/nodesubnet"
 	"github.com/Azure/azure-container-networking/crd/nodenetworkconfig/api/v1alpha"
 	"github.com/google/go-cmp/cmp"
@@ -46,4 +47,8 @@ func TestCreateNodeSubnetNCRequest_NonEmptySecondaryIPs(t *testing.T) {
 	if !cmp.Equal(request, expectedRequest) {
 		t.Errorf("Unexepected diff in NodeSubnetNCRequest: %v", cmp.Diff(request, expectedRequest))
 	}
+}
+
+func init() {
+	logger.InitLogger("testlogs", 0, 0, "./")
 }
