@@ -56,7 +56,7 @@ func getMockStore() store.KeyValueStore {
 
 type MockIpamStateReconciler struct{}
 
-func (m *MockIpamStateReconciler) ReconcileIPAMState(ncRequests []*cns.CreateNetworkContainerRequest, podInfoByIP map[string]cns.PodInfo, nnc *v1alpha.NodeNetworkConfig) types.ResponseCode {
+func (m *MockIpamStateReconciler) ReconcileIPAMState(ncRequests []*cns.CreateNetworkContainerRequest, podInfoByIP map[string]cns.PodInfo, _ *v1alpha.NodeNetworkConfig) types.ResponseCode {
 	if len(ncRequests) == 1 && len(ncRequests[0].SecondaryIPConfigs) == len(podInfoByIP) {
 		return types.Success
 	}
