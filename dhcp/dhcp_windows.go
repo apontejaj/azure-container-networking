@@ -3,10 +3,7 @@ package dhcp
 import (
 	"context"
 	"net"
-	"regexp"
-	"time"
 
-	"github.com/Azure/azure-container-networking/cni/log"
 	"github.com/Azure/azure-container-networking/retry"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -14,20 +11,10 @@ import (
 )
 
 const (
-	dummyIPAddressStr    = "169.254.128.10"
-	dummySubnetMask      = "255.255.128.0"
-	addIPAddressDelay    = 4 * time.Second
-	deleteIPAddressDelay = 2 * time.Second
-	returnDelay          = 8 * time.Second // time to wait before returning from DiscoverRequest
-	retryCount           = 5
-	retryDelayMillis     = 500
-	socketTimeoutMillis  = 1000
-)
-
-var (
-	dummyIPAddress = net.IPv4(169, 254, 128, 10) // nolint
-	// matches if the string fully consists of zero or more alphanumeric, dots, dashes, parentheses, spaces, or underscores
-	allowedInput = regexp.MustCompile(`^[a-zA-Z0-9._\-\(\) ]*$`)
+	retryCount               = 5
+	retryDelayMillis         = 500
+	ipAssignRetryDelayMillis = 2000
+	socketTimeoutMillis      = 1000
 )
 
 type Socket struct {
@@ -91,38 +78,57 @@ func (s *Socket) Close() error {
 	return nil
 }
 
-// issues a dhcp discover request on an interface by assigning an ip to that interface
-// then, sends a packet with that interface's dummy ip, and then unassigns the dummy ip
-func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr, ifName string) error {
-	// validate interface name
-	if !allowedInput.MatchString(ifName) {
-		return errors.New("invalid dhcp discover request interface name")
-	}
-	// delete dummy ip off the interface if it already exists
-	ret, err := c.execClient.ExecuteCommand(ctx, "netsh", "interface", "ipv4", "delete", "address", ifName, dummyIPAddressStr)
+func (c *DHCP) getIPv4InterfaceAddresses(ifName string) ([]net.IP, error) {
+	nic, err := c.netioClient.GetNetworkInterfaceByName(ifName)
 	if err != nil {
-		c.logger.Info("Could not remove dummy ip, likely because it doesn't exist", zap.String("output", ret), zap.Error(log.NewErrorWithoutStackTrace(err)))
+		return []net.IP{}, err
 	}
-	time.Sleep(deleteIPAddressDelay)
-
-	// create dummy ip so we can direct the packet to the correct interface
-	ret, err = c.execClient.ExecuteCommand(ctx, "netsh", "interface", "ipv4", "add", "address", ifName, dummyIPAddressStr, dummySubnetMask)
+	addresses, err := c.netioClient.GetNetworkInterfaceAddrs(nic)
 	if err != nil {
-		return errors.Wrap(err, "failed to add dummy ip to interface: "+ret)
+		return []net.IP{}, err
 	}
-	// ensure we always remove the dummy ip we added from the interface
-	defer func() {
-		// we always want to try to remove the dummy ip, even if the deadline was reached
-		// so we have context.Background()
-		ret, cleanupErr := c.execClient.ExecuteCommand(context.Background(), "netsh", "interface", "ipv4", "delete", "address", ifName, dummyIPAddressStr)
-		if cleanupErr != nil {
-			c.logger.Info("Failed to remove dummy ip on leaving function", zap.String("output", ret), zap.Error(err))
+	ret := []net.IP{}
+	for _, address := range addresses {
+		// check if the ip is ipv4 and parse it
+		ip, _, err := net.ParseCIDR(address.String())
+		if err != nil || ip.To4() == nil {
+			continue
 		}
-		// wait for nic to retrieve autoconfiguration ip
-		time.Sleep(returnDelay)
-	}()
-	// it takes time for the address to be assigned
-	time.Sleep(addIPAddressDelay)
+		ret = append(ret, ip)
+	}
+
+	c.logger.Info("Interface addresses found", zap.Any("foundIPs", addresses), zap.Any("selectedIPs", ret))
+	return ret, err
+}
+
+func (c *DHCP) verifyIPv4InterfaceAddressCount(ifName string, count, maxRuns, sleepMs int) error {
+	addressCountErr := retry.Do(func() error {
+		addresses, err := c.getIPv4InterfaceAddresses(ifName)
+		if err != nil || len(addresses) != count {
+			return errors.New("address count found not equal to expected")
+		}
+		return nil
+	}, maxRuns, sleepMs)
+	return addressCountErr
+}
+
+// issues a dhcp discover request on an interface by finding the secondary's ip and sending on its ip
+func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr, ifName string) error {
+	// Find the ipv4 address of the secondary interface (we're betting that this gets autoconfigured)
+	err := c.verifyIPv4InterfaceAddressCount(ifName, 1, retryCount, ipAssignRetryDelayMillis)
+	if err != nil {
+		return errors.Wrap(err, "failed to get auto ip config assigned in apipa range in time")
+	}
+	ipv4Addresses, err := c.getIPv4InterfaceAddresses(ifName)
+	if err != nil || len(ipv4Addresses) == 0 {
+		return errors.Wrap(err, "failed to get ipv4 addresses on interface")
+	}
+	uniqueAddress := ipv4Addresses[0].To4()
+	if uniqueAddress == nil {
+		return errors.New("invalid ipv4 address")
+	}
+	uniqueAddressStr := uniqueAddress.String()
+	c.logger.Info("Retrieved automatic ip configuration: ", zap.Any("ip", uniqueAddress), zap.String("ipStr", uniqueAddressStr))
 
 	// now begin the dhcp request
 	txid, err := GenerateTransactionID()
@@ -132,7 +138,7 @@ func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr,
 
 	// Prepare an IP and UDP header
 	raddr := &net.UDPAddr{IP: net.IPv4bcast, Port: dhcpServerPort}
-	laddr := &net.UDPAddr{IP: dummyIPAddress, Port: dhcpClientPort}
+	laddr := &net.UDPAddr{IP: uniqueAddress, Port: dhcpClientPort}
 
 	dhcpDiscover, err := buildDHCPDiscover(macAddress, txid)
 	if err != nil {

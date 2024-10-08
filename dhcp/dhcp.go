@@ -51,15 +51,20 @@ type ExecClient interface {
 	ExecuteCommand(ctx context.Context, command string, args ...string) (string, error)
 }
 
-type DHCP struct {
-	logger     *zap.Logger
-	execClient ExecClient
+type NetIOClient interface {
+	GetNetworkInterfaceByName(name string) (*net.Interface, error)
+	GetNetworkInterfaceAddrs(iface *net.Interface) ([]net.Addr, error)
 }
 
-func New(logger *zap.Logger, plc ExecClient) *DHCP {
+type DHCP struct {
+	logger      *zap.Logger
+	netioClient NetIOClient
+}
+
+func New(logger *zap.Logger, netio NetIOClient) *DHCP {
 	return &DHCP{
-		logger:     logger,
-		execClient: plc,
+		logger:      logger,
+		netioClient: netio,
 	}
 }
 
