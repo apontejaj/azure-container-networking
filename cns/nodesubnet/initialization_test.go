@@ -1,7 +1,6 @@
 package nodesubnet_test
 
 import (
-	"context"
 	"net"
 	"testing"
 
@@ -70,7 +69,7 @@ func TestNewCNSPodInfoProvider(t *testing.T) {
 		name       string
 		store      store.KeyValueStore
 		wantErr    bool
-		reconciler ipam.IpamStateReconciler
+		reconciler ipam.StateReconciler
 		exp        int
 	}{
 		{
@@ -98,13 +97,4 @@ func TestNewCNSPodInfoProvider(t *testing.T) {
 			}
 		})
 	}
-}
-
-// testContext creates a context from the provided testing.T that will be
-// canceled if the test suite is terminated.
-func testContext(t *testing.T) (context.Context, context.CancelFunc) {
-	if deadline, ok := t.Deadline(); ok {
-		return context.WithDeadline(context.Background(), deadline)
-	}
-	return context.WithCancel(context.Background())
 }

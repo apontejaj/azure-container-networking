@@ -11,7 +11,7 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-func ReconcileInitialCNSState(ctx context.Context, ipamReconciler ipam.IpamStateReconciler, podInfoByIPProvider cns.PodInfoByIPProvider) (int, error) {
+func ReconcileInitialCNSState(_ context.Context, ipamReconciler ipam.StateReconciler, podInfoByIPProvider cns.PodInfoByIPProvider) (int, error) {
 	// Get previous PodInfo state from podInfoByIPProvider
 	podInfoByIP, err := podInfoByIPProvider.PodInfoByIP()
 	if err != nil {
