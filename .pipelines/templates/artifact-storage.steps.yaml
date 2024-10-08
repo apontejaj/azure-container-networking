@@ -206,12 +206,14 @@ steps:
       set -x
       echo $SPNOBJECTID
       UPDATE_IDENTITY=$(echo "$ACNCI_STORAGEACCOUNT" | jq -r '.identity')
-      if [[ -z $UPDATE_IDENTITY ]]; then
+      if [[ -z $UPDATE_IDENTITY ]] || \
+         [[ $UPDATE_IDENTITY =~ null ]]; then
         SP_ID=$(az ad sp show --id "$(az account show --query user.name -o tsv)" --query id -o tsv)
         az storage account update --user-identity-id "$servicePrincipalId" --ids "$ACNCI_STORAGEACCOUNT_ID"
+      else
+        echo >&2 "Storage account identity set."
       fi
   env:
-    SPNOBJECTID: $(SPNOBJECTID)
     ACNCI_STORAGEACCOUNT_ID: $(artifact_storage.ACNCI_STORAGEACCOUNT_ID)
 
 - task: AzureCLI@2
