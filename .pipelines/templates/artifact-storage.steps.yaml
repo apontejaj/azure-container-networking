@@ -203,13 +203,15 @@ steps:
     scriptLocation: inlineScript
     addSpnToEnvironment: true
     inlineScript: |
-      set -e
-      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
-
+      set -x
+      echo $SPNOBJECTID
       UPDATE_IDENTITY=$(echo "$ACNCI_STORAGEACCOUNT" | jq -r '.identity')
-      [[ -z $UPDATE_IDENTITY ]] && \
+      if [[ -z $UPDATE_IDENTITY ]]; then
+        SP_ID=$(az ad sp show --id "$(az account show --query user.name -o tsv)" --query id -o tsv)
         az storage account update --user-identity-id "$servicePrincipalId" --ids "$ACNCI_STORAGEACCOUNT_ID"
+      fi
   env:
+    SPNOBJECTID: $(SPNOBJECTID)
     ACNCI_STORAGEACCOUNT_ID: $(artifact_storage.ACNCI_STORAGEACCOUNT_ID)
 
 - task: AzureCLI@2
