@@ -114,8 +114,6 @@ steps:
         --name "$SA_NAME" \
         --location "$ACNCI_SA_LOCATION" \
         --resource-group "$RG_NAME" \
-        --user-identity-id "$servicePrincipalId" \
-        --identity-type UserAssigned \
         --public-network-access Disabled \
         --require-infrastructure-encryption \
         --allow-shared-key-access false \
