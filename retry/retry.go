@@ -61,7 +61,8 @@ type TemporaryError interface {
 }
 
 // Retrier is a construct for attempting some operation multiple times with a
-// configurable backoff strategy.
+// configurable backoff strategy. To retry, a returned error must implement the
+// TemporaryError interface and return true
 type Retrier struct {
 	Cooldown CooldownFactory
 }

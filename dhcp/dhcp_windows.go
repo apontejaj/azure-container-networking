@@ -114,7 +114,7 @@ func (c *DHCP) verifyIPv4InterfaceAddressCount(ctx context.Context, ifName strin
 	addressCountErr := retrier.Do(ctx, func() error {
 		addresses, err := c.getIPv4InterfaceAddresses(ifName)
 		if err != nil || len(addresses) != count {
-			return errIncorrectAddressCount
+			return retry.WrapTemporaryError(errIncorrectAddressCount) // nolint
 		}
 		return nil
 	})
@@ -183,7 +183,7 @@ func (c *DHCP) DiscoverRequest(ctx context.Context, macAddress net.HardwareAddr,
 	// retry sending the packet until it succeeds
 	err = retrier.Do(ctx, func() error {
 		_, sockErr := sock.Write(bytesToSend)
-		return sockErr
+		return retry.WrapTemporaryError(sockErr) // nolint
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to write to dhcp socket")
