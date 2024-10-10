@@ -28,6 +28,18 @@ stages:
                 pwd
                 kubectl cluster-info
                 kubectl get po -owide -A
+          - task: AzureCLI@2
+            displayName: 'Update IP configs'
+            inputs:
+              azureSubscription: $(BUILD_VALIDATIONS_SERVICE_CONNECTION)
+              scriptLocation: "inlineScript"
+              scriptType: "bash"
+              addSpnToEnvironment: true
+              inlineScript: |
+                  set -e
+                  SECONDARY_IP_COUNT=100 \
+                  RESOURCE_GROUP=${RESOURCE_GROUP} \
+                  go run $(Build.SourcesDirectory)/test/integration/cilium-nodesubnet/ipconfigupdate.go
   - stage: update_daemonset_versions
     displayName: "Update Cilium + CNS Version and Restart Nodes"
     jobs:
@@ -51,12 +63,7 @@ stages:
                 echo "installing files from ${DIR}"
 
                 echo "deploy Cilium ConfigMap"
-                if ${IS_DUALSTACK}; then
-                  echo "Use dualstack configmap for Cilium"
-                  kubectl apply -f test/integration/manifests/cilium/v${DIR}/cilium-config/cilium-config-dualstack.yaml
-                else
-                  kubectl apply -f test/integration/manifests/cilium/v${DIR}/cilium-config/cilium-config.yaml
-                fi
+                kubectl apply -f test/integration/manifests/cilium/v${DIR}/cilium-config/cilium-config.yaml
 
                 # Passes Cilium image to daemonset and deployment
                 kubectl apply -f test/integration/manifests/cilium/v${DIR}/cilium-agent/files
@@ -75,7 +82,8 @@ stages:
                 kubectl get po -owide -A
 
                 echo "Deploy Azure-CNS"
-                sudo -E env "PATH=$PATH" make test-load AZURE_IPAM_VERSION=v$(AZURE_IPAM_VERSION) CNS_ONLY=true CNS_VERSION=v$(CNS_VERSION) INSTALL_CNS=true INSTALL_OVERLAY=true CNS_IMAGE_REPO=$(CNS_IMAGE_REPO)
+                sudo -E env "PATH=$PATH" make test-load OS_TYPE=linux CNS_ONLY=true INSTALL_CNS=true INSTALL_CNS_NODESUBNET=true AZURE_IPAM_VERSION=$(make azure-ipam-version) CNS_VERSION=$(make cns-version) CLEANUP=true
+
                 kubectl get po -owide -A
                 kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=10m || {
                   echo "Not all pods ready"
