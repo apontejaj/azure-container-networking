@@ -104,6 +104,10 @@ func main() {
 			for i := 2; i <= secondaryConfigCount+1; i++ {
 				ipConfig := make(map[string]interface{})
 				for k, v := range primaryIPConfig {
+					if k == "LoadBalancerBackendAddressPools" {
+						continue
+					}
+
 					ipConfig[k] = v
 				}
 				ipConfigName := fmt.Sprintf("ipconfig%d", i)
