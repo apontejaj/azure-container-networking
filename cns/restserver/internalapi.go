@@ -407,7 +407,7 @@ func (service *HTTPRestService) ReconcileIPAMStateForSwift(ncReqs []*cns.CreateN
 
 func (service *HTTPRestService) ReconcileIPAMStateForNodeSubnet(ncReqs []*cns.CreateNetworkContainerRequest, podInfoByIP map[string]cns.PodInfo) types.ResponseCode {
 	logger.Printf("Reconciling CNS IPAM state with nc requests: [%+v], PodInfo [%+v]", ncReqs, podInfoByIP)
-	// if no nc reqs, there is no CRD state yet
+
 	if len(ncReqs) != 1 {
 		logger.Errorf("Nodesubnet should always have 1 NC to hold secondary IPs")
 		return types.NetworkContainerNotSpecified
