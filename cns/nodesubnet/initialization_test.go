@@ -9,7 +9,6 @@ import (
 	"github.com/Azure/azure-container-networking/cns/nodesubnet"
 	"github.com/Azure/azure-container-networking/cns/restserver"
 	"github.com/Azure/azure-container-networking/cns/types"
-	"github.com/Azure/azure-container-networking/crd/nodenetworkconfig/api/v1alpha"
 	"github.com/Azure/azure-container-networking/store"
 )
 
@@ -55,7 +54,7 @@ func getMockStore() store.KeyValueStore {
 
 type MockIpamStateReconciler struct{}
 
-func (m *MockIpamStateReconciler) ReconcileIPAMState(ncRequests []*cns.CreateNetworkContainerRequest, podInfoByIP map[string]cns.PodInfo, _ *v1alpha.NodeNetworkConfig) types.ResponseCode {
+func (m *MockIpamStateReconciler) ReconcileIPAMStateForNodeSubnet(ncRequests []*cns.CreateNetworkContainerRequest, podInfoByIP map[string]cns.PodInfo) types.ResponseCode {
 	if len(ncRequests) == 1 && len(ncRequests[0].SecondaryIPConfigs) == len(podInfoByIP) {
 		return types.Success
 	}
