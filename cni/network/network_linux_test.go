@@ -16,6 +16,7 @@ import (
 	"github.com/Azure/azure-container-networking/platform"
 	"github.com/Azure/azure-container-networking/telemetry"
 	cniSkel "github.com/containernetworking/cni/pkg/skel"
+	"github.com/containernetworking/cni/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -333,11 +334,19 @@ func TestPluginLinuxAdd(t *testing.T) {
 			// Based on a live swiftv2 linux cluster's cns invoker response
 			name: "Add Happy Path Swiftv2",
 			plugin: &NetPlugin{
-				Plugin:      resources.Plugin,
-				nm:          network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
-				tb:          &telemetry.TelemetryBuffer{},
-				report:      &telemetry.CNIReport{},
-				ipamInvoker: NewCustomMockIpamInvoker(GetTestCNSResponseSecondaryLinux(macAddress)),
+				Plugin: resources.Plugin,
+				nm:     network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
+				tb:     &telemetry.TelemetryBuffer{},
+				report: &telemetry.CNIReport{},
+				ipamInvoker: &MockIpamInvoker{
+					add: func(opt IPAMAddConfig) (ipamAddResult IPAMAddResult, err error) {
+						ipamAddResult = IPAMAddResult{interfaceInfo: make(map[string]network.InterfaceInfo)}
+						ipamAddResult.interfaceInfo = GetTestCNSResponseSecondaryLinux(macAddress)
+						opt.options["testflag"] = "copy"
+						return ipamAddResult, nil
+					},
+					ipMap: make(map[string]bool),
+				},
 				netClient: &InterfaceGetterMock{
 					// used in secondary find master interface
 					interfaces: []net.Interface{
@@ -396,7 +405,9 @@ func TestPluginLinuxAdd(t *testing.T) {
 						NetNsPath:         "bc526fae-4ba0-4e80-bc90-ad721e5850bf",
 						NetNs:             "bc526fae-4ba0-4e80-bc90-ad721e5850bf",
 						HostSubnetPrefix:  "10.224.0.0/16",
-						Options:           map[string]interface{}{},
+						Options: map[string]interface{}{
+							"testflag": "copy",
+						},
 						// matches with cns ip configuration
 						IPAddresses: []net.IPNet{
 							{
@@ -445,7 +456,9 @@ func TestPluginLinuxAdd(t *testing.T) {
 						NetNsPath:         "bc526fae-4ba0-4e80-bc90-ad721e5850bf",
 						NetNs:             "bc526fae-4ba0-4e80-bc90-ad721e5850bf",
 						HostSubnetPrefix:  "<nil>",
-						Options:           map[string]interface{}{},
+						Options: map[string]interface{}{
+							"testflag": "copy",
+						},
 						// matches with cns ip configuration
 						IPAddresses: []net.IPNet{
 							{
