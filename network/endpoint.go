@@ -66,7 +66,7 @@ type EndpointInfo struct {
 	EndpointID               string
 	ContainerID              string
 	NetNsPath                string
-	IfName                   string // value differs during creation vs. deletion flow
+	IfName                   string // value differs during creation vs. deletion flow; used in statefile, not necessarily the nic name
 	SandboxKey               string
 	IfIndex                  int
 	MacAddress               net.HardwareAddr

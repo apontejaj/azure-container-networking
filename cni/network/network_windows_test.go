@@ -858,6 +858,39 @@ func TestPluginMultitenancyWindowsDelete(t *testing.T) {
 	}
 }
 
+// windows swiftv2 example
+func GetTestCNSResponseSecondary() map[string]network.InterfaceInfo {
+	macAddress := "60:45:bd76:f6:44"
+	parsedMAC, _ := net.ParseMAC(macAddress)
+	return map[string]network.InterfaceInfo{
+		string(cns.InfraNIC): {
+			IPConfigs: []*network.IPConfig{
+				{
+					Address: *getCIDRNotationForAddress("10.244.2.107/16"),
+					Gateway: net.ParseIP("10.244.2.1"),
+				},
+			},
+			Routes: []network.RouteInfo{
+				{
+					Gw: net.ParseIP("10.244.2.1"),
+				},
+			},
+			SkipDefaultRoutes: true,
+			NICType:           cns.InfraNIC,
+		},
+		"60:45:bd76:f6:44": {
+			MacAddress: parsedMAC,
+			IPConfigs: []*network.IPConfig{
+				{
+					Address: *getCIDRNotationForAddress("10.241.0.21/16"),
+					Gateway: net.ParseIP("10.241.0.1"),
+				},
+			},
+			NICType: cns.NodeNetworkInterfaceFrontendNIC,
+		},
+	}
+}
+
 // Happy path scenario for add and delete
 func TestPluginWindowsAdd(t *testing.T) {
 	resources := GetTestResources()
