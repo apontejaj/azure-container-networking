@@ -56,6 +56,6 @@
   ],
   "notDataActions": [],
   "assignableScopes": [
-    $RESOURCE_GROUP_ID
+    "$RESOURCE_GROUP_ID"
   ]
 }
