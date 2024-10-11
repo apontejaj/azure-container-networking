@@ -859,8 +859,7 @@ func TestPluginMultitenancyWindowsDelete(t *testing.T) {
 }
 
 // windows swiftv2 example
-func GetTestCNSResponseSecondary() map[string]network.InterfaceInfo {
-	macAddress := "60:45:bd76:f6:44"
+func GetTestCNSResponseSecondaryWindows(macAddress string) map[string]network.InterfaceInfo {
 	parsedMAC, _ := net.ParseMAC(macAddress)
 	return map[string]network.InterfaceInfo{
 		string(cns.InfraNIC): {
@@ -872,18 +871,27 @@ func GetTestCNSResponseSecondary() map[string]network.InterfaceInfo {
 			},
 			Routes: []network.RouteInfo{
 				{
-					Gw: net.ParseIP("10.244.2.1"),
+					Dst: *getCIDRNotationForAddress("1.1.1.1/24"),
+					Gw:  net.ParseIP("10.244.2.1"),
 				},
 			},
 			SkipDefaultRoutes: true,
 			NICType:           cns.InfraNIC,
+			HostSubnetPrefix:  *getCIDRNotationForAddress("20.224.0.0/16"),
 		},
-		"60:45:bd76:f6:44": {
+		macAddress: {
 			MacAddress: parsedMAC,
 			IPConfigs: []*network.IPConfig{
 				{
 					Address: *getCIDRNotationForAddress("10.241.0.21/16"),
 					Gateway: net.ParseIP("10.241.0.1"),
+				},
+			},
+			Routes: []network.RouteInfo{
+				{
+					// just to ensure we don't overwrite if we had more routes
+					Dst: *getCIDRNotationForAddress("2.2.2.2/24"),
+					Gw:  net.ParseIP("99.244.2.1"),
 				},
 			},
 			NICType: cns.NodeNetworkInterfaceFrontendNIC,
@@ -901,6 +909,15 @@ func TestPluginWindowsAdd(t *testing.T) {
 		EnableExactMatchForPodName: true,
 		Master:                     "eth0",
 	}
+	nwCfg := cni.NetworkConfig{
+		CNIVersion:                 "0.3.0",
+		Name:                       "net",
+		MultiTenancy:               false,
+		EnableExactMatchForPodName: true,
+	}
+	macAddress := "60:45:bd:76:f6:44"
+	parsedMACAddress, _ := net.ParseMAC(macAddress)
+
 	type endpointEntry struct {
 		epInfo    *network.EndpointInfo
 		epIDRegex string
@@ -1028,6 +1045,133 @@ func TestPluginWindowsAdd(t *testing.T) {
 								Family:  platform.AfINET,
 								Prefix:  *getIPNetWithString("10.0.0.0/24"),
 								Gateway: net.ParseIP("10.0.0.1"),
+							},
+						},
+					},
+					epIDRegex: `.*`,
+				},
+			},
+		},
+		{
+			// Based on a live swiftv2 windows cluster's (infra + delegated) cns invoker response
+			name: "Add Happy Path Swiftv2",
+			plugin: &NetPlugin{
+				Plugin:      resources.Plugin,
+				nm:          network.NewMockNetworkmanager(network.NewMockEndpointClient(nil)),
+				tb:          &telemetry.TelemetryBuffer{},
+				report:      &telemetry.CNIReport{},
+				ipamInvoker: NewCustomMockIpamInvoker(GetTestCNSResponseSecondaryWindows(macAddress)),
+				netClient: &InterfaceGetterMock{
+					// used in secondary find master interface
+					interfaces: []net.Interface{
+						{
+							Name:         "secondary",
+							HardwareAddr: parsedMACAddress,
+						},
+						{
+							Name:         "primary",
+							HardwareAddr: net.HardwareAddr{},
+						},
+					},
+					// used in primary find master interface
+					interfaceAddrs: map[string][]net.Addr{
+						"primary": {
+							// match with the host subnet prefix to know that this ip belongs to the host
+							getCIDRNotationForAddress("20.224.0.0/16"),
+						},
+					},
+				},
+			},
+			args: &cniSkel.CmdArgs{
+				StdinData:   nwCfg.Serialize(),
+				ContainerID: "test-container",
+				Netns:       "bc526fae-4ba0-4e80-bc90-ad721e5850bf",
+				Args:        fmt.Sprintf("K8S_POD_NAME=%v;K8S_POD_NAMESPACE=%v", "test-pod", "test-pod-ns"),
+				IfName:      eth0IfName,
+			},
+			match: func(ei1, ei2 *network.EndpointInfo) bool {
+				return ei1.NICType == ei2.NICType
+			},
+			want: []endpointEntry{
+				// should match infra
+				{
+					epInfo: &network.EndpointInfo{
+						ContainerID: "test-container",
+						Data:        map[string]interface{}{},
+						Routes: []network.RouteInfo{
+							{
+								Dst: *getCIDRNotationForAddress("1.1.1.1/24"),
+								Gw:  net.ParseIP("10.244.2.1"),
+							},
+						},
+						PODName:           "test-pod",
+						PODNameSpace:      "test-pod-ns",
+						NICType:           cns.InfraNIC,
+						SkipDefaultRoutes: true,
+						MasterIfName:      "primary",
+						NetworkID:         "net",
+						NetNsPath:         "bc526fae-4ba0-4e80-bc90-ad721e5850bf",
+						NetNs:             "bc526fae-4ba0-4e80-bc90-ad721e5850bf",
+						HostSubnetPrefix:  "20.224.0.0/16",
+						Options:           map[string]interface{}{},
+						// matches with cns ip configuration
+						IPAddresses: []net.IPNet{
+							{
+								IP:   net.ParseIP("10.244.2.107"),
+								Mask: getIPNetWithString("10.244.2.107/16").Mask,
+							},
+						},
+						NATInfo: nil,
+						// ip config pod ip + mask(s) from cns > interface info > subnet info
+						Subnets: []network.SubnetInfo{
+							{
+								Family: platform.AfINET,
+								Prefix: *getIPNetWithString("10.244.0.0/16"),
+								// matches cns ip configuration gateway ip address
+								Gateway: net.ParseIP("10.244.2.1"),
+							},
+						},
+					},
+					epIDRegex: `.*`,
+				},
+				// should match secondary
+				{
+					epInfo: &network.EndpointInfo{
+						MacAddress:  parsedMACAddress,
+						ContainerID: "test-container",
+						Data:        map[string]interface{}{},
+						Routes: []network.RouteInfo{
+							{
+								// just to ensure we don't overwrite if we had more routes
+								Dst: *getCIDRNotationForAddress("2.2.2.2/24"),
+								Gw:  net.ParseIP("99.244.2.1"),
+							},
+						},
+						PODName:           "test-pod",
+						PODNameSpace:      "test-pod-ns",
+						NICType:           cns.NodeNetworkInterfaceFrontendNIC,
+						SkipDefaultRoutes: false,
+						MasterIfName:      "secondary",
+						NetworkID:         "azure-" + macAddress,
+						NetNsPath:         "bc526fae-4ba0-4e80-bc90-ad721e5850bf",
+						NetNs:             "bc526fae-4ba0-4e80-bc90-ad721e5850bf",
+						HostSubnetPrefix:  "<nil>",
+						Options:           map[string]interface{}{},
+						// matches with cns ip configuration
+						IPAddresses: []net.IPNet{
+							{
+								IP:   net.ParseIP("10.241.0.21"),
+								Mask: getIPNetWithString("10.241.0.21/16").Mask,
+							},
+						},
+						NATInfo: nil,
+						// ip config pod ip + mask(s) from cns > interface info > subnet info
+						Subnets: []network.SubnetInfo{
+							{
+								Family: platform.AfINET,
+								Prefix: *getIPNetWithString("10.241.0.21/16"),
+								// matches cns ip configuration gateway ip address
+								Gateway: net.ParseIP("10.241.0.1"),
 							},
 						},
 					},
