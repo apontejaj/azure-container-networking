@@ -36,10 +36,10 @@ steps:
 
       if [[ $DEFS_FOUND < 1 ]]; then
         az role definition create \
-          --role-definition ./mi-build-role.json
+          --role-definition '$(cat ./mi-build-role.json)'
       else
         az role definition update \
-          --role-definition ./mi-build-role.json
+          --role-definition '$(cat./mi-build-role.json)'
       fi
 
 
