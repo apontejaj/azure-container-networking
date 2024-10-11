@@ -55,6 +55,7 @@ func (dp *DataPlane) initializeDataPlane() error {
 
 	// if npm lite is enabled and running on l1vh node, filter out any endpoints that are not in "Attached" State
 	if dp.EnableNPMLite && dp.IsL1VHNode {
+		klog.Info("NPM lite is running on L1VH Node")
 		filterMap = map[string]uint16{"State": hcnEndpointStateAttached}
 	}
 
