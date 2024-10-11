@@ -98,11 +98,8 @@ steps:
         --tag "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId" -o json | jq -rc '.')
       INFRA_RG_LENGTH=$(echo "$INFRA_RG_LIST" | jq length)
 
-      # Select one resource group to use.
-      RANDOM_SELECT=`tr -dc '1-9' < /dev/urandom | head -c${1:-7}`
-      IDX=$(( "$RANDOM_SELECT" % "$INFRA_RG_LENGTH" ))
-      RG_DATA=$(echo "$INFRA_RG_LIST" | jq --argjson IDX "$IDX" -rc '.[$IDX]')
-      echo >&2 "##vso[task.setvariable variable=RG_DATA;]$RG_DATA"
+      echo >&2 "##vso[task.setvariable variable=INFRA_RG_LIST;]$INFRA_RG_LIST"
+      echo >&2 "##vso[task.setvariable variable=INFRA_RG_LENGTH;]$INFRA_RG_LENGTH"
   env:
     # Allows use of az devops commands
     AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
@@ -127,7 +124,9 @@ steps:
 
       echo >&2 "##vso[task.setvariable variable=ACNCI_BUILD_RESOURCEGROUP;isoutput=true;]$RG_NAME"
       echo >&2 "##vso[task.setvariable variable=ACNCI_BUILD_RESOURCEGROUP_ID;isoutput=true;]$RG_ID"
-
+  env:
+    INFRA_RG_LIST: $(INFRA_RG_LIST)
+    INFRA_RG_LENGTH: $(INFRA_RG_LENGTH)
     
 ## Managed Identity ##
 # Inherited Env Vars:
