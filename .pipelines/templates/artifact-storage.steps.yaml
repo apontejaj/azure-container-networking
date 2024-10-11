@@ -32,15 +32,16 @@ steps:
       [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
 
       set -x
+      pwd
       DEFS_FOUND=$(az role definition list --name "$ACNCI_BUILDUSER_ROLE_NAME" --custom-role-only -ojson | jq length)
 
-      DEF=$(cat ./mi-build-role.json | jq -rc '.')
-      if [[ $DEFS_FOUND < 1 ]]; then
+      DEF=$(cat ./templates/mi-build-role.json | jq -rc '.')
+      if (( $DEFS_FOUND < 1 )); then
         az role definition create \
-          --role-definition '"'
+          --role-definition "$DEF"
       else
         az role definition update \
-          --role-definition "$(cat./mi-build-role.json)"
+          --role-definition "$DEF"
       fi
 
 
