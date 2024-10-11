@@ -51,7 +51,9 @@ func (dp *DataPlane) initializeDataPlane() error {
 		Flags: hcn.HostComputeQueryFlagsNone,
 	}
 	// Filter out any endpoints that are not in "AttachedShared" State. All running Windows pods with networking must be in this state.
-	filterMap := map[string]uint16{"State": hcnEndpointStateAttachedSharing}
+	//testing
+	filterMap := map[string]uint16{"State": hcnEndpointStateAttached}
+	klog.Info("State: hcnEndpointStateAttachedSharing")
 
 	// if npm lite is enabled and running on l1vh node, filter out any endpoints that are not in "Attached" State
 	if dp.EnableNPMLite && dp.IsL1VHNode {
