@@ -20,32 +20,6 @@ steps:
       echo >&2 "##vso[task.setvariable variable=SUBSCRIPTION_ID]$SUBSCRIPTION_ID"
 
 
-- task: AzureCLI@2
-  displayName: "[Provision] Build User Owner Role Definition"
-  inputs:
-    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
-    scriptType: bash
-    scriptLocation: inlineScript
-    addSpnToEnvironment: true
-    inlineScript: |
-      set -e
-      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
-
-      set -x
-      pwd
-      ls -la
-      DEFS_FOUND=$(az role definition list --name "$ACNCI_BUILDUSER_ROLE_NAME" --custom-role-only -ojson | jq length)
-
-      DEF=$(cat ./azure-container-networking/.pipelines/templates/mi-build-role.json | jq -rc '.')
-      if (( $DEFS_FOUND < 1 )); then
-        az role definition create \
-          --role-definition "$DEF"
-      else
-        az role definition update \
-          --role-definition "$DEF"
-      fi
-
-
 ## Resource Groups ##
 - bash: |
     set -x
@@ -239,6 +213,36 @@ steps:
 
 
 ## MI Role Assignments ##
+- task: AzureCLI@2
+  displayName: "[Provision] Build User Owner Role Definition"
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    addSpnToEnvironment: true
+    inlineScript: |
+      set -e
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+
+      set -x
+      pwd
+      ls -la
+      DEFS_FOUND=$(az role definition list --name "$ACNCI_BUILDUSER_ROLE_NAME" --custom-role-only -ojson | jq length)
+
+      DEF=$(cat ./azure-container-networking/.pipelines/templates/mi-build-role.json | \
+        jq -rc \
+          --arg RESOURCE_GROUP_ID "$ACNCI_BUILD_RESOURCEGROUP_ID" \
+          -rc '.')
+      if (( $DEFS_FOUND < 1 )); then
+        az role definition create \
+          --role-definition "$DEF"
+      else
+        az role definition update \
+          --role-definition "$DEF"
+      fi
+  env:
+    ACNCI_BUILD_RESOURCEGROUP_ID: $(resourcegroups.ACNCI_BUILD_RESOURCEGROUP_ID)
+
 - task: AzureCLI@2
   displayName: "[Check] Build User MI Roles"
   inputs:
