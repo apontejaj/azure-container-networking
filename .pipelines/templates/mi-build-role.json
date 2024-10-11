@@ -6,8 +6,9 @@
   "isCustom": true,
   "description": "A custom role given to managed identities created by the CI build process. This role should try to focus on owning the resources already in its scope; rather than creating new ones. Actions should be added as necessary - and not in anticipation.",
   "actions": [
-    "Microsoft.Storage/storageAccounts/blobServices/containers/*",
     "Microsoft.Storage/storageAccounts/blobServices/generateUserDelegationKey/action",
+    "Microsoft.Storage/storageAccounts/blobServices/containers/read",
+    "Microsoft.Storage/storageAccounts/blobServices/containers/write",
     "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/*",
 
     "Microsoft.Storage/storageAccounts/tableServices/tables/read",
@@ -31,8 +32,11 @@
   ],
   "notActions": [],
   "dataActions": [
-    "Microsoft.Storage/storageAccounts/blobServices/containers/*",
-    "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/*",
+    "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read",
+    "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/write",
+    "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/delete",
+    "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/move/action",
+    "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/add/action",
 
     "Microsoft.Storage/storageAccounts/tableServices/tables/entities/read",
     "Microsoft.Storage/storageAccounts/tableServices/tables/entities/write",
@@ -56,6 +60,6 @@
   ],
   "notDataActions": [],
   "assignableScopes": [
-    "$RESOURCE_GROUP_ID"
+    "/"
   ]
 }
