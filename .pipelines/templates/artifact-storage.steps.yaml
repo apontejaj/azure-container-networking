@@ -144,9 +144,7 @@ steps:
       [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
 
       MI_DATA=$(az identity list \
-        --resource-group "$ACNCI_BUILD_RESOURCEGROUP" \
-        --tag "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" \
-        --tag "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId" -o json | \
+        --resource-group "$ACNCI_BUILD_RESOURCEGROUP" | \
       jq -rc '.')
       MI_DATA_LENGTH=$(echo "$MA_DATA" | jq length)
 
@@ -176,7 +174,7 @@ steps:
       set -e
       [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
 
-      MANAGEDIDENTITY_NAME='"${ACNCI_MANAGEDIDENTITY_PREFIX}""${UNIQUE_ID}"-"${LOCATION}"'
+      MANAGEDIDENTITY_NAME="${ACNCI_MANAGEDIDENTITY_PREFIX}""${UNIQUE_ID}"-"${LOCATION}"
       az identity create \
         --name "$MANAGEDIDENTITY_NAME" \
         --resource-group "$ACNCI_BUILD_RESOURCEGROUP" \
