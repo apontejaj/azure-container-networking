@@ -36,10 +36,21 @@ stages:
               scriptType: "bash"
               addSpnToEnvironment: true
               inlineScript: |
-                  set -e
-                  SECONDARY_IP_COUNT=100 \
-                  RESOURCE_GROUP=${RESOURCE_GROUP} \
-                  go run $(Build.SourcesDirectory)/test/integration/cilium-nodesubnet/ipconfigupdate.go
+                        retry_count=0
+                        max_retries=3
+                        until [ $retry_count -ge $max_retries ]
+                        do
+                        SECONDARY_IP_COUNT=100 \
+                        RESOURCE_GROUP=${RESOURCE_GROUP} \
+                        go run $(Build.SourcesDirectory)/test/integration/cilium-nodesubnet/ipconfigupdate.go && break
+                        retry_count=$((retry_count+1))
+                        echo "Retrying... ($retry_count/$max_retries)"
+                        sleep 5
+                        done
+                        if [ $retry_count -eq $max_retries ]; then
+                        echo "Failed after $max_retries attempts"
+                        exit 1
+                        fi
   - stage: update_daemonset_versions
     displayName: "Update Cilium + CNS Version and Restart Nodes"
     jobs:
