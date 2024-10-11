@@ -1,6 +1,9 @@
 {
+  "Name": "ACN CI/CD Build Environment Owner",
   "roleName": "ACN CI/CD Build Environment Owner",
+  "Type": "CustomRole",
   "roleType": "CustomRole",
+  "isCustom": true,
   "description": "A custom role given to managed identities created by the CI build process. This role should try to focus on owning the resources already in its scope; rather than creating new ones. Actions should be added as necessary - and not in anticipation.",
   "actions": [
     "Microsoft.Storage/storageAccounts/blobServices/containers/*",
