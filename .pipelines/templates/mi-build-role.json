@@ -56,6 +56,6 @@
   ],
   "notDataActions": [],
   "assignableScopes": [
-    "/subscriptions/{subscription1}/resourceGroups/{resourceGroup1}"
+    "$RESOURCE_GROUP_ID"
   ]
 }
