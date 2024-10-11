@@ -62,12 +62,14 @@ stages:
       - job: resources
         displayName: "[Infra] Retrieve Artifact Storage Information"
         variables:
+          ACNCI_BUILDUSER_ROLE_NAME: "ACN CI/CD Build Environment Owner"
+          ACNCI_MANAGEDIDENTITY_PREFIX: acnci-builds-
           ACNCI_RG_PREFIX: acnci-builds-
           ACNCI_RG_LOCATION: centralus
           ACNCI_RG_POOL_SIZE: 3
           ACNCI_SA_PREFIX: acnci
           ACNCI_SA_LOCATION: $(ACNCI_RG_LOCATION)
-          ACNCI_SA_POOL_SIZE: 3
+          ACNCI_SA_POOL_SIZE: 1
           ACNCI_BUILDTAG_DEFINITIONID: 'Pipelines.DefinitionID'
           ACNCI_BUILDTAG_CREATEDBYAPPID: 'Pipelines.CreatedByAppID'
           ACNCI_BUILDTAG_CREATEDBYBUILDID: 'Pipelines.CreatedByBuildID'

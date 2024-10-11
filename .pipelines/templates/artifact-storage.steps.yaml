@@ -1,14 +1,8 @@
 
 steps:
-- bash: |
-    set -x
-    UNIQUE_ID=`tr -dc '0-9a-z' < /dev/urandom | head -c${1:-7}`
-    echo >&2 "##vso[task.setvariable variable=ACNCI_UNIQUE_ID]$UNIQUE_ID"
-  displayName: "[Infra] Generate Unique ID"
-
+      
 - task: AzureCLI@2
-  name: resourcegroups
-  displayName: "Check Build Resource Groups"
+  displayName: "[Output] SC Environment App Details"
   inputs:
     azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
     scriptType: bash
@@ -18,61 +12,308 @@ steps:
       set -e
       [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
 
-      set -x
-      
       # App OID
       SP_APP_OID=$(az ad sp show --id "$servicePrincipalId" | jq -rc '.id') 
+      echo >&2 "##vso[task.setvariable variable=SP_APP_OID]$SP_APP_OID"
       # Get Subscription ID.
       SUBSCRIPTION_ID=$(az account show | jq -rc '.id')
+      echo >&2 "##vso[task.setvariable variable=SUBSCRIPTION_ID]$SUBSCRIPTION_ID"
+
+
+- task: AzureCLI@2
+  displayName: "[Provision] Build User Owner Role Definition"
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    addSpnToEnvironment: true
+    inlineScript: |
+      set -e
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+
+      DEFS_FOUND=$(az role definition list --name "$ACNCI_BUILDUSER_ROLE_NAME" --custom-role-only -ojson | jq length)
+
+      if [[ $DEFS_FOUND < 1 ]]; then
+        az role definition create \
+          --role-definition @mi-build-role.json
+      else
+        az role definition update \
+          --role-definition @mi-build-role.json
+      fi
+
+
+## Resource Groups ##
+- bash: |
+    set -x
+    UNIQUE_ID=`tr -dc '0-9a-z' < /dev/urandom | head -c${1:-7}`
+    echo >&2 "##vso[task.setvariable variable=LOCAL_ACNCI_UNIQUE_ID]$UNIQUE_ID"
+  displayName: "[Infra] Generate Unique ID"
+
+- task: AzureCLI@2
+  displayName: "[Check] Build Resource Groups"
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    addSpnToEnvironment: true
+    inlineScript: |
+      set -e
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
 
       # Get Pipeline Build Subscriptions.
       R_QUERY="[? tags.\""$ACNCI_BUILDTAG_DEFINITIONID"\" && tags.\""$ACNCI_BUILDTAG_CREATEDBYAPPID"\"]"
       INFRA_RG_LIST=$(az group list --query "$R_QUERY" \
         --tag "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" \
         --tag "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId" -o json | jq -rc '.')
-      echo "$INFRA_RG_LIST"
-
       INFRA_RG_LENGTH=$(echo "$INFRA_RG_LIST" | jq length)
-      echo "$INFRA_RG_LIST_LENGTH"
 
       if [[ -z $INFRA_RG_LENGTH ]] || \
          (( $INFRA_RG_LENGTH < $ACNCI_SA_POOL_SIZE )); then
         # Construct RG Name
-        RG_NAME="${ACNCI_RG_PREFIX}${ACNCI_UNIQUE_ID}"
-        # Create rg
-        az group create \
-          --name "$RG_NAME" \
-          --location "$ACNCI_SA_LOCATION" \
-          --tags "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" \
-                 "$ACNCI_BUILDTAG_CREATEDBYBUILDID"="$BUILD_BUILDID" \
-                 "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId"
-        # Storage Blob Data Contributor on RG
-        RG_ID="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RG_NAME}"
-        az role assignment create \
-          --role "Storage Account Contributor" \
-          --assignee-principal-type ServicePrincipal \
-          --assignee-object-id "$servicePrincipalId" \
-          --scope "$RG_ID"
-        az role assignment create \
-          --role "Storage Blob Data Contributor" \
-          --assignee-principal-type ServicePrincipal \
-          --assignee-object-id "$servicePrincipalId" \
-          --scope "$RG_ID"
-
+        RG_NAME="${ACNCI_RG_PREFIX}${LOCAL_ACNCI_UNIQUE_ID}"
+        echo >&2 "##vso[task.setvariable variable=CREATE_NEW_RG;]true"
       else
-        # Select one resource group to use.
-        RANDOM_SELECT=`tr -dc '1-9' < /dev/urandom | head -c${1:-7}`
-        IDX=$(( "$RANDOM_SELECT" % "$INFRA_RG_LENGTH" ))
-        RG_DATA=$(echo "$INFRA_RG_LIST" | jq --argjson IDX "$IDX" -rc '.[$IDX]')
-        RG_NAME=$(echo "$RG_DATA" | jq -rc '.name')
-        RG_ID=$(echo "$RG_DATA" | jq -rc '.id')
+        echo >&2 "##vso[task.setvariable variable=CREATE_NEW_RG;]false"
       fi
-      echo >&2 "##vso[task.setvariable variable=ACNCI_BUILD_RESOURCEGROUP;isoutput=true;]$RG_NAME"
-      echo >&2 "##vso[task.setvariable variable=ACNCI_BUILD_RESOURCEGROUP_ID;isoutput=true;]$RG_ID"
   env:
-    ACNCI_UNIQUE_ID: $(ACNCI_UNIQUE_ID)
+    LOCAL_ACNCI_UNIQUE_ID: $(LOCAL_ACNCI_UNIQUE_ID)
     # Allows use of az devops commands
     AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
+
+- task: AzureCLI@2
+  displayName: "[Provision] Pool - Build Resource Groups"
+  condition: and(succeeded(), eq(variables.CREATE_NEW_RG, True))
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    addSpnToEnvironment: true
+    inlineScript: |
+      set -e
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+
+      # Create rg
+      az group create \
+        --name "$RG_NAME" \
+        --location "$ACNCI_SA_LOCATION" \
+        --tags "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" \
+               "$ACNCI_BUILDTAG_CREATEDBYBUILDID"="$BUILD_BUILDID" \
+               "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId"
+  env:
+    RG_NAME: $(RG_NAME)
+
+- task: AzureCLI@2
+  name: resourcegroups
+  displayName: "[Check] Build Resource Groups"
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    addSpnToEnvironment: true
+    inlineScript: |
+      set -e
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+
+      # Get Pipeline Build Subscriptions.
+      R_QUERY="[? tags.\""$ACNCI_BUILDTAG_DEFINITIONID"\" && tags.\""$ACNCI_BUILDTAG_CREATEDBYAPPID"\"]"
+      INFRA_RG_LIST=$(az group list --query "$R_QUERY" \
+        --tag "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" \
+        --tag "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId" -o json | jq -rc '.')
+      INFRA_RG_LENGTH=$(echo "$INFRA_RG_LIST" | jq length)
+
+      # Select one resource group to use.
+      RANDOM_SELECT=`tr -dc '1-9' < /dev/urandom | head -c${1:-7}`
+      IDX=$(( "$RANDOM_SELECT" % "$INFRA_RG_LENGTH" ))
+      RG_DATA=$(echo "$INFRA_RG_LIST" | jq --argjson IDX "$IDX" -rc '.[$IDX]')
+      echo >&2 "##vso[task.setvariable variable=RG_DATA;]$RG_DATA"
+  env:
+    # Allows use of az devops commands
+    AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
+
+- task: AzureCLI@2
+  name: resourcegroups
+  displayName: "[Output] Build Resource Group"
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    addSpnToEnvironment: true
+    inlineScript: |
+      set -e
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+
+      RANDOM_SELECT=`tr -dc '1-9' < /dev/urandom | head -c${1:-7}`
+      IDX=$(( "$RANDOM_SELECT" % "$INFRA_RG_LENGTH" ))
+      RG_DATA=$(echo "$INFRA_RG_LIST" | jq --argjson IDX "$IDX" -rc '.[$IDX]')
+      RG_NAME=$(echo "$RG_DATA" | jq -rc '.name')
+      RG_ID=$(echo "$RG_DATA" | jq -rc '.id')
+
+      echo >&2 "##vso[task.setvariable variable=ACNCI_BUILD_RESOURCEGROUP;isoutput=true;]$RG_NAME"
+      echo >&2 "##vso[task.setvariable variable=ACNCI_BUILD_RESOURCEGROUP_ID;isoutput=true;]$RG_ID"
+
+    
+## Managed Identity ##
+# Inherited Env Vars:
+#   ACNCI_MANAGEDIDENTITY_PREFIX (stage variable)
+#   ACNCI_RG_LOCATION (stage variable)
+- task: AzureCLI@2
+  displayName: "[Check] Build Environment User ManagedIdentity"
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    addSpnToEnvironment: true
+    inlineScript: |
+      set -e
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+
+      MI_DATA=$(az identity list \
+        --resource-group "$ACNCI_BUILD_RESOURCEGROUP" \
+        --tag "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" \
+        --tag "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId" -o json | \
+      jq -rc '.')
+      MI_DATA_LENGTH=$(echo "$MA_DATA" | jq length)
+
+      echo $MI_DATA
+      echo $MI_DATA_LENGTH
+      if [[ -n $MA_DATA ]] && \
+         [[ $MA_DATA != null ]] && \
+         (( $MA_DATA_LENGTH > 0 )); then
+        echo >&2 "##vso[task.setvariable variable=MI_DATA;isoutput=true]$MI_ID"
+        echo >&2 "##vso[task.setvariable variable=CREATE_NEW_MI;]false"
+      else
+        echo >&2 "##vso[task.setvariable variable=CREATE_NEW_MI;]true"
+      fi
+  env:
+    ACNCI_BUILD_RESOURCEGROUP: $(resourcegroups.ACNCI_BUILD_RESOURCEGROUP)
+    ACNCI_BUILD_RESOURCEGROUP_ID: $(resourcegroups.ACNCI_BUILD_RESOURCEGROUP_ID)
+  
+- task: AzureCLI@2
+  displayName: "[Provision] Build User ManagedIdentity"
+  condition: and(succeeded(), eq(variables.CREATE_NEW_MI, True))
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    addSpnToEnvironment: true
+    inlineScript: |
+      set -e
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+
+      MANAGEDIDENTITY_NAME='"${ACNCI_MANAGEDIDENTITY_PREFIX}""${UNIQUE_ID}"-"${LOCATION}"'
+      az identity create \
+        --name "$MANAGEDIDENTITY_NAME" \
+        --resource-group "$ACNCI_BUILD_RESOURCEGROUP" \
+        --location "$ACNCI_RG_LOCATION" \
+        --tags "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" \
+               "$ACNCI_BUILDTAG_CREATEDBYBUILDID"="$BUILD_BUILDID" \
+               "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId"
+  env:
+    ACNCI_MANAGEDIDENTITY_PREFIX: $(ACNCI_MANAGEDIDENTITY_PREFIX)
+    ACNCI_BUILD_RESOURCEGROUP: $(resourcegroups.ACNCI_BUILD_RESOURCEGROUP)
+    ACNCI_BUILD_RESOURCEGROUP_ID: $(resourcegroups.ACNCI_BUILD_RESOURCEGROUP_ID)
+
+- task: AzureCLI@2
+  name: managedidentity
+  displayName: "[Output] Build User ManagedIdentity Details"
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    addSpnToEnvironment: true
+    inlineScript: |
+      set -e
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+
+      MI_ID=$(echo "$MI_DATA" | jq -r '.id')
+      echo >&2 "##vso[task.setvariable variable=ACNCI_MANAGEDIDENTITY_ID;isoutput=true]$MI_ID"
+      MI_PRINCIPALID=$(echo "$MI_DATA" | jq -r '.principalId')
+      echo >&2 "##vso[task.setvariable variable=ACNCI_MANAGEDIDENTITY_OBJECTID;isoutput=true]$MI_PRINCIPALID"
+      MI_ID=$(echo "$MI_DATA" | jq -r '.clientId')
+      echo >&2 "##vso[task.setvariable variable=ACNCI_MANAGEDIDENTITY_APPID;isoutput=true]$MI_ID"
+      MI_NAME=$(echo "$MI_DATA" | jq -r '.name')
+      echo >&2 "##vso[task.setvariable variable=ACNCI_MANAGEDIDENTITY_NAME;isoutput=true]$MI_NAME"
+
+
+## MI Role Assignments ##
+- task: AzureCLI@2
+  displayName: "[Check] Build User MI Roles"
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    addSpnToEnvironment: true
+    inlineScript: |
+      set -e
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+
+      MI_ROLE_DATA=$(az role assignment list \
+        --role "$ACNCI_BUILDUSER_ROLE_NAME"
+        --assignee "$ACNCI_MANAGEDIDENTITY_OBJECTID" \
+        --output json | jq -rc '.')
+      MI_ROLE_DATA_LENGTH=$(echo "$MA_ROLE_DATA" | jq length)
+      echo >&2 "##vso[task.setvariable variable=MI_ROLE_DATA;]$MI_ROLE_DATA"
+      echo >&2 "##vso[task.setvariable variable=MI_ROLE_LENGTH;]$MI_ROLE_DATA_LENGTH"
+  env:
+    ACNCI_BUILDUSER_ROLE_NAME: $(ACNCI_BUILDUSER_ROLE_NAME)
+    ACNCI_MANAGEDIDENTITY_OBJECTID: $(managedidentity.ACNCI_MANAGEDIDENTITY_OBJECTID)
+
+- task: AzureCLI@2
+  displayName: "[Provision] Build User ManagedIdentity Roles"
+  inputs:
+    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+    scriptType: bash
+    scriptLocation: inlineScript
+    addSpnToEnvironment: true
+    inlineScript: |
+      set -e
+      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+  
+      if [[ -n $MI_ROLE_DATA_LENGTH ]] && \
+         [[ $MA_DATA != null ]] && \
+         (( $MA_DATA_LENGTH > 0 )); then
+        az role assignment create \
+          --role "$ACNCI_BUILDUSER_ROLE_NAME"
+          --assignee-object-id "$ACNCI_MANAGEDIDENTITY_OBJECTID" \
+          --assignee-principal-type ServicePrincipal \
+          --scope "$ACNCI_BUILD_RESOURCEGROUP_ID"
+
+      else
+        az role assignment update \
+          --role "$ACNCI_BUILDUSER_ROLE_NAME"
+          --assignee-object-id "$ACNCI_MANAGEDIDENTITY_OBJECTID" \
+          --assignee-principal-type ServicePrincipal \
+          --scope "$ACNCI_BUILD_RESOURCEGROUP_ID"
+      fi
+  env:
+    ACNCI_BUILD_RESOURCEGROUP_ID: $(resourcegroups.ACNCI_BUILD_RESOURCEGROUP_ID)
+    ACNCI_MANAGEDIDENTITY_OBJECTID: $(managedidentity.ACNCI_MANAGEDIDENTITY_OBJECTID)
+    ACNCI_BUILDUSER_ROLE_NAME: $(ACNCI_BUILDUSER_ROLE_NAME)
+    MI_ROLE_DATA: $(MI_ROLE_DATA)
+    MI_ROLE_DATALENGTH: $(MI_ROLE_DATA_LENGTH)
+
+
+#- task: AzureCLI@2
+#  inputs:
+#    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+#    scriptType: bash
+#    scriptLocation: inlineScript
+#    addSpnToEnvironment: true
+#    inlineScript: |
+#      set -e
+#      [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
+#
+#      STORAGE_ACC_ID=$(az storage account show \
+#        --resource-group "$ACNCI_BUILD_RESOURCEGROUP_ID" \
+#        --name "$STORAGE_ACC" \
+#        --query id -o tsv)
+#      USER_ASSIGNED_CLIENT_ID=$(az identity show --resource-group "$RG" --name "$USER_ASSIGNED_IDENTITY_NAME" --query 'clientId' -o tsv)
+#      az role assignment create \
+#        --role "Storage Blob Data Contributor" \
+#        --assignee "$USER_ASSIGNED_CLIENT_ID" \
+#        --scope "$STORAGE_ACC_ID"
+#  env:
+#    ACNCI_BUILD_RESOURCEGROUP_ID: $(resourcegroups.ACNCI_BUILD_RESOURCEGROUP_ID)
 
 - template: get-storage-accounts.steps.yaml
   parameters:
@@ -80,7 +321,7 @@ steps:
     resourceGroupName: $(resourcegroups.ACNCI_BUILD_RESOURCEGROUP)
 
 - task: AzureCLI@2
-  displayName: "Check Storage Account Pool"
+  displayName: "[Check] Build Storage Accounts"
   inputs:
     azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
     scriptType: bash
@@ -97,7 +338,7 @@ steps:
     SA_LIST_LENGTH: $(SA_LIST_LENGTH)
 
 - task: AzureCLI@2
-  displayName: "Add Storage Account to Pool"
+  displayName: "[Provision] Storage Account"
   condition: and(succeeded(), eq(variables.CREATE_NEW_SA, True))
   inputs:
     azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
@@ -108,23 +349,23 @@ steps:
       set -e
       [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
 
-      SA_NAME="${ACNCI_SA_PREFIX}${ACNCI_UNIQUE_ID}"
-
+      SA_NAME="${ACNCI_SA_PREFIX}${LOCAL_ACNCI_UNIQUE_ID}"
       az storage account create \
         --name "$SA_NAME" \
         --location "$ACNCI_SA_LOCATION" \
-        --resource-group "$RG_NAME" \
-        --public-network-access Disabled \
-        --require-infrastructure-encryption \
-        --allow-shared-key-access false \
+        --resource-group "$ACNCI_BUILD_RESOURCEGROUP" \ 
+        --assign-identity "$ACNCI_MANAGEDIDENTITY_OBJECTID" \
         --allow-blob-public-access false \
+        --allow-shared-key-access false \
+        --enable-files-aad-integration true \
         --tags "$ACNCI_BUILDTAG_DEFINITIONID"="$SYSTEM_DEFINITIONID" \
                "$ACNCI_BUILDTAG_CREATEDBYBUILDID"="$BUILD_BUILDID" \
-               "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId"
-        #--enable-files-aadds true 
+               "$ACNCI_BUILDTAG_CREATEDBYAPPID"="$servicePrincipalId" 
+        #--default-action Deny 
   env:
-    ACNCI_UNIQUE_ID: $(ACNCI_UNIQUE_ID)
-    RG_NAME: $(resourcegroups.ACNCI_BUILD_RESOURCEGROUP)
+    LOCAL_ACNCI_UNIQUE_ID: $(LOCAL_ACNCI_UNIQUE_ID)
+    ACNCI_BUILD_RESOURCEGROUP: $(resourcegroups.ACNCI_BUILD_RESOURCEGROUP)
+    ACNCI_MANAGEDIDENTITY_OBJECTID: $(managedidentity.ACNCI_MANAGEDIDENTITY_OBJECTID)
     
 - template: get-storage-accounts.steps.yaml
   parameters:
@@ -157,7 +398,6 @@ steps:
     addSpnToEnvironment: true
     inlineScript: |
       set -e
-
       [[ -n $SYSTEM_DEBUG ]] && [[ $SYSTEM_DEBUG =~ $IS_TRUE ]] && set -x || set +x
 
       # Make a random selection from the pool
@@ -195,26 +435,26 @@ steps:
     SA_LIST_LENGTH: $(SA_LIST_LENGTH)
     SA_SERVICE_CONN: $(ACN_TEST_SERVICE_CONNECTION)
 
-- task: AzureCLI@2
-  displayName: "Storage Account Access Permissions"
-  inputs:
-    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
-    scriptType: bash
-    scriptLocation: inlineScript
-    addSpnToEnvironment: true
-    inlineScript: |
-      set -x
-      echo $SPNOBJECTID
-      UPDATE_IDENTITY=$(echo "$ACNCI_STORAGEACCOUNT" | jq -r '.identity')
-      if [[ -z $UPDATE_IDENTITY ]] || \
-         [[ $UPDATE_IDENTITY =~ null ]]; then
-        SP_ID=$(az ad sp show --id "$(az account show --query user.name -o tsv)" --query id -o tsv)
-        az storage account update --user-identity-id "$servicePrincipalId" --ids "$ACNCI_STORAGEACCOUNT_ID"
-      else
-        echo >&2 "Storage account identity set."
-      fi
-  env:
-    ACNCI_STORAGEACCOUNT_ID: $(artifact_storage.ACNCI_STORAGEACCOUNT_ID)
+#- task: AzureCLI@2
+#  displayName: "[Grant] Storage Account Access Permissions"
+#  inputs:
+#    azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)
+#    scriptType: bash
+#    scriptLocation: inlineScript
+#    addSpnToEnvironment: true
+#    inlineScript: |
+#      set -x
+#      echo $SPNOBJECTID
+#      UPDATE_IDENTITY=$(echo "$ACNCI_STORAGEACCOUNT" | jq -r '.identity')
+#      if [[ -z $UPDATE_IDENTITY ]] || \
+#         [[ $UPDATE_IDENTITY =~ null ]]; then
+#        SP_ID=$(az ad sp show --id "$(az account show --query user.name -o tsv)" --query id -o tsv)
+#        az storage account update --user-identity-id "$servicePrincipalId" --ids "$ACNCI_STORAGEACCOUNT_ID"
+#      else
+#        echo >&2 "Storage account identity set."
+#      fi
+#  env:
+#    ACNCI_STORAGEACCOUNT_ID: $(artifact_storage.ACNCI_STORAGEACCOUNT_ID)
 
 - task: AzureCLI@2
   name: artifact_container
