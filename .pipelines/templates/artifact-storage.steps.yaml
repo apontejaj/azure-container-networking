@@ -103,7 +103,6 @@ steps:
     RG_NAME: $(RG_NAME)
 
 - task: AzureCLI@2
-  name: resourcegroups
   displayName: "[Check] Build Resource Groups"
   inputs:
     azureSubscription: $(ACN_TEST_SERVICE_CONNECTION)

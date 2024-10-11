@@ -1,0 +1,58 @@
+{
+  "roleName": "ACN CI/CD Build Environment Owner",
+  "roleType": "CustomRole",
+  "description": "A custom role given to managed identities created by the CI build process. This role should try to focus on owning the resources already in its scope; rather than creating new ones. Actions should be added as necessary - and not in anticipation.",
+  "actions": [
+    "Microsoft.Storage/storageAccounts/blobServices/containers/*",
+    "Microsoft.Storage/storageAccounts/blobServices/generateUserDelegationKey/action",
+    "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/*",
+
+    "Microsoft.Storage/storageAccounts/tableServices/tables/read",
+    "Microsoft.Storage/storageAccounts/tableServices/tables/write",
+    "Microsoft.Storage/storageAccounts/tableServices/tables/delete",
+
+    "Microsoft.Network/publicIPAddresses/read",
+    "Microsoft.Network/virtualNetworks/read",
+    "Microsoft.Network/loadBalancers/read",
+    "Microsoft.Network/networkInterfaces/read",
+    "Microsoft.Compute/virtualMachines/*/read",
+    "Microsoft.HybridCompute/machines/*/read",
+    "Microsoft.HybridConnectivity/endpoints/listCredentials/action",
+
+    "Microsoft.Compute/*/read",
+    "Microsoft.Compute/*/write",
+    "Microsoft.Compute/*/delete",
+    
+    "Microsoft.ContainerRegistry/registries/pull/read",
+    "Microsoft.ContainerRegistry/registries/push/write"
+  ],
+  "notActions": [],
+  "dataActions": [
+    "Microsoft.Storage/storageAccounts/blobServices/containers/*",
+    "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/*",
+
+    "Microsoft.Storage/storageAccounts/tableServices/tables/entities/read",
+    "Microsoft.Storage/storageAccounts/tableServices/tables/entities/write",
+    "Microsoft.Storage/storageAccounts/tableServices/tables/entities/delete",
+    "Microsoft.Storage/storageAccounts/tableServices/tables/entities/add/action",
+    "Microsoft.Storage/storageAccounts/tableServices/tables/entities/update/action",
+    
+    "Microsoft.Storage/storageAccounts/fileServices/fileshares/files/read",
+    "Microsoft.Storage/storageAccounts/fileServices/fileshares/files/write",
+    "Microsoft.Storage/storageAccounts/fileServices/fileshares/files/delete",
+    "Microsoft.Storage/storageAccounts/fileServices/fileshares/files/modifypermissions/action",
+    "Microsoft.Storage/storageAccounts/fileServices/readFileBackupSemantics/action",
+    "Microsoft.Storage/storageAccounts/fileServices/writeFileBackupSemantics/action",
+
+    "Microsoft.Compute/virtualMachines/login/action",
+    "Microsoft.Compute/virtualMachines/loginAsAdmin/action",
+    "Microsoft.HybridCompute/machines/login/action",
+    "Microsoft.HybridCompute/machines/loginAsAdmin/action",
+    "Microsoft.Compute/virtualMachines/start/action",
+    "Microsoft.Compute/virtualMachines/restart/action"
+  ],
+  "notDataActions": [],
+  "assignableScopes": [
+    "/subscriptions/{subscription1}/resourceGroups/{resourceGroup1}"
+  ]
+}
