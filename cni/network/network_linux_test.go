@@ -235,6 +235,12 @@ func TestPluginLinuxAdd(t *testing.T) {
 		MultiTenancy:               false,
 		EnableExactMatchForPodName: true,
 		// test auto finding master interface
+		DNS: types.DNS{
+			Nameservers: []string{
+				"ns1", "ns2",
+			},
+			Domain: "myDomain",
+		},
 	}
 	macAddress := "60:45:bd76:f6:44"
 	parsedMACAddress, _ := net.ParseMAC(macAddress)
@@ -405,6 +411,12 @@ func TestPluginLinuxAdd(t *testing.T) {
 						NetNsPath:         "bc526fae-4ba0-4e80-bc90-ad721e5850bf",
 						NetNs:             "bc526fae-4ba0-4e80-bc90-ad721e5850bf",
 						HostSubnetPrefix:  "10.224.0.0/16",
+						EndpointDNS: network.DNSInfo{
+							Servers: []string{
+								"ns1", "ns2",
+							},
+							Suffix: "myDomain",
+						},
 						Options: map[string]interface{}{
 							"testflag": "copy",
 						},
@@ -456,6 +468,12 @@ func TestPluginLinuxAdd(t *testing.T) {
 						NetNsPath:         "bc526fae-4ba0-4e80-bc90-ad721e5850bf",
 						NetNs:             "bc526fae-4ba0-4e80-bc90-ad721e5850bf",
 						HostSubnetPrefix:  "<nil>",
+						EndpointDNS: network.DNSInfo{
+							Servers: []string{
+								"ns1", "ns2",
+							},
+							Suffix: "myDomain",
+						},
 						Options: map[string]interface{}{
 							"testflag": "copy",
 						},
