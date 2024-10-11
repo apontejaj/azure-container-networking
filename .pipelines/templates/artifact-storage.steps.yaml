@@ -34,12 +34,13 @@ steps:
       set -x
       DEFS_FOUND=$(az role definition list --name "$ACNCI_BUILDUSER_ROLE_NAME" --custom-role-only -ojson | jq length)
 
+      DEF=$(cat ./mi-build-role.json | jq -rc '.')
       if [[ $DEFS_FOUND < 1 ]]; then
         az role definition create \
-          --role-definition '"$(cat ./mi-build-role.json)"'
+          --role-definition '"'
       else
         az role definition update \
-          --role-definition '"$(cat./mi-build-role.json)"'
+          --role-definition "$(cat./mi-build-role.json)"
       fi
 
 
