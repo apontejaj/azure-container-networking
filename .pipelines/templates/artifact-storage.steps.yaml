@@ -35,7 +35,7 @@ steps:
       pwd
       DEFS_FOUND=$(az role definition list --name "$ACNCI_BUILDUSER_ROLE_NAME" --custom-role-only -ojson | jq length)
 
-      DEF=$(cat ./templates/mi-build-role.json | jq -rc '.')
+      DEF=$(cat ./.pipelines/templates/mi-build-role.json | jq -rc '.')
       if (( $DEFS_FOUND < 1 )); then
         az role definition create \
           --role-definition "$DEF"
