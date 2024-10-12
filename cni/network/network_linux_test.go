@@ -508,6 +508,8 @@ func TestPluginLinuxAdd(t *testing.T) {
 			require.NoError(t, err)
 			allEndpoints, _ := tt.plugin.nm.GetAllEndpoints("")
 			require.Len(t, allEndpoints, len(tt.want))
+
+			// compare contents
 			for _, wantedEndpointEntry := range tt.want {
 				epId := "none"
 				for _, endpointInfo := range allEndpoints {
@@ -531,6 +533,23 @@ func TestPluginLinuxAdd(t *testing.T) {
 				tt.plugin.nm.DeleteEndpoint("", epId, nil)
 			}
 
+			// confirm separate entities
+			// that is, if one is modified, the other should not be modified
+			epInfos := []*network.EndpointInfo{}
+			for _, val := range allEndpoints {
+				epInfos = append(epInfos, val)
+			}
+			if len(epInfos) > 1 {
+				epInfo1 := epInfos[0]
+				epInfo2 := epInfos[1]
+				epInfo1.Data["dummy"] = "dummy value"
+				epInfo1.Options["dummy"] = "another dummy value"
+				require.NotEqual(t, epInfo1.Data, epInfo2.Data)
+				require.NotEqual(t, epInfo1.Options, epInfo2.Options)
+			}
+
+			// ensure deleted
+			require.Empty(t, allEndpoints)
 		})
 	}
 }

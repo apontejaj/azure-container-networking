@@ -1210,6 +1210,8 @@ func TestPluginWindowsAdd(t *testing.T) {
 				tt.plugin.nm.DeleteEndpoint("", epId, nil)
 			}
 
+			// ensure deleted
+			require.Empty(t, allEndpoints)
 		})
 	}
 }
